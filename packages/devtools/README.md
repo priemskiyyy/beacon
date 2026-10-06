@@ -57,7 +57,7 @@ The class has `mount(element)`, `unmount()`, `setBeacon(beacon)` for an applicat
 - The overview: what runs per subject (not configured, pending, known with its identity and label, failed), the support state with its reasons, remediation and evaluation evidence, and the journal with the latest intent, what the running facts say about it, its attempts and this boot's readiness checkpoints.
 - The timeline: the local time, the type, the session, the route, the command, the attempt, the operation and the reason of each event, a chip for each type recorded, a search, pause, clear, and rows that expand into the whole record with a copy button. Selecting a route narrows it to that route and to the events of no route. The launcher turns red when a failure event arrives while the panel is closed: `route-failed`, `policy-failed`, `journal-failed`, `running-failed`, `read-failed`, `listener-error`, `cleanup-error` and `late-callback`.
 
-The panel docks to the bottom or the right edge and resizes by dragging its edge or with the arrow keys. The open state, the dock position and the size persist in `localStorage` under `@priemskiyyy/beacon-devtools`, and a value that is missing, corrupt or out of range (a size under 240 pixels) is ignored.
+The panel docks to the bottom or the right edge and resizes by dragging its edge or with the arrow keys along it. Opening it moves focus into it, and Escape closes it and moves focus back to the launcher; a panel restored from the last visit never takes focus. The open state, the dock position and the size persist in `localStorage` under `@priemskiyyy/beacon-devtools`, and a value that is missing, corrupt or out of range (a size under 240 pixels) is ignored.
 
 ## What it never does
 

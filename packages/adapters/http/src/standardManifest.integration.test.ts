@@ -193,6 +193,32 @@ test("HTTP-09 no content, not found and a server error are failed checks, never 
   }
 });
 
+test("an ordered revision that is not a canonical decimal fails the check whole, as the core judges it", async () => {
+  const { beacon, server } = create();
+
+  server.response = fakeResponse({
+    text: manifestWith((manifest) => {
+      manifest["decisionRevision"] = {
+        kind: "ordered",
+        domain: "notes-web-deployments",
+        epoch: "production-v1",
+        value: "0208",
+      };
+    }),
+  });
+
+  beacon.start();
+
+  await expect(beacon.route("web").check()).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "INVALID_DOCUMENT" },
+  });
+
+  expect(beacon.route("web").state.get().observation).toMatchObject({
+    status: "unknown",
+  });
+});
+
 test("HTTP-16 a manifest with a bad support block fails the check whole, and none of it replaces what was accepted", async () => {
   const { beacon, server } = create();
 

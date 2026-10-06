@@ -21,6 +21,6 @@ const READERS: Record<
   }),
 };
 
-/** How the authority numbers its decision: opaque, or ordered by a decimal text that no number size rounds. */
+/** How the authority numbers its decision: opaque, or ordered by a text. The core requires an ordered value to be a canonical decimal when it accepts the read, so that no number size rounds it. */
 export const readRevision = (value: unknown, field: string): DecisionRevision =>
   readVariant({ value, field, tag: "kind", readers: READERS });

@@ -161,14 +161,14 @@ The document has one decision for each declared route, and the optional `support
 }
 ```
 
-| Field                                                    | Rule                                                                                                                     |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `schemaVersion`                                          | must be `1`                                                                                                              |
-| `application`, `environment`, `platform`, `distribution` | must repeat the scope exactly. A manifest never states a `partition`                                                     |
-| `decisionRevision`                                       | `{ kind: "opaque", value }`, or `{ kind: "ordered", domain, epoch, value }` with a canonical decimal `value`             |
-| `issuedAt`, `expiresAt`                                  | UTC timestamps such as `2026-09-27T10:00:00Z`, with an optional fraction of up to three digits                           |
-| `routes`                                                 | one decision for each declared route: `target`, `candidate` or `none`                                                    |
-| `support`                                                | optional: `revision`, `subject`, `deniedReleaseIds`, `reasonCode` and `remediationRoute`, which must be a declared route |
+| Field                                                    | Rule                                                                                                                                      |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemaVersion`                                          | must be `1`                                                                                                                               |
+| `application`, `environment`, `platform`, `distribution` | must repeat the scope exactly. A manifest never states a `partition`                                                                      |
+| `decisionRevision`                                       | `{ kind: "opaque", value }`, or `{ kind: "ordered", domain, epoch, value }` with a `value` that Beacon requires to be a canonical decimal |
+| `issuedAt`, `expiresAt`                                  | UTC timestamps such as `2026-09-27T10:00:00Z`, with an optional fraction of up to three digits                                            |
+| `routes`                                                 | one decision for each declared route: `target`, `candidate` or `none`                                                                     |
+| `support`                                                | optional: `revision`, `subject`, `deniedReleaseIds`, `reasonCode` and `remediationRoute`, which must be a declared route                  |
 
 A decision is `{ kind: "target", release }`, `{ kind: "candidate", release }` where the release carries `order`, or `{ kind: "none", reason }`. A release has an `identity` and optionally a `label`, a `compatibility` and `metadata`. A compatibility is `compatible` with a `basis`, `incompatible` with `reasons`, `delegated` with an `authority`, `unknown` with a `reason`, or `not-applicable`.
 

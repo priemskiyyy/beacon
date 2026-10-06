@@ -158,6 +158,7 @@ const entries = [
   "packages/devtools/src/index.ts",
   "packages/devtools/src/react.ts",
   "packages/adapters/triggers/src/browser.ts",
+  "packages/adapters/expo/src/mock.ts",
   ...listAdapterEntries(),
 ];
 

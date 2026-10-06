@@ -27,6 +27,7 @@
     "verify:docs": "node scripts/verify-docs.mjs",
     "verify:snippets": "node scripts/verify-snippets.mjs",
     "verify:jsdoc": "node scripts/verify-jsdoc.mjs",
+    "verify:peers": "node scripts/verify-peers.mjs",
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {

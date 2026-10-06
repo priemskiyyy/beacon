@@ -1,6 +1,14 @@
 // Mutation checks: each mutant weakens one rule the tests must defend. A
 // survivor is either a missing test or dead code. Every changed file is
 // restored, and a red baseline stops the run.
+//
+//   node scripts/mutate.mjs                        every mutant
+//   node scripts/mutate.mjs --project triggers     only the mutants of that vitest project
+//   node scripts/mutate.mjs --project core --project triggers
+//
+// `--project <name>` may be repeated. Only the baselines and the mutants of the
+// named projects run, and a name no mutant belongs to is refused. The check
+// that each `find` occurs exactly once in its file still covers every mutant.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -10,6 +18,9 @@ const testing = "packages/core/src/testing";
 const http = "packages/adapters/http/src";
 const triggers = "packages/adapters/triggers/src";
 const devtools = "packages/devtools/src";
+const expo = "packages/adapters/expo/src";
+const appStore = "packages/adapters/app-store/src";
+const googlePlay = "packages/adapters/google-play/src";
 
 const MUTANTS = [
   {
@@ -55,6 +66,176 @@ const MUTANTS = [
     project: "core",
     describes:
       "a check with a support policy starting its reads before every running fact is in",
+  },
+  {
+    file: `${core}/minimumBuild.ts`,
+    find: 'if (native.state !== "known") {',
+    replace: "if (false) {",
+    project: "core",
+    describes: "a forced upgrade reading a native build that was not read",
+  },
+  {
+    file: `${core}/minimumBuild.ts`,
+    find: "identity.domain !== IOS_BUILD_DOMAIN) ||",
+    replace: "false) ||",
+    project: "core",
+    describes:
+      "a forced upgrade comparing a build named in a domain that is not a native build's",
+  },
+  {
+    file: `${core}/minimumBuild.ts`,
+    find: "(authority !== undefined && identity.authority !== authority)",
+    replace: "false",
+    project: "core",
+    describes:
+      "a forced upgrade comparing a build of another application than the one named",
+  },
+  {
+    file: `${core}/minimumBuild.ts`,
+    find: 'if (build.compare(build.parse(identity.value), minimum) !== "older") {',
+    replace:
+      'if (build.compare(build.parse(identity.value), minimum) === "older") {',
+    project: "core",
+    describes: "a forced upgrade answering supported for an older build",
+  },
+  {
+    file: `${core}/minimumBuild.ts`,
+    find: 'level = "required",',
+    replace: 'level = "recommended",',
+    project: "core",
+    describes:
+      "a forced upgrade whose store route is only recommended unless the application says so",
+  },
+  {
+    file: `${core}/minimumBuild.ts`,
+    find: "project: (document) => build.parse(source.project(document)),",
+    replace: "project: (document) => String(source.project(document)),",
+    project: "core",
+    describes: "a forced upgrade reading a minimum that is not a whole number",
+  },
+  {
+    file: `${core}/minimumBuild.ts`,
+    find: "build.compare(build.parse(identity.value), minimum)",
+    replace: "build.compare(identity.value, minimum)",
+    project: "core",
+    describes:
+      "a forced upgrade comparing a build number that is not a whole number",
+  },
+  {
+    file: `${core}/minimumBuild.ts`,
+    find: "remediation === undefined ? [] : [{ route: remediation, level }],",
+    replace: "[],",
+    project: "core",
+    describes: "a forced upgrade that names no route to send an older build to",
+  },
+  {
+    file: `${core}/internal/running/getRealmBootId.ts`,
+    find: "if (realmBootId === null) {",
+    replace: "if (true) {",
+    project: "core",
+    describes:
+      "a Beacon minting its own boot id where the realm has one for every Beacon",
+  },
+  {
+    file: `${core}/internal/running/resolveRunningReaders.ts`,
+    find: "boot: readers.boot ?? { id: getRealmBootId() }",
+    replace: "boot: { id: getRealmBootId() }",
+    project: "core",
+    describes: "a boot id the application gave replaced by the realm's",
+  },
+  {
+    file: `${core}/internal/running/RunningRegistry.ts`,
+    find: "resolve(reader({ scope: this.#getScope() })),",
+    replace: "resolve(reader()),",
+    project: "core",
+    describes: "a running reader asked without the scope of the read",
+  },
+  {
+    file: `${core}/internal/running/resolveRunningReaders.ts`,
+    find: "if (readers[subject] !== undefined) {",
+    replace: "if (true) {",
+    project: "core",
+    describes: "a feed route whose subject has no reader being built",
+  },
+  {
+    file: `${core}/internal/running/resolveRunningReaders.ts`,
+    find: 'if (definition.kind !== "feed") {',
+    replace: "if (false) {",
+    project: "core",
+    describes:
+      "a driver route asked for a reader of its subject it never needed",
+  },
+  {
+    file: `${core}/internal/running/resolveRunningReaders.ts`,
+    find: "if (explicit !== undefined) {",
+    replace: "if (false) {",
+    project: "core",
+    describes:
+      "a driver's reader of its subject replacing the one the application passed",
+  },
+  {
+    file: `${core}/internal/running/resolveRunningReaders.ts`,
+    find: "if (second !== undefined) {",
+    replace: "if (false) {",
+    project: "core",
+    describes:
+      "two drivers supplying one subject and Beacon choosing one of them",
+  },
+  {
+    file: `${core}/internal/running/resolveRunningReaders.ts`,
+    find: "resolved[subject] = first.reader;",
+    replace: "",
+    project: "core",
+    describes:
+      "a driver's reader of its own subject ignored when the application passes none",
+  },
+  {
+    file: `${testing}/testRunningReader.ts`,
+    find: "return reader({ scope: Object.freeze({ ...scope }) });",
+    replace: "return reader({ scope });",
+    project: "core",
+    describes:
+      "a running reader that changes its scope passing its conformance suite",
+  },
+  {
+    file: `${testing}/testRunningReader.ts`,
+    find: "const read = situation.scope ?? scope;",
+    replace: "const read = scope;",
+    project: "core",
+    describes:
+      "a running reader situation read under another scope than its own",
+  },
+  {
+    file: `${core}/targetRoute.ts`,
+    find: "running: readRunningRelease(running, mechanism.subject),",
+    replace: 'running: readRunningRelease(running, "web"),',
+    project: "core",
+    describes:
+      "a target route comparing an offer with another subject than its mechanism names",
+  },
+  {
+    file: `${core}/newerRoute.ts`,
+    find: "const release = readRunningRelease(running, mechanism.subject);",
+    replace: 'const release = readRunningRelease(running, "web");',
+    project: "core",
+    describes:
+      "a newer route ordering a candidate against another subject than its mechanism names",
+  },
+  {
+    file: `${core}/internal/routes/RouteRegistry.ts`,
+    find: "subject: definition.mechanism.subject,",
+    replace: 'subject: "web",',
+    project: "core",
+    describes:
+      "a command of a feed route journaled against another subject than its mechanism names",
+  },
+  {
+    file: `${testing}/testUpdateMechanism.ts`,
+    find: "expect(RUNNING_SUBJECTS).toContain(create().mechanism.subject);",
+    replace: "expect(create().mechanism.subject).toBeDefined();",
+    project: "core",
+    describes:
+      "a mechanism that names no running subject passing its conformance suite",
   },
   {
     file: `${core}/Beacon.ts`,
@@ -877,8 +1058,8 @@ const MUTANTS = [
   },
   {
     file: "packages/adapters/native/src/utils/constants/authority.ts",
-    find: 'export const ANDROID_DOMAIN = "android-version-code";',
-    replace: 'export const ANDROID_DOMAIN = "native-android-build";',
+    find: "android: ANDROID_VERSION_CODE_DOMAIN,",
+    replace: 'android: "native-android-build",',
     project: "native",
     describes:
       "an Android build named in other words than the Play route offers in",
@@ -1000,6 +1181,21 @@ const MUTANTS = [
     describes:
       "a source read handed a clock other than the one the Beacon runs on",
   },
+  {
+    file: `${triggers}/utils/constants/defaults.ts`,
+    find: '"foreground",\n  "interval",\n]);',
+    replace: '"foreground",\n  "interval",\n  "retry",\n]);',
+    project: "triggers",
+    describes:
+      "a retry after a failed check dropped because the evidence it failed to renew is still fresh",
+  },
+  {
+    file: `${triggers}/utils/openGate.ts`,
+    find: 'signal("expiry")',
+    replace: 'signal("interval")',
+    project: "triggers",
+    describes: "an expiry recheck labelled as the timer's",
+  },
   // What Hermes lacks or reads differently: the projects that run a package in
   // the environment of a React Native app must notice where the plain ones do not.
   {
@@ -1040,6 +1236,220 @@ const MUTANTS = [
     project: "react-native",
     describes: "a provider that reads the document, which React Native lacks",
   },
+  {
+    file: "packages/react/src/context/BeaconProvider.tsx",
+    find: "  start = true,",
+    replace: "  start = false,",
+    project: "react",
+    describes:
+      "a provider that leaves the session to the application unless asked",
+  },
+  {
+    file: "packages/react/src/context/BeaconProvider.tsx",
+    find: "  start = true,",
+    replace: "  start = false,",
+    project: "react-native",
+    describes:
+      "a provider without a DOM that leaves the session to the application unless asked",
+  },
+  {
+    file: "packages/vue/src/context/BeaconProvider.ts",
+    find: "start: { type: Boolean, default: true },",
+    replace: "start: { type: Boolean, default: false },",
+    project: "vue",
+    describes:
+      "a provider that leaves the session to the application unless asked",
+  },
+  {
+    file: "packages/solid/src/context/BeaconProvider.ts",
+    find: "if (props.start === false) {",
+    replace: "if (!props.start) {",
+    project: "solid",
+    describes:
+      "a provider that leaves the session to the application unless asked",
+  },
+  {
+    file: "packages/svelte/src/context/BeaconProvider.svelte",
+    find: "const { beacon, start = true } = props;",
+    replace: "const { beacon, start = false } = props;",
+    project: "svelte",
+    describes:
+      "a provider that leaves the session to the application unless asked",
+  },
+  {
+    file: "packages/react/src/hooks/internal/useProvidedBeacon.ts",
+    find: "message: `${hook} needs",
+    replace: "message: `useBeacon needs",
+    project: "react",
+    describes: "a hook outside a provider naming another hook",
+  },
+  {
+    file: "packages/react/src/hooks/internal/useProvidedBeacon.ts",
+    find: " (from @priemskiyyy/beacon-react)",
+    replace: "",
+    project: "react",
+    describes: "a hook outside a provider not naming the package that has it",
+  },
+  {
+    file: "packages/vue/src/composables/internal/useProvidedBeacon.ts",
+    find: "message: `${composable} needs",
+    replace: "message: `useBeacon needs",
+    project: "vue",
+    describes: "a composable outside a provider naming another composable",
+  },
+  {
+    file: "packages/vue/src/composables/internal/useProvidedBeacon.ts",
+    find: " (from @priemskiyyy/beacon-vue)",
+    replace: "",
+    project: "vue",
+    describes:
+      "a composable outside a provider not naming the package that has it",
+  },
+  {
+    file: "packages/solid/src/primitives/internal/useProvidedBeacon.ts",
+    find: "message: `${primitive} needs",
+    replace: "message: `useBeacon needs",
+    project: "solid",
+    describes: "a primitive outside a provider naming another primitive",
+  },
+  {
+    file: "packages/solid/src/primitives/internal/useProvidedBeacon.ts",
+    find: " (from @priemskiyyy/beacon-solid)",
+    replace: "",
+    project: "solid",
+    describes:
+      "a primitive outside a provider not naming the package that has it",
+  },
+  {
+    file: "packages/svelte/src/utilities/internal/useProvidedBeacon.ts",
+    find: "message: `${utility} needs",
+    replace: "message: `useBeacon needs",
+    project: "svelte",
+    describes: "a utility outside a provider naming another utility",
+  },
+  {
+    file: "packages/svelte/src/utilities/internal/useProvidedBeacon.ts",
+    find: " (from @priemskiyyy/beacon-svelte)",
+    replace: "",
+    project: "svelte",
+    describes:
+      "a utility outside a provider not naming the package that has it",
+  },
+  {
+    file: `${core}/internal/errors/createUnknownRouteError.ts`,
+    find: 'message: `The route "${name}" is not defined. ${listRoutes(known)}`,',
+    replace: 'message: `The route "${name}" is not defined.`,',
+    project: "core",
+    describes: "an unknown route name that does not list the routes there are",
+  },
+  {
+    file: `${core}/internal/routes/FeedRoutes.ts`,
+    find: "opened = definition.mechanism.open({ scope: this.#options.getScope() });",
+    replace:
+      'opened = definition.mechanism.open({ scope: { ...this.#options.getScope(), environment: "" } });',
+    project: "core",
+    describes: "a mechanism opened with a scope other than its session's",
+  },
+  {
+    file: `${expo}/applyUpdate.ts`,
+    find: 'if (download.status !== "accepted") {',
+    replace: 'if (download.status === "failed") {',
+    project: "expo",
+    describes:
+      "an update reloaded after a download that was blocked or refused",
+  },
+  {
+    file: `${expo}/applyUpdate.ts`,
+    find: 'if (reloaded.step === "none") {',
+    replace: "if (false) {",
+    project: "expo",
+    describes: "an accepted download that prepared nothing answered as no step",
+  },
+  {
+    file: `${expo}/applyUpdate.ts`,
+    find: "return reloadPrepared(route, null);",
+    replace: 'return { step: "none" };',
+    project: "expo",
+    describes:
+      "an update downloaded earlier left unreloaded when nothing is on offer",
+  },
+  {
+    file: `${expo}/utils/reloadPrepared.ts`,
+    find: 'if (prepared.status !== "ready") {',
+    replace: "if (false) {",
+    project: "expo",
+    describes: "a reload asked for a target nothing prepared",
+  },
+  {
+    file: `${expo}/mock/createFakeUpdates.ts`,
+    find: "isEnabled: !disabled,",
+    replace: "isEnabled: true,",
+    project: "expo",
+    describes: "a fake whose updates are never off",
+  },
+  {
+    file: `${expo}/mock/createFakeUpdates.ts`,
+    find: "calls.fetches += 1;",
+    replace: "",
+    project: "expo",
+    describes: "a fake that does not count what the route fetched",
+  },
+  {
+    file: `${appStore}/appStoreHandoff.ts`,
+    find: "if (native.distribution !== APP_STORE_DISTRIBUTION) {",
+    replace: "if (false) {",
+    project: "app-store",
+    describes: "the App Store opened for a build that is not the store's",
+  },
+  {
+    file: `${appStore}/utils/fetchLookup.ts`,
+    find: "if (!response.ok) {",
+    replace: "if (false) {",
+    project: "app-store",
+    describes: "a failing status of the lookup read as an answer",
+  },
+  {
+    file: `${appStore}/utils/fetchLookup.ts`,
+    find: "if (response.redirected === true) {",
+    replace: "if (false) {",
+    project: "app-store",
+    describes: "a redirected lookup read as an answer",
+  },
+  {
+    file: `${appStore}/utils/readLookupResponse.ts`,
+    find: 'typeof trackId !== "number" ||\n    typeof bundleId',
+    replace: "typeof bundleId",
+    project: "app-store",
+    describes: "an entry of another type let through the default lookup client",
+  },
+  {
+    file: `${appStore}/appStore.ts`,
+    find: "fetch: lookUp = fetchLookup,",
+    replace: "fetch: lookUp = async () => ({ results: [] }),",
+    project: "app-store",
+    describes: "a route with no client of its own that asks nobody",
+  },
+  {
+    file: `${googlePlay}/playStore.ts`,
+    find: "if (native.distribution !== GOOGLE_PLAY_DISTRIBUTION) {",
+    replace: "if (false) {",
+    project: "google-play",
+    describes: "the Play Store opened for a build that is not Play's",
+  },
+  {
+    file: `${googlePlay}/playStore.ts`,
+    find: "await native.linking.openURL(web);",
+    replace: 'return { status: "unsupported", reason: "no-store" };',
+    project: "google-play",
+    describes: "a device with no Play Store app left without the web page",
+  },
+  {
+    file: `${googlePlay}/utils/assertApplicationId.ts`,
+    find: "+$/.test(applicationId)",
+    replace: "*$/.test(applicationId)",
+    project: "google-play",
+    describes: "an application id of one name let into a store link",
+  },
 ];
 
 const run = (project) => {
@@ -1055,9 +1465,53 @@ const run = (project) => {
   }
 };
 
+const readProjects = (args) => {
+  const names = [];
+
+  for (let index = 0; index < args.length; index += 2) {
+    const name = args[index + 1];
+
+    if (args[index] !== "--project" || name === undefined) {
+      throw new Error(
+        `Unknown argument ${args[index]}. Usage: node scripts/mutate.mjs [--project <name>]...`,
+      );
+    }
+
+    names.push(name);
+  }
+
+  return names;
+};
+
 const root = process.cwd();
 
-for (const project of new Set(MUTANTS.map((mutant) => mutant.project))) {
+const known = new Set(MUTANTS.map((mutant) => mutant.project));
+const chosen = readProjects(process.argv.slice(2));
+
+for (const name of chosen) {
+  if (!known.has(name)) {
+    throw new Error(
+      `No mutant runs in the project ${name}. Projects with mutants: ${[...known].join(", ")}.`,
+    );
+  }
+}
+
+const selected = MUTANTS.filter(
+  (mutant) => chosen.length === 0 || chosen.includes(mutant.project),
+);
+
+// Every mutant is held to this, the ones a filter leaves out too, so that a file that moved is found by whoever runs any of them.
+for (const mutant of MUTANTS) {
+  const original = readFileSync(mutant.file, "utf8");
+
+  for (const find of [mutant.find].flat()) {
+    if (original.split(find).length !== 2) {
+      throw new Error(`${mutant.file} must contain exactly once: ${find}`);
+    }
+  }
+}
+
+for (const project of new Set(selected.map((mutant) => mutant.project))) {
   if (!run(project)) {
     throw new Error(`The baseline of ${project} is red: fix it first.`);
   }
@@ -1065,16 +1519,10 @@ for (const project of new Set(MUTANTS.map((mutant) => mutant.project))) {
 
 const survivors = [];
 
-for (const mutant of MUTANTS) {
+for (const mutant of selected) {
   const original = readFileSync(mutant.file, "utf8");
   const finds = [mutant.find].flat();
   const replaces = [mutant.replace].flat();
-
-  for (const find of finds) {
-    if (original.split(find).length !== 2) {
-      throw new Error(`${mutant.file} must contain exactly once: ${find}`);
-    }
-  }
 
   // A mutant may change several places at once, such as an import and its use.
   const mutated = finds.reduce(
@@ -1103,4 +1551,4 @@ if (survivors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Killed all ${MUTANTS.length} mutants.`);
+console.log(`Killed all ${selected.length} mutants.`);

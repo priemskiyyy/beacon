@@ -9,7 +9,6 @@ import type {
   NoneDecision,
   Observation,
   Release,
-  ReleaseIdentity,
   ReleaseScope,
   ReleaseSource,
   RunningReader,
@@ -23,6 +22,7 @@ import type {
 import type { PlayBridge } from "@priemskiyyy/beacon-google-play";
 import type { AppStoreLookupResponse } from "@priemskiyyy/beacon-app-store";
 import type { HttpAnswer } from "@priemskiyyy/beacon-http";
+import type { Pulse as PulseInstance } from "@priemskiyyy/pulse";
 
 type WebDocument = { web: TargetDecision | NoneDecision };
 
@@ -34,7 +34,6 @@ type WebRoute = FeedRoute<
 >;
 
 declare global {
-  const BOOT_ID: string;
   const scope: ReleaseScope;
   // The application's Beacon, with the browser reload route the guides read.
   const beacon: BeaconClass<{ web: WebRoute }>;
@@ -50,8 +49,6 @@ declare global {
   const browserReload: typeof browserReloadFactory;
   const running: RunningReaders;
   const readWebRelease: RunningReader;
-  const BUILD_IDENTITY: ReleaseIdentity;
-  const BUILD_LABEL: string;
   const APP_STORE_ID: string;
   const manifest: ReleaseSource<WebDocument>;
   const web: WebRoute;
@@ -71,11 +68,6 @@ declare global {
     validator: string | null;
   }) => Promise<unknown>;
   const parseManifestResponse: (input: unknown) => HttpAnswer<WebDocument>;
-  // The Pulse library is a sibling of Beacon and is not a dependency.
-  const pulse: {
-    on: (
-      event: "foreground",
-      listener: () => void | Promise<void>,
-    ) => () => void;
-  };
+  // The real Pulse, a sibling of Beacon and a development dependency of this workspace.
+  const pulse: PulseInstance;
 }

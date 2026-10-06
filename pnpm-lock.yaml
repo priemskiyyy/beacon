@@ -401,16 +401,16 @@ importers:
   packages/adapters/code-push:
     dependencies:
       '@appzung/react-native-code-push':
-        specifier: '>=11.0.0 <12'
+        specifier: '>=10.0.0'
         version: 11.0.5
       '@bravemobile/react-native-code-push':
-        specifier: '>=13.3.0 <14'
+        specifier: '>=8.2.3'
         version: 13.3.1(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
       '@revopush/react-native-code-push':
-        specifier: '>=2.6.0 <3'
+        specifier: '>=1.0.0'
         version: 2.6.2(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
       react-native-code-push:
-        specifier: '>=9.0.0 <10'
+        specifier: '>=5.5.0'
         version: 9.0.1(@types/node@22.20.2)
     devDependencies:
       '@priemskiyyy/beacon':
@@ -420,7 +420,7 @@ importers:
   packages/adapters/expo:
     dependencies:
       expo-updates:
-        specifier: '>=57.0.0 <58'
+        specifier: '>=0.24.0'
         version: 57.0.24(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@priemskiyyy/beacon':
@@ -430,10 +430,10 @@ importers:
   packages/adapters/firebase-remote-config:
     dependencies:
       '@react-native-firebase/remote-config':
-        specifier: '>=26.0.0 <27'
+        specifier: '>=25.0.0'
         version: 26.4.0(@react-native-firebase/analytics@26.4.0(@react-native-firebase/app@26.4.0(@react-native-async-storage/async-storage@3.1.1(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8))(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8))(expo@57.0.25))(@react-native-firebase/app@26.4.0(@react-native-async-storage/async-storage@3.1.1(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8))(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8))
       firebase:
-        specifier: '>=12.0.0 <13'
+        specifier: '>=9.8.3'
         version: 12.19.0(@react-native-async-storage/async-storage@3.1.1(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8))
     devDependencies:
       '@priemskiyyy/beacon':
@@ -455,10 +455,10 @@ importers:
   packages/adapters/native:
     dependencies:
       expo-application:
-        specifier: '>=57.0.0 <58'
+        specifier: '>=1.0.0'
         version: 57.0.3(expo@57.0.25)
       react-native-device-info:
-        specifier: '>=15.0.0 <16'
+        specifier: '>=4.0.1'
         version: 15.0.2(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
     devDependencies:
       '@priemskiyyy/beacon':
@@ -508,7 +508,7 @@ importers:
   packages/react:
     dependencies:
       react:
-        specifier: '>=19.2.0 <20'
+        specifier: '>=18.3.0 <20'
         version: 19.2.8
     devDependencies:
       '@priemskiyyy/beacon':

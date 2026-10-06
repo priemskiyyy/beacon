@@ -27,6 +27,7 @@ const ENTRIES = [
     budget: 2 * 1024,
   },
   { name: "expo", files: ["adapters/expo/dist/index.js"], budget: 2 * 1024 },
+  { name: "expo mock", files: ["adapters/expo/dist/mock.js"], budget: 512 },
   {
     name: "google-play",
     files: ["adapters/google-play/dist/index.js"],

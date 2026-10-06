@@ -9,6 +9,12 @@
  * - `SELECTION_FAILED`: a version strategy threw while parsing or comparing.
  * - `IDENTITY_CONFLICT`: one release identity was reported with contradictory
  *   order or compatibility.
+ * - `SOURCE_FAILED`: a release source rejected, threw or answered something
+ *   Beacon could not accept.
+ * - `SOURCE_TIMEOUT`: a release source took longer than its deadline.
+ * - `INVALID_DOCUMENT`: a source answered a document whose revision, scope or
+ *   times broke the contract.
+ * - `ABORTED`: every caller stopped waiting, so the read was abandoned.
  * - `RUNNING_READ_FAILED`: the local reader of a running fact threw, rejected
  *   or took too long.
  * - `REVISION_REGRESSION`: an authority's decision revision went backwards, or
@@ -28,6 +34,10 @@ export type BeaconErrorCode =
   | "INVALID_VERSION"
   | "SELECTION_FAILED"
   | "IDENTITY_CONFLICT"
+  | "SOURCE_FAILED"
+  | "SOURCE_TIMEOUT"
+  | "INVALID_DOCUMENT"
+  | "ABORTED"
   | "RUNNING_READ_FAILED"
   | "REVISION_REGRESSION"
   | "REVISION_CONFLICT"

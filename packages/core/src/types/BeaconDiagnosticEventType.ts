@@ -14,6 +14,11 @@ export type BeaconDiagnosticEventType =
   | "disposed"
   | "running-read"
   | "running-failed"
+  | "source-read-started"
+  | "source-read-accepted"
+  | "source-read-renewed"
+  | "source-read-failed"
+  | "source-read-abandoned"
   | "late-callback"
   | "listener-error"
   | "cleanup-error";

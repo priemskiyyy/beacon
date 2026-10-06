@@ -40,3 +40,28 @@ test("a cleanup added after the end runs at once", () => {
 
   expect(late).toHaveBeenCalledTimes(1);
 });
+
+test("a cleanup taken back before the end never runs", () => {
+  const scope = new ResourceScope(vi.fn());
+  const kept = vi.fn();
+  const released = vi.fn();
+
+  scope.add(kept);
+  scope.add(released)();
+  scope.dispose();
+
+  expect(kept).toHaveBeenCalledTimes(1);
+  expect(released).not.toHaveBeenCalled();
+});
+
+test("the same cleanup added twice runs twice and each registration is taken back alone", () => {
+  const scope = new ResourceScope(vi.fn());
+  const cleanup = vi.fn();
+  const takeBack = scope.add(cleanup);
+
+  scope.add(cleanup);
+  takeBack();
+  scope.dispose();
+
+  expect(cleanup).toHaveBeenCalledTimes(1);
+});

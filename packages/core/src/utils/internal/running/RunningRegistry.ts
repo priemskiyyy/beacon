@@ -123,7 +123,7 @@ export class RunningRegistry {
       }, this.#timeout);
     });
 
-    session.scope.add(cancel);
+    const release = session.scope.add(cancel);
 
     try {
       const release = await Promise.race([
@@ -145,6 +145,7 @@ export class RunningRegistry {
       return Object.freeze({ state: "failed", error: toErrorInfo(error) });
     } finally {
       cancel();
+      release();
     }
   }
 

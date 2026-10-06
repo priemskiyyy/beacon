@@ -1,9 +1,12 @@
+// Each registration is its own entry, so the same cleanup can be added twice.
+type Entry = { cleanup: () => void };
+
 // One lifetime's cleanups: they run once, in reverse order, and every one is
 // attempted even when an earlier one throws. A cleanup registered after the end
 // runs at once, so a resource acquired late never outlives its scope.
 export class ResourceScope {
   #active = true;
-  #cleanups: Array<() => void> = [];
+  #entries = new Set<Entry>();
   #report: (error: unknown) => void;
 
   constructor(report: (error: unknown) => void) {
@@ -12,14 +15,21 @@ export class ResourceScope {
 
   isActive = () => this.#active;
 
+  /** Registers a cleanup and answers how to take it back once the resource is released early. */
   add = (cleanup: () => void) => {
-    if (this.#active) {
-      this.#cleanups.push(cleanup);
+    if (!this.#active) {
+      this.#run(cleanup);
 
-      return;
+      return () => {};
     }
 
-    this.#run(cleanup);
+    const entry: Entry = { cleanup };
+
+    this.#entries.add(entry);
+
+    return () => {
+      this.#entries.delete(entry);
+    };
   };
 
   dispose = () => {
@@ -29,11 +39,12 @@ export class ResourceScope {
 
     this.#active = false;
 
-    let cleanup = this.#cleanups.pop();
+    const entries = [...this.#entries].reverse();
 
-    while (cleanup !== undefined) {
-      this.#run(cleanup);
-      cleanup = this.#cleanups.pop();
+    this.#entries.clear();
+
+    for (const entry of entries) {
+      this.#run(entry.cleanup);
     }
   };
 

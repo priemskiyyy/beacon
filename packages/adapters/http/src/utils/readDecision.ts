@@ -25,19 +25,13 @@ const contradicts = (field: string, expected: RouteDeclaration["kind"]) =>
     `${field}.kind contradicts the route, which declares ${expected}.`,
   );
 
-// The overload promises each declaration the decisions it allows; the readers keep that promise by refusing any other kind.
-export function readDecision<TDeclaration extends RouteDeclaration>(
-  value: unknown,
-  field: string,
-  declaration: TDeclaration,
-): StandardDecision<TDeclaration>;
-
-export function readDecision(
+/** The decision a route holds, of the one kind its declaration allows; a decision of another kind is refused. */
+export const readDecision = (
   value: unknown,
   field: string,
   declaration: RouteDeclaration,
-): StandardDecision<RouteDeclaration> {
-  return readVariant<StandardDecision<RouteDeclaration>>({
+): StandardDecision<RouteDeclaration> =>
+  readVariant<StandardDecision<RouteDeclaration>>({
     value,
     field,
     tag: "kind",
@@ -76,4 +70,3 @@ export function readDecision(
       },
     },
   });
-}

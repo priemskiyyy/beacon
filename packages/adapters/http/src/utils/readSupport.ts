@@ -1,17 +1,19 @@
 import type { JsonRecord } from "src/types/internal/JsonRecord";
+import type { RouteDeclarations } from "src/types/RouteDeclarations";
 import type { StandardSupport } from "src/types/StandardSupport";
 import { SUBJECTS } from "src/utils/constants/subjects";
 import { invalidManifest } from "src/utils/invalidManifest";
+import { isRouteName } from "src/utils/isRouteName";
 import { readField } from "src/utils/readField";
 import { readList } from "src/utils/readList";
 import { readRecord } from "src/utils/readRecord";
 import { readText } from "src/utils/readText";
 
 /** The support facts of a manifest, or `null` when it has none; the remediation route has to be one the application declared. */
-export const readSupport = <TRoute extends string>(
+export const readSupport = <TDeclarations extends RouteDeclarations>(
   record: JsonRecord,
-  routeNames: TRoute[],
-): StandardSupport<TRoute> | null => {
+  declarations: TDeclarations,
+): StandardSupport<keyof TDeclarations & string> | null => {
   const value = readField(record, "support");
 
   if (value === undefined) {
@@ -19,27 +21,27 @@ export const readSupport = <TRoute extends string>(
   }
 
   const support = readRecord(value, "support");
-  const subject = readText(readField(support, "subject"), "support.subject");
 
-  const remediation = readText(
+  const subject = SUBJECTS.get(
+    readText(readField(support, "subject"), "support.subject"),
+  );
+
+  const remediationRoute = readText(
     readField(support, "remediationRoute"),
     "support.remediationRoute",
   );
 
-  const route = routeNames.find((name) => name === remediation);
-  const known = SUBJECTS.get(subject);
-
-  if (known === undefined) {
+  if (subject === undefined) {
     throw invalidManifest("support.subject must be a running subject.");
   }
 
-  if (route === undefined) {
+  if (!isRouteName(declarations, remediationRoute)) {
     throw invalidManifest("support.remediationRoute must be a declared route.");
   }
 
   return {
     revision: readText(readField(support, "revision"), "support.revision"),
-    subject: known,
+    subject,
     deniedReleaseIds: readList(
       readField(support, "deniedReleaseIds"),
       "support.deniedReleaseIds",
@@ -49,6 +51,6 @@ export const readSupport = <TRoute extends string>(
       readField(support, "reasonCode"),
       "support.reasonCode",
     ),
-    remediationRoute: route,
+    remediationRoute,
   };
 };

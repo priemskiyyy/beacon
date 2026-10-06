@@ -620,6 +620,11 @@ describe("the support facts", () => {
       /remediationRoute must be a declared route/,
     ],
     [
+      // A name every object has is not a route the application declared.
+      { ...buildSupport(), remediationRoute: "toString" },
+      /remediationRoute must be a declared route/,
+    ],
+    [
       { ...buildSupport(), subject: "toaster" },
       /subject must be a running subject/,
     ],

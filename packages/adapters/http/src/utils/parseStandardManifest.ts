@@ -5,7 +5,6 @@ import { assertScope } from "src/utils/assertScope";
 import { DEFAULT_LIMITS, SCHEMA_VERSION } from "src/utils/constants/limits";
 import { fingerprint } from "src/utils/fingerprint";
 import { invalidManifest } from "src/utils/invalidManifest";
-import { listRouteNames } from "src/utils/listRouteNames";
 import { measureBytes } from "src/utils/measureBytes";
 import { readExpiry } from "src/utils/readExpiry";
 import { readField } from "src/utils/readField";
@@ -76,7 +75,7 @@ export const parseStandardManifest = <TDeclarations extends RouteDeclarations>({
 
   const document = {
     routes: decisions,
-    support: readSupport(record, listRouteNames(routes)),
+    support: readSupport(record, routes),
   };
 
   return {

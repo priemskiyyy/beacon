@@ -55,6 +55,10 @@
 - First release. `googlePlay({ bridge })` maps Play's four query categories and runs the flexible flow to a prepared download, the immediate flow, and the completion, each reconfirming the offer first.
 - Requires `@priemskiyyy/beacon` 0.1 and a native bridge that keeps the `PlayBridge` contract.
 
+## @priemskiyyy/beacon-code-push 0.1.0 - Unreleased
+
+- First release. `codePushUpdates({ codePush })` maps the React Native CodePush family (Microsoft, Revopush, Bravemobile and AppZung): no package is `none` with the detail `no-package-for-binary`, never up to date, `download` installs for the next start and is accepted once CodePush lists the package as pending, `reload` only requests a restart, and `codePushBundle` reads the running package. Requires `@priemskiyyy/beacon` 0.1 and one of the four packages.
+
 ## @priemskiyyy/beacon-app-store 0.1.0 - Unreleased
 
 - First release. `appStoreLookup` reads Apple's lookup shape through your client as an advisory marketing-release source, `appStoreHandoff` opens the store page, and `appleVersion` orders marketing versions.

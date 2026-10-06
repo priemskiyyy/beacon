@@ -58,7 +58,7 @@ A comparison of a build id with a manifest field hides the questions that matter
 - **Accepted is not installed.** Every command settles as a status, and its receipt names what was accepted: a reload request, a store handoff, a started flow. Nothing changes what is running except a later boot.
 - **Commands are typed by what they declare.** A route gets one method per command, with the reference, parameters and receipt that command declares. A reference of another route or another kind does not compile.
 - **Disruption is coordinated.** Participants that guard unsaved work reserve, settle and are checked again before a provider is asked. A conflicting command is blocked, never queued, and a command that may have taken effect is never retried blindly.
-- **Providers stay in charge.** Expo, Play and the App Store decide eligibility and installs; Beacon maps what they say in full and changes none of their configuration.
+- **Providers stay in charge.** Expo, CodePush, Play and the App Store decide eligibility and installs; Beacon maps what they say in full and changes none of their configuration.
 
 Beacon does not download bundles, install binaries, cache assets or decide policy on its own.
 
@@ -73,6 +73,7 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 | [`@priemskiyyy/beacon-expo`](packages/adapters/expo)                                     | Expo Updates                                                              |
 | [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)                       | Google Play in-app updates, over a native bridge                          |
 | [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)                           | App Store metadata and store handoff                                      |
+| [`@priemskiyyy/beacon-code-push`](packages/adapters/code-push)                           | The React Native CodePush family, over the fork you use                   |
 | [`@priemskiyyy/beacon-firebase-remote-config`](packages/adapters/firebase-remote-config) | Firebase Remote Config as a source, such as a minimum build               |
 | [`@priemskiyyy/beacon-react`](packages/react)                                            | A provider and hooks                                                      |
 | [`@priemskiyyy/beacon-vue`](packages/vue)                                                | A provider and composables                                                |
@@ -84,7 +85,7 @@ Every package is ESM only, side-effect free and typed. The core has no dependenc
 
 ## Status
 
-Everything is tested in process against fakes, and the Expo and React Native adapters are typechecked against their real SDK types. The example apps run in Chromium under Playwright against a scripted release lab, in React, Vue, Solid, Svelte and Expo's web build, but nothing has run on a device or against a real provider yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.
+Everything is tested in process against fakes, and the Expo, CodePush and React Native adapters are typechecked against their real SDK types. The example apps run in Chromium under Playwright against a scripted release lab, in React, Vue, Solid, Svelte and Expo's web build, but nothing has run on a device or against a real provider yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.
 
 ## Documentation
 

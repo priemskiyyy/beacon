@@ -381,6 +381,25 @@ See [Firebase Remote Config](firebase-remote-config.md).
 | `RemoteValueLike`             | type     | one parameter: its text and where it came from                                                    |
 | `RemoteParameters`            | type     | what the document builder reads: `remote(key)` and `source(key)`                                  |
 
+## @priemskiyyy/beacon-code-push
+
+See [CodePush](code-push.md).
+
+| Export                    | Kind     | What it is                                                                               |
+| ------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `codePushUpdates`         | function | the React Native CodePush family as a route, with `download` and `reload`                |
+| `codePushBundle`          | function | the reader of the running bundle, from the package CodePush says runs                    |
+| `CodePushOptions`         | type     | the CodePush module to pass in                                                           |
+| `CodePushNative`          | type     | what `route.native` exposes: the module                                                  |
+| `CodePushOffer`           | type     | what an offer carries: the label, whether it is mandatory and whether it was rolled back |
+| `CodePushPrepared`        | type     | a package CodePush lists as pending: the label and whether it is mandatory               |
+| `CodePushDownloadReceipt` | type     | `update-staged`, with the hash and the label                                             |
+| `CodePushReloadReceipt`   | type     | `reload-requested`                                                                       |
+| `CodePushLike`            | type     | the part of a CodePush module the adapter uses                                           |
+| `RemotePackageLike`       | type     | the part of a `RemotePackage` the adapter uses                                           |
+| `LocalPackageLike`        | type     | the part of a `LocalPackage` the adapter uses                                            |
+| `DownloadProgressLike`    | type     | the bytes received and the bytes expected of a download                                  |
+
 ## @priemskiyyy/beacon-react
 
 See [React](react.md).

@@ -103,6 +103,7 @@ A typical provider sequence is an offer, a command that prepares, and a command 
 | Adapter        | Sequence                                                                                                |
 | -------------- | ------------------------------------------------------------------------------------------------------- |
 | Expo           | `download` with the offer, then `reload` with the prepared reference                                    |
+| CodePush       | `download` with the offer, then `reload` with the prepared reference                                    |
 | Google Play    | `download` with the offer, then `restart` with the prepared reference, or `update` with the offer alone |
 | Service worker | `activate` with the offer, then `reload` with the prepared reference                                    |
 | Browser        | `reload` with the offer                                                                                 |
@@ -149,6 +150,8 @@ The commands of the adapters:
 | Service worker | `reload`    | prepared       | `document-replacement`                     | `provider-current`    | `reload-requested`                                           |
 | Expo           | `download`  | offer          | `may-activate-on-next-start`               | `provider-current`    | `update-prepared`, `rollback-prepared`, `no-new-preparation` |
 | Expo           | `reload`    | prepared       | `javascript-restart`                       | `provider-current`    | `reload-requested`                                           |
+| CodePush       | `download`  | offer          | `may-activate-on-next-start`               | `exact-instance`      | `update-staged`                                              |
+| CodePush       | `reload`    | prepared       | `javascript-restart`                       | `provider-current`    | `reload-requested`                                           |
 | Google Play    | `download`  | offer          | `may-activate-on-next-start`               | `provider-current`    | `update-downloaded`                                          |
 | Google Play    | `update`    | offer          | `native-update-flow`, `javascript-restart` | `provider-current`    | `immediate-flow-started`                                     |
 | Google Play    | `restart`   | prepared       | `javascript-restart`                       | `provider-current`    | `completion-requested`                                       |

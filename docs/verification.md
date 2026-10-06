@@ -30,7 +30,7 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 
 ## What the tests are
 
-Every provider SDK, the clock and the network are faked in process. The Expo Updates and React Native adapters are also typechecked against the real SDK's types, in `*.contracts.ts` files that prove the structural types the adapters use are satisfied by the real modules. A contract file is typechecked and never run.
+Every provider SDK, the clock and the network are faked in process. The Expo Updates, CodePush and React Native adapters are also typechecked against the real SDK's types, in `*.contracts.ts` files that prove the structural types the adapters use are satisfied by the real modules. A contract file is typechecked and never run.
 
 ## What they are not
 

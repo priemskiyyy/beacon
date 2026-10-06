@@ -74,6 +74,7 @@ export default defineConfig({
           { text: "Google Play", link: "/google-play" },
           { text: "App Store", link: "/app-store" },
           { text: "Firebase Remote Config", link: "/firebase-remote-config" },
+          { text: "CodePush", link: "/code-push" },
           { text: "Custom adapters", link: "/custom-adapters" },
         ],
       },

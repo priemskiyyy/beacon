@@ -4,7 +4,7 @@ description: "Use Beacon in a React Native or Expo app: the engine and toolchain
 
 # React Native
 
-Beacon runs in a React Native app on Hermes, the engine of React Native, on iOS and Android, with Expo or without it. This page is the whole path for that app: what to install, what the engine does and does not have, how the pieces are wired, and what to do about the parts that differ from a browser. The adapters have their own pages: [Expo](expo.md), [Google Play](google-play.md) and [App Store](app-store.md).
+Beacon runs in a React Native app on Hermes, the engine of React Native, on iOS and Android, with Expo or without it. This page is the whole path for that app: what to install, what the engine does and does not have, how the pieces are wired, and what to do about the parts that differ from a browser. The adapters have their own pages: [Expo](expo.md), [CodePush](code-push.md), [Google Play](google-play.md) and [App Store](app-store.md).
 
 The same files run in [the Expo example](https://github.com/priemskiyyy/beacon/tree/main/examples/expo), which is bundled for both platforms by `pnpm --filter example-expo build:native` and whose wiring its tests exercise against a fake `expo-updates`.
 
@@ -13,6 +13,7 @@ The same files run in [the Expo example](https://github.com/priemskiyyy/beacon/t
 | You want                                           | Install                                                           |
 | -------------------------------------------------- | ----------------------------------------------------------------- |
 | Expo Updates as a route                            | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-expo`, `expo-updates` |
+| CodePush, through the fork you use                 | `@priemskiyyy/beacon-code-push` and a CodePush fork               |
 | Play in-app updates, through a native bridge       | `@priemskiyyy/beacon-google-play`                                 |
 | The App Store page of your app and its version     | `@priemskiyyy/beacon-app-store`                                   |
 | A provider and hooks for your components           | `@priemskiyyy/beacon-react`, which needs React 19.2 or later      |
@@ -54,7 +55,7 @@ Hermes and React Native are not a browser and not Node. Two Hermes builds were r
 | `response.body`, `response.redirected`                                   | React Native's own `fetch` has neither. See [HTTP](http.md#redirects-on-react-native)      |
 | `window`, `document`, `localStorage`, `location`                         | No document and no browser storage, and `window` is only the global object                 |
 
-Lint forbids each of these in the packages that ship, and `pnpm test:unit` runs the core, the HTTP, Expo, Play and App Store packages in an environment where they are removed and React Native's own `AbortController`, `URL` and `URLSearchParams` are in their place. A change that reaches for `crypto.randomUUID()` turns a test red.
+Lint forbids each of these in the packages that ship, and `pnpm test:unit` runs the core, the HTTP, Expo, CodePush, Play and App Store packages in an environment where they are removed and React Native's own `AbortController`, `URL` and `URLSearchParams` are in their place. A change that reaches for `crypto.randomUUID()` turns a test red.
 
 ## Set up the Beacon once
 
@@ -320,6 +321,7 @@ Everything here is tested in process, and the packages were also run on the two 
 - What `expo-application` gives in Expo Go, in a development build and in a release build, in particular that Expo Go answers with its own application id, and that `nativeBuildVersion` is the version code on Android.
 - The journal's storage under a kill during a write.
 - Play's flows through a real bridge, and the install events of a flexible update.
+- A CodePush package downloaded, installed for the next start and listed as pending by a real module, `restartApp(true)` replacing the runtime, the rollback when `notifyAppReady()` is missing, and each fork's server giving one hash to a package throughout. [CodePush](code-push.md#what-no-device-has-run) has the list.
 - The App Store page opened by `Linking.openURL`, and the lookup over a real connection.
 - Firebase Remote Config: `fetchAndActivate` on a device, the fetch time of 0 that iOS answers before any fetch, throttling, and when activation reaches the screens ([Firebase Remote Config](firebase-remote-config.md)).
 - `fetch` on iOS keeping a cached answer and never giving a `304` to JavaScript, and `response.url` after a redirect on each platform.

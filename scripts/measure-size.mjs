@@ -47,8 +47,6 @@ const ENTRIES = [
     files: ["adapters/code-push/dist/index.js"],
     budget: 2 * 1024,
   },
-  },
-  {
   { name: "native", files: ["adapters/native/dist/index.js"], budget: 1024 },
   { name: "react", files: ["react/dist/index.js"], budget: 1.5 * 1024 },
   { name: "solid", files: ["solid/dist/index.js"], budget: 1.5 * 1024 },

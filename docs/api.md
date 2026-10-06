@@ -280,19 +280,19 @@ See [browser](browser.md).
 
 See [service worker](service-worker.md).
 
-| Export                 | Kind     | What it is                                                                    |
-| ---------------------- | -------- | ----------------------------------------------------------------------------- |
-| `serviceWorker`        | function | a service worker registration as a route, with `activate` and `reload`        |
-| `ServiceWorkerOptions` | type     | the container, registration, window and message                               |
-| `ServiceWorkerNative`  | type     | what `route.native` exposes: the container and a way to find the registration |
-| `ServiceWorkerWindow`  | type     | the part of a window a reload uses                                            |
-| `ContainerLike`        | type     | the part of `navigator.serviceWorker` the adapter uses                        |
-| `RegistrationLike`     | type     | the part of a `ServiceWorkerRegistration` the adapter uses                    |
-| `WorkerLike`           | type     | the part of a `ServiceWorker` the adapter uses                                |
-| `WorkerMessage`        | type     | the message a page posts to a worker                                          |
-| `WorkerBody`           | type     | what an offer and a prepared target carry: the worker's id                    |
-| `ActivationReceipt`    | type     | `activation-requested`, with the worker's id                                  |
-| `WorkerReloadReceipt`  | type     | `reload-requested`                                                            |
+| Export                    | Kind     | What it is                                                                    |
+| ------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `serviceWorker`           | function | a service worker registration as a route, with `activate` and `reload`        |
+| `ServiceWorkerOptions`    | type     | the container, registration, window and message                               |
+| `ServiceWorkerNative`     | type     | what `route.native` exposes: the container and a way to find the registration |
+| `ServiceWorkerWindow`     | type     | the part of a window a reload uses                                            |
+| `ContainerLike`           | type     | the part of `navigator.serviceWorker` the adapter uses                        |
+| `RegistrationLike`        | type     | the part of a `ServiceWorkerRegistration` the adapter uses                    |
+| `WorkerLike`              | type     | the part of a `ServiceWorker` the adapter uses                                |
+| `WorkerMessage`           | type     | the message a page posts to a worker                                          |
+| `WorkerBody`              | type     | what an offer and a prepared target carry: the worker's id                    |
+| `WorkerActivationReceipt` | type     | `activation-requested`, with the worker's id                                  |
+| `WorkerReloadReceipt`     | type     | `reload-requested`                                                            |
 
 ## @priemskiyyy/beacon-expo
 
@@ -310,7 +310,6 @@ See [Expo](expo.md).
 | `UpdatesLike`         | type     | the part of the `expo-updates` module the adapter uses              |
 | `CheckResultLike`     | type     | the part of `UpdateCheckResult` the adapter reads                   |
 | `FetchResultLike`     | type     | the part of `UpdateFetchResult` the adapter reads                   |
-| `ManifestLike`        | type     | the part of an update manifest the adapter reads: its id            |
 
 ## @priemskiyyy/beacon-google-play
 

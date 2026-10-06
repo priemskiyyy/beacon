@@ -33,7 +33,7 @@ export const beacon = new Beacon({
 });
 ```
 
-The route is a driver route: the browser owns both the question and the answer, so it needs no source. It reads `navigator.serviceWorker` only when a session starts, so creating it in a server render is safe.
+The route is a driver route: the browser owns both the question and the answer, so it needs no source. It reads `navigator.serviceWorker` only when a session starts, so creating it in a server render is safe, and a page without service workers is an environment that cannot check.
 
 | Option         | Default                          | Meaning                                                    |
 | -------------- | -------------------------------- | ---------------------------------------------------------- |
@@ -48,13 +48,14 @@ The registration is yours. The route finds a registration you make after the ses
 
 A check asks the browser to fetch the worker script again, then reads the workers.
 
-| State of the registration                    | Route observation                                             |
-| -------------------------------------------- | ------------------------------------------------------------- |
-| no registration                              | `none`, detail `no-registration`                              |
-| first worker installing or waiting           | `none`, detail `installing` or `first-install`                |
-| a waiting worker next to an active one       | `available`: an update is ready, with the release unknown     |
-| a newer worker installing                    | `none`, detail `installing`                                   |
-| the worker that was active has been replaced | `prepared` is ready: the new worker controls, the page is old |
+| What the page has                                                            | Route observation                                             |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| a container with no registration                                             | `none`, detail `no-registration`                              |
+| first worker installing or waiting                                           | `none`, detail `installing` or `first-install`                |
+| a waiting worker next to an active one                                       | `available`: an update is ready, with the release unknown     |
+| a newer worker installing                                                    | `none`, detail `installing`                                   |
+| the worker that was active has been replaced                                 | `prepared` is ready: the new worker controls, the page is old |
+| no service workers on the page, as in a server render or an insecure context | `unknown`, an environment that cannot check, never `none`     |
 
 The first installation of a page is not an update. The route treats the first worker it sees active as the baseline, and `prepared` becomes ready only when that worker has been replaced, because a skip-waiting request alone proves no activation.
 

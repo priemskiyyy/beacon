@@ -25,13 +25,14 @@ The route reads `navigator.serviceWorker` only when a session starts, so creatin
 
 ## What a check reports
 
-| State of the registration                    | Route observation                                             |
-| -------------------------------------------- | ------------------------------------------------------------- |
-| no registration                              | `none`, detail `no-registration`                              |
-| first worker installing or waiting           | `none`, detail `installing` or `first-install`                |
-| a newer worker installing                    | `none`, detail `installing`                                   |
-| a waiting worker next to an active one       | `available`: an update is ready, with the release unknown     |
-| the worker that was active has been replaced | `prepared` is ready: the new worker controls, the page is old |
+| What the page has                                                            | Route observation                                             |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| a container with no registration                                             | `none`, detail `no-registration`                              |
+| first worker installing or waiting                                           | `none`, detail `installing` or `first-install`                |
+| a newer worker installing                                                    | `none`, detail `installing`                                   |
+| a waiting worker next to an active one                                       | `available`: an update is ready, with the release unknown     |
+| the worker that was active has been replaced                                 | `prepared` is ready: the new worker controls, the page is old |
+| no service workers on the page, as in a server render or an insecure context | `unknown`, an environment that cannot check, never `none`     |
 
 The release is unknown because the bytes behind a script URL can change: without an identity handshake the UI can say that an update is ready and nothing more.
 

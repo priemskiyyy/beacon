@@ -147,6 +147,7 @@ The observation is `unknown` with `unsupported-environment` when `expo-updates` 
 
 ### The service worker route never offers
 
+- `unknown` with `unsupported-environment`: the page has no service workers, as in a server render or an insecure context such as plain http. Serve the page over https, or pass the `container` you have.
 - `none` with `no-registration`: no worker is registered for this page. Register one, or pass `registration` as a function that finds it.
 - `none` with `first-install` or `installing`: the first worker is not an update.
 - An offer needs a waiting worker next to an active one.

@@ -80,7 +80,7 @@ The release is named by the version code: authority is `scope.application`, the 
 
 ### Prepared
 
-An update Play reports as already downloaded is prepared when the app starts, without any command, and a download finishing while the app runs prepares it too. The prepared target is `flexible`. Progress comes from Play's own byte counts, `null` when Play gave none, and a total is never invented.
+An update Play reports as already downloaded is prepared when the app starts, without any command, and a download finishing while the app runs prepares it too. Only the flexible flow prepares a target. Progress comes from Play's own byte counts, `null` when Play gave none, and a total is never invented.
 
 ## Commands
 

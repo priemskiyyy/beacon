@@ -24,6 +24,9 @@ These are the rules that are easiest to break.
 - **Never claim more than the provider gave.** A command's receipt names what was accepted. Nothing it returns changes what is running.
 - **A native handle is an object.** `null` means the route is not open, so a handle that could be `null` would be ambiguous. Type errors say so.
 - **Never throw into the host from a callback.** Return a status, or reject where the type says a source or a check rejects.
+- **Look at the signal right before an irreversible dispatch.** After the last `await` and in the same run as the provider call, check `signal.aborted`, and answer `cancelled` with the stage `session-ended` so that nothing is started for a wait that has ended.
+- **Reach a driver's private state through `native`.** A command receives only the `native` handle of the session that dispatched it, so what the session keeps for its commands, such as its emitter or a package it found, sits in a table keyed by that handle and goes when the session is disposed.
+- **What the provider did not give is `unknown`.** `null`, `undefined`, `NaN`, an empty text or a sentinel such as `"unknown"` becomes an unknown identity with a named reason, or an `unknown` observation, and never a known identity whose text is `"undefined"`.
 
 ## A source
 

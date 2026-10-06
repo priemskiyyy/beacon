@@ -66,7 +66,7 @@ export class RouteRegistry {
         prepares: this.#prepares(definition),
         ledger: this.#ledger,
         clock: options.clock,
-        listeners: options.createListeners(),
+        createListeners: options.createListeners,
       });
 
       const entry: RouteEntry = { name, definition, record };

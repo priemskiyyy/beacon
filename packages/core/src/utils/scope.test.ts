@@ -351,3 +351,19 @@ test("the last valid support of a scope is not kept beside a failure of the next
     error: { code: "POLICY_FAILED" },
   });
 });
+
+test("a route that learned nothing is not told that it forgot it", () => {
+  const context = createWebCommandBeacon();
+  const web = context.beacon.route("web");
+  const held = web.state.get();
+  const heard: number[] = [];
+
+  web.state.subscribe(() => {
+    heard.push(web.state.get().revision);
+  });
+
+  context.beacon.replaceScope(STAGING);
+
+  expect(heard).toEqual([]);
+  expect(web.state.get()).toBe(held);
+});

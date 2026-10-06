@@ -267,3 +267,18 @@ test("SEC-09 an accepted command is never an installation in the diagnostics", a
     expect.stringMatching(/install|update|complete|success/),
   );
 });
+
+test("SEC-06 a listener of a route's native handle that throws is counted like any other", () => {
+  vi.useFakeTimers({ toFake: ["queueMicrotask"] });
+
+  const context = createWebCommandBeacon();
+  const failure = new Error("native listener down");
+
+  context.beacon.route("web").native.subscribe(() => {
+    throw failure;
+  });
+  context.beacon.start();
+
+  expect(() => vi.runAllTicks()).toThrow(failure);
+  expect(context.beacon.diagnostics.get().counters.listenerErrors).toBe(1);
+});

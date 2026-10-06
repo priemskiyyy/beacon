@@ -29,7 +29,8 @@ type RouteRecordOptions = {
   prepares: boolean;
   ledger: ReferenceLedger;
   clock: BeaconClock;
-  listeners: Listeners;
+  /** Makes the listeners of one observable, so each store reports its listeners' errors. */
+  createListeners: () => Listeners;
 };
 
 type Body = RouteBody;
@@ -56,7 +57,7 @@ export class RouteRecord {
     prepares,
     ledger,
     clock,
-    listeners,
+    createListeners,
   }: RouteRecordOptions) {
     this.#name = name;
     this.#ledger = ledger;
@@ -77,8 +78,8 @@ export class RouteRecord {
       operation: IDLE_OPERATION,
     });
 
-    this.#store = new ValueStore<RouteState>(this.#initial, listeners);
-    this.#native = new ValueStore<object | null>(null);
+    this.#store = new ValueStore<RouteState>(this.#initial, createListeners());
+    this.#native = new ValueStore<object | null>(null, createListeners());
     this.state = this.#store.observable;
     this.native = this.#native.observable;
   }
@@ -290,11 +291,18 @@ export class RouteRecord {
 
   /** Goes back to knowing nothing, as a route does that has never been checked; the references it minted no longer match anything. */
   reset = (transaction: Transaction) => {
-    const { revision } = this.#store.get();
+    const held = this.#store.get();
+
+    // A route that learned nothing has nothing to forget, and its listeners hear nothing.
+    if (
+      isSameData({ ...held, revision: 0 }, { ...this.#initial, revision: 0 })
+    ) {
+      return;
+    }
 
     transaction.set(
       this.#store,
-      Object.freeze({ ...this.#initial, revision: revision + 1 }),
+      Object.freeze({ ...this.#initial, revision: held.revision + 1 }),
     );
   };
 

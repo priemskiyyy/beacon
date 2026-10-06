@@ -5,6 +5,7 @@ import { testUpdateMechanism } from "src/testing/testUpdateMechanism";
 import { testVersionStrategy } from "src/testing/testVersionStrategy";
 import { createHeldMechanism } from "src/utils/commands.fixture";
 import { createReleaseDriver } from "src/utils/createReleaseDriver";
+import { createReleaseSource } from "src/utils/createReleaseSource";
 import { integer } from "src/utils/versions/integer";
 import { semver } from "src/utils/versions/semver";
 
@@ -21,6 +22,35 @@ testReleaseSource({
     });
 
     return { source: mock.source, reads: () => mock.stats().reads };
+  },
+});
+
+// A source that speaks for one distribution only is read for that scope.
+testReleaseSource({
+  name: "one distribution",
+  scope: {
+    application: "com.example.notes",
+    environment: "production",
+    platform: "ios",
+    distribution: "app-store",
+  },
+  create: () => {
+    const reads = { count: 0 };
+
+    const source = createReleaseSource<Record<string, never>>({
+      name: "store",
+      read: async ({ scope }) => {
+        if (scope.distribution !== "app-store") {
+          throw new Error("This source speaks for the app store only.");
+        }
+
+        reads.count += 1;
+
+        return { document: {}, issuer: "store" };
+      },
+    });
+
+    return { source, reads: () => reads.count };
   },
 });
 

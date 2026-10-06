@@ -16,18 +16,23 @@ export type ReleaseSourceFixture<TDocument> = {
 export type ReleaseSourceConformanceOptions<TDocument> = {
   name: string;
   create: () => ReleaseSourceFixture<TDocument>;
+  /** The scope the source is read for, when it speaks for one distribution only. */
+  scope?: ReleaseScope;
 };
 
-const SCOPE: ReleaseScope = {
+const DEFAULT_SCOPE: ReleaseScope = {
   application: "com.example.conformance",
   environment: "test",
   platform: "web",
   distribution: "public-web",
 };
 
-const read = <TDocument>({ source }: ReleaseSourceFixture<TDocument>) =>
+const read = <TDocument>(
+  { source }: ReleaseSourceFixture<TDocument>,
+  scope: ReleaseScope,
+) =>
   source.read({
-    scope: SCOPE,
+    scope,
     signal: new AbortController().signal,
     attempt: 1,
   });
@@ -90,6 +95,7 @@ const expectEvidence = ({ revision, digest, issuer }: SourceRead<unknown>) => {
 export const testReleaseSource = <TDocument>({
   name,
   create,
+  scope = DEFAULT_SCOPE,
 }: ReleaseSourceConformanceOptions<TDocument>) => {
   describe(`release source: ${name}`, () => {
     test("it has a name for diagnostics", () => {
@@ -105,7 +111,7 @@ export const testReleaseSource = <TDocument>({
     });
 
     test("a read answers a document with real times and identifiers", async () => {
-      const answer = await read(create());
+      const answer = await read(create(), scope);
 
       expect(answer.document).toBeDefined();
       expectTimes(answer);
@@ -115,8 +121,8 @@ export const testReleaseSource = <TDocument>({
     test("it can be read again, and every read asks the backend", async () => {
       const fixture = create();
 
-      await read(fixture);
-      await read(fixture);
+      await read(fixture, scope);
+      await read(fixture, scope);
 
       expect(fixture.reads()).toBe(2);
     });

@@ -1,4 +1,6 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
+
+import { settle } from "src/utils/Beacon.fixture";
 
 import { createDeferred } from "src/utils/internal/common/createDeferred";
 import { untilAborted } from "src/utils/internal/common/untilAborted";
@@ -45,4 +47,29 @@ test("untilAborted rejects when the work rejects first", async () => {
   work.reject(new Error("broken"));
 
   await expect(raced).rejects.toThrow("broken");
+});
+
+test("untilAborted leaves the failure of work it no longer waits for to nobody, so it is never unhandled", async () => {
+  const controller = new AbortController();
+
+  controller.abort();
+
+  const raced = await untilAborted(
+    Promise.reject(new Error("nobody waits")),
+    controller.signal,
+  );
+
+  await settle();
+
+  expect(raced).toEqual({ status: "aborted" });
+});
+
+test("untilAborted stops listening to the signal once the work has settled", async () => {
+  const controller = new AbortController();
+  const remove = vi.spyOn(controller.signal, "removeEventListener");
+
+  await untilAborted(Promise.resolve(1), controller.signal);
+  await settle();
+
+  expect(remove).toHaveBeenCalledWith("abort", expect.any(Function));
 });

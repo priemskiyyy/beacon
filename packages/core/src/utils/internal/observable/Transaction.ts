@@ -4,7 +4,6 @@ import type { ValueStore } from "src/utils/internal/observable/ValueStore";
 // of one store never reads another store's previous value.
 export class Transaction {
   #notifications = new Set<() => void>();
-  #effects: Array<() => void> = [];
 
   set = <TValue>(store: ValueStore<TValue>, value: TValue) => {
     if (!store.set(value)) {
@@ -14,18 +13,9 @@ export class Transaction {
     this.#notifications.add(store.notify);
   };
 
-  /** Runs after every listener, for a step whose own listeners may call back, such as an abort. */
-  after = (effect: () => void) => {
-    this.#effects.push(effect);
-  };
-
   commit = () => {
     for (const notify of this.#notifications) {
       notify();
-    }
-
-    for (const effect of this.#effects) {
-      effect();
     }
   };
 }

@@ -25,9 +25,10 @@ export const isSameData = (left: unknown, right: unknown): boolean => {
       return false;
     }
 
+    // `every` would skip a hole, and a hole is a value that is missing.
     return (
       left.length === right.length &&
-      left.every((item, index) => isSameData(item, right[index]))
+      Array.from(left).every((item, index) => isSameData(item, right[index]))
     );
   }
 

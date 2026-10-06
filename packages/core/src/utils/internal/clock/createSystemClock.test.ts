@@ -5,6 +5,7 @@ import { createSystemClock } from "src/utils/internal/clock/createSystemClock";
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 test("the system clock runs a timer once and its cancel stops it", () => {
@@ -42,4 +43,12 @@ test("the system clock reads epoch and monotonic time", () => {
 
   expect(Math.abs(clock.now() - Date.now())).toBeLessThan(1_000);
   expect(clock.monotonic()).toBeGreaterThanOrEqual(0);
+});
+
+test("a runtime without a monotonic clock is timed by epoch time", () => {
+  vi.stubGlobal("performance", undefined);
+
+  const clock = createSystemClock();
+
+  expect(Math.abs(clock.monotonic() - Date.now())).toBeLessThan(1_000);
 });

@@ -7,10 +7,12 @@ import type { BeaconErrorCode } from "src/types/BeaconErrorCode";
  *
  * @example
  * ```ts
+ * beacon.dispose();
+ *
  * try {
- *   beacon.route("missing");
+ *   beacon.start();
  * } catch (error) {
- *   if (error instanceof BeaconError && error.code === "INVALID_CONFIGURATION") {
+ *   if (error instanceof BeaconError && error.code === "DISPOSED") {
  *     console.error(error.message);
  *   }
  * }

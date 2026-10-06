@@ -1,13 +1,14 @@
 import { afterEach, expect, test, vi } from "vitest";
 
 import { Listeners } from "src/utils/internal/observable/Listeners";
+import { reportUnhandledError } from "src/utils/internal/reporting/reportUnhandledError";
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
 test("CORE-12 the same callback registered twice is two registrations", () => {
-  const listeners = new Listeners();
+  const listeners = new Listeners(vi.fn());
   const listener = vi.fn();
   const removeFirst = listeners.add(listener);
 
@@ -21,7 +22,7 @@ test("CORE-12 the same callback registered twice is two registrations", () => {
 });
 
 test("CORE-10 a listener added during a pass waits for the next one", () => {
-  const listeners = new Listeners();
+  const listeners = new Listeners(vi.fn());
   const late = vi.fn();
 
   listeners.add(() => {
@@ -35,7 +36,7 @@ test("CORE-10 a listener added during a pass waits for the next one", () => {
 });
 
 test("CORE-09 a listener removed during a pass is skipped", () => {
-  const listeners = new Listeners();
+  const listeners = new Listeners(vi.fn());
   const removed = vi.fn();
 
   let remove = () => {};
@@ -67,7 +68,7 @@ test("CORE-08 a throwing or rejecting listener reaches the reporter and the othe
 });
 
 test("CORE-11 a nested pass supersedes the rest of the outer one", () => {
-  const listeners = new Listeners();
+  const listeners = new Listeners(vi.fn());
   const log: string[] = [];
 
   let nested = false;
@@ -89,7 +90,7 @@ test("CORE-11 a nested pass supersedes the rest of the outer one", () => {
 });
 
 test("LIFE-06 clearing during a pass stops it", () => {
-  const listeners = new Listeners();
+  const listeners = new Listeners(vi.fn());
   const after = vi.fn();
 
   listeners.add(() => listeners.clear());
@@ -100,10 +101,10 @@ test("LIFE-06 clearing during a pass stops it", () => {
   expect(listeners.size()).toBe(0);
 });
 
-test("an unreported failure is rethrown outside the pass", () => {
+test("a failure reported to the host is rethrown outside the pass", () => {
   vi.useFakeTimers({ toFake: ["queueMicrotask"] });
 
-  const listeners = new Listeners();
+  const listeners = new Listeners(reportUnhandledError);
   const failure = new Error("listener");
 
   listeners.add(() => {

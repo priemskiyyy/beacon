@@ -1,11 +1,15 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
+import { Listeners } from "src/utils/internal/observable/Listeners";
 import { Transaction } from "src/utils/internal/observable/Transaction";
 import { ValueStore } from "src/utils/internal/observable/ValueStore";
 
+const createStore = <TValue>(value: TValue) =>
+  new ValueStore(value, new Listeners(vi.fn()));
+
 test("CORE-07 every store of a transaction is installed before its first listener runs", () => {
-  const revision = new ValueStore(1);
-  const support = new ValueStore("unknown");
+  const revision = createStore(1);
+  const support = createStore("unknown");
   const seen: Array<[number, string]> = [];
 
   revision.subscribe(() => seen.push([revision.get(), support.get()]));
@@ -22,7 +26,7 @@ test("CORE-07 every store of a transaction is installed before its first listene
 });
 
 test("a store set to its current value is not notified", () => {
-  const store = new ValueStore(1);
+  const store = createStore(1);
   const seen: number[] = [];
 
   store.subscribe(() => seen.push(store.get()));
@@ -36,8 +40,8 @@ test("a store set to its current value is not notified", () => {
 });
 
 test("a store a nested transaction already announced is not announced again", () => {
-  const first = new ValueStore(0);
-  const second = new ValueStore(0);
+  const first = createStore(0);
+  const second = createStore(0);
   const heard: number[] = [];
 
   first.subscribe(() => {
@@ -55,19 +59,4 @@ test("a store a nested transaction already announced is not announced again", ()
   outer.commit();
 
   expect(heard).toEqual([2]);
-});
-
-test("an effect runs after every listener", () => {
-  const store = new ValueStore(0);
-  const log: string[] = [];
-
-  store.subscribe(() => log.push("listener"));
-
-  const transaction = new Transaction();
-
-  transaction.set(store, 1);
-  transaction.after(() => log.push("effect"));
-  transaction.commit();
-
-  expect(log).toEqual(["listener", "effect"]);
 });

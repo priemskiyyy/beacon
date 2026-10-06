@@ -1,5 +1,4 @@
 import { isolate } from "src/utils/internal/reporting/isolate";
-import { reportUnhandledError } from "src/utils/internal/reporting/reportUnhandledError";
 
 // Each call is its own registration, so the same function can be registered twice.
 type Registration = { listener: () => void };
@@ -9,7 +8,8 @@ export class Listeners {
   #pass = 0;
   #report: (error: unknown) => void;
 
-  constructor(report: (error: unknown) => void = reportUnhandledError) {
+  /** `report` is told of every listener that throws or rejects, and the others still run. */
+  constructor(report: (error: unknown) => void) {
     this.#report = report;
   }
 

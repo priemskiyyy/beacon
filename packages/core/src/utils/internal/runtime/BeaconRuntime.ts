@@ -25,7 +25,7 @@ type BeaconRuntimeOptions = {
 
 /** Owns the lifetime: one open session at a time, whose end silences everything that session started. */
 export class BeaconRuntime {
-  #phase: RuntimePhase = { state: "IDLE" };
+  #phase: RuntimePhase = { state: "idle" };
   #sessions = 0;
   #status: ValueStore<BeaconStatus>;
   #onStart: BeaconRuntimeOptions["onStart"];
@@ -50,9 +50,9 @@ export class BeaconRuntime {
     this.#reportCleanupError = reportCleanupError;
   }
 
-  /** The number of the open session, or `null`. */
+  /** The open session, or `null`. */
   getSession = () => {
-    if (this.#phase.state !== "RUNNING") {
+    if (this.#phase.state !== "running") {
       return null;
     }
 
@@ -66,11 +66,11 @@ export class BeaconRuntime {
   start = () => {
     const phase = this.#phase;
 
-    if (phase.state === "DISPOSED") {
+    if (phase.state === "disposed") {
       throw createDisposedError();
     }
 
-    if (phase.state === "RUNNING") {
+    if (phase.state === "running") {
       return phase.stop;
     }
 
@@ -83,13 +83,19 @@ export class BeaconRuntime {
 
     const stop = () => this.#end(session);
 
-    this.#phase = { state: "RUNNING", session, stop };
+    this.#phase = { state: "running", session, stop };
+
+    // Whoever is called from here on may end this very session: an event's listener, a status listener, the opening itself.
     this.#record("session-started");
+
+    if (!session.scope.isActive()) {
+      return stop;
+    }
+
     this.#status.update(
       Object.freeze({ state: "running", session: session.id }),
     );
 
-    // A status listener may have stopped or disposed this very session.
     if (!session.scope.isActive()) {
       return stop;
     }
@@ -102,24 +108,25 @@ export class BeaconRuntime {
   stop = () => {
     const phase = this.#phase;
 
-    if (phase.state !== "RUNNING") {
+    if (phase.state !== "running") {
       return;
     }
 
-    this.#end(phase.session);
+    phase.stop();
   };
 
   dispose = () => {
-    if (this.#phase.state === "DISPOSED") {
-      return;
-    }
-
     // A listener of the stopped status may open another session, which ends too.
-    while (this.#phase.state === "RUNNING") {
+    while (this.#phase.state === "running") {
       this.#end(this.#phase.session);
     }
 
-    this.#phase = { state: "DISPOSED" };
+    // Already disposed, or a cleanup of the last session disposed it.
+    if (this.#phase.state === "disposed") {
+      return;
+    }
+
+    this.#phase = { state: "disposed" };
     this.#status.update(DISPOSED_STATUS);
     this.#status.close();
     this.#onDispose();
@@ -129,7 +136,7 @@ export class BeaconRuntime {
   #end(session: Session) {
     const phase = this.#phase;
 
-    if (phase.state !== "RUNNING") {
+    if (phase.state !== "running") {
       return;
     }
 
@@ -137,9 +144,19 @@ export class BeaconRuntime {
       return;
     }
 
-    this.#phase = { state: "STOPPED" };
+    this.#phase = { state: "idle" };
     this.#record("session-stopped");
     session.scope.dispose();
+
+    // A cleanup may have opened the next session or ended the Beacon, and the status that one published stands.
+    if (!this.#isIdle()) {
+      return;
+    }
+
     this.#status.update(STOPPED_STATUS);
+  }
+
+  #isIdle() {
+    return this.#phase.state === "idle";
   }
 }

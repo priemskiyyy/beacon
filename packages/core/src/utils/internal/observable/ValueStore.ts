@@ -1,5 +1,5 @@
 import type { ObservableValue } from "src/types/ObservableValue";
-import { Listeners } from "src/utils/internal/observable/Listeners";
+import type { Listeners } from "src/utils/internal/observable/Listeners";
 
 export class ValueStore<TValue> {
   #initial: TValue;
@@ -8,7 +8,7 @@ export class ValueStore<TValue> {
   #listeners: Listeners;
   #closed = false;
 
-  constructor(initialValue: TValue, listeners = new Listeners()) {
+  constructor(initialValue: TValue, listeners: Listeners) {
     this.#initial = initialValue;
     this.#value = initialValue;
     this.#notified = initialValue;
@@ -29,7 +29,7 @@ export class ValueStore<TValue> {
 
   /** Installs a value without notifying, so an owner can install several before any listener reads one. */
   set = (value: TValue) => {
-    if (Object.is(value, this.#value)) {
+    if (this.#closed || Object.is(value, this.#value)) {
       return false;
     }
 
@@ -56,7 +56,7 @@ export class ValueStore<TValue> {
     this.notify();
   };
 
-  /** Stops every pass and refuses new listeners; the last value stays readable. */
+  /** Stops every pass and refuses new listeners and new values; the last value stays readable, as it was. */
   close = () => {
     this.#closed = true;
     this.#listeners.clear();

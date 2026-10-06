@@ -7,6 +7,7 @@ import type { CheckReport } from "src/types/CheckReport";
 import type { CommandInput } from "src/types/internal/CommandInput";
 import type { CommandTarget } from "src/types/internal/CommandTarget";
 import type { Disruptions } from "src/types/Disruptions";
+import type { ReadOptions } from "src/types/internal/ReadOptions";
 import type { RouteEntry } from "src/types/internal/RouteEntry";
 import type { Session } from "src/types/internal/Session";
 import type { ObservableValue } from "src/types/ObservableValue";
@@ -72,21 +73,14 @@ export class Beacon<
   #runtime: BeaconRuntime;
   #running: RunningRegistry;
   #routes: RouteRegistry;
-  #disruptions: DisruptionRegistry;
   #journal: Journal;
   #scope: ReleaseScope;
   #commands: CommandCoordinator;
   #diagnostics: Diagnostics;
-  #names: Array<keyof TRoutes & string>;
   #entries: RouteEntry[];
   #handles: {
     [TName in keyof TRoutes & string]: RouteHandle<TName, TRoutes[TName]>;
   };
-
-  #initialReads: Record<RunningSubject, Promise<void>> = mapNames(
-    RUNNING_SUBJECTS,
-    () => Promise.resolve(),
-  );
 
   /**
    * Where the observation session stands: idle, running, stopped or disposed.
@@ -188,21 +182,19 @@ export class Beacon<
       DEFAULT_CHECK_TIMEOUT,
     );
 
-    this.#diagnostics = new Diagnostics({
-      clock,
-      getSession: () => this.#getSessionNumber(),
-      collect: (counters) => ({
-        status: this.#runtime.status.get().state,
-        session: this.#getSessionNumber(),
-        counters,
-      }),
-    });
-
     const settlementTimeout = resolveDuration(
       "timeouts.settlement",
       timeouts.settlement,
       DEFAULT_SETTLEMENT_TIMEOUT,
     );
+
+    const journalOptions = resolveJournalOptions(journal);
+
+    this.#diagnostics = new Diagnostics({
+      clock,
+      getSession: () => this.#runtime.getSession()?.id ?? null,
+      getStatus: () => this.#runtime.status.get().state,
+    });
 
     const reportListenerError = (error: unknown) => {
       this.#diagnostics.record("listener-error");
@@ -239,14 +231,14 @@ export class Beacon<
 
     this.#running.state.subscribe(this.#routes.handleRunningChange);
 
-    this.#disruptions = new DisruptionRegistry({
+    const disruptions = new DisruptionRegistry({
       clock,
       timeout: settlementTimeout,
       reportError: reportListenerError,
     });
 
     this.#journal = new Journal({
-      options: resolveJournalOptions(journal),
+      options: journalOptions,
       getScope: () => this.#scope,
       clock,
       listeners: createListeners(),
@@ -255,7 +247,7 @@ export class Beacon<
 
     this.#commands = new CommandCoordinator({
       ledger: this.#routes.getLedger(),
-      disruptions: this.#disruptions,
+      disruptions,
       journal: this.#journal,
       getRunning: () => this.#running.state.get(),
       getSession: () => this.#runtime.getSession(),
@@ -267,9 +259,20 @@ export class Beacon<
     this.#runtime = new BeaconRuntime({
       listeners: createListeners(),
       onStart: (session) => {
-        this.#initialReads = this.#running.read(session);
+        // Every step calls the application, which may have ended this very session, and nothing is opened for one that ended.
+        this.#running.read(session);
+
+        if (!session.scope.isActive()) {
+          return;
+        }
+
         this.#routes.open(session);
-        this.#journal.hydrate(session, () => this.#readRunning());
+
+        if (!session.scope.isActive()) {
+          return;
+        }
+
+        this.#journal.hydrate(session, () => this.#getSettledRunning(session));
       },
       onDispose: () => {
         this.#running.close();
@@ -283,8 +286,7 @@ export class Beacon<
       reportCleanupError,
     });
 
-    this.#names = Object.keys(routes);
-    this.routeNames = freezeList([...this.#names]);
+    this.routeNames = freezeList(Object.keys(routes));
     this.#entries = this.#routes.getEntries();
     this.#handles = mapHandles<TRoutes>(this.#entries, (entry) =>
       this.#createHandle(entry),
@@ -294,7 +296,7 @@ export class Beacon<
     this.support = this.#routes.getSupport();
     this.transitions = this.#journal.state;
     this.diagnostics = this.#diagnostics.view;
-    this.disruptions = Object.freeze({ register: this.#disruptions.register });
+    this.disruptions = Object.freeze({ register: disruptions.register });
   }
 
   /**
@@ -321,9 +323,10 @@ export class Beacon<
   };
 
   /**
-   * Opens the observation session and answers its stop. Starting again while
-   * the session is open answers the same stop, and an old session's stop never
-   * ends a newer one. It fetches, registers and schedules nothing else.
+   * Opens the observation session and answers its stop: it reads the running
+   * facts and opens each route, and fetches nothing from a release authority.
+   * Starting again while the session is open answers the same stop, and an
+   * old session's stop never ends a newer one.
    *
    * @example
    * ```ts
@@ -348,7 +351,7 @@ export class Beacon<
    * ```
    */
   replaceScope = (next: ReleaseScope): ScopeReplacement => {
-    if (this.#runtime.status.get().state === "disposed") {
+    if (this.#isDisposed()) {
       throw createDisposedError();
     }
 
@@ -364,12 +367,14 @@ export class Beacon<
 
     const wasOpen = this.#runtime.getSession() !== null;
 
-    this.#runtime.stop();
+    // Nothing here waits, so no answer of the old scope lands between these steps. The next scope is in force, and everything the last taught is forgotten, before the session ends: whatever a listener starts, checks or replaces meanwhile speaks for the scope that stays, and a check made while the old session is still open is superseded when it ends.
     this.#scope = Object.freeze({ ...next });
     this.#routes.reset();
     this.#journal.reset();
+    this.#runtime.stop();
 
-    if (wasOpen) {
+    // A listener may have disposed the Beacon, which keeps its last snapshots.
+    if (wasOpen && !this.#isDisposed()) {
       this.#runtime.start();
     }
 
@@ -390,9 +395,10 @@ export class Beacon<
   };
 
   /**
-   * Asks every route's authority, sharing one read per authority. Each route's
-   * outcome is its own: a failure of one never hides the success of another,
-   * and none of them means anything is on offer. It never rejects.
+   * Asks every route's authority and the support policy's, sharing one read
+   * per authority. Each outcome is its own: a failure of one never hides the
+   * success of another, and none of them means anything is on offer. It never
+   * rejects.
    *
    * @example
    * ```ts
@@ -406,26 +412,26 @@ export class Beacon<
 
     if (ready.status === "stopped") {
       return {
-        routes: mapNames(this.#names, () => ready.outcome()),
+        routes: mapNames(this.routeNames, () => ready.outcome()),
         support: this.#routes.hasPolicy() ? ready.outcome() : null,
       };
     }
 
     // Every read starts in this turn, so routes and policy over one source join one read however fast it answers.
-    const read = { mode: options.mode ?? "join", signal: options.signal };
-
     const [outcomes, support] = await Promise.all([
       Promise.all(
-        this.#entries.map((entry) => entry.runtime.check(ready.session, read)),
+        this.#entries.map((entry) =>
+          entry.runtime.check(ready.session, ready.read),
+        ),
       ),
-      this.#routes.checkPolicy(ready.session, read),
+      this.#routes.checkPolicy(ready.session, ready.read),
     ]);
 
     return {
-      routes: mapNames(this.#names, (name) => {
-        const index = this.#names.indexOf(name);
+      routes: mapNames(this.routeNames, (name) => {
+        const index = this.routeNames.indexOf(name);
 
-        return outcomes[index] ?? SUPERSEDED_OUTCOME;
+        return outcomes[index] ?? { status: "superseded" };
       }),
       support,
     };
@@ -459,7 +465,7 @@ export class Beacon<
 
   /**
    * Ends the Beacon for good: the session stops, and the last snapshots stay
-   * readable. Idempotent.
+   * readable and unchanged. Idempotent.
    *
    * @example
    * ```ts
@@ -471,36 +477,20 @@ export class Beacon<
   };
 
   // Every subject's reader has answered, failed or timed out; the journal reads the facts once they are what they will be.
-  async #readRunning() {
-    await this.#awaitRunning(RUNNING_SUBJECTS);
+  async #getSettledRunning(session: Session) {
+    await this.#awaitRunning(session, RUNNING_SUBJECTS);
 
     return this.#running.state.get();
   }
 
-  #getSessionNumber() {
-    const session = this.#runtime.getSession();
-
-    if (session === null) {
-      return null;
-    }
-
-    return session.id;
-  }
-
   #createHandle(entry: RouteEntry) {
-    const commands = Object.entries(getCommands(entry.definition)).flatMap(
-      ([commandName, command]) => {
-        if (command === undefined) {
-          return [];
-        }
-
-        const target: CommandTarget = { entry, name: commandName, command };
+    const commands = Object.entries(getCommands(entry.definition)).map(
+      ([name, command]) => {
+        const target: CommandTarget = { entry, name, command };
 
         return [
-          [
-            commandName,
-            (input: CommandInput = {}) => this.#commands.run(target, input),
-          ],
+          name,
+          (input: CommandInput = {}) => this.#commands.run(target, input),
         ];
       },
     );
@@ -525,10 +515,7 @@ export class Beacon<
       return ready.outcome();
     }
 
-    return entry.runtime.check(ready.session, {
-      mode: options.mode ?? "join",
-      signal: options.signal,
-    });
+    return entry.runtime.check(ready.session, ready.read);
   }
 
   // Waits once for the running subjects the checks depend on, or says why none may go on.
@@ -548,11 +535,12 @@ export class Beacon<
     for (const { name } of entries) {
       this.#diagnostics.record("check-started", {
         route: name,
-        ...(options.reason === undefined ? {} : { reason: options.reason }),
+        reason: options.reason,
       });
     }
 
     const running = await this.#awaitRunning(
+      session,
       entries.flatMap(({ definition }) => getSubjects(definition)),
       options.signal,
     );
@@ -561,18 +549,25 @@ export class Beacon<
       return { status: "stopped", outcome: () => ({ status: "cancelled" }) };
     }
 
-    if (!this.#isCurrent(session)) {
+    if (this.#runtime.getSession() !== session) {
       return { status: "stopped", outcome: () => ({ status: "superseded" }) };
     }
 
-    return { status: "ready", session };
+    return {
+      status: "ready",
+      session,
+      read: { mode: options.mode ?? "join", signal: options.signal },
+    };
   }
 
   // A check waits only for the running subjects it depends on, not for every unrelated reader, and only as long as its caller does.
-  async #awaitRunning(subjects: RunningSubject[], signal?: AbortSignal) {
-    const ready = Promise.all(
-      subjects.map((subject) => this.#initialReads[subject]),
-    );
+  async #awaitRunning(
+    session: Session,
+    subjects: RunningSubject[],
+    signal?: AbortSignal,
+  ) {
+    const reads = this.#running.read(session);
+    const ready = Promise.all(subjects.map((subject) => reads[subject]));
 
     if (signal === undefined) {
       await ready;
@@ -589,8 +584,8 @@ export class Beacon<
     return "ready";
   }
 
-  #isCurrent(session: Session) {
-    return this.#runtime.getSession() === session;
+  #isDisposed() {
+    return this.#runtime.status.get().state === "disposed";
   }
 
   #createNotActiveOutcome(): CheckOutcome {
@@ -602,7 +597,7 @@ export class Beacon<
   }
 
   #createInactiveError() {
-    if (this.#runtime.status.get().state === "disposed") {
+    if (this.#isDisposed()) {
       return createDisposedError();
     }
 
@@ -613,11 +608,7 @@ export class Beacon<
   }
 }
 
-/** Why no check may go on, or the session whose reads it may start. */
+/** Why no check may go on, or the session whose reads it may start and how. */
 type PreparedChecks =
-  | { status: "ready"; session: Session }
+  | { status: "ready"; session: Session; read: ReadOptions }
   | { status: "stopped"; outcome: () => CheckOutcome };
-
-const SUPERSEDED_OUTCOME: CheckOutcome = Object.freeze({
-  status: "superseded",
-});

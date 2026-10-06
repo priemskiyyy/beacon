@@ -1,8 +1,30 @@
 import { expect, test, vi } from "vitest";
 
+import { createMockSource } from "src/mock/createMockSource";
 import { createTestClock } from "src/mock/createTestClock";
+import type { ReleaseScope } from "src/types/ReleaseScope";
 import { Beacon } from "src/utils/Beacon";
-import { SCOPE, buildWebRelease, createBeacon } from "src/utils/Beacon.fixture";
+import {
+  SCOPE,
+  buildWebRelease,
+  createBeacon,
+  createRoutedBeacon,
+  settle,
+} from "src/utils/Beacon.fixture";
+import {
+  createWebCommandBeacon,
+  startWithOffer,
+} from "src/utils/commands.fixture";
+import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
+import {
+  buildIntent,
+  buildStored,
+  createMemoryStorage,
+  seed,
+} from "src/utils/journal.fixture";
+import { createPolicyBeacon } from "src/utils/policy.fixture";
+import type { Manifest } from "src/utils/routes.fixture";
+import { targetRoute } from "src/utils/targetRoute";
 
 test("CORE-01 constructing arms no timer, reads no clock and calls no reader", () => {
   const clock = createTestClock();
@@ -122,6 +144,46 @@ test("disposing is terminal, idempotent and leaves the last snapshots readable",
   expect(listener.mock.calls).toHaveLength(2);
 });
 
+test("disposing leaves every last snapshot as it was, whatever the application still calls", async () => {
+  const memory = createMemoryStorage();
+
+  const context = createWebCommandBeacon({
+    journal: { mode: "best-effort", storage: memory.storage },
+  });
+
+  const web = context.beacon.route("web");
+
+  await startWithOffer(context);
+  context.beacon.reportReady();
+  await settle();
+  context.beacon.dispose();
+
+  const snapshots = [
+    context.beacon.status.get(),
+    context.beacon.running.get(),
+    context.beacon.support.get(),
+    context.beacon.transitions.get(),
+    context.beacon.diagnostics.get(),
+    web.state.get(),
+  ];
+
+  context.beacon.reportReady({ checkpoint: "later" });
+  await context.beacon.clearJournal();
+  await web.check();
+  web.acknowledge();
+  await settle();
+
+  expect([
+    context.beacon.status.get(),
+    context.beacon.running.get(),
+    context.beacon.support.get(),
+    context.beacon.transitions.get(),
+    context.beacon.diagnostics.get(),
+    web.state.get(),
+  ]).toEqual(snapshots);
+  expect(context.beacon.transitions.get()).toBe(snapshots[3]);
+});
+
 test("LIFE-06 a status listener that disposes leaves the later listeners one call, with the final status", () => {
   const { beacon } = createBeacon();
   const seen: string[] = [];
@@ -143,4 +205,348 @@ test("a status listener that stops the session during start leaves nothing open"
 
   expect(web).not.toHaveBeenCalled();
   expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("a diagnostics listener that stops the session while it starts leaves it stopped, and every listener hears the events in order", () => {
+  const { beacon } = createBeacon();
+  const heard: string[] = [];
+  const statuses: string[] = [];
+
+  beacon.status.subscribe(() => statuses.push(beacon.status.get().state));
+  beacon.diagnostics.events.subscribe((event) => {
+    if (event.type !== "session-started") {
+      return;
+    }
+
+    beacon.stop();
+  });
+  beacon.diagnostics.events.subscribe((event) => heard.push(event.type));
+  beacon.start();
+
+  expect(heard).toEqual(["session-started", "session-stopped"]);
+  expect(statuses).toEqual(["stopped"]);
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("a provider that starts the next session while its route is released leaves that session running", () => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+
+  let restart = () => {};
+
+  const web = targetRoute({
+    subject: "web",
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism: createUpdateMechanism({
+      name: "restarting",
+      open: () => ({ native: {}, dispose: () => restart() }),
+      commands: {},
+    }),
+  });
+
+  const { beacon } = createRoutedBeacon({ web });
+
+  restart = () => {
+    restart = () => {};
+
+    beacon.start();
+  };
+
+  beacon.start();
+  beacon.stop();
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 2 });
+});
+
+test("a reader that ends the session while it is asked leaves the later readers, the routes and the journal alone", async () => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+  const memory = createMemoryStorage();
+  const opens = vi.fn(() => ({ native: {} }));
+  const later = vi.fn(() => buildWebRelease("web-build-b"));
+
+  const web = targetRoute({
+    subject: "web",
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism: createUpdateMechanism({
+      name: "counting",
+      open: opens,
+      commands: {},
+    }),
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { web },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        native: () => {
+          beacon.stop();
+
+          return buildWebRelease("native-build");
+        },
+        web: later,
+      },
+      journal: { mode: "best-effort", storage: memory.storage },
+    },
+  );
+
+  beacon.start();
+  await settle();
+
+  expect(opens).not.toHaveBeenCalled();
+  expect(later).not.toHaveBeenCalled();
+  expect(memory.calls.reads).toBe(0);
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("a provider that ends the session while its route opens leaves the journal alone", async () => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+  const memory = createMemoryStorage();
+
+  const web = targetRoute({
+    subject: "web",
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism: createUpdateMechanism({
+      name: "stopping",
+      open: () => {
+        beacon.stop();
+
+        return { native: {} };
+      },
+      commands: {},
+    }),
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { web },
+    { journal: { mode: "best-effort", storage: memory.storage } },
+  );
+
+  beacon.start();
+  await settle();
+
+  expect(memory.calls.reads).toBe(0);
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+const STAGING: ReleaseScope = { ...SCOPE, environment: "staging" };
+const TESTING: ReleaseScope = { ...SCOPE, environment: "testing" };
+
+test("a listener that disposes the Beacon while the scope is replaced ends the replacement, and the last snapshots stay", async () => {
+  const context = createWebCommandBeacon();
+  const web = context.beacon.route("web");
+
+  await startWithOffer(context);
+
+  let held = web.state.get();
+
+  context.beacon.status.subscribe(() => {
+    if (context.beacon.status.get().state !== "stopped") {
+      return;
+    }
+
+    held = web.state.get();
+    context.beacon.dispose();
+  });
+
+  expect(context.beacon.replaceScope(STAGING)).toEqual({ status: "replaced" });
+  expect(context.beacon.status.get()).toEqual({ state: "disposed" });
+  expect(web.state.get()).toBe(held);
+});
+
+test("a check that a listener makes while the scope is being forgotten, and the old session still open, is superseded and starts no read", async () => {
+  const context = createWebCommandBeacon();
+  const web = context.beacon.route("web");
+
+  await startWithOffer(context);
+
+  const outcomes: Array<Promise<unknown>> = [];
+
+  web.state.subscribe(() => {
+    outcomes.push(web.check());
+  });
+
+  expect(context.beacon.replaceScope(STAGING)).toEqual({ status: "replaced" });
+  await settle();
+
+  await expect(Promise.all(outcomes)).resolves.toEqual([
+    { status: "superseded" },
+  ]);
+  expect(context.mock.stats().reads).toBe(1);
+  expect(web.state.get()).toMatchObject({
+    check: { state: "idle" },
+    observation: { status: "unknown" },
+  });
+  expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
+});
+
+test("a listener that starts the session again while the scope is replaced leaves one session, reading the record of the next scope", async () => {
+  const memory = createMemoryStorage();
+
+  const context = createWebCommandBeacon({
+    journal: { mode: "best-effort", storage: memory.storage },
+  });
+
+  context.beacon.start();
+  await settle();
+
+  let restarts = 0;
+
+  context.beacon.status.subscribe(() => {
+    if (context.beacon.status.get().state !== "stopped" || restarts > 0) {
+      return;
+    }
+
+    restarts += 1;
+    context.beacon.start();
+  });
+  context.beacon.replaceScope(STAGING);
+  await settle();
+
+  expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
+  expect(context.beacon.transitions.get().journal).toBe("ready");
+  expect(memory.calls.reads).toBe(2);
+});
+
+test("a scope that a listener puts in force while another is being replaced is the one that stays", async () => {
+  const context = createWebCommandBeacon();
+
+  context.beacon.start();
+
+  let nested = false;
+
+  context.beacon.status.subscribe(() => {
+    if (context.beacon.status.get().state !== "stopped" || nested) {
+      return;
+    }
+
+    nested = true;
+    context.beacon.replaceScope(TESTING);
+  });
+  context.beacon.replaceScope(STAGING);
+
+  const checking = context.beacon.route("web").check();
+
+  await settle();
+
+  expect(context.mock.contexts().map(({ scope }) => scope.environment)).toEqual(
+    ["testing"],
+  );
+  expect(context.beacon.replaceScope(TESTING)).toEqual({ status: "unchanged" });
+  context.beacon.stop();
+  await checking;
+});
+
+const NOT_STARTED = {
+  status: "failed",
+  attempt: 0,
+  error: {
+    code: "NOT_STARTED",
+    message: "An operation needs a started Beacon.",
+  },
+};
+
+test("a check before the session opens settles every route and the policy as not started, and asks nothing", async () => {
+  const { beacon, mock } = createPolicyBeacon();
+
+  await expect(beacon.check()).resolves.toEqual({
+    routes: { web: NOT_STARTED, binary: NOT_STARTED },
+    support: NOT_STARTED,
+  });
+  expect(mock.stats().reads).toBe(0);
+});
+
+test("a check after the Beacon was disposed settles as disposed, and a Beacon without a policy has no support outcome", async () => {
+  const { beacon } = createPolicyBeacon();
+  const { beacon: plain } = createBeacon();
+
+  beacon.dispose();
+
+  const disposed = {
+    status: "failed",
+    attempt: 0,
+    error: { code: "DISPOSED", message: expect.any(String) },
+  };
+
+  await expect(beacon.check()).resolves.toEqual({
+    routes: { web: disposed, binary: disposed },
+    support: disposed,
+  });
+  await expect(plain.check()).resolves.toEqual({
+    routes: {},
+    support: null,
+  });
+});
+
+test("a caller that stops waiting for a running reader cancels every route and the policy, and asks nothing", async () => {
+  const { beacon, mock } = createPolicyBeacon({ holdNative: true });
+  const controller = new AbortController();
+
+  beacon.start();
+
+  const checking = beacon.check({ signal: controller.signal });
+
+  await settle();
+  controller.abort();
+
+  await expect(checking).resolves.toEqual({
+    routes: {
+      web: { status: "cancelled" },
+      binary: { status: "cancelled" },
+    },
+    support: { status: "cancelled" },
+  });
+  expect(mock.stats().reads).toBe(0);
+});
+
+test("a session that ends while a check waits for a running reader supersedes every route and the policy", async () => {
+  const { beacon, mock } = createPolicyBeacon({ holdNative: true });
+
+  beacon.start();
+
+  const checking = beacon.check();
+
+  beacon.stop();
+
+  await expect(checking).resolves.toEqual({
+    routes: {
+      web: { status: "superseded" },
+      binary: { status: "superseded" },
+    },
+    support: { status: "superseded" },
+  });
+  expect(mock.stats().reads).toBe(0);
+});
+
+test("the hydration of a journal whose storage fails on every call, beside readers that fail, leaves no unhandled rejection", async () => {
+  const unhandled = vi.fn();
+
+  process.on("unhandledRejection", unhandled);
+
+  try {
+    const unreadable = createMemoryStorage();
+    const unwritable = createMemoryStorage();
+
+    unreadable.failReads(new Error("The storage is offline."));
+    seed(unwritable, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
+    unwritable.failWrites(new Error("The storage is full."));
+
+    for (const memory of [unreadable, unwritable]) {
+      const { beacon } = createBeacon({
+        journal: { mode: "best-effort", storage: memory.storage },
+        running: {
+          boot: { id: "boot-1" },
+          web: () => Promise.reject(new Error("The build is unknown.")),
+        },
+      });
+
+      beacon.start();
+      await settle();
+
+      expect(beacon.transitions.get().journal).toBe("degraded");
+    }
+
+    expect(unhandled).not.toHaveBeenCalled();
+  } finally {
+    process.off("unhandledRejection", unhandled);
+  }
 });

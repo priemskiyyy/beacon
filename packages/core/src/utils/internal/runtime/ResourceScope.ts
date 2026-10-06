@@ -1,9 +1,9 @@
 // Each registration is its own entry, so the same cleanup can be added twice.
 type Entry = { cleanup: () => void };
 
-// One lifetime's cleanups: they run once, in reverse order, and every one is
-// attempted even when an earlier one throws. A cleanup registered after the end
-// runs at once, so a resource acquired late never outlives its scope.
+// One lifetime's cleanups: they run once, in reverse order, and every one still
+// held is attempted even when an earlier one throws. A cleanup registered after
+// the end runs at once, so a resource acquired late never outlives its scope.
 export class ResourceScope {
   #active = true;
   #entries = new Set<Entry>();
@@ -39,11 +39,12 @@ export class ResourceScope {
 
     this.#active = false;
 
-    const entries = [...this.#entries].reverse();
+    for (const entry of [...this.#entries].reverse()) {
+      // A cleanup that took this one back keeps it from running.
+      if (!this.#entries.delete(entry)) {
+        continue;
+      }
 
-    this.#entries.clear();
-
-    for (const entry of entries) {
       this.#run(entry.cleanup);
     }
   };

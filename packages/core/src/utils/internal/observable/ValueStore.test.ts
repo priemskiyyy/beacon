@@ -1,9 +1,13 @@
 import { expect, test, vi } from "vitest";
 
+import { Listeners } from "src/utils/internal/observable/Listeners";
 import { ValueStore } from "src/utils/internal/observable/ValueStore";
 
+const createStore = <TValue>(value: TValue) =>
+  new ValueStore(value, new Listeners(vi.fn()));
+
 test("setting installs without notifying and answers whether the value changed", () => {
-  const store = new ValueStore(1);
+  const store = createStore(1);
   const listener = vi.fn();
 
   store.subscribe(listener);
@@ -19,7 +23,7 @@ test("setting installs without notifying and answers whether the value changed",
 
 test("CORE-06 an equal value notifies nobody and keeps the snapshot", () => {
   const value = { revision: 1 };
-  const store = new ValueStore(value);
+  const store = createStore(value);
   const listener = vi.fn();
 
   store.subscribe(listener);
@@ -30,7 +34,7 @@ test("CORE-06 an equal value notifies nobody and keeps the snapshot", () => {
 });
 
 test("an update notifies only a change", () => {
-  const store = new ValueStore("a");
+  const store = createStore("a");
   const listener = vi.fn();
 
   store.subscribe(listener);
@@ -41,7 +45,7 @@ test("an update notifies only a change", () => {
 });
 
 test("CORE-01 subscribing never calls back at once and the readable keeps its identity", () => {
-  const store = new ValueStore({ value: 1 });
+  const store = createStore({ value: 1 });
   const listener = vi.fn();
   const { observable } = store;
 
@@ -53,8 +57,8 @@ test("CORE-01 subscribing never calls back at once and the readable keeps its id
   expect(Object.isFrozen(observable)).toBe(true);
 });
 
-test("a closed store keeps its value, stops notifying and refuses listeners", () => {
-  const store = new ValueStore(1);
+test("a closed store keeps its value, stops notifying and refuses listeners and new values", () => {
+  const store = createStore(1);
   const listener = vi.fn();
 
   store.subscribe(listener);
@@ -66,12 +70,12 @@ test("a closed store keeps its value, stops notifying and refuses listeners", ()
   store.update(3);
   unsubscribe();
 
-  expect(store.get()).toBe(3);
+  expect(store.get()).toBe(1);
   expect(listener).not.toHaveBeenCalled();
 });
 
 test("the read side works detached from the store", () => {
-  const store = new ValueStore(1);
+  const store = createStore(1);
   const { get, subscribe } = store.observable;
   const listener = vi.fn();
 
@@ -83,7 +87,7 @@ test("the read side works detached from the store", () => {
 });
 
 test("CORE-01 the initial value stays readable however the value changes", () => {
-  const store = new ValueStore({ count: 0 });
+  const store = createStore({ count: 0 });
 
   store.update({ count: 1 });
 

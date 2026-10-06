@@ -65,3 +65,41 @@ test("the same cleanup added twice runs twice and each registration is taken bac
 
   expect(cleanup).toHaveBeenCalledTimes(1);
 });
+
+test("a cleanup that takes another back while the scope ends keeps it from running", () => {
+  const scope = new ResourceScope(vi.fn());
+  const taken = vi.fn();
+  const takeBack = scope.add(taken);
+
+  scope.add(() => takeBack());
+  scope.dispose();
+
+  expect(taken).not.toHaveBeenCalled();
+});
+
+test("a cleanup that adds another while the scope ends runs it at once, and one that ends the scope again does nothing", () => {
+  const scope = new ResourceScope(vi.fn());
+  const log: string[] = [];
+
+  scope.add(() => log.push("first"));
+  scope.add(() => {
+    scope.add(() => log.push("added"));
+    scope.dispose();
+    log.push("second");
+  });
+  scope.dispose();
+
+  expect(log).toEqual(["added", "second", "first"]);
+});
+
+test("taking a cleanup back after the scope ended does nothing", () => {
+  const scope = new ResourceScope(vi.fn());
+  const takeBack = scope.add(vi.fn());
+
+  scope.dispose();
+
+  const late = scope.add(vi.fn());
+
+  expect(() => takeBack()).not.toThrow();
+  expect(() => late()).not.toThrow();
+});

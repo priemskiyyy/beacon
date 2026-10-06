@@ -27,6 +27,30 @@ test("an id the bundler injected is the running build, under the application's a
   });
 });
 
+test("the authority is the application of the scope the reader is given, so a build needs only its id", async () => {
+  expect(await webBuild({ id: "a91b44e" })({ scope: SCOPE })).toMatchObject({
+    identity: {
+      status: "known",
+      authority: APPLICATION,
+      domain: "web-artifact",
+      value: "a91b44e",
+    },
+  });
+  expect(
+    await webBuild({ id: "a91b44e" })({
+      scope: { ...SCOPE, application: "com.example.other" },
+    }),
+  ).toMatchObject({ identity: { authority: "com.example.other" } });
+});
+
+test("an authority given stays the authority, whatever the scope says", async () => {
+  expect(
+    await webBuild({ authority: "notes-web", id: "a91b44e" })({
+      scope: SCOPE,
+    }),
+  ).toMatchObject({ identity: { authority: "notes-web" } });
+});
+
 test("the label is the application's to name, and the domain too", async () => {
   const release = await webBuild({
     authority: APPLICATION,
@@ -101,6 +125,29 @@ test("an authority or a domain that is empty or has a space around it is refused
   }
 });
 
+test("after replaceScope the next read names the build under the new application", async () => {
+  const beacon = new Beacon({
+    scope: SCOPE,
+    running: { web: webBuild({ id: "a91b44e" }) },
+    routes: {},
+    clock: createTestClock({ now: 1_000 }),
+  });
+
+  beacon.start();
+  await settle();
+
+  expect(beacon.running.get().web).toMatchObject({
+    release: { identity: { authority: APPLICATION } },
+  });
+
+  beacon.replaceScope({ ...SCOPE, application: "com.example.other" });
+  await settle();
+
+  expect(beacon.running.get().web).toMatchObject({
+    release: { identity: { authority: "com.example.other" } },
+  });
+});
+
 const createBoot = (
   id: string | undefined,
   storage: ReturnType<typeof createMockJournalStorage>,
@@ -134,7 +181,7 @@ const createBoot = (
     scope: SCOPE,
     running: {
       boot: { id: boot },
-      web: webBuild({ authority: SCOPE.application, id }),
+      web: webBuild({ id }),
     },
     routes: {
       web: targetRoute({

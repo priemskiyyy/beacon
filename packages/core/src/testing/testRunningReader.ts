@@ -4,6 +4,7 @@ import type { RunningReaderConformanceOptions } from "src/testing/types/RunningR
 import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { RunningReader } from "src/types/RunningReader";
 import type { RunningRelease } from "src/types/RunningRelease";
+import type { RunningSubject } from "src/types/RunningSubject";
 
 const SCOPE: ReleaseScope = {
   application: "com.example.conformance",
@@ -19,7 +20,10 @@ const isPrimitive = (value: unknown) =>
   typeof value === "number";
 
 // A reader that throws is tolerated by Beacon, which makes it a failed fact as it does a rejection, but it is how a reader says nothing useful: it answers an unknown identity, or rejects.
-const readWithoutThrowing = (reader: RunningReader, scope: ReleaseScope) => {
+const readWithoutThrowing = (
+  reader: RunningReader<RunningSubject>,
+  scope: ReleaseScope,
+) => {
   try {
     return reader({ scope: Object.freeze({ ...scope }) });
   } catch (cause) {

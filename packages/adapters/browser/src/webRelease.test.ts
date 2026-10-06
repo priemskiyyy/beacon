@@ -28,7 +28,7 @@ test("it is the identity webBuild reads back, whatever padding or label the id c
   for (const id of ["a91b44e", " a91b44e\n", "b7"]) {
     const release = webRelease({ authority: APPLICATION, id, label: "Sept" });
 
-    const running = await webBuild({ authority: APPLICATION, id })({
+    const running = await webBuild({ id })({
       scope: SCOPE,
     });
 
@@ -75,7 +75,7 @@ const createBeacon = (running: string, deployed: string) => {
     scope: SCOPE,
     running: {
       boot: { id: "boot-1" },
-      web: webBuild({ authority: APPLICATION, id: running }),
+      web: webBuild({ id: running }),
     },
     routes: {
       web: targetRoute({

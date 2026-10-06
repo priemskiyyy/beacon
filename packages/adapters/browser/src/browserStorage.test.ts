@@ -206,7 +206,7 @@ const createBoot = (
     scope: SCOPE,
     running: {
       boot: { id: boot },
-      web: webBuild({ authority: SCOPE.application, id: build }),
+      web: webBuild({ id: build }),
     },
     routes: {
       web: targetRoute({

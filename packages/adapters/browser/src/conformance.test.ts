@@ -6,7 +6,7 @@ import {
 
 import { browserReload } from "src/browserReload";
 import { browserStorage } from "src/browserStorage";
-import { APPLICATION, fakeWindow } from "src/fakeWindow.fixture";
+import { fakeWindow } from "src/fakeWindow.fixture";
 import { fakeStorageWindow } from "src/fakeStorage.fixture";
 import type { BrowserStorageArea } from "src/types/BrowserStorageArea";
 import { webBuild } from "src/webBuild";
@@ -31,7 +31,7 @@ for (const area of AREAS) {
 }
 
 const createBuild = (id: string | null | undefined) => ({
-  reader: webBuild({ authority: APPLICATION, id }),
+  reader: webBuild({ id }),
 });
 
 testRunningReader({

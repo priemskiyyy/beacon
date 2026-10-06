@@ -10,6 +10,7 @@ import type {
   PreparedReference,
   Release,
   RouteHandle,
+  RunningReader,
   RunningReaders,
   TargetDecision,
 } from "@priemskiyyy/beacon";
@@ -107,14 +108,22 @@ export const webReader: RunningReaders["web"] = webBuild({
   id: undefined,
 });
 
+// The authority is the scope's application, so the id is all a build needs.
+export const scoped: RunningReader<"web"> = webBuild({
+  id: "a91b44e",
+});
+
+export const slots: RunningReaders = {
+  web: scoped,
+  // @ts-expect-error -- the reader of the web build is made for the web subject, not the bundle.
+  bundle: scoped,
+};
+
 // A define the bundler may leave out is undefined or null, and is told apart from a build, so each is accepted.
 export const nullable = webBuild({ authority: "a", id: null, label: null });
 
 // @ts-expect-error -- the id is required, so a build cannot name none by leaving it out.
 webBuild({ authority: "com.example.notes" });
-
-// @ts-expect-error -- the authority is who assigns the ids, so it is required.
-webBuild({ id: "a91b44e" });
 
 // @ts-expect-error -- a build id is text.
 webBuild({ authority: "com.example.notes", id: 7 });

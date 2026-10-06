@@ -22,8 +22,9 @@ const isJson = (contentType: string | null) => {
  * of no release: a login page or an empty body, `204` and `404`, `401` and
  * `403`, `429`, a server error, a redirect where the response says it was
  * one, and a body over the size limit each fail the read with a message that
- * names it. The `ETag` becomes the validator for the next read and is never a
- * revision.
+ * names it. A response says so only where it has `redirected`, which React
+ * Native's own `fetch` does not. The `ETag` becomes the validator for the next
+ * read and is never a revision.
  *
  * @example
  * ```ts
@@ -43,15 +44,11 @@ const isJson = (contentType: string | null) => {
  */
 export const readStandardManifest = async <
   TDeclarations extends RouteDeclarations,
->({
-  response,
-  scope,
-  routes,
-  now,
-  limits,
-}: ReadStandardManifestOptions<TDeclarations>): Promise<
-  HttpAnswer<StandardManifest<TDeclarations>>
-> => {
+>(
+  options: ReadStandardManifestOptions<TDeclarations>,
+): Promise<HttpAnswer<StandardManifest<TDeclarations>>> => {
+  const { response, scope, routes, now, limits } = options;
+
   if (response.redirected === true) {
     throw new BeaconError({
       code: "SOURCE_FAILED",

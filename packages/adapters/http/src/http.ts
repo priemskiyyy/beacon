@@ -39,7 +39,8 @@ export const http = <TDocument>({
 
   return createReleaseSource<TDocument>({
     name,
-    read: async ({ scope, signal, attempt }) => {
+    read: async (context) => {
+      const { scope, signal, attempt } = context;
       const held = memory?.scope === scope ? memory : null;
 
       const answer = await fetchAnswer({

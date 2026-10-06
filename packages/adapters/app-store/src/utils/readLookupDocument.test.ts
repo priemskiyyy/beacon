@@ -96,6 +96,11 @@ test("a malformed release date is refused, however leniently a date parser would
     "yesterday",
     "2026-02-31T00:00:00Z",
     "2026-09-02T24:00:00Z",
+    // V8 answers NaN for these, and Hermes rolls each over to a date that exists.
+    "2026-13-01T00:00:00Z",
+    "2026-09-00T09:15:00Z",
+    "2026-09-02T25:15:00Z",
+    "2026-09-02T09:15:60Z",
     "2026-09-02",
     "2026",
     "12",

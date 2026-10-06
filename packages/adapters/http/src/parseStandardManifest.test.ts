@@ -489,6 +489,10 @@ describe("the times of a manifest hold or the manifest is refused", () => {
   test.each([
     ["a date that does not exist", "2026-02-31T10:00:00Z"],
     ["an hour that does not exist", "2026-09-27T24:00:00Z"],
+    // V8 answers NaN for these three, and Hermes rolls each over to a date that exists.
+    ["a month that does not exist", "2026-13-27T10:00:00Z"],
+    ["a minute that does not exist", "2026-09-27T10:60:00Z"],
+    ["a second that does not exist", "2026-09-27T10:00:60Z"],
     ["a local time", "2026-09-27T10:00:00+02:00"],
     ["a date without a time", "2026-09-27"],
     ["a number", 1_790_503_200_000],

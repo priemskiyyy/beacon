@@ -50,7 +50,9 @@ export const appStoreLookup = ({
 
   return createReleaseSource<AppStoreDocument>({
     name,
-    read: async ({ scope, signal }) => {
+    read: async (context) => {
+      const { scope, signal } = context;
+
       if (scope.distribution !== APP_STORE_DISTRIBUTION) {
         // Decided here, without asking the store, so the store is not named as its issuer.
         return {

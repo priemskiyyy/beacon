@@ -32,10 +32,10 @@ export const appStoreHandoff = ({ appId, linking }: AppStoreHandoffOptions) => {
         reference: "optional-offer",
         impacts: ["external-handoff"],
         binding: "store-destination",
-        run: async ({
-          native,
-        }): Promise<ProviderResult<AppStoreHandoffReceipt>> => {
-          await native.linking.openURL(url);
+        run: async (
+          context,
+        ): Promise<ProviderResult<AppStoreHandoffReceipt>> => {
+          await context.native.linking.openURL(url);
 
           return {
             status: "accepted",

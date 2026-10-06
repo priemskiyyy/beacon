@@ -16,11 +16,8 @@ const commands = {
     reference: "offer",
     impacts: ["may-activate-on-next-start"],
     binding: "provider-current",
-    run: async ({
-      native,
-      offer,
-      signal,
-    }): Promise<PlayResult<"update-downloaded">> => {
+    run: async (context): Promise<PlayResult<"update-downloaded">> => {
+      const { native, offer, signal } = context;
       const session = PlaySession.of(native);
       const refusal = await session.confirmFlow(offer, "flexible");
 
@@ -35,11 +32,8 @@ const commands = {
     reference: "offer",
     impacts: ["native-update-flow", "javascript-restart"],
     binding: "provider-current",
-    run: async ({
-      native,
-      offer,
-      signal,
-    }): Promise<PlayResult<"immediate-flow-started">> => {
+    run: async (context): Promise<PlayResult<"immediate-flow-started">> => {
+      const { native, offer, signal } = context;
       const refusal = await PlaySession.of(native).confirmFlow(
         offer,
         "immediate",
@@ -73,8 +67,8 @@ const commands = {
     reference: "prepared",
     impacts: ["javascript-restart"],
     binding: "provider-current",
-    run: async ({ native }): Promise<PlayResult<"completion-requested">> => {
-      await native.bridge.completeUpdate();
+    run: async (context): Promise<PlayResult<"completion-requested">> => {
+      await context.native.bridge.completeUpdate();
 
       return { status: "accepted", receipt: { kind: "completion-requested" } };
     },
@@ -97,7 +91,7 @@ const commands = {
  *
  * @example
  * ```ts
- * const routes = { binary: googlePlay({ bridge: NativeModules.PlayUpdates }) };
+ * const routes = { binary: googlePlay({ bridge: playBridge }) };
  * ```
  */
 export const googlePlay = ({ bridge }: PlayOptions) =>

@@ -527,3 +527,95 @@ test("LIFE-11 a second Beacon on the same module cannot open the route, and says
 
   expect(second.route("ota").native.get()).not.toBeNull();
 });
+
+// What expo-updates rejects with where it cannot run: a development client reports `isEnabled` true and then
+// refuses the call from native code, and a debug build refuses it from JavaScript. Both carry a code.
+const refusal = (code: string) =>
+  Object.assign(new Error("not supported in development builds"), { code });
+
+test.each(["ERR_NOT_AVAILABLE_IN_DEV_CLIENT", "ERR_UPDATES_DISABLED"])(
+  "a development build that refuses the check with %s is an environment that cannot check, never a failed check",
+  async (code) => {
+    const context = create();
+
+    context.willCheck(refusal(code));
+    context.beacon.start();
+
+    await expect(context.ota.check()).resolves.toMatchObject({
+      status: "succeeded",
+    });
+    expect(context.ota.state.get().observation).toEqual({
+      status: "unknown",
+      reason: "unsupported-environment",
+    });
+  },
+);
+
+test("a rejection with another code is still a failed check", async () => {
+  const context = create();
+
+  context.willCheck(refusal("ERR_UPDATES_CHECK_TIMEOUT"));
+  context.beacon.start();
+
+  await expect(context.ota.check()).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "DRIVER_FAILED" },
+  });
+});
+
+test.each(["ERR_NOT_AVAILABLE_IN_DEV_CLIENT", "ERR_UPDATES_DISABLED"])(
+  "a download a development build refuses with %s is unsupported, and prepares nothing",
+  async (code) => {
+    const context = create();
+
+    context.willCheck(available(UPDATE_A));
+    context.willFetch(refusal(code));
+
+    const offer = await checkOffer(context);
+
+    await expect(context.ota.download({ offer: offer.ref })).resolves.toEqual({
+      status: "unsupported",
+      reason: "updates-disabled",
+    });
+    expect(context.ota.state.get().prepared).toEqual({ status: "unknown" });
+  },
+);
+
+test("a download that fails for another reason is still a failed command", async () => {
+  const context = create();
+
+  context.willCheck(available(UPDATE_A));
+  context.willFetch(refusal("ERR_UPDATES_FETCH"));
+
+  const offer = await checkOffer(context);
+
+  await expect(
+    context.ota.download({ offer: offer.ref }),
+  ).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "COMMAND_FAILED" },
+  });
+});
+
+test("a reload the SDK refuses with ERR_UPDATES_DISABLED is unsupported, and the route is free again", async () => {
+  const context = create();
+
+  context.willCheck(available(UPDATE_A));
+  context.willFetch(fetchedNew(UPDATE_A));
+  context.willReload(refusal("ERR_UPDATES_DISABLED"));
+
+  const offer = await checkOffer(context);
+
+  await context.ota.download({ offer: offer.ref });
+
+  const { prepared } = context.ota.state.get();
+
+  if (prepared.status !== "ready") {
+    throw new Error("The route has nothing prepared.");
+  }
+
+  await expect(
+    context.ota.reload({ prepared: prepared.value.ref }),
+  ).resolves.toEqual({ status: "unsupported", reason: "updates-disabled" });
+  expect(context.ota.state.get().operation).toEqual({ state: "idle" });
+});

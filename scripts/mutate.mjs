@@ -5,6 +5,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const core = "packages/core/src/utils";
+const mock = "packages/core/src/mock";
+const testing = "packages/core/src/testing";
 const http = "packages/adapters/http/src";
 const devtools = "packages/devtools/src";
 
@@ -149,6 +151,213 @@ const MUTANTS = [
     describes: "an answer within its deadline counted as late",
   },
   {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: '      this.#hydrated = true;\n      this.#publish({ journal: "ready" });',
+    replace: '      this.#publish({ journal: "ready" });',
+    project: "core",
+    describes: "a cleared record still refused to a journal whose read failed",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: '      this.#hydrated = true;\n      this.#publish({ journal: "ready" });',
+    replace: "      this.#hydrated = true;",
+    project: "core",
+    describes:
+      "a cleared record that leaves a degraded journal saying degraded",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "      if (claim.generation !== this.#generation) {\n        return;\n      }\n\n      this.#hydrated = true;",
+    replace: "      this.#hydrated = true;",
+    project: "core",
+    describes: "the record of a scope that ended vouching for the next one",
+  },
+  {
+    file: `${core}/createBootId.ts`,
+    find: "return (byte & 0x3f) | 0x80;",
+    replace: "return byte & 0x3f;",
+    project: "core",
+    describes: "a boot id that is not a version 4 UUID",
+  },
+  {
+    file: `${core}/createBootId.ts`,
+    find: "Math.floor(Math.random() * 256)",
+    replace: "Date.now() % 256",
+    project: "core",
+    describes: "a boot id that reads the host clock",
+  },
+  {
+    file: `${core}/createBootId.ts`,
+    find: "  } catch {\n    // A host whose source refuses is one that has none: the next source is as unique.\n  }",
+    replace: "  } finally {\n    // nothing\n  }",
+    project: "core",
+    describes: "a host whose random source refuses failing to make a boot id",
+  },
+  {
+    file: `${core}/Beacon.ts`,
+    find: "return this.#clock;",
+    replace: "return createSystemClock();",
+    project: "core",
+    describes: "a Beacon that answers a clock it does not run on",
+  },
+  {
+    file: `${core}/parseUtcTimestamp.ts`,
+    find: "new Date(milliseconds).toISOString().slice(0, SECONDS_LENGTH) !== seconds",
+    replace: "false",
+    project: "core",
+    describes: "a UTC timestamp of a date that does not exist rolled over",
+  },
+  {
+    file: `${core}/parseUtcTimestamp.ts`,
+    find: "    Number.isNaN(milliseconds) ||\n",
+    replace: "",
+    project: "core",
+    describes: "a UTC timestamp the engine cannot read thrown at the caller",
+  },
+  {
+    file: `${core}/parseUtcTimestamp.ts`,
+    find: '.padEnd(3, "0")',
+    replace: '.padStart(3, "0")',
+    project: "core",
+    describes: "a fraction of a second read as a smaller one",
+  },
+  {
+    file: `${core}/parseUtcTimestamp.ts`,
+    find: "(?:\\.\\d{1,3})?Z$/;",
+    replace: "(?:\\.\\d{1,9})?Z$/;",
+    project: "core",
+    describes: "a fraction finer than a millisecond read as a timestamp",
+  },
+  {
+    file: `${mock}/createGate.ts`,
+    find: "        resolve();\n",
+    replace: "",
+    project: "core",
+    describes: "a released gate that keeps its waiters",
+  },
+  {
+    file: `${mock}/createGate.ts`,
+    find: "if (!state.held) {",
+    replace: "if (true) {",
+    project: "core",
+    describes: "a held gate that lets a waiter through",
+  },
+  {
+    file: `${mock}/createGate.ts`,
+    find: "      state.held = false;\n",
+    replace: "",
+    project: "core",
+    describes: "a released gate that stays closed to whoever comes next",
+  },
+  {
+    file: `${mock}/settle.ts`,
+    find: "setTimeout(resolve, 0);",
+    replace: "resolve();",
+    project: "core",
+    describes: "a settle that returns before the queued continuations run",
+  },
+  {
+    file: `${core}/keyValueJournalStorage.ts`,
+    find: "if (kept === value) {",
+    replace: "if (true) {",
+    project: "core",
+    describes: "a store that keeps nothing trusted to have kept the record",
+  },
+  {
+    file: `${core}/keyValueJournalStorage.ts`,
+    find: "if (!verify) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "a write read back although the read back was turned off",
+  },
+  {
+    file: `${core}/keyValueJournalStorage.ts`,
+    find: "return text ?? null;",
+    replace: "return text;",
+    project: "core",
+    describes: "a key the store answers undefined for read as a record",
+  },
+  {
+    file: `${core}/keyValueJournalStorage.ts`,
+    find: "await store.removeItem(toStoreKey(journalKey));",
+    replace: "await store.removeItem(journalKey);",
+    project: "core",
+    describes: "a record removed under the journal's key, not the store's",
+  },
+  {
+    file: `${core}/keyValueJournalStorage.ts`,
+    find: "await store.setItem(storeKey, value);\n",
+    replace: "store.setItem(storeKey, value);\n",
+    project: "core",
+    describes: "a write that resolves before the store answered it",
+  },
+  {
+    file: `${mock}/createMockJournalStorage.ts`,
+    find: "      await writeGate.wait();\n",
+    replace: "",
+    project: "core",
+    describes: "a held write answered at once",
+  },
+  {
+    file: `${mock}/createMockJournalStorage.ts`,
+    find: "      await readGate.wait();\n",
+    replace: "",
+    project: "core",
+    describes: "a held read answered at once",
+  },
+  {
+    file: `${testing}/testRunningReader.ts`,
+    find: ").toBe(text.trim());",
+    replace: ").toBe(text);",
+    project: "core",
+    describes: "a running reader suite that lets a space around an identity by",
+  },
+  {
+    file: `${testing}/testRunningReader.ts`,
+    find: '.not.toBe("");',
+    replace: ".toBe(text);",
+    project: "core",
+    describes: "a running reader suite that lets an empty identity part by",
+  },
+  {
+    file: `${testing}/testRunningReader.ts`,
+    find: "expect(reads()).toBe(0);",
+    replace: "expect(reads()).toBeGreaterThanOrEqual(0);",
+    project: "core",
+    describes: "a running reader suite that lets a reader that is not cold by",
+  },
+  {
+    file: `${testing}/testRunningReader.ts`,
+    find: "expect(reads()).toBeGreaterThan(0);",
+    replace: "expect(reads()).toBeGreaterThanOrEqual(0);",
+    project: "core",
+    describes:
+      "a running reader suite that lets a count that is never wired by",
+  },
+  {
+    file: `${testing}/testRunningReader.ts`,
+    find: "expect(release.identity.status).toBe(situation.answers);",
+    replace: "expect(release.identity.status).toBeDefined();",
+    project: "core",
+    describes:
+      "a running reader suite that lets the wrong answer of a situation by",
+  },
+  {
+    file: `${testing}/testJournalStorage.ts`,
+    find: '.resolves.toBe("second");',
+    replace: ".resolves.toBeDefined();",
+    project: "core",
+    describes:
+      "a journal storage suite that lets a write that does not overwrite by",
+  },
+  {
+    file: `${testing}/testJournalStorage.ts`,
+    find: "        `${base}%2Fchild`,\n",
+    replace: "",
+    project: "core",
+    describes: "a journal storage suite that lets two keys become one by",
+  },
+  {
     file: `${core}/internal/routes/claimExclusive.ts`,
     find: "claimed.delete(owner);",
     replace: "",
@@ -171,7 +380,7 @@ const MUTANTS = [
   },
   {
     file: `${core}/internal/routes/RouteRegistry.ts`,
-    find: "      // A listener told that a route opened may have ended the session: nothing else is opened for it.\n      if (!session.scope.isActive()) {",
+    find: "      // A listener told that a route opened may have ended the session: nothing else is opened for it.\n      if (!session.resources.isActive()) {",
     replace:
       "      // A listener told that a route opened may have ended the session: nothing else is opened for it.\n      if (false) {",
     project: "core",
@@ -179,7 +388,7 @@ const MUTANTS = [
   },
   {
     file: `${core}/internal/routes/RouteRegistry.ts`,
-    find: "    if (!session.scope.isActive()) {\n      return;\n    }\n\n    this.#feeds.resume(session);",
+    find: "    if (!session.resources.isActive()) {\n      return;\n    }\n\n    this.#feeds.resume(session);",
     replace: "    this.#feeds.resume(session);",
     project: "core",
     describes:

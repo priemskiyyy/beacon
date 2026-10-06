@@ -6,6 +6,7 @@ const eslint = new ESLint();
 const CORE = "packages/core/src/utils/lint-probe.ts";
 const CLOCK = "packages/core/src/utils/internal/clock/createSystemClock.ts";
 const MOCK = "packages/core/src/mock/lint-probe.ts";
+const SETTLE = "packages/core/src/mock/settle.ts";
 const SUITE = "packages/core/src/testing/lint-probe.ts";
 const ADAPTER = "packages/adapters/http/src/lint-probe.ts";
 const NATIVE_ADAPTER = "packages/adapters/expo/src/lint-probe.ts";
@@ -226,6 +227,8 @@ const boundaries = [
   ["const view = window;", "no-restricted-globals", CORE],
   ["const page = document;", "no-restricted-globals", CLOCK],
   ["const agent = navigator;", "no-restricted-globals", MOCK],
+  ["const time = Date.now();", "no-restricted-syntax", SETTLE],
+  ["const view = window;", "no-restricted-globals", SETTLE],
   ["const big = BigInt(1);", "no-restricted-globals", CORE],
   ["const big = BigInt(1);", "no-restricted-globals", ADAPTER],
   ["const copy = structuredClone({});", "no-restricted-globals", CORE],
@@ -470,6 +473,10 @@ const allowed = [
     CLOCK,
   ],
   ["export const time = Date.now() + performance.now();", CLOCK],
+  [
+    "export const turn = setTimeout(() => {}, 0);\n\nclearTimeout(turn);",
+    SETTLE,
+  ],
   ["export const time = Date.now();", TEST],
   ["export const at = new Date(1_000);", CORE],
   [

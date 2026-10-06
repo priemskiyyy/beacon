@@ -487,6 +487,24 @@ export default tseslint.config(
       "no-restricted-syntax": ["error", ...packageSyntax, ...reactNativeSyntax],
     },
   },
+  {
+    // `settle` yields to the host's next turn, which only a host timer gives. It reads no time and arms nothing for a Beacon.
+    files: ["packages/core/src/mock/settle.ts"],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        ...hostGlobals,
+        ...portableGlobals,
+        ...reactNativeGlobals,
+      ],
+      "no-restricted-syntax": [
+        "error",
+        ...packageSyntax,
+        ...reactNativeSyntax,
+        ...clockReads,
+      ],
+    },
+  },
   ...[
     {
       // The adapters of what a React Native app runs.

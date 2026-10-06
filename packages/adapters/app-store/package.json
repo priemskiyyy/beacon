@@ -1,0 +1,56 @@
+{
+  "name": "@priemskiyyy/beacon-app-store",
+  "version": "0.1.0",
+  "description": "App Store metadata and store handoff for Beacon: an advisory marketing-release source and a mechanism that opens the store page, neither of which installs anything.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priemskiyyy/beacon.git",
+    "directory": "packages/adapters/app-store"
+  },
+  "bugs": {
+    "url": "https://github.com/priemskiyyy/beacon/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint:typescript": "tsc --noEmit -p .",
+    "lint:eslint": "eslint src",
+    "test:unit": "vitest run --root ../../.. --project app-store"
+  },
+  "peerDependencies": {
+    "@priemskiyyy/beacon": ">=0.1.0 <0.2"
+  },
+  "devDependencies": {
+    "@priemskiyyy/beacon": "workspace:*"
+  },
+  "keywords": [
+    "app-store",
+    "ios",
+    "itunes-lookup",
+    "store",
+    "release",
+    "update",
+    "typescript",
+    "beacon",
+    "adapter"
+  ]
+}

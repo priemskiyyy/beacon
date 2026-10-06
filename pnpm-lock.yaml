@@ -66,6 +66,12 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@22.20.2)(jsdom@27.4.0)(vite@8.3.1(@types/node@22.20.2)(terser@5.51.2)(yaml@2.9.1))
 
+  packages/adapters/app-store:
+    devDependencies:
+      '@priemskiyyy/beacon':
+        specifier: workspace:*
+        version: link:../../core
+
   packages/adapters/browser:
     devDependencies:
       '@priemskiyyy/beacon':

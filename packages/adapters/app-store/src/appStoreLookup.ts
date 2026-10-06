@@ -1,4 +1,5 @@
-import { BeaconError, createReleaseSource } from "@priemskiyyy/beacon";
+import { BeaconError } from "@priemskiyyy/beacon";
+import { createReleaseSource } from "@priemskiyyy/beacon/adapter";
 import type { ReleaseSource } from "@priemskiyyy/beacon";
 
 import type { AppStoreDocument } from "src/types/AppStoreDocument";

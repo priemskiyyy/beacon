@@ -1,9 +1,9 @@
-import { createReleaseDriver } from "@priemskiyyy/beacon";
+import { createReleaseDriver } from "@priemskiyyy/beacon/adapter";
 import type {
   CommandMap,
   ObservationDraft,
   ProviderResult,
-} from "@priemskiyyy/beacon";
+} from "@priemskiyyy/beacon/adapter";
 
 import { expoBundle } from "src/expoBundle";
 import type { ExpoBody } from "src/types/ExpoBody";

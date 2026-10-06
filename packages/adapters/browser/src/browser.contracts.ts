@@ -1,7 +1,8 @@
 // Typechecked, never run: the real DOM window satisfies the structural types
 // the adapter uses, and a route's methods are derived from the commands the
 // mechanism declares.
-import { createReleaseSource, targetRoute } from "@priemskiyyy/beacon";
+import { targetRoute } from "@priemskiyyy/beacon";
+import { createReleaseSource } from "@priemskiyyy/beacon/adapter";
 import type {
   JournalStorage,
   KeyValueStoreLike,

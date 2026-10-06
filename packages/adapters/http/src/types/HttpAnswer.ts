@@ -1,4 +1,4 @@
-import type { SourceRead } from "@priemskiyyy/beacon";
+import type { SourceRead } from "@priemskiyyy/beacon/adapter";
 
 /**
  * What the application's client resolves for one read, already validated by

@@ -1,5 +1,5 @@
-import { createUpdateMechanism } from "@priemskiyyy/beacon";
-import type { ProviderResult } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
+import type { ProviderResult } from "@priemskiyyy/beacon/adapter";
 
 import type { LabNative } from "example-shared/lab/types/LabNative";
 import type { ReloadReceipt } from "example-shared/lab/types/ReloadReceipt";

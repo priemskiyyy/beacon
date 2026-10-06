@@ -1,7 +1,7 @@
 import {
   ANDROID_VERSION_CODE_DOMAIN,
   IOS_BUILD_DOMAIN,
-} from "@priemskiyyy/beacon";
+} from "@priemskiyyy/beacon/adapter";
 
 import type { NativePlatform } from "src/types/NativePlatform";
 

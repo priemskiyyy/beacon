@@ -1,5 +1,5 @@
-import { createUpdateMechanism } from "@priemskiyyy/beacon";
-import type { ProviderResult } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
+import type { ProviderResult } from "@priemskiyyy/beacon/adapter";
 
 import type { BrowserReloadOptions } from "src/types/BrowserReloadOptions";
 import type { BrowserReloadReceipt } from "src/types/BrowserReloadReceipt";

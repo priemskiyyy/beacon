@@ -1,5 +1,5 @@
-import { createReleaseDriver } from "@priemskiyyy/beacon";
-import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon";
+import { createReleaseDriver } from "@priemskiyyy/beacon/adapter";
+import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon/adapter";
 
 import { codePushBundle } from "src/codePushBundle";
 import type { CodePushDownloadReceipt } from "src/types/CodePushDownloadReceipt";

@@ -209,7 +209,8 @@ console.info(
 `minimumBuild` is the forced upgrade as a policy: the binary that runs is `unsupported` when its build number is below the minimum a source names. It reads the `native` running fact, so the application needs a native reader, such as the one in [React Native](react-native.md#what-the-binary-is).
 
 ```ts
-import { createReleaseSource, minimumBuild } from "@priemskiyyy/beacon";
+import { minimumBuild } from "@priemskiyyy/beacon";
+import { createReleaseSource } from "@priemskiyyy/beacon/adapter";
 
 const catalog = createReleaseSource<{ minimumBuild: number }>({
   name: "support-catalog",

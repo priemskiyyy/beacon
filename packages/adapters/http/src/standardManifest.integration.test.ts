@@ -1,10 +1,10 @@
 import {
   Beacon,
-  createUpdateMechanism,
   newerRoute,
   supportPolicy,
   targetRoute,
 } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
 import type { RunningRelease } from "@priemskiyyy/beacon";
 import { createTestClock } from "@priemskiyyy/beacon/mock";
 import { semver } from "@priemskiyyy/beacon/versions";

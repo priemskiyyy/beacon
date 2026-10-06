@@ -1,4 +1,4 @@
-import type { ProviderResult } from "@priemskiyyy/beacon";
+import type { ProviderResult } from "@priemskiyyy/beacon/adapter";
 
 import type { PlayReceipt } from "src/types/PlayReceipt";
 

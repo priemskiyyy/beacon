@@ -1,5 +1,5 @@
-import { createReleaseDriver } from "@priemskiyyy/beacon";
-import type { CommandMap } from "@priemskiyyy/beacon";
+import { createReleaseDriver } from "@priemskiyyy/beacon/adapter";
+import type { CommandMap } from "@priemskiyyy/beacon/adapter";
 
 import type { PlayResult } from "src/types/internal/PlayResult";
 import type { PlayNative } from "src/types/PlayNative";

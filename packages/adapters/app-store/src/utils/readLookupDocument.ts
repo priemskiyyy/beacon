@@ -1,4 +1,4 @@
-import { parseUtcTimestamp } from "@priemskiyyy/beacon";
+import { parseUtcTimestamp } from "@priemskiyyy/beacon/adapter";
 
 import type { AppStoreDocument } from "src/types/AppStoreDocument";
 import type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";

@@ -1,5 +1,5 @@
 import { BeaconError, compareIdentities } from "@priemskiyyy/beacon";
-import type { DriverEmitter } from "@priemskiyyy/beacon";
+import type { DriverEmitter } from "@priemskiyyy/beacon/adapter";
 
 import type { PlayResult } from "src/types/internal/PlayResult";
 import type { Refusal } from "src/types/internal/Refusal";

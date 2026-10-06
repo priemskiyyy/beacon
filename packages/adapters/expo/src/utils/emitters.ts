@@ -1,4 +1,4 @@
-import type { DriverEmitter } from "@priemskiyyy/beacon";
+import type { DriverEmitter } from "@priemskiyyy/beacon/adapter";
 
 import type { ExpoBody } from "src/types/ExpoBody";
 import type { ExpoNative } from "src/types/ExpoNative";

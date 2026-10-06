@@ -1,4 +1,4 @@
-import { parseUtcTimestamp } from "@priemskiyyy/beacon";
+import { parseUtcTimestamp } from "@priemskiyyy/beacon/adapter";
 
 import { invalidManifest } from "src/utils/invalidManifest";
 

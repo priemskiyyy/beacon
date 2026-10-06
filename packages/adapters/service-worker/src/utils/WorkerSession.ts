@@ -1,4 +1,7 @@
-import type { DriverEmitter, ObservationDraft } from "@priemskiyyy/beacon";
+import type {
+  DriverEmitter,
+  ObservationDraft,
+} from "@priemskiyyy/beacon/adapter";
 
 import type { ContainerLike } from "src/types/ContainerLike";
 import type { RegistrationLike } from "src/types/RegistrationLike";

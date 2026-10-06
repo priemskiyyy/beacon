@@ -1,11 +1,8 @@
 // Typechecked, never run: the declared routes decide what each route of a
 // manifest can be read as, so a decision of the wrong kind or order does not
 // compile.
-import {
-  createUpdateMechanism,
-  newerRoute,
-  targetRoute,
-} from "@priemskiyyy/beacon";
+import { newerRoute, targetRoute } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
 import type { DecisionRevision, ReleaseScope } from "@priemskiyyy/beacon";
 import { integer, semver } from "@priemskiyyy/beacon/versions";
 import { expectTypeOf } from "vitest";

@@ -1,6 +1,7 @@
 // Typechecked, never run: each `@ts-expect-error` is a rule the types enforce
 // so that the adapter does not check it again at runtime.
-import { createUpdateMechanism, targetRoute } from "@priemskiyyy/beacon";
+import { targetRoute } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
 import type {
   NoneDecision,
   ReleaseSource,

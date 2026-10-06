@@ -1,5 +1,5 @@
-import { ANDROID_VERSION_CODE_DOMAIN } from "@priemskiyyy/beacon";
-import type { PreparedDraft } from "@priemskiyyy/beacon";
+import { ANDROID_VERSION_CODE_DOMAIN } from "@priemskiyyy/beacon/adapter";
+import type { PreparedDraft } from "@priemskiyyy/beacon/adapter";
 
 import type { PlayReading } from "src/types/internal/PlayReading";
 import type { PlayInstallStatus } from "src/types/PlayInstallStatus";

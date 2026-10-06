@@ -1,9 +1,8 @@
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import {
-  Beacon,
   createReleaseDriver,
   createUpdateMechanism,
-  targetRoute,
-} from "@priemskiyyy/beacon";
+} from "@priemskiyyy/beacon/adapter";
 import type {
   NoneDecision,
   ObservableValue,

@@ -1,10 +1,10 @@
-import { createReleaseDriver } from "@priemskiyyy/beacon";
+import { createReleaseDriver } from "@priemskiyyy/beacon/adapter";
+import type { RouteBody } from "@priemskiyyy/beacon";
 import type {
   CommandMap,
   ObservationDraft,
   ProviderResult,
-  RouteBody,
-} from "@priemskiyyy/beacon";
+} from "@priemskiyyy/beacon/adapter";
 
 import type { PlayStoreNative } from "src/types/PlayStoreNative";
 import type { PlayStoreOptions } from "src/types/PlayStoreOptions";

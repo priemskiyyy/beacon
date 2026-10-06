@@ -137,6 +137,7 @@ const entryPoints = [
   "packages/*/src/index.ts",
   "packages/adapters/*/src/index.ts",
   "packages/adapters/expo/src/mock.ts",
+  "packages/core/src/adapter.ts",
   "packages/core/src/mock.ts",
   "packages/core/src/testing.ts",
   "packages/core/src/triggers.ts",

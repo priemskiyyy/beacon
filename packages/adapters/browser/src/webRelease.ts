@@ -1,4 +1,5 @@
-import { BeaconError, WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon";
+import { BeaconError } from "@priemskiyyy/beacon";
+import { WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon/adapter";
 import type { Release } from "@priemskiyyy/beacon";
 
 import type { WebReleaseOptions } from "src/types/WebReleaseOptions";

@@ -1,15 +1,16 @@
 import {
   Beacon,
-  createReleaseDriver,
-  createUpdateMechanism,
   newerRoute,
   supportPolicy,
   targetRoute,
 } from "@priemskiyyy/beacon";
+import {
+  createReleaseDriver,
+  createUpdateMechanism,
+} from "@priemskiyyy/beacon/adapter";
 import type {
   CandidateDecision,
   NoneDecision,
-  ProviderResult,
   ReleaseIdentity,
   ReleaseScope,
   RouteBody,
@@ -18,6 +19,7 @@ import type {
   SupportVerdict,
   TargetDecision,
 } from "@priemskiyyy/beacon";
+import type { ProviderResult } from "@priemskiyyy/beacon/adapter";
 import {
   createMockJournalStorage,
   createMockSource,

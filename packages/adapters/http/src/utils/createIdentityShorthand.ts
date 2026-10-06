@@ -1,4 +1,4 @@
-import { WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon";
+import { WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon/adapter";
 import type { ReleaseScope } from "@priemskiyyy/beacon";
 
 import type { IdentityShorthand } from "src/types/internal/IdentityShorthand";

@@ -1,9 +1,7 @@
-import { BeaconError, createReleaseSource } from "@priemskiyyy/beacon";
-import type {
-  ReleaseScope,
-  ReleaseSource,
-  SourceRead,
-} from "@priemskiyyy/beacon";
+import { BeaconError } from "@priemskiyyy/beacon";
+import { createReleaseSource } from "@priemskiyyy/beacon/adapter";
+import type { ReleaseScope, ReleaseSource } from "@priemskiyyy/beacon";
+import type { SourceRead } from "@priemskiyyy/beacon/adapter";
 
 import type { HttpOptions } from "src/types/HttpOptions";
 import { toSourceRead } from "src/utils/toSourceRead";

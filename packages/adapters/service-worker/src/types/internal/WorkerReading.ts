@@ -1,4 +1,7 @@
-import type { ObservationDraft, PreparedDraft } from "@priemskiyyy/beacon";
+import type {
+  ObservationDraft,
+  PreparedDraft,
+} from "@priemskiyyy/beacon/adapter";
 
 import type { WorkerBody } from "src/types/WorkerBody";
 

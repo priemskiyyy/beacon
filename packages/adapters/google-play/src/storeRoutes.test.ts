@@ -1,9 +1,8 @@
+import { Beacon, minimumBuild } from "@priemskiyyy/beacon";
 import {
   ANDROID_VERSION_CODE_DOMAIN,
-  Beacon,
   IOS_BUILD_DOMAIN,
-  minimumBuild,
-} from "@priemskiyyy/beacon";
+} from "@priemskiyyy/beacon/adapter";
 import type { OfferReference, RunningRelease } from "@priemskiyyy/beacon";
 import {
   createMockSource,

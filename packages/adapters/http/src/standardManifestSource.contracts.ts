@@ -1,7 +1,8 @@
 // Typechecked, never run: a manifest source reads the routes the application
 // declared, and the client it is given is anything that takes a URL and the
 // options of one request.
-import { createUpdateMechanism, targetRoute } from "@priemskiyyy/beacon";
+import { targetRoute } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
 import type { ReleaseSource } from "@priemskiyyy/beacon";
 import { expectTypeOf } from "vitest";
 

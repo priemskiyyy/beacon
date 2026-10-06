@@ -1,4 +1,4 @@
-import { createReleaseSource } from "@priemskiyyy/beacon";
+import { createReleaseSource } from "@priemskiyyy/beacon/adapter";
 import type { BeaconClock } from "@priemskiyyy/beacon";
 import { createMockSource } from "@priemskiyyy/beacon/mock";
 

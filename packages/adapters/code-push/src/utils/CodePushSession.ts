@@ -1,10 +1,10 @@
 import { BeaconError, compareIdentities } from "@priemskiyyy/beacon";
+import type { ReleaseIdentity } from "@priemskiyyy/beacon";
 import type {
   DriverEmitter,
   ObservationDraft,
   ProviderResult,
-  ReleaseIdentity,
-} from "@priemskiyyy/beacon";
+} from "@priemskiyyy/beacon/adapter";
 
 import type { CodePushDownloadReceipt } from "src/types/CodePushDownloadReceipt";
 import type { CodePushNative } from "src/types/CodePushNative";

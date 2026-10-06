@@ -23,7 +23,7 @@ A source reads one release authority. Make one with `createReleaseSource({ name,
 
 ```ts
 // src/deployments.ts
-import { createReleaseSource } from "@priemskiyyy/beacon";
+import { createReleaseSource } from "@priemskiyyy/beacon/adapter";
 import type {
   NoneDecision,
   ReleaseScope,
@@ -96,7 +96,8 @@ Its source can only produce `target` and `none` decisions. The selection is pure
 `newerRoute` offers a candidate only when a version strategy admits it and it orders newer than what runs. It is for a store or a release feed, where an older version is never an update.
 
 ```ts
-import { createReleaseSource, newerRoute } from "@priemskiyyy/beacon";
+import { newerRoute } from "@priemskiyyy/beacon";
+import { createReleaseSource } from "@priemskiyyy/beacon/adapter";
 import type { CandidateDecision, NoneDecision } from "@priemskiyyy/beacon";
 import { appStoreHandoff } from "@priemskiyyy/beacon-app-store";
 import { semver } from "@priemskiyyy/beacon/versions";

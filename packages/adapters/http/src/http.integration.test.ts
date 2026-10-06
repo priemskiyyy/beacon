@@ -1,8 +1,5 @@
-import {
-  Beacon,
-  createUpdateMechanism,
-  targetRoute,
-} from "@priemskiyyy/beacon";
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
 import { createTestClock } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 

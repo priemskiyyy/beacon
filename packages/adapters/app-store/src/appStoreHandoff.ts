@@ -1,5 +1,5 @@
-import { createUpdateMechanism } from "@priemskiyyy/beacon";
-import type { ProviderResult } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
+import type { ProviderResult } from "@priemskiyyy/beacon/adapter";
 
 import type { AppStoreHandoffOptions } from "src/types/AppStoreHandoffOptions";
 import type { AppStoreHandoffReceipt } from "src/types/AppStoreHandoffReceipt";

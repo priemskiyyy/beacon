@@ -1,4 +1,4 @@
-import type { ObservationDraft } from "@priemskiyyy/beacon";
+import type { ObservationDraft } from "@priemskiyyy/beacon/adapter";
 
 import type { CheckResultLike } from "src/types/CheckResultLike";
 import type { ExpoBody } from "src/types/ExpoBody";

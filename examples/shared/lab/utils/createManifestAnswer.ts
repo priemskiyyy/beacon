@@ -1,4 +1,4 @@
-import type { SourceRead } from "@priemskiyyy/beacon";
+import type { SourceRead } from "@priemskiyyy/beacon/adapter";
 
 import {
   ISSUER,

@@ -1,4 +1,4 @@
-import { WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon";
+import { WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon/adapter";
 import type { RunningReader } from "@priemskiyyy/beacon";
 
 import type { WebBuildOptions } from "src/types/WebBuildOptions";

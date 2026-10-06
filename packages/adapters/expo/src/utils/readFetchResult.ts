@@ -1,5 +1,6 @@
 import { compareIdentities } from "@priemskiyyy/beacon";
-import type { PreparedDraft, ReleaseIdentity } from "@priemskiyyy/beacon";
+import type { ReleaseIdentity } from "@priemskiyyy/beacon";
+import type { PreparedDraft } from "@priemskiyyy/beacon/adapter";
 
 import type { ExpoBody } from "src/types/ExpoBody";
 import type { ExpoDownloadReceipt } from "src/types/ExpoDownloadReceipt";

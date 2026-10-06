@@ -1,15 +1,15 @@
 // Typechecked, never run: the real `expo-updates` module satisfies the
 // structural type the adapter uses, so Beacon never imports it at runtime,
 // and a route's methods are derived from the commands the driver declares.
-import { createReleaseDriver } from "@priemskiyyy/beacon";
+import { createReleaseDriver } from "@priemskiyyy/beacon/adapter";
 import type {
-  ObservationDraft,
   OfferReference,
   PreparedReference,
   RouteHandle,
   RunningReader,
   RunningReaders,
 } from "@priemskiyyy/beacon";
+import type { ObservationDraft } from "@priemskiyyy/beacon/adapter";
 import type * as Updates from "expo-updates";
 import { expectTypeOf } from "vitest";
 

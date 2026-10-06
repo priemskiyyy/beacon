@@ -38,8 +38,8 @@ A mechanism carries commands for a route whose offers come from a source, and na
 
 ```ts
 // src/relaunch.ts
-import { createUpdateMechanism } from "@priemskiyyy/beacon";
-import type { ProviderResult } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
+import type { ProviderResult } from "@priemskiyyy/beacon/adapter";
 
 export type Launcher = { relaunch(): void };
 
@@ -90,7 +90,7 @@ The types derive the route's method from the declaration. A route made with this
 A command cannot be named `state`, `native`, `capabilities`, `check` or `acknowledge`, and its parameters cannot be named `offer`, `prepared` or `signal`. The route handle is the command facade plus its own members, so a collision would silently overload one of them. The types refuse it.
 
 ```ts
-import { createUpdateMechanism } from "@priemskiyyy/beacon";
+import { createUpdateMechanism } from "@priemskiyyy/beacon/adapter";
 
 export const clash = createUpdateMechanism({
   name: "clash",
@@ -119,12 +119,9 @@ A driver owns the check, the prepared targets and the commands of one provider. 
 
 ```ts
 // src/otaDriver.ts
-import { createReleaseDriver } from "@priemskiyyy/beacon";
-import type {
-  CommandMap,
-  ProviderResult,
-  RouteBody,
-} from "@priemskiyyy/beacon";
+import { createReleaseDriver } from "@priemskiyyy/beacon/adapter";
+import type { RouteBody } from "@priemskiyyy/beacon";
+import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon/adapter";
 
 type OtaSdk = {
   latest(): Promise<{ id: string } | null>;

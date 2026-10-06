@@ -1,4 +1,7 @@
-import type { ObservationDraft, PreparedDraft } from "@priemskiyyy/beacon";
+import type {
+  ObservationDraft,
+  PreparedDraft,
+} from "@priemskiyyy/beacon/adapter";
 
 import type { PlayOffer } from "src/types/PlayOffer";
 import type { PlayPrepared } from "src/types/PlayPrepared";

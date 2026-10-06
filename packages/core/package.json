@@ -30,6 +30,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./adapter": {
+      "types": "./dist/adapter.d.ts",
+      "import": "./dist/adapter.js",
+      "default": "./dist/adapter.js"
+    },
     "./versions": {
       "types": "./dist/versions.d.ts",
       "import": "./dist/versions.js",

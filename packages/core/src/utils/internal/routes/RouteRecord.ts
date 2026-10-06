@@ -47,6 +47,7 @@ export class RouteRecord {
   #clock: BeaconClock;
   #store: ValueStore<RouteState>;
   #native: ValueStore<object | null>;
+  #notOpen: BeaconError | null = null;
 
   state: ObservableValue<RouteState>;
   native: ObservableValue<object | null>;
@@ -272,6 +273,13 @@ export class RouteRecord {
 
   installNative = (transaction: Transaction, native: object | null) => {
     transaction.set(this.#native, native);
+  };
+
+  /** Why the provider or the mechanism of this route did not open in this session, for a check or a command that finds it closed; `null` while it is open or was not asked to open. */
+  getNotOpen = () => this.#notOpen;
+
+  setNotOpen = (error: BeaconError | null) => {
+    this.#notOpen = error;
   };
 
   /** Goes back to knowing nothing, as a route does that has never been checked; the references it minted no longer match anything. */

@@ -7,6 +7,8 @@ import type { RouteRuntime } from "src/types/internal/RouteRuntime";
 import type { Session } from "src/types/internal/Session";
 import type { MechanismSession } from "src/types/MechanismSession";
 import type { ReleaseSource } from "src/types/ReleaseSource";
+import { BeaconError } from "src/utils/BeaconError";
+import { OPEN_FAILED_MESSAGE } from "src/utils/constants/routes";
 import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
 import { FeedRecord } from "src/utils/internal/feeds/FeedRecord";
 import type { Transaction } from "src/utils/internal/observable/Transaction";
@@ -152,9 +154,18 @@ export class FeedRoutes {
   #openMechanism({ name, definition, record }: FeedConsumer, session: Session) {
     let opened: MechanismSession<object>;
 
+    record.setNotOpen(null);
+
     try {
       opened = definition.mechanism.open({ scope: this.#options.getScope() });
     } catch (cause) {
+      record.setNotOpen(
+        new BeaconError({
+          code: "DRIVER_FAILED",
+          message: OPEN_FAILED_MESSAGE,
+          cause,
+        }),
+      );
       this.#options.record("route-failed", {
         route: name,
         reason: "DRIVER_FAILED",

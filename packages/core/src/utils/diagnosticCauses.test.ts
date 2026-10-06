@@ -19,6 +19,10 @@ import { buildIntent, buildStored, seed } from "src/utils/journal.fixture";
 import { createPolicyBeacon } from "src/utils/policy.fixture";
 import { target } from "src/utils/routes.fixture";
 import type { Manifest } from "src/utils/routes.fixture";
+import type { CommandMap } from "src/types/CommandMap";
+import type { ProviderResult } from "src/types/ProviderResult";
+import type { RouteBody } from "src/types/RouteBody";
+import { createReleaseDriver } from "src/utils/createReleaseDriver";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
 import { targetRoute } from "src/utils/targetRoute";
 
@@ -252,6 +256,82 @@ test("a provider whose native module another Beacon holds says so when the sessi
   await expect(second.ota.check()).resolves.toMatchObject({
     status: "failed",
     error: { code: "DRIVER_FAILED", message },
+  });
+});
+
+const refreshing = {
+  refresh: {
+    reference: "none",
+    impacts: [],
+    binding: "provider-current",
+    run: async (): Promise<ProviderResult<{ kind: "refreshed" }>> => ({
+      status: "accepted",
+      receipt: { kind: "refreshed" },
+    }),
+  },
+} satisfies CommandMap<object, RouteBody, RouteBody>;
+
+// A command that needs no offer reaches a provider that never opened, so it is told why that provider is closed, as a check is.
+const createRefreshBeacon = (manager: object, failure: Error | null) =>
+  createRoutedBeacon({
+    store: createReleaseDriver<object, RouteBody, RouteBody, typeof refreshing>(
+      {
+        name: "store",
+        subject: "native",
+        prepares: false,
+        exclusive: manager,
+        open: () => {
+          if (failure !== null) {
+            throw failure;
+          }
+
+          return {
+            native: {},
+            check: async () => ({
+              status: "none",
+              reason: "no-decision",
+              detail: null,
+            }),
+          };
+        },
+        commands: refreshing,
+      },
+    ),
+  });
+
+test("a command that finds its provider closed because it threw while it opened says so", async () => {
+  const context = createRefreshBeacon({}, new Error("not linked"));
+
+  context.beacon.start();
+
+  await expect(context.beacon.route("store").refresh()).resolves.toMatchObject({
+    status: "failed",
+    error: {
+      code: "DRIVER_FAILED",
+      message:
+        "The provider is not open: it threw while it opened. The cause is on the route-failed event of beacon.diagnostics.events.",
+    },
+  });
+});
+
+test("a command that finds its provider closed because another Beacon holds its native module says so", async () => {
+  const manager = {};
+  const first = createRefreshBeacon(manager, null);
+  const second = createRefreshBeacon(manager, null);
+
+  first.beacon.start();
+  second.beacon.start();
+
+  await expect(second.beacon.route("store").refresh()).resolves.toMatchObject({
+    status: "failed",
+    error: {
+      code: "DRIVER_FAILED",
+      message:
+        "The provider is not open: its native module is held by another Beacon session (a second Beacon, or Fast Refresh). Stop the first, or start only through BeaconProvider.",
+    },
+  });
+  await expect(first.beacon.route("store").refresh()).resolves.toMatchObject({
+    status: "accepted",
   });
 });
 

@@ -40,14 +40,13 @@ export class DriverRoutes {
 
     const entry: DriverEntry = {
       session: null,
-      notOpen: null,
       read: new SharedRead<
         ObservationDraft<RouteBody>,
         ObservationDraft<RouteBody>
       >({
         clock,
         timeout,
-        perform: ({ signal }) => this.#ask(entry, signal),
+        perform: ({ signal }) => this.#ask(entry, route.record, signal),
         accept: (_attempt, draft) => draft,
         hooks: {
           started: (attempt) =>
@@ -104,10 +103,10 @@ export class DriverRoutes {
     });
   }
 
-  #ask(entry: DriverEntry, signal: AbortSignal) {
+  #ask(entry: DriverEntry, record: RouteRecord, signal: AbortSignal) {
     if (entry.session === null) {
       throw (
-        entry.notOpen ??
+        record.getNotOpen() ??
         new BeaconError({
           code: "DRIVER_FAILED",
           message: "The provider is not open.",
@@ -133,9 +132,9 @@ export class DriverRoutes {
     const { name, record, driver } = route;
     const { commit } = this.#options;
 
-    entry.notOpen = null;
+    record.setNotOpen(null);
 
-    const release = this.#claimManager(route, entry);
+    const release = this.#claimManager(route);
 
     if (release === null) {
       return;
@@ -147,11 +146,13 @@ export class DriverRoutes {
       opened = driver.open(this.#createContext(route, session));
     } catch (cause) {
       release();
-      entry.notOpen = new BeaconError({
-        code: "DRIVER_FAILED",
-        message: OPEN_FAILED_MESSAGE,
-        cause,
-      });
+      record.setNotOpen(
+        new BeaconError({
+          code: "DRIVER_FAILED",
+          message: OPEN_FAILED_MESSAGE,
+          cause,
+        }),
+      );
       this.#recordFailure(name, cause);
 
       return;
@@ -180,7 +181,7 @@ export class DriverRoutes {
   }
 
   // A manager one session holds is never opened by another: the route fails to open instead of racing for it.
-  #claimManager({ name, driver }: RoutedDriver, entry: DriverEntry) {
+  #claimManager({ name, record, driver }: RoutedDriver) {
     if (driver.exclusive === undefined) {
       return () => {};
     }
@@ -188,11 +189,13 @@ export class DriverRoutes {
     const release = claimExclusive(driver.exclusive);
 
     if (release === null) {
-      entry.notOpen = new BeaconError({
+      const held = new BeaconError({
         code: "DRIVER_FAILED",
         message: MANAGER_HELD_MESSAGE,
       });
-      this.#recordFailure(name, entry.notOpen);
+
+      record.setNotOpen(held);
+      this.#recordFailure(name, held);
     }
 
     return release;

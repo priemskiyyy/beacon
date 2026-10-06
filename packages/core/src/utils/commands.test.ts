@@ -642,7 +642,11 @@ test("a provider that did not open fails the command, releases the reservations,
 
   await expect(web.reload({ offer })).resolves.toEqual({
     status: "failed",
-    error: { code: "DRIVER_FAILED", message: "The provider is not open." },
+    error: {
+      code: "DRIVER_FAILED",
+      message:
+        "The provider is not open: it threw while it opened. The cause is on the route-failed event of beacon.diagnostics.events.",
+    },
   });
   expect(log).toEqual([]);
   expect(context.runs).toHaveLength(0);

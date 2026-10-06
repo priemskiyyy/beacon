@@ -472,10 +472,11 @@ export class CommandCoordinator {
       return stopWith({
         status: "failed",
         error: toErrorInfo(
-          new BeaconError({
-            code: "DRIVER_FAILED",
-            message: "The provider is not open.",
-          }),
+          entry.record.getNotOpen() ??
+            new BeaconError({
+              code: "DRIVER_FAILED",
+              message: "The provider is not open.",
+            }),
         ),
       });
     }

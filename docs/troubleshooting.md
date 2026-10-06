@@ -186,7 +186,7 @@ A `web` running fact that says `unknown` with the reason `build-id-not-injected`
 
 ### DRIVER_FAILED when opening
 
-The message says which it is. "The provider is not open: its native module is held by another Beacon session" means a driver that names an exclusive native manager was opened by a second session. "The provider is not open: it threw while it opened" means its own `open` threw, and the error is the `cause` of the `route-failed` event that `start()` records. If two Beacons exist, for example after a hot reload created a second one, stop the first with `stop()` or `dispose()`. With Fast Refresh, keep the Beacon in a module of its own and start it through the provider, which ends the old session before the new one opens: see [the provider](react-native.md#the-provider).
+The message says which it is, for a check and for a command that finds the provider closed alike. "The provider is not open: its native module is held by another Beacon session" means a driver that names an exclusive native manager was opened by a second session. "The provider is not open: it threw while it opened" means its own `open` threw, and the error is the `cause` of the `route-failed` event that `start()` records. If two Beacons exist, for example after a hot reload created a second one, stop the first with `stop()` or `dispose()`. With Fast Refresh, keep the Beacon in a module of its own and start it through the provider, which ends the old session before the new one opens: see [the provider](react-native.md#the-provider).
 
 ## Types
 

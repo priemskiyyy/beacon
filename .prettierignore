@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+dist
+node_modules
+coverage
+.idea
+.artifacts
+tasks
+docs/.vitepress/dist
+docs/.vitepress/cache
+test-results
+playwright-report

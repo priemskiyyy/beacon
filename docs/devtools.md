@@ -16,6 +16,8 @@ pnpm add -D @priemskiyyy/beacon-devtools
 
 ## With React
 
+The wrapper needs React 19.2 or later, since it mounts the inspector from a ref callback that returns its cleanup, which React 18 ignores. The `BeaconDevtools` class of the package root has no React peer and runs anywhere there is a DOM.
+
 Register your Beacon as [the React binding](react.md) asks, and mount the inspector next to the provider that holds it. The wrapper takes no `beacon` prop: it reads the registered Beacon from the nearest `BeaconProvider`, follows it if the provider's Beacon changes, renders an empty host element on the server and removes the inspector on unmount.
 
 ```tsx

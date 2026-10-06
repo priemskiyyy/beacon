@@ -575,7 +575,7 @@ importers:
   packages/devtools:
     dependencies:
       react:
-        specifier: '>=18.3.0 <20'
+        specifier: '>=19.2.0 <20'
         version: 19.2.8
     devDependencies:
       '@priemskiyyy/beacon':

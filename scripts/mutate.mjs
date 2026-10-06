@@ -742,6 +742,45 @@ const MUTANTS = [
     describes:
       "an answer whose expiry is not counted from the fetch that got it",
   },
+  {
+    file: "packages/adapters/code-push/src/codePushUpdates.ts",
+    find: "exclusive: codePush,",
+    replace: "",
+    project: "code-push",
+    describes: "two Beacons sharing one CodePush module",
+  },
+  {
+    file: "packages/adapters/code-push/src/utils/CodePushSession.ts",
+    find: 'if (\n      staged === null ||\n      compareIdentities(staged.release.identity, identity) !== "same"\n    ) {',
+    replace: "if (false) {",
+    project: "code-push",
+    describes:
+      "a package called staged before CodePush listed it as pending, and a prepared target nobody confirmed",
+  },
+  {
+    file: "packages/adapters/code-push/src/utils/CodePushSession.ts",
+    find: "await local.install(codePush.InstallMode.ON_NEXT_RESTART);",
+    replace: "await local.install(0);",
+    project: "code-push",
+    describes:
+      "an update installed with a mode nobody chose, which can restart the app at once",
+  },
+  {
+    file: "packages/adapters/code-push/src/utils/CodePushSession.ts",
+    find: "const local = await offered.remote.download(this.#reportProgress);\n\n    if (signal.aborted) {",
+    replace:
+      "const local = await offered.remote.download(this.#reportProgress);\n\n    if (false) {",
+    project: "code-push",
+    describes: "a package installed for a caller that stopped waiting",
+  },
+  {
+    file: "packages/adapters/code-push/src/utils/CodePushSession.ts",
+    find: "if (this.#offered === offered) {",
+    replace: "if (false) {",
+    project: "code-push",
+    describes:
+      "a package downloaded again after it was installed, which deletes the folder CodePush runs from",
+  },
   // What Hermes lacks or reads differently: the projects that run a package in
   // the environment of a React Native app must notice where the plain ones do not.
   {

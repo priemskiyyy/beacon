@@ -509,7 +509,7 @@ export default tseslint.config(
     {
       // The adapters of what a React Native app runs.
       files: [
-        "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config}/src/**/*.ts",
+        "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config,code-push}/src/**/*.ts",
       ],
       globals: [...hostGlobals, ...reactNativeGlobals],
       syntax: reactNativeSyntax,

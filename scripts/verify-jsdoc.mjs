@@ -198,8 +198,10 @@ const ambientDocs = `${ambientText
       ota: ReturnType<typeof expoUpdatesFactory>;
       binary: ReturnType<typeof googlePlayFactory>;
       worker: ReturnType<typeof serviceWorkerFactory>;
+      update: ReturnType<typeof codePushUpdatesFactory>;
     }>;`,
   )}
+import type { codePushUpdates as codePushUpdatesFactory } from "@priemskiyyy/beacon-code-push";
 import type { expoUpdates as expoUpdatesFactory } from "@priemskiyyy/beacon-expo";
 import type { googlePlay as googlePlayFactory } from "@priemskiyyy/beacon-google-play";
 import type { serviceWorker as serviceWorkerFactory } from "@priemskiyyy/beacon-service-worker";

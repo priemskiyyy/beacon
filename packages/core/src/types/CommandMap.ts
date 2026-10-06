@@ -22,7 +22,7 @@ type HandleMembers = {
  * ```
  */
 export type CommandMap<
-  TNative,
+  TNative extends object,
   TOffer extends RouteBody,
   TPrepared extends RouteBody,
 > = Record<

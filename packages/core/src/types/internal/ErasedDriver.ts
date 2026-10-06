@@ -4,8 +4,8 @@ import type { RouteBody } from "src/types/RouteBody";
 
 /** A provider driver seen at its widest, as the runtime holds it. */
 export type ErasedDriver = ReleaseDriver<
-  unknown,
+  object,
   RouteBody,
   RouteBody,
-  CommandMap<unknown, RouteBody, RouteBody>
+  CommandMap<object, RouteBody, RouteBody>
 >;

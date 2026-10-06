@@ -15,7 +15,7 @@ import type { RouteBody } from "src/types/RouteBody";
  * };
  * ```
  */
-export type DriverSession<TNative, TOffer extends RouteBody> = {
+export type DriverSession<TNative extends object, TOffer extends RouteBody> = {
   native: TNative;
   check(context: { signal: AbortSignal }): Promise<ObservationDraft<TOffer>>;
   reconcile?(context: { signal: AbortSignal }): Promise<void>;

@@ -18,12 +18,12 @@ export type RouteDefinition =
   | FeedRoute<
       unknown,
       Release<object | null>,
-      unknown,
-      CommandMap<unknown, RouteBody, RouteBody>
+      object,
+      CommandMap<object, RouteBody, RouteBody>
     >
   | DriverRoute<
-      unknown,
+      object,
       RouteBody,
       RouteBody,
-      CommandMap<unknown, RouteBody, RouteBody>
+      CommandMap<object, RouteBody, RouteBody>
     >;

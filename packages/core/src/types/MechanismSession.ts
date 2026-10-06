@@ -8,7 +8,7 @@
  * const session: MechanismSession<Browser> = { native: browser };
  * ```
  */
-export type MechanismSession<TNative> = {
+export type MechanismSession<TNative extends object> = {
   native: TNative;
   dispose?: () => void;
 };

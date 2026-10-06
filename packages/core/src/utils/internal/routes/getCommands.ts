@@ -5,7 +5,7 @@ import type { RouteDefinition } from "src/types/RouteDefinition";
 /** The commands of a route, wherever its kind keeps them. */
 export const getCommands = (
   definition: RouteDefinition,
-): CommandMap<unknown, RouteBody, RouteBody> => {
+): CommandMap<object, RouteBody, RouteBody> => {
   if (definition.kind === "feed") {
     return definition.mechanism.commands;
   }

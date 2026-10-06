@@ -25,7 +25,7 @@ import type { UpdateMechanism } from "src/types/UpdateMechanism";
 export type FeedRoute<
   TDocument,
   TRelease extends Release<object | null>,
-  TNative,
+  TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 > = {
   kind: "feed";

@@ -45,10 +45,10 @@ export class RouteRecord {
   #ledger: ReferenceLedger;
   #clock: BeaconClock;
   #store: ValueStore<RouteState>;
-  #native: ValueStore<unknown>;
+  #native: ValueStore<object | null>;
 
   state: ObservableValue<RouteState>;
-  native: ObservableValue<unknown>;
+  native: ObservableValue<object | null>;
 
   constructor({
     name,
@@ -78,7 +78,7 @@ export class RouteRecord {
       }),
       listeners,
     );
-    this.#native = new ValueStore<unknown>(null);
+    this.#native = new ValueStore<object | null>(null);
     this.state = this.#store.observable;
     this.native = this.#native.observable;
   }
@@ -284,7 +284,7 @@ export class RouteRecord {
     });
   };
 
-  installNative = (transaction: Transaction, native: unknown) => {
+  installNative = (transaction: Transaction, native: object | null) => {
     transaction.set(this.#native, native);
   };
 

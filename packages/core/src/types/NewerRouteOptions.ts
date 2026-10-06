@@ -29,7 +29,7 @@ export type NewerRouteOptions<
   TMetadata extends object | null,
   TInput,
   TParsed,
-  TNative,
+  TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 > = {
   subject: RunningSubject;

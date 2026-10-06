@@ -28,7 +28,7 @@ expectTypeOf(manifest).toEqualTypeOf<ReleaseSource<ApiManifest>>();
 
 const mechanism = createUpdateMechanism({
   name: "inert",
-  open: () => ({ native: null }),
+  open: () => ({ native: {} }),
   commands: {},
 });
 

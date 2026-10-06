@@ -19,7 +19,7 @@ const createWebBeacon = () => {
     source: manifest.select((document) => document.web),
     mechanism: createUpdateMechanism({
       name: "inert",
-      open: () => ({ native: null }),
+      open: () => ({ native: {} }),
       commands: {},
     }),
   });

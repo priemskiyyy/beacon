@@ -41,7 +41,7 @@ export const IMPACT_EFFECTS = {
 } satisfies Record<Impact, { disruptive: boolean; replacesRealm: boolean }>;
 
 type Reference = CommandDescriptor<
-  unknown,
+  object,
   { release: never },
   { release: never },
   CommandParameters,

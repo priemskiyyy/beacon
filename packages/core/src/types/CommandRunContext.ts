@@ -13,7 +13,7 @@ import type { CommandParameters } from "src/types/CommandParameters";
  * ```
  */
 export type CommandRunContext<
-  TNative,
+  TNative extends object,
   TParameters extends CommandParameters,
 > = {
   native: TNative;

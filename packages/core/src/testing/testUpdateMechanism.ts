@@ -11,7 +11,7 @@ import {
 
 /** A mechanism under test, over a fake platform created for this test alone. */
 export type UpdateMechanismFixture<
-  TNative,
+  TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 > = {
   mechanism: UpdateMechanism<TNative, TCommands>;
@@ -23,7 +23,7 @@ export type UpdateMechanismFixture<
 
 /** What a mechanism's conformance suite is run over. */
 export type UpdateMechanismConformanceOptions<
-  TNative,
+  TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 > = {
   name: string;
@@ -56,7 +56,7 @@ const isKey = (keys: object, value: string) => Object.hasOwn(keys, value);
  * ```
  */
 export const testUpdateMechanism = <
-  TNative,
+  TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 >({
   name,

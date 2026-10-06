@@ -269,3 +269,10 @@ createUpdateMechanism({
     },
   },
 });
+
+createUpdateMechanism({
+  name: "hollow",
+  // @ts-expect-error A native handle is an object: null already means the route is not open.
+  open: () => ({ native: null }),
+  commands: {},
+});

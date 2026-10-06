@@ -12,7 +12,7 @@ import type { RouteBody } from "src/types/RouteBody";
  * ```
  */
 export type DriverRoute<
-  TNative,
+  TNative extends object,
   TOffer extends RouteBody,
   TPrepared extends RouteBody,
   TCommands extends CommandMap<TNative, TOffer, TPrepared>,

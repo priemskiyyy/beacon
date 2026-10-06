@@ -23,7 +23,7 @@ import type { UpdateMechanism } from "src/types/UpdateMechanism";
 export type TargetRouteOptions<
   TDocument,
   TMetadata extends object | null,
-  TNative,
+  TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 > = {
   subject: RunningSubject;

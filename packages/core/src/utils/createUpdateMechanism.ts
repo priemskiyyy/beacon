@@ -17,7 +17,7 @@ import type { UpdateMechanism } from "src/types/UpdateMechanism";
  * ```
  */
 export const createUpdateMechanism = <
-  TNative,
+  TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 >(
   mechanism: UpdateMechanism<TNative, TCommands>,

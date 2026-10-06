@@ -38,7 +38,7 @@ type Verdict =
   | {
       status: "ready";
       resolution: Extract<CommandResolution, { status: "resolved" }>;
-      native: unknown;
+      native: object;
     }
   | { status: "stopped"; outcome: CommandResult };
 

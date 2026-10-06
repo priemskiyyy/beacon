@@ -17,7 +17,7 @@ import type { RouteBody } from "src/types/RouteBody";
  * ```
  */
 export type UpdateMechanism<
-  TNative,
+  TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 > = {
   name: string;

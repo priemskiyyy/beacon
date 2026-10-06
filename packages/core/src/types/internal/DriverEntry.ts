@@ -8,5 +8,5 @@ import type { SharedRead } from "src/utils/internal/reads/SharedRead";
 export type DriverEntry = {
   route: RouteEntry;
   read: SharedRead<ObservationDraft<RouteBody>, ObservationDraft<RouteBody>>;
-  session: DriverSession<unknown, RouteBody> | null;
+  session: DriverSession<object, RouteBody> | null;
 };

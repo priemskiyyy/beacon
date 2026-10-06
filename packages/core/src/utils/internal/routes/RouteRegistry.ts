@@ -10,6 +10,7 @@ import type { RouteRegistryOptions } from "src/types/internal/RouteRegistryOptio
 import type { Session } from "src/types/internal/Session";
 import type { SharedReadErrors } from "src/types/internal/SharedReadErrors";
 import type { AcceptedFeed } from "src/types/internal/AcceptedFeed";
+import type { MechanismSession } from "src/types/MechanismSession";
 import type { ObservationDraft } from "src/types/ObservationDraft";
 import type { PreparedDraft } from "src/types/PreparedDraft";
 import type { ReleaseSource } from "src/types/ReleaseSource";
@@ -310,10 +311,10 @@ export class RouteRegistry {
 
   #openMechanism(
     entry: RouteEntry,
-    mechanism: { open(): { native: unknown; dispose?: () => void } },
+    mechanism: { open(): MechanismSession<object> },
     session: Session,
   ) {
-    let opened: { native: unknown; dispose?: () => void };
+    let opened: MechanismSession<object>;
 
     try {
       opened = mechanism.open();
@@ -345,7 +346,7 @@ export class RouteRegistry {
       return;
     }
 
-    let opened: DriverSession<unknown, RouteBody>;
+    let opened: DriverSession<object, RouteBody>;
 
     try {
       opened = driver.open(this.#createDriverContext(entry, driver, session));
@@ -381,7 +382,7 @@ export class RouteRegistry {
   // Reads the provider's current local state, as it stands after a restart; a failure is contained.
   #reconcile(
     entry: RouteEntry,
-    opened: DriverSession<unknown, RouteBody>,
+    opened: DriverSession<object, RouteBody>,
     signal: AbortSignal,
   ) {
     if (opened.reconcile === undefined) {

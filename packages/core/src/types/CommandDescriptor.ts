@@ -33,7 +33,7 @@ type CommandDeclaration = {
  * ```
  */
 export type CommandDescriptor<
-  TNative,
+  TNative extends object,
   TOffer extends RouteBody,
   TPrepared extends RouteBody,
   TParameters extends CommandParameters,

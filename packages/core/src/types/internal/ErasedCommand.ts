@@ -4,7 +4,7 @@ import type { RouteBody } from "src/types/RouteBody";
 
 /** A command seen at its widest, as the runtime holds it. */
 export type ErasedCommand = CommandDescriptor<
-  unknown,
+  object,
   RouteBody,
   RouteBody,
   CommandParameters,

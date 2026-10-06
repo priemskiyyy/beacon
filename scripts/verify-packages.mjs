@@ -5,8 +5,13 @@ import { join } from "node:path";
 // What each built package may import at runtime. The core imports nothing, an
 // adapter only the core, and a framework binding the core and its own
 // framework: a consumer of the web packages never receives a native module,
-// another framework, Workbox or a SemVer library it did not ask for.
+// another framework, Workbox or a SemVer library it did not ask for. The
+// devtools bundle their own Solid, so the inspector imports only the core, and
+// the React wrapper only the inspector, the binding it reads the Beacon from
+// and React.
 const CORE = "@priemskiyyy/beacon";
+
+const DEVTOOLS = "@priemskiyyy/beacon-devtools";
 
 const FRAMEWORKS = {
   "packages/react": "react",
@@ -63,6 +68,14 @@ const allowed = (path, file) => {
     return [];
   }
 
+  if (path === "packages/devtools" && file.endsWith("/react.js")) {
+    return [CORE, DEVTOOLS, "@priemskiyyy/beacon-react", "react"];
+  }
+
+  if (path === "packages/devtools") {
+    return [CORE];
+  }
+
   const framework = FRAMEWORKS[path];
 
   if (framework !== undefined) {
@@ -96,6 +109,27 @@ for (const path of packages) {
     checked += 1;
   }
 }
+
+// The wrapper reaches the inspector by its name, so a host bundles one copy of it, and only the wrapper is a client component.
+const devtools = (file) =>
+  readFileSync(join("packages/devtools/dist", file), "utf8");
+
+assert(
+  !devtools("react.js").includes("already mounted"),
+  "The devtools React wrapper bundled a second copy of the inspector.",
+);
+assert(
+  devtools("react.js").startsWith('"use client";'),
+  "The devtools React wrapper lost its client directive.",
+);
+assert(
+  !devtools("index.js").includes("use client"),
+  "The devtools inspector is framework independent and carries no client directive.",
+);
+assert(
+  !/use client/.test(devtools("react.d.ts")),
+  "A client directive reached the devtools declarations.",
+);
 
 console.log(
   `Verified the imports of ${checked} built files in ${packages.length} packages.`,

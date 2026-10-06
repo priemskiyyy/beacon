@@ -88,6 +88,13 @@ export const buildDocument = (
   ...overrides,
 });
 
+/** A manifest that has nothing to offer for any route. */
+export const quietDocument = (): LabManifest =>
+  buildDocument({
+    web: { kind: "none", reason: "up-to-date" },
+    binary: { kind: "none", reason: "up-to-date" },
+  });
+
 const evaluateSupport = (
   support: Support,
   running: RunningApplication,
@@ -162,7 +169,9 @@ const OTA_BODY: RouteBody = {
 type HeldReload = { settle: (result: ProviderResult<Receipt>) => void };
 
 // A release lab in the shape of an application: two feed routes over one manifest, a provider route that prepares, a support policy and a journal, on a clock the test moves.
-export const createLabBeacon = () => {
+export const createLabBeacon = ({
+  journal = true,
+}: { journal?: boolean } = {}) => {
   const mock = createMockSource<LabManifest>({ name: "manifest" });
   const clock = createTestClock({ now: 1_700_000_000_000 });
   const memory = createMemoryStorage();
@@ -225,19 +234,24 @@ export const createLabBeacon = () => {
     nested: { password: SECRETS.password, channel: "stable" },
   };
 
-  const ota = createReleaseDriver<OtaNative, RouteBody, RouteBody, {
-    download: {
-      reference: "offer";
-      impacts: [];
-      binding: "provider-current";
-      run(context: {
-        native: OtaNative;
-        signal: AbortSignal;
-        parameters: Record<never, never>;
-        offer: RouteBody;
-      }): Promise<ProviderResult<{ kind: "downloaded" }>>;
-    };
-  }>({
+  const ota = createReleaseDriver<
+    OtaNative,
+    RouteBody,
+    RouteBody,
+    {
+      download: {
+        reference: "offer";
+        impacts: [];
+        binding: "provider-current";
+        run(context: {
+          native: OtaNative;
+          signal: AbortSignal;
+          parameters: Record<never, never>;
+          offer: RouteBody;
+        }): Promise<ProviderResult<{ kind: "downloaded" }>>;
+      };
+    }
+  >({
     name: "fake-provider",
     subject: "bundle",
     prepares: true,
@@ -275,7 +289,9 @@ export const createLabBeacon = () => {
       source: mock.source.select((manifest) => manifest.support),
       evaluate: evaluateSupport,
     }),
-    journal: { mode: "best-effort", storage: memory.storage },
+    ...(journal
+      ? { journal: { mode: "best-effort", storage: memory.storage } }
+      : {}),
     clock,
   });
 
@@ -286,9 +302,11 @@ export const createLabBeacon = () => {
     commands,
     journal: memory.data,
     /** Settles the oldest held reload the provider was asked for. */
-    settleReload: (result: ProviderResult<Receipt>) => held.shift()?.settle(result),
+    settleReload: (result: ProviderResult<Receipt>) =>
+      held.shift()?.settle(result),
     /** Makes the provider report a prepared target. */
-    prepare: () => emitters.at(-1)?.prepared({ status: "ready", value: OTA_BODY }),
+    prepare: () =>
+      emitters.at(-1)?.prepared({ status: "ready", value: OTA_BODY }),
     /** Answers the next read of the manifest, and every one after it. */
     answer: (document: LabManifest = buildDocument()) => {
       mock.answer({

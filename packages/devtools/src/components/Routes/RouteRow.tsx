@@ -23,7 +23,7 @@ export const RouteRow = (props: RouteRowProps) => {
     >
       <span class="row-name">
         <span class="dot" data-state={snapshot().observation.status} />
-        {props.view.name}
+        <span class="row-title">{props.view.name}</span>
         <span class="row-status">{snapshot().observation.status}</span>
       </span>
       <small

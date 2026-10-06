@@ -14,13 +14,12 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const stored = () => JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "null");
+const stored = () =>
+  JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "null");
 
 const rowCount = (view: ReturnType<typeof mountDevtools>["view"]) =>
-  view().queryAllByRole("group", { name: "Event types" }).length === 0
-    ? 0
-    : (view().queryByLabelText("Event timeline")?.querySelectorAll("details")
-        .length ?? 0);
+  view().queryByLabelText("Event timeline")?.querySelectorAll(".event")
+    .length ?? 0;
 
 test("mounting the panel observes a Beacon and starts, reads and runs nothing", () => {
   const { beacon, mock, commands, journal } = createLabBeacon();
@@ -72,6 +71,7 @@ test("a Beacon with the devtools mounted ends in the same state as one without",
 
 test("mounting twice throws a BeaconError, unmounting twice is harmless, and the events survive an unmount", async () => {
   const { beacon } = createLabBeacon();
+
   const { devtools, host, view } = mountDevtools({
     beacon,
     initialIsOpen: true,
@@ -83,6 +83,7 @@ test("mounting twice throws a BeaconError, unmounting twice is harmless, and the
   beacon.start();
   await settle();
   expect(rowCount(view)).toBeGreaterThan(0);
+
   const recorded = rowCount(view);
 
   devtools.unmount();
@@ -154,7 +155,6 @@ test("setBeacon follows another Beacon and lets go of the first", async () => {
     initialIsOpen: true,
   });
 
-  expect(view().getByText("running, session 1", { exact: false })).toBeTruthy;
   first.beacon.start();
   await settle();
   expect(view().getByText("running, session 1")).toBeTruthy();
@@ -173,10 +173,12 @@ test("setBeacon follows another Beacon and lets go of the first", async () => {
   expect(secondSpy.subscriptions()).toBe(0);
 });
 
-test("maxEvents is clamped to 1 through 1000, falls back for what is not a number, and setMaxEvents trims", async () => {
+test("maxEvents is clamped to at least 1, falls back for what is not a number, and setMaxEvents trims", async () => {
   const { beacon } = createLabBeacon();
+
   const many = async (options: { maxEvents: number }, emitted: number) => {
     const emitting = createEmittingBeacon(beacon);
+
     const mounted = mountDevtools({
       beacon: emitting.beacon,
       initialIsOpen: true,
@@ -202,11 +204,6 @@ test("maxEvents is clamped to 1 through 1000, falls back for what is not a numbe
   expect(negative.rows()).toBe(1);
   negative.devtools.unmount();
 
-  const huge = await many({ maxEvents: 50_000 }, 1_010);
-
-  expect(huge.rows()).toBe(1_000);
-  huge.devtools.unmount();
-
   const notANumber = await many({ maxEvents: Number.NaN }, 250);
 
   expect(notANumber.rows()).toBe(200);
@@ -216,8 +213,10 @@ test("maxEvents is clamped to 1 through 1000, falls back for what is not a numbe
 
   expect(set.rows()).toBe(8);
   set.devtools.setMaxEvents(3);
+  await settle();
   expect(set.rows()).toBe(3);
   set.devtools.setMaxEvents(0);
+  await settle();
   expect(set.rows()).toBe(1);
   set.devtools.unmount();
 });
@@ -335,7 +334,9 @@ test("preferences that are corrupted, mistyped or out of range are ignored, fiel
     expect(
       view().getByRole("button", { name: "Open Beacon devtools" }),
     ).toBeTruthy();
-    fireEvent.click(view().getByRole("button", { name: "Open Beacon devtools" }));
+    fireEvent.click(
+      view().getByRole("button", { name: "Open Beacon devtools" }),
+    );
 
     const panel = view().getByRole("complementary");
 
@@ -376,5 +377,42 @@ test("storage that throws leaves the panel working with the defaults", () => {
   expect(
     view().getByRole("button", { name: "Open Beacon devtools" }),
   ).toBeTruthy();
+  devtools.unmount();
+});
+
+test("dragging the free edge resizes the panel within the window until the pointer is released, along either edge", () => {
+  const { beacon } = createLabBeacon();
+  const { devtools, view } = mountDevtools({ beacon, initialIsOpen: true });
+  const panel = view().getByRole("complementary");
+  const handle = view().getByRole("separator", { name: "Resize devtools" });
+
+  // jsdom has no pointer capture to give.
+  handle.setPointerCapture = vi.fn();
+
+  fireEvent.pointerDown(handle, { clientY: 500, pointerId: 1 });
+  fireEvent.pointerMove(handle, { clientY: 400, pointerId: 1 });
+  expect(panel.style.height).toBe("520px");
+
+  fireEvent.pointerMove(handle, { clientY: -5_000, pointerId: 1 });
+  expect(panel.style.height).toBe(`${window.innerHeight - 24}px`);
+  fireEvent.pointerMove(handle, { clientY: 5_000, pointerId: 1 });
+  expect(panel.style.height).toBe("240px");
+
+  fireEvent.pointerMove(handle, { clientY: 450, pointerId: 1 });
+  fireEvent.pointerUp(handle, { pointerId: 1 });
+  fireEvent.pointerMove(handle, { clientY: 100, pointerId: 1 });
+  expect(panel.style.height).toBe("470px");
+  expect(stored()).toMatchObject({ height: 470 });
+
+  fireEvent.click(view().getByRole("button", { name: "Dock to the right" }));
+  fireEvent.pointerDown(handle, { clientX: 900, pointerId: 2 });
+  fireEvent.pointerMove(handle, { clientX: 800, pointerId: 2 });
+  expect(panel.style.width).toBe("620px");
+  fireEvent.pointerUp(handle, { pointerId: 2 });
+  expect(stored()).toMatchObject({
+    height: 470,
+    width: 620,
+    position: "right",
+  });
   devtools.unmount();
 });

@@ -45,10 +45,10 @@ export class EventLog {
 
   add = (event: BeaconDiagnosticEvent) => {
     this.#last += 1;
-    this.#events = [copyEvent(event, this.#last), ...this.#events].slice(
-      0,
-      this.#limit,
-    );
+
+    const entry = copyEvent(event, this.#last);
+
+    this.#events = [entry, ...this.#events].slice(0, this.#limit);
     this.#notify();
   };
 

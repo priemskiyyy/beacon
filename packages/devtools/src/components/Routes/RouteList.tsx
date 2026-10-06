@@ -18,7 +18,9 @@ export const RouteList = (props: RouteListProps) => (
       aria-pressed={props.selected === null}
       onClick={() => props.onSelect(null)}
     >
-      <span class="row-name">Overview</span>
+      <span class="row-name">
+        <span class="row-title">Overview</span>
+      </span>
       <small>running, support and transitions</small>
     </button>
     <For each={props.views}>

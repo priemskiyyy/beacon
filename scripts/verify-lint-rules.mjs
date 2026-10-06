@@ -14,6 +14,9 @@ const SOLID = "packages/solid/src/lint-probe.ts";
 const VUE = "packages/vue/src/lint-probe.ts";
 const SVELTE = "packages/svelte/src/lint-probe.ts";
 const TEST = "packages/core/src/utils/lint-probe.test.ts";
+const DEVTOOLS = "packages/devtools/src/lint-probe.ts";
+const DEVTOOLS_CLIPBOARD = "packages/devtools/src/hooks/useClipboard.ts";
+const DEVTOOLS_REACT = "packages/devtools/src/react.ts";
 
 const syntax = [
   ['import { value } from "./value";', "no-restricted-syntax"],
@@ -182,6 +185,56 @@ const boundaries = [
   ["const time = performance.now();", "no-restricted-syntax", CORE],
   ["const time = Date.now();", "no-restricted-syntax", ADAPTER],
   ["const time = Date.now();", "no-restricted-syntax", REACT],
+  // The inspector is Solid in a shadow root with one React wrapper: it imports no other framework, no provider SDK and no test runner, reads no clock, and arms no timer of its own.
+  ['import { useState } from "react";', "no-restricted-imports", DEVTOOLS],
+  ['import { render } from "react-dom";', "no-restricted-imports", DEVTOOLS],
+  [
+    'import { useBeacon } from "@priemskiyyy/beacon-react";',
+    "no-restricted-imports",
+    DEVTOOLS,
+  ],
+  [
+    'import { BeaconDevtools } from "@priemskiyyy/beacon-devtools";',
+    "no-restricted-imports",
+    DEVTOOLS,
+  ],
+  ['import { ref } from "vue";', "no-restricted-imports", DEVTOOLS],
+  ['import { onMount } from "svelte";', "no-restricted-imports", DEVTOOLS],
+  [
+    'import { Platform } from "react-native";',
+    "no-restricted-imports",
+    DEVTOOLS,
+  ],
+  ['import { expect } from "vitest";', "no-restricted-imports", DEVTOOLS],
+  [
+    'import { createSignal } from "solid-js";',
+    "no-restricted-imports",
+    DEVTOOLS_REACT,
+  ],
+  [
+    'import { render } from "solid-js/web";',
+    "no-restricted-imports",
+    DEVTOOLS_REACT,
+  ],
+  ['import { ref } from "vue";', "no-restricted-imports", DEVTOOLS_REACT],
+  ["const time = Date.now();", "no-restricted-syntax", DEVTOOLS],
+  ["const time = new Date();", "no-restricted-syntax", DEVTOOLS],
+  ["const time = performance.now();", "no-restricted-syntax", DEVTOOLS],
+  ["setTimeout(() => {}, 0);", "no-restricted-globals", DEVTOOLS],
+  ["setInterval(() => {}, 1_000);", "no-restricted-globals", DEVTOOLS],
+  ["requestAnimationFrame(() => {});", "no-restricted-globals", DEVTOOLS],
+  ["setTimeout(() => {}, 0);", "no-restricted-globals", DEVTOOLS_REACT],
+  ["const time = Date.now();", "no-restricted-syntax", DEVTOOLS_CLIPBOARD],
+  [
+    'export { value } from "src/value";',
+    "no-restricted-syntax",
+    "packages/devtools/src/utils/index.ts",
+  ],
+  [
+    "export const run = () => useState(0);",
+    "react-hooks/rules-of-hooks",
+    DEVTOOLS_REACT,
+  ],
   [
     'export { value } from "src/value";',
     "no-restricted-syntax",
@@ -201,6 +254,8 @@ const entryPoints = [
   "packages/core/src/versions.ts",
   "packages/adapters/http/src/index.ts",
   "packages/react/src/index.ts",
+  "packages/devtools/src/index.ts",
+  "packages/devtools/src/react.ts",
   "packages/solid/src/index.ts",
   "packages/vue/src/index.ts",
   "packages/svelte/src/index.ts",
@@ -235,6 +290,39 @@ const allowed = [
     "packages/adapters/http/src/fakeFetch.fixture.ts",
   ],
   ["export const view = globalThis.window;", ADAPTER],
+  [
+    'import { createSignal } from "solid-js";\n\nexport const signal = createSignal;',
+    DEVTOOLS,
+  ],
+  [
+    'import { render } from "solid-js/web";\n\nexport const mount = render;',
+    DEVTOOLS,
+  ],
+  [
+    "export const host = document.createElement('div');\n\nexport const stored = localStorage;\n\nexport const size = window.innerHeight;\n\nexport const agent = navigator.clipboard;",
+    DEVTOOLS,
+  ],
+  ["export const at = new Date(1_000);", DEVTOOLS],
+  [
+    "export const wait = setTimeout(() => {}, 0);\n\nclearTimeout(wait);",
+    DEVTOOLS_CLIPBOARD,
+  ],
+  [
+    'import { useState } from "react";\n\nexport const useValue = () => useState(0);',
+    DEVTOOLS_REACT,
+  ],
+  [
+    'import { useBeacon } from "@priemskiyyy/beacon-react";\nimport { BeaconDevtools } from "@priemskiyyy/beacon-devtools";\n\nexport const beacon = [useBeacon, BeaconDevtools];',
+    DEVTOOLS_REACT,
+  ],
+  [
+    'import { expect } from "vitest";\n\nexpect(1).toBe(1);',
+    "packages/devtools/src/react.test.ts",
+  ],
+  [
+    'import { render } from "@testing-library/react";\n\nexport const view = render;',
+    "packages/devtools/src/react.test.ts",
+  ],
   [
     "export const cancel = setTimeout(() => {}, 0);\n\nclearTimeout(cancel);",
     CLOCK,

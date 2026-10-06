@@ -32,20 +32,25 @@ export const createEmittingBeacon = (beacon: ObservedBeacon) => {
     check: (options) => beacon.check(options),
   };
 
+  /** Tells every listener one event, and answers the object it was told. */
   const emit = (event: Partial<BeaconDiagnosticEvent> = {}) => {
+    const sent: BeaconDiagnosticEvent = {
+      type: "session-started",
+      timestamp: 1_700_000_000_000,
+      session: 1,
+      route: null,
+      command: null,
+      attempt: null,
+      operation: null,
+      reason: null,
+      ...event,
+    };
+
     for (const listener of [...listeners]) {
-      listener({
-        type: "session-started",
-        timestamp: 1_700_000_000_000,
-        session: 1,
-        route: null,
-        command: null,
-        attempt: null,
-        operation: null,
-        reason: null,
-        ...event,
-      });
+      listener(sent);
     }
+
+    return sent;
   };
 
   return { beacon: observed, emit, listeners: () => listeners.size };

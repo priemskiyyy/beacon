@@ -31,7 +31,8 @@ export const copyEvent = (
   return {
     id,
     type,
-    timestamp: readNumber(event.timestamp) ?? 0,
+    // Not a number stays NaN, which the panel shows as an invalid time rather than as the epoch.
+    timestamp: readNumber(event.timestamp) ?? Number.NaN,
     session: readNumber(event.session),
     route: readText(event.route),
     command: readText(event.command),

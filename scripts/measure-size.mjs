@@ -40,6 +40,13 @@ const ENTRIES = [
   { name: "react", files: ["react/dist/index.js"], budget: 1.5 * 1024 },
   { name: "solid", files: ["solid/dist/index.js"], budget: 1.5 * 1024 },
   { name: "vue", files: ["vue/dist/index.js"], budget: 1.5 * 1024 },
+  // The inspector bundles its own Solid runtime, so it is measured and not budgeted; its wrapper is a few lines.
+  { name: "devtools", files: ["devtools/dist/index.js"], budget: null },
+  {
+    name: "devtools react",
+    files: ["devtools/dist/react.js"],
+    budget: 512,
+  },
   { name: "mock", files: ["core/dist/mock.js"], budget: null },
   { name: "testing", files: ["core/dist/testing.js"], budget: null },
 ];
@@ -49,6 +56,7 @@ const measure = async (files) => {
     input: files.map((file) => `${packages}${file}`),
     external: [
       /^@priemskiyyy\/beacon(\/|$)/,
+      /^@priemskiyyy\/beacon-(devtools|react)(\/|$)/,
       "react",
       "react-dom",
       "solid-js",

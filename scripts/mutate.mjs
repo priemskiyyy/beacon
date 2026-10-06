@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const core = "packages/core/src/utils";
 const http = "packages/adapters/http/src";
+const devtools = "packages/devtools/src";
 
 const MUTANTS = [
   {
@@ -218,6 +219,27 @@ const MUTANTS = [
     replace: "if (false) {",
     project: "http",
     describes: "an oversized body read",
+  },
+  {
+    file: `${devtools}/utils/inspectValue.ts`,
+    find: "if (SECRET_KEY.test(key)) {",
+    replace: "if (false) {",
+    project: "devtools",
+    describes: "a property named like a secret shown with the raw values",
+  },
+  {
+    file: `${devtools}/utils/EventLog.ts`,
+    find: "this.#events = [entry, ...this.#events].slice(0, this.#limit);",
+    replace: "this.#events = [entry, ...this.#events];",
+    project: "devtools",
+    describes: "a history that grows past the events it was told to keep",
+  },
+  {
+    file: `${devtools}/components/Routes/NativeSection.tsx`,
+    find: "when={props.showRaw}",
+    replace: "when={true}",
+    project: "devtools",
+    describes: "a provider's handle shown while raw values are off",
   },
   {
     file: "packages/adapters/app-store/src/appStoreLookup.ts",

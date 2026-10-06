@@ -63,6 +63,10 @@ jobs:
       - name: Package imports
         run: pnpm test:package
 
+      # Each built entry stays within its gzip budget.
+      - name: Bundle size
+        run: pnpm test:size
+
       # Every provider SDK and the clock are faked in process, so the whole
       # suite runs here with no device, no network and no credentials.
       - name: Unit tests

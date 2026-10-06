@@ -24,6 +24,7 @@ const safety = section(
 
 const tabs = section("Cross-tab coordination");
 const triggers = section("Checks on an event or a timer");
+const published = section("Published values are Beacon's own");
 const proof = section("What a test proves");
 
 // WEB-09 A navigation another framework starts is named an external action, and no global guard is claimed.
@@ -53,6 +54,10 @@ assert.match(triggers, /never that the authority is reachable/);
 
 // A gate is per JavaScript runtime, so another tab is another gate and another read.
 assert.match(triggers, /N tabs make N reads/);
+
+// A published value is shared, so a host that writes to one changes what Beacon holds.
+assert.match(published, /are the objects Beacon holds, not copies/);
+assert.match(published, /changes what Beacon holds/);
 
 // PLAY-18 A suite over a fake bridge is never presented as a verified installation.
 assert.match(proof, /never that a Play update installed/);

@@ -24,6 +24,10 @@ This release coordinates no other tab. There is no simulated global lock: when n
 
 `@priemskiyyy/beacon/triggers` checks when a source says so and makes no runtime run: a timer of a backgrounded app or tab may be throttled, suspended or never fire, so a check on a timer is only as good as the runtime that runs it, and the return to the foreground has to check as well. The time an app was away, whether a Pulse's `observedAway` or the one the `foreground` trigger measures, is an estimate that only throttles a check. A reconnect says the device is connected and never that the authority is reachable, and the gate that decides a check is per JavaScript runtime, so N tabs make N reads.
 
+## Published values are Beacon's own
+
+An observation, an offer, a running fact and a snapshot are the objects Beacon holds, not copies, and the types do not stop a host from writing to one. A host that changes a field changes what Beacon holds, and the objects of the source's own document that an offer shares. Read them, and copy what you keep.
+
 ## What a test proves
 
 The tests run against fakes, in process. A unit test with a fake bridge proves how Beacon maps a native result, never that a Play update installed, that a service worker activated, that an Expo update launched, that a CodePush package was staged, that a native reader names the build a store shipped or that Firebase Remote Config fetched over a real network. Only a real device with a real distribution proves a provider flow, and the [verification table](verification.md) counts rows with a test, not rows a device passed.

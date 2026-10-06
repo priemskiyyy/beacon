@@ -465,3 +465,37 @@ test("SEC-10 a bridge call made outside Beacon is not claimed as an operation, a
   expect(context.binary.state.get().operation).toEqual({ state: "idle" });
   expect(context.beacon.transitions.get().latest).toBeNull();
 });
+
+test("PLAY-03 every start asks Play again first, so the info of an earlier start is never reused", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setFlow("flexible", "cancelled");
+
+  for (const starts of [1, 2]) {
+    const queries = context.calls.queries;
+
+    await context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+    expect(context.calls.queries).toBe(queries + 1);
+    expect(context.calls.flexible).toBe(starts);
+  }
+});
+
+test("PLAY-07 a consent the user accepted is a flow under way, not a download, an installation or a boot", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.binary.startFlexibleUpdate({ offer: offer.ref });
+  await settle();
+
+  expect(context.calls.flexible).toBe(1);
+  expect(context.binary.state.get().operation).toMatchObject({
+    state: "running",
+    command: "startFlexibleUpdate",
+  });
+  expect(context.binary.state.get().prepared).toEqual({ status: "unknown" });
+  expect(context.beacon.running.get().native).toEqual({
+    state: "unconfigured",
+  });
+});

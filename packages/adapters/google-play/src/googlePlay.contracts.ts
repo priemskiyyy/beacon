@@ -42,6 +42,14 @@ handle.completeUpdate({ offer });
 // @ts-expect-error -- a flow is a command of its own, not a parameter.
 handle.startFlexibleUpdate({ offer, flow: "immediate" });
 
+// PLAY-17 Deleting asset packs is not an option of a flow, so nothing a remote policy says can enable it.
+// @ts-expect-error -- there is no asset-pack deletion option.
+handle.startImmediateUpdate({ offer, allowAssetPackDeletion: true });
+
+// PLAY-16 Eligibility comes from Play alone: a release backend is not an option of the route.
+// @ts-expect-error -- the route has no source that could override Play.
+googlePlay({ bridge, source: bridge });
+
 expectTypeOf(handle.native.get()).toEqualTypeOf<PlayNative | null>();
 
 export const receipt = async () => {

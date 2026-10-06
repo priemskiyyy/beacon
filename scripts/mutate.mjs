@@ -1357,6 +1357,14 @@ const MUTANTS = [
       "a package downloaded again after it was installed, which deletes the folder CodePush runs from",
   },
   {
+    file: `${core}/internal/commands/CommandCoordinator.ts`,
+    find: "entry.record.getNotOpen() ??",
+    replace: "null ??",
+    project: "core",
+    describes:
+      "a command that finds its provider closed saying only that it is not open, with the reason a check gives lost",
+  },
+  {
     file: "packages/adapters/expo/src/utils/readNativeRelease.ts",
     find: "facts.applicationId !== (options.authority ?? scope.application)",
     replace: "false",

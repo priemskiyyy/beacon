@@ -160,10 +160,9 @@ export class DriverRoutes {
 
     entry.session = opened;
 
-    commit((transaction) => record.installNative(transaction, opened.native));
-
     const controller = new AbortController();
 
+    // Registered before the handle is published: a listener told of it may end this session, or replace it with the next, and what was opened must be let go of when the session ends, not after the next one has opened.
     session.resources.add(() => {
       controller.abort();
       entry.session = null;
@@ -176,6 +175,13 @@ export class DriverRoutes {
         release();
       }
     });
+
+    // A provider that ended the session as it opened has been let go of already: its handle belongs to nobody.
+    if (!session.resources.isActive()) {
+      return;
+    }
+
+    commit((transaction) => record.installNative(transaction, opened.native));
 
     this.#reconcile(route, opened, controller.signal);
   }

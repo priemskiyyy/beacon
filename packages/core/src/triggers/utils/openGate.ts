@@ -12,6 +12,7 @@ import {
   SKIPPED_WHILE_FRESH,
 } from "src/triggers/utils/constants/defaults";
 import { watchExpiry } from "src/triggers/utils/watchExpiry";
+import { MAX_TIMER_DELAY } from "src/utils/constants/timers";
 
 // A failure the host will see is rethrown outside the call that met it, as Beacon does with a listener's.
 const rethrowLater = (error: unknown) => {
@@ -56,10 +57,10 @@ export const openGate = <TRoutes extends Record<string, RouteDefinition>>(
   let cooling: (() => void) | null = null;
   let backingOff: (() => void) | null = null;
 
-  // A clock that cannot arm a timer is contained as Beacon contains it: the wait is not made, and the host hears of it outside the call.
+  // A clock that cannot arm a timer is contained as Beacon contains it: the wait is not made, and the host hears of it outside the call. A host timer holds a bounded delay, and one asked for more fires at once.
   const arm = (callback: () => void, delay: number) => {
     try {
-      return clock.setTimer(callback, delay);
+      return clock.setTimer(callback, Math.min(delay, MAX_TIMER_DELAY));
     } catch (error) {
       rethrowLater(error);
 

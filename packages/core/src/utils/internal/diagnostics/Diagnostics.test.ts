@@ -206,6 +206,44 @@ test("every listener sees the events in the order they happened, even when one r
   expect(second).toEqual(first);
 });
 
+test("held work is done before its events are heard, and they are heard in the order they were recorded", () => {
+  const { diagnostics } = createDiagnostics();
+  const log: string[] = [];
+
+  diagnostics.view.events.subscribe((event) => log.push(`heard ${event.type}`));
+
+  diagnostics.holdEvents(() => {
+    diagnostics.record("session-stopped");
+    log.push("work");
+    diagnostics.record("session-started");
+  });
+
+  expect(log).toEqual([
+    "work",
+    "heard session-stopped",
+    "heard session-started",
+  ]);
+
+  // Work that holds a delivery already in progress adds to it and leaves its order alone.
+  const nested: string[] = [];
+
+  diagnostics.view.events.subscribe((event) => {
+    if (event.type !== "late-callback") {
+      return;
+    }
+
+    diagnostics.holdEvents(() => {
+      diagnostics.record("disposed");
+      nested.push("work");
+    });
+    nested.push("listener");
+  });
+  diagnostics.view.events.subscribe((event) => nested.push(event.type));
+  diagnostics.record("late-callback");
+
+  expect(nested).toEqual(["work", "listener", "late-callback", "disposed"]);
+});
+
 test("SEC-06 a listener that throws is rethrown outside and the others still hear the event", () => {
   vi.useFakeTimers({ toFake: ["queueMicrotask"] });
 

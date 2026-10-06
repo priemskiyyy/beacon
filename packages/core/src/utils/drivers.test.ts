@@ -6,7 +6,11 @@ import type { ObservationDraft } from "src/types/ObservationDraft";
 import type { ProviderResult } from "src/types/ProviderResult";
 import type { RouteBody } from "src/types/RouteBody";
 import { settle } from "src/mock/settle";
-import { buildWebRelease, createRoutedBeacon } from "src/utils/Beacon.fixture";
+import {
+  buildWebRelease,
+  createRoutedBeacon,
+  SCOPE,
+} from "src/utils/Beacon.fixture";
 import {
   BODY,
   createDriverBeacon,
@@ -344,6 +348,97 @@ test("LIFE-02 a listener that stops the session as a provider opens leaves it di
   const context = createDriverBeacon({ reconcile });
 
   context.ota.native.subscribe(() => context.beacon.stop());
+  context.beacon.start();
+
+  expect(context.counts).toEqual({ opens: 1, disposals: 1 });
+  expect(reconcile).not.toHaveBeenCalled();
+  expect(context.ota.native.get()).toBeNull();
+});
+
+test("LIFE-02 a listener that restarts the session as a provider opens leaves the new session with its provider open", () => {
+  const context = createDriverBeacon();
+
+  let restarted = false;
+
+  context.ota.native.subscribe(() => {
+    if (restarted || context.ota.native.get() === null) {
+      return;
+    }
+
+    restarted = true;
+    context.beacon.stop();
+    context.beacon.start();
+  });
+  context.beacon.start();
+
+  // The session that ended is let go of when it ends, not after the next one opened: it takes nothing from the next.
+  expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
+  expect(context.counts).toEqual({ opens: 2, disposals: 1 });
+  expect(context.ota.native.get()).not.toBeNull();
+});
+
+test("LIFE-02 a listener that replaces the scope as a provider opens leaves the new session with its provider open, even one that holds a manager of its own", () => {
+  const context = createDriverBeacon({}, {});
+
+  let replaced = false;
+
+  context.ota.native.subscribe(() => {
+    if (replaced || context.ota.native.get() === null) {
+      return;
+    }
+
+    replaced = true;
+    context.beacon.replaceScope({ ...SCOPE, environment: "staging" });
+  });
+  context.beacon.start();
+
+  expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
+  expect(context.counts).toEqual({ opens: 2, disposals: 1 });
+  expect(context.ota.native.get()).not.toBeNull();
+});
+
+test("LIFE-02 a diagnostics listener that starts the next session on the end of one finds the manager of the first let go of", () => {
+  const context = createDriverBeacon({}, {});
+
+  let restarted = false;
+
+  context.beacon.diagnostics.events.subscribe((event) => {
+    if (event.type !== "session-stopped" || restarted) {
+      return;
+    }
+
+    restarted = true;
+    context.beacon.start();
+  });
+  context.beacon.start();
+  context.beacon.stop();
+
+  expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
+  expect(context.counts).toEqual({ opens: 2, disposals: 1 });
+  expect(context.ota.native.get()).not.toBeNull();
+});
+
+test("LIFE-02 a listener that disposes the Beacon as a provider opens leaves no provider handle behind", () => {
+  const context = createDriverBeacon();
+
+  context.ota.native.subscribe(() => {
+    context.beacon.dispose();
+  });
+  context.beacon.start();
+
+  expect(context.counts).toEqual({ opens: 1, disposals: 1 });
+  expect(context.ota.native.get()).toBeNull();
+});
+
+test("LIFE-02 a listener that stops the session as the provider reports while it opens leaves it disposed, with no handle published", () => {
+  const reconcile = vi.fn(async () => {});
+
+  const context = createDriverBeacon({
+    emitOnOpen: { status: "available", offer: BODY },
+    reconcile,
+  });
+
+  context.ota.state.subscribe(() => context.beacon.stop());
   context.beacon.start();
 
   expect(context.counts).toEqual({ opens: 1, disposals: 1 });

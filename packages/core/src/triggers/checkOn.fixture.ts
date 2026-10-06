@@ -37,6 +37,7 @@ export const createTestBeacon = ({
 }: { canArm?: () => boolean } = {}) => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
   const clock = createTestClock({ now: 1_000_000 });
+  const delays: number[] = [];
 
   const beacon = new Beacon({
     scope: SCOPE,
@@ -74,6 +75,8 @@ export const createTestBeacon = ({
           throw new Error("The clock cannot arm a timer.");
         }
 
+        delays.push(delay);
+
         return clock.setTimer(callback, delay);
       },
     },
@@ -89,6 +92,8 @@ export const createTestBeacon = ({
     beacon,
     mock,
     clock,
+    /** Every delay the host was asked to wait, in the order it was asked. */
+    delays: () => [...delays],
     reasons: () =>
       events.flatMap((event) => {
         if (event.type !== "check-started") {

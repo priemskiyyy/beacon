@@ -9,6 +9,7 @@ import type { ReleaseSource } from "src/types/ReleaseSource";
 import type { SourceRead } from "src/types/SourceRead";
 import { BeaconError } from "src/utils/BeaconError";
 import { REVISION_MESSAGES } from "src/utils/constants/revisions";
+import { boundTimers } from "src/utils/internal/clock/boundTimers";
 import { createEvidence } from "src/utils/internal/feeds/createEvidence";
 import { SharedRead } from "src/utils/internal/reads/SharedRead";
 import { judgeRevision } from "src/utils/internal/revisions/judgeRevision";
@@ -31,6 +32,7 @@ type Verdict = { accepted: AcceptedFeed; isRenewal: boolean };
 export class FeedRecord {
   #source: ReleaseSource<unknown>;
   #clock: BeaconClock;
+  #timers: BeaconClock;
   #hooks: FeedHooks;
   #read: SharedRead<SourceRead<unknown>, Verdict>;
   #accepted: AcceptedFeed | null = null;
@@ -40,6 +42,7 @@ export class FeedRecord {
   constructor({ source, clock, timeout, getScope, hooks }: FeedRecordOptions) {
     this.#source = source;
     this.#clock = clock;
+    this.#timers = boundTimers(clock);
     this.#hooks = hooks;
     this.#read = new SharedRead<SourceRead<unknown>, Verdict>({
       clock,
@@ -209,7 +212,7 @@ export class FeedRecord {
 
     try {
       // A host timer holds a bounded delay, so a long wait wakes early and waits again.
-      const cancel = this.#clock.setTimer(
+      const cancel = this.#timers.setTimer(
         () => this.#watch(session, accepted),
         remaining,
       );

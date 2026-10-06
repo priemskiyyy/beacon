@@ -32,6 +32,7 @@ import {
 import { CommandCoordinator } from "src/utils/internal/commands/CommandCoordinator";
 import { Journal } from "src/utils/internal/journal/Journal";
 import { DisruptionRegistry } from "src/utils/internal/disruptions/DisruptionRegistry";
+import { boundTimers } from "src/utils/internal/clock/boundTimers";
 import { createSystemClock } from "src/utils/internal/clock/createSystemClock";
 import { Diagnostics } from "src/utils/internal/diagnostics/Diagnostics";
 import { untilAborted } from "src/utils/internal/common/untilAborted";
@@ -202,6 +203,9 @@ export class Beacon<
 
     this.#clock = clock;
 
+    // What the running readers, the settlements and the journal wait on is the clock, asked for no wait a host timer cannot hold. The routes are given the clock itself, since a source reads it, and bound the waits they make.
+    const timers = boundTimers(clock);
+
     this.#diagnostics = new Diagnostics({
       clock,
       getSession: () => this.#runtime.getSession()?.id ?? null,
@@ -223,7 +227,7 @@ export class Beacon<
     this.#running = new RunningRegistry({
       readers: resolveRunningReaders(running, routes),
       getScope: () => this.#scope,
-      clock,
+      clock: timers,
       timeout: runningTimeout,
       listeners: createListeners(),
       record: this.#diagnostics.record,
@@ -245,7 +249,7 @@ export class Beacon<
     this.#running.state.subscribe(this.#routes.reselect);
 
     const disruptions = new DisruptionRegistry({
-      clock,
+      clock: timers,
       timeout: settlementTimeout,
       reportError: reportListenerError,
     });
@@ -254,7 +258,7 @@ export class Beacon<
       options: journalOptions,
       getScope: () => this.#scope,
       getRunning: (session) => this.#getSettledRunning(session),
-      clock,
+      clock: timers,
       listeners: createListeners(),
       record: this.#diagnostics.record,
     });
@@ -299,6 +303,7 @@ export class Beacon<
         this.#diagnostics.close();
       },
       record: this.#diagnostics.record,
+      holdEvents: this.#diagnostics.holdEvents,
       reportCleanupError,
     });
 

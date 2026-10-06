@@ -29,7 +29,8 @@ const isOwn = <
 
 // A call names an offer by the offer or by its reference; only the reference is read, and only one Beacon minted is believed.
 const readOfferReference = (given: CommandInput["offer"]) => {
-  if (given === undefined) {
+  // Untyped code can pass a value that is no object, which names no reference.
+  if (typeof given !== "object" || given === null) {
     return undefined;
   }
 
@@ -41,7 +42,7 @@ const readOfferReference = (given: CommandInput["offer"]) => {
 };
 
 const readPreparedReference = (given: CommandInput["prepared"]) => {
-  if (given === undefined) {
+  if (typeof given !== "object" || given === null) {
     return undefined;
   }
 

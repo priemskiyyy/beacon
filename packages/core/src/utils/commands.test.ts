@@ -799,6 +799,33 @@ test("a copy of a reference is refused as foreign", async () => {
   expect(context.runs).toHaveLength(0);
 });
 
+test("a call whose offer is no object, or whose arguments are none, is refused as foreign and never throws into the caller", async () => {
+  const context = createWebCommandBeacon();
+  const web = context.beacon.route("web");
+
+  context.beacon.start();
+
+  // Untyped code can pass anything: only a reference Beacon minted is believed.
+  for (const input of [
+    null,
+    { offer: null },
+    { offer: "ref-1" },
+    { offer: 7 },
+  ]) {
+    await expect(Reflect.apply(web.reload, web, [input])).resolves.toEqual({
+      status: "stale",
+      reason: "foreign",
+    });
+  }
+
+  await expect(Reflect.apply(web.refresh, web, [null])).resolves.toEqual({
+    status: "accepted",
+    operation: { id: 1 },
+    receipt: { kind: "reload-requested" },
+  });
+  expect(context.runs).toHaveLength(0);
+});
+
 test("an offer that a later check replaced is refused as replaced", async () => {
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
@@ -938,6 +965,51 @@ test("disposing while the provider runs leaves the operation indeterminate, as s
   await settle();
 
   expect(log).toEqual(["drafts:reserve", "drafts:settle", "drafts:release"]);
+});
+
+test("disposing leaves an operation that was already unresolved as it was, and lets its reservations go", async () => {
+  const context = createWebCommandBeacon();
+  const log: string[] = [];
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+
+  context.beacon.disruptions.register(createParticipant("drafts", log));
+
+  const reload = web.reload({ offer });
+
+  await settle();
+  context.beacon.stop();
+  await reload;
+
+  const unresolved = web.state.get();
+
+  expect(unresolved.operation).toMatchObject({ state: "indeterminate" });
+
+  context.beacon.dispose();
+
+  // The last snapshot stays as it was: a request that was never confirmed is not an idle route.
+  expect(web.state.get()).toBe(unresolved);
+  expect(log).toEqual(["drafts:reserve", "drafts:settle", "drafts:release"]);
+
+  // The same holds for a request the provider accepted and nobody confirmed.
+  const accepted = createWebCommandBeacon();
+  const second = await startWithOffer(accepted);
+  const reloading = accepted.beacon.route("web").reload({ offer: second });
+
+  await settle();
+  takeRun(accepted.runs).settleWith(ACCEPTED_RELOAD);
+  await reloading;
+
+  const requested = accepted.beacon.route("web").state.get();
+
+  expect(requested.operation).toMatchObject({
+    state: "indeterminate",
+    reason: "dispatch-unconfirmed",
+  });
+
+  accepted.beacon.dispose();
+
+  expect(accepted.beacon.route("web").state.get()).toBe(requested);
 });
 
 test("disposing releases the reservations a command still holds", async () => {

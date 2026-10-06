@@ -1089,6 +1089,53 @@ test("JOURNAL-14 an intent past its retention is dropped when the record is read
   });
 });
 
+test("a clock set back a little since the intent was written does not make the journal forget it", async () => {
+  const memory = createMockJournalStorage();
+
+  // The record was written five minutes ahead of the clock that reads it, as after a time sync: the intent is as good as ever.
+  seed(memory, [
+    buildStored(
+      buildIntent({ createdAt: 301_000, expiresAt: 301_000 + 86_400_000 }),
+    ),
+  ]);
+
+  const context = createJournaled(memory, "required", { boot: "boot-2" });
+
+  context.beacon.start();
+  await settle();
+
+  expect(context.beacon.transitions.get()).toMatchObject({
+    latest: { outcome: "target-not-running" },
+    dropped: 0,
+  });
+});
+
+test("an intent that expires later than the retention allows from now is dropped when the record is read, and counted", async () => {
+  const memory = createMockJournalStorage();
+
+  // A clock that ran ahead when the intent was written, or a record that was edited, would keep a spent budget for ever.
+  seed(memory, [
+    buildStored(
+      buildIntent({
+        createdAt: 4_000_000_000_000,
+        expiresAt: 4_000_086_400_000,
+      }),
+      "target-not-running",
+      3,
+    ),
+  ]);
+
+  const context = createJournaled(memory, "required", { boot: "boot-2" });
+
+  context.beacon.start();
+  await settle();
+
+  expect(context.beacon.transitions.get()).toMatchObject({
+    latest: null,
+    dropped: 1,
+  });
+});
+
 test("a participant is still settled before the intent is written", async () => {
   const memory = createMockJournalStorage();
   const context = createJournaled(memory);

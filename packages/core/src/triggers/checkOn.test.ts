@@ -3,6 +3,7 @@ import { createTestClock } from "src/mock/createTestClock";
 import { settle } from "src/mock/settle";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { MAX_TIMER_DELAY } from "src/utils/constants/timers";
 import { checkOn } from "src/triggers/checkOn";
 import {
   countRouteSubscriptions,
@@ -876,6 +877,26 @@ test("TRIG-19 every trigger checks for its own reason", async () => {
     "invalidation",
     "interval",
   ]);
+});
+
+test("a minimum interval, a backoff and an interval longer than a host timer holds are armed in a delay it holds", async () => {
+  const { beacon, mock, delays } = createTestBeacon();
+  const month = 31 * 86_400_000;
+
+  mock.hold();
+  checkOn(beacon, {
+    triggers: [interval({ every: month })],
+    minInterval: month,
+    backoff: { first: month, max: month, jitter: 0 },
+  });
+  beacon.start();
+  await settle();
+  mock.reject(new Error("The authority is down."));
+  await settle();
+
+  // The host fires a timer asked for more than 2^31 - 1 milliseconds at once, and the gate would start the next check with nothing between.
+  expect(delays().length).toBeGreaterThan(2);
+  expect(Math.max(...delays())).toBeLessThanOrEqual(MAX_TIMER_DELAY);
 });
 
 test("TRIG-30 a clock that cannot arm a timer costs the wait it would have made, and its error reaches the host outside the call", async () => {

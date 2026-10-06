@@ -22,6 +22,7 @@ import {
 } from "src/utils/constants/commands";
 import { IDLE_OPERATION } from "src/utils/constants/routes";
 import { describeImpacts } from "src/utils/internal/commands/describeImpacts";
+import { readInput } from "src/utils/internal/commands/readInput";
 import { readParameters } from "src/utils/internal/commands/readParameters";
 import { resolveCommand } from "src/utils/internal/commands/resolveCommand";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
@@ -71,8 +72,9 @@ export class CommandCoordinator {
   /** Answers how the call settled; expected failures are outcomes, and it never rejects. */
   run = (
     target: CommandTarget,
-    input: CommandInput = {},
+    given: CommandInput | null = {},
   ): Promise<CommandResult> => {
+    const input = readInput(given);
     const session = this.#options.getSession();
 
     if (session === null) {
@@ -658,9 +660,10 @@ export class CommandCoordinator {
   }
 
   #end(operation: CommandOperation) {
+    // What was never confirmed stays unconfirmed in the last snapshot: only the reservations go.
     if (operation.phase === "dispatched") {
       this.#hold(operation, ABORTED_AFTER_DISPATCH);
-    } else {
+    } else if (operation.phase === "running") {
       this.#release(operation);
     }
 

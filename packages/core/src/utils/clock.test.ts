@@ -1,7 +1,12 @@
 import { afterEach, expect, test, vi } from "vitest";
 
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
+import { createTestClock } from "src/mock/createTestClock";
 import { settle } from "src/mock/settle";
+import type { BeaconClock } from "src/types/BeaconClock";
 import { createBrokenClock } from "src/utils/Beacon.fixture";
+import { MAX_TIMER_DELAY } from "src/utils/constants/timers";
+import { target } from "src/utils/routes.fixture";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,
@@ -98,6 +103,64 @@ test("a clock that cannot arm a timer for a participant's settlement blocks the 
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
 
   await expect(reloading).resolves.toMatchObject({ status: "accepted" });
+});
+
+test("no timer is asked of the host for longer than a host timer holds, whatever an expiry or a timeout says", async () => {
+  const delays: number[] = [];
+  const inner = createTestClock({ now: 1_000 });
+
+  // A host timer asked for more than 2^31 - 1 milliseconds fires after one, and an expiry waited for that way would arm itself again at once.
+  const clock: BeaconClock = {
+    now: inner.now,
+    setTimer: (callback, delay) => {
+      delays.push(delay);
+
+      return inner.setTimer(callback, delay);
+    },
+  };
+
+  const memory = createMockJournalStorage();
+  const forever = 9_000_000_000_000;
+
+  const context = createWebCommandBeacon({
+    clock,
+    journal: { mode: "required", storage: memory },
+    timeouts: {
+      running: forever,
+      check: forever,
+      settlement: forever,
+      journal: forever,
+    },
+  });
+
+  const web = context.beacon.route("web");
+
+  context.beacon.disruptions.register(createParticipant("drafts", []));
+  context.beacon.start();
+
+  const checking = web.check();
+
+  await settle();
+  context.mock.resolve({
+    document: { web: target("web-build-a"), policy: { minimum: "1.0.0" } },
+    expiresAt: 1_000 + 40 * 86_400_000,
+  });
+  await checking;
+
+  const { observation } = web.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The web route has no offer.");
+  }
+
+  const reloading = web.reload({ offer: observation.offer.ref });
+
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+  await reloading;
+
+  expect(delays.length).toBeGreaterThan(4);
+  expect(Math.max(...delays)).toBeLessThanOrEqual(MAX_TIMER_DELAY);
 });
 
 test("a clock that cannot arm a timer for an expiry leaves the document expired when the session starts again, and start does not throw", async () => {

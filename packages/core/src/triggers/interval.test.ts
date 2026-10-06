@@ -84,6 +84,20 @@ test("TRIG-25 the jitter adds up to its share of the delay at random", async () 
   expect(mock.stats().reads).toBe(1);
 });
 
+test("an interval that cannot wait is refused when it is made, since it would arm its timer again at once, for ever", () => {
+  for (const every of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1.5]) {
+    expect(() => interval({ every })).toThrow(
+      expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
+    );
+  }
+
+  for (const jitter of [-0.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    expect(() => interval({ every: 60_000, jitter })).toThrow(
+      expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
+    );
+  }
+});
+
 test("TRIG-26 a tick the gate drops as fresh does not end the cadence", async () => {
   const { beacon, mock, clock, reasons } = createTestBeacon();
 

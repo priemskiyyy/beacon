@@ -1,3 +1,4 @@
+import type { BeaconClock } from "src/types/BeaconClock";
 import type { ReadFlight } from "src/types/internal/ReadFlight";
 import type { ReadOptions } from "src/types/internal/ReadOptions";
 import type { ReadResult } from "src/types/internal/ReadResult";
@@ -8,6 +9,7 @@ import type {
 import type { Session } from "src/types/internal/Session";
 import type { SharedReadOptions } from "src/types/internal/SharedReadOptions";
 import { BeaconError } from "src/utils/BeaconError";
+import { boundTimers } from "src/utils/internal/clock/boundTimers";
 import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
 
 /**
@@ -18,6 +20,7 @@ import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
  */
 export class SharedRead<TAnswer, TAccepted> {
   #options: SharedReadOptions<TAnswer, TAccepted>;
+  #timers: BeaconClock;
   #attempts = 0;
   #flight: ReadFlight | null = null;
   #trailing: ReadWaiterGroup | null = null;
@@ -25,6 +28,7 @@ export class SharedRead<TAnswer, TAccepted> {
 
   constructor(options: SharedReadOptions<TAnswer, TAccepted>) {
     this.#options = options;
+    this.#timers = boundTimers(options.clock);
   }
 
   /** Reads, or joins the read in flight; resolves when this caller's read settled, and never rejects. */
@@ -111,7 +115,7 @@ export class SharedRead<TAnswer, TAccepted> {
   }
 
   #startFlight(session: Session, group: ReadWaiterGroup) {
-    const { clock, timeout, perform, hooks, errors } = this.#options;
+    const { timeout, perform, hooks, errors } = this.#options;
 
     this.#attempts += 1;
 
@@ -139,7 +143,7 @@ export class SharedRead<TAnswer, TAccepted> {
     // The host's clock can refuse a timer, and a read with no deadline is never started: it fails, as one that ran out of time does.
     try {
       flight.stops.push(
-        clock.setTimer(() => {
+        this.#timers.setTimer(() => {
           flight.controller.abort();
           this.#fail(flight, new BeaconError(errors.timeout));
         }, timeout),

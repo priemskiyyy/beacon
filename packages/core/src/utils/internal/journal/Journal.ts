@@ -317,7 +317,15 @@ export class Journal {
     const { clock, record } = this.#config;
 
     const loaded = read ?? this.#transitions;
-    const kept = loaded.filter(({ intent }) => intent.expiresAt > clock.now());
+    const now = clock.now();
+
+    // An intent that lives longer than two retentions from now was made by a clock far ahead, or edited: kept, it would hold a spent budget for as long as that clock said. A clock set back since the write, as a time sync does, is no reason to forget an intent, so one retention of skew is allowed.
+    const latest = now + 2 * options.retention;
+
+    const kept = loaded.filter(
+      ({ intent }) => intent.expiresAt > now && intent.expiresAt <= latest,
+    );
+
     const reconciled: StoredTransition[] = [];
 
     for (const transition of kept) {

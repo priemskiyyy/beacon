@@ -75,6 +75,25 @@ export class Diagnostics {
     this.#deliver();
   };
 
+  /** Runs the work and delivers what it recorded afterwards, in the order it was recorded, so a listener hears of a change once the whole change is made. */
+  holdEvents = (work: () => void) => {
+    // A delivery in progress already holds back what the work records.
+    if (this.#delivering) {
+      work();
+
+      return;
+    }
+
+    this.#delivering = true;
+
+    try {
+      work();
+    } finally {
+      this.#delivering = false;
+      this.#deliver();
+    }
+  };
+
   /** Delivers the final snapshot at once and ends every observation. */
   close = () => {
     if (this.#closed) {

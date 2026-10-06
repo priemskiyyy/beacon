@@ -397,6 +397,133 @@ test("a provider that ends the session while its route opens leaves the journal 
   expect(beacon.status.get()).toEqual({ state: "stopped" });
 });
 
+test("a mechanism that ends the session while it opens is let go of and never published as the handle of a route", async () => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+  const disposals = vi.fn();
+
+  const web = targetRoute({
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism: createUpdateMechanism({
+      name: "stopping",
+      subject: "web",
+      open: () => {
+        beacon.stop();
+
+        return { native: {}, dispose: disposals };
+      },
+      commands: {},
+    }),
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { web },
+    { running: { web: () => buildWebRelease("web-build-b") } },
+  );
+
+  beacon.start();
+  await settle();
+
+  expect(disposals).toHaveBeenCalledTimes(1);
+  expect(beacon.route("web").native.get()).toBeNull();
+});
+
+test("a listener that restarts the session as a mechanism opens leaves the new session with its handle, and one that disposes the Beacon leaves none", async () => {
+  const restarting = createWebCommandBeacon();
+  const web = restarting.beacon.route("web");
+
+  let restarted = false;
+
+  web.native.subscribe(() => {
+    if (restarted || web.native.get() === null) {
+      return;
+    }
+
+    restarted = true;
+    restarting.beacon.stop();
+    restarting.beacon.start();
+  });
+  restarting.beacon.start();
+
+  // What the session that ended opened is let go of when it ends, so it takes nothing from the one that replaced it.
+  expect(restarting.beacon.status.get()).toEqual({
+    state: "running",
+    session: 2,
+  });
+  expect(web.native.get()).not.toBeNull();
+  await expect(web.prefetch()).resolves.toMatchObject({ status: "accepted" });
+  expect(restarting.warmed.count).toBe(1);
+
+  const disposing = createWebCommandBeacon();
+
+  disposing.beacon.route("web").native.subscribe(() => {
+    disposing.beacon.dispose();
+  });
+  disposing.beacon.start();
+
+  expect(disposing.beacon.route("web").native.get()).toBeNull();
+});
+
+test("a diagnostics listener that restarts or disposes on the end of the session finds what it opened let go of, the way a status listener does", async () => {
+  const restarting = createWebCommandBeacon();
+  const web = restarting.beacon.route("web");
+
+  let restarted = false;
+
+  restarting.beacon.diagnostics.events.subscribe((event) => {
+    if (event.type !== "session-stopped" || restarted) {
+      return;
+    }
+
+    restarted = true;
+    restarting.beacon.start();
+  });
+  restarting.beacon.start();
+  restarting.beacon.stop();
+
+  expect(restarting.beacon.status.get()).toEqual({
+    state: "running",
+    session: 2,
+  });
+  expect(web.native.get()).not.toBeNull();
+  await expect(web.prefetch()).resolves.toMatchObject({ status: "accepted" });
+
+  const disposing = createWebCommandBeacon();
+
+  disposing.beacon.diagnostics.events.subscribe((event) => {
+    if (event.type !== "session-stopped") {
+      return;
+    }
+
+    disposing.beacon.dispose();
+  });
+  disposing.beacon.start();
+  disposing.beacon.stop();
+
+  expect(disposing.beacon.status.get()).toEqual({ state: "disposed" });
+  expect(disposing.beacon.route("web").native.get()).toBeNull();
+});
+
+test("a listener that disposes the Beacon while the last session is let go of leaves no provider handle behind", async () => {
+  const context = createWebCommandBeacon();
+  const web = context.beacon.route("web");
+
+  context.beacon.start();
+
+  const checking = web.check();
+
+  await settle();
+
+  // The check under way ends with the session, which changes the route, and its listener ends the Beacon before the session has let go of the provider.
+  web.state.subscribe(() => {
+    context.beacon.dispose();
+  });
+  context.beacon.stop();
+
+  await expect(checking).resolves.toEqual({ status: "superseded" });
+  expect(context.beacon.status.get()).toEqual({ state: "disposed" });
+  expect(web.native.get()).toBeNull();
+});
+
 const STAGING: ReleaseScope = { ...SCOPE, environment: "staging" };
 const TESTING: ReleaseScope = { ...SCOPE, environment: "testing" };
 

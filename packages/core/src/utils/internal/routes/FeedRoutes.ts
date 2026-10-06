@@ -177,11 +177,17 @@ export class FeedRoutes {
 
     const { commit } = this.#options;
 
-    commit((transaction) => record.installNative(transaction, opened.native));
-
+    // Registered before the handle is published: a listener told of it may end this session, or replace it with the next, and what was opened must be let go of when the session ends, not after the next one has opened.
     session.resources.add(() => {
       commit((transaction) => record.installNative(transaction, null));
       opened.dispose?.();
     });
+
+    // A mechanism that ended the session as it opened has been let go of already: its handle belongs to nobody.
+    if (!session.resources.isActive()) {
+      return;
+    }
+
+    commit((transaction) => record.installNative(transaction, opened.native));
   }
 }

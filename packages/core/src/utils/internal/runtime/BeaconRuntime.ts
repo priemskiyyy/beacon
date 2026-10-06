@@ -20,6 +20,8 @@ type BeaconRuntimeOptions = {
   /** Runs once, after the last session has ended. */
   onDispose: () => void;
   record: (type: BeaconDiagnosticEventType) => void;
+  /** Runs the work and lets the events it recorded reach their listeners after it, in the order they were recorded, so a listener hears of a change once all of it is made. */
+  holdEvents: (work: () => void) => void;
   reportCleanupError: (error: unknown) => void;
 };
 
@@ -31,6 +33,7 @@ export class BeaconRuntime {
   #onStart: BeaconRuntimeOptions["onStart"];
   #onDispose: BeaconRuntimeOptions["onDispose"];
   #record: BeaconRuntimeOptions["record"];
+  #holdEvents: BeaconRuntimeOptions["holdEvents"];
   #reportCleanupError: BeaconRuntimeOptions["reportCleanupError"];
 
   status: ObservableValue<BeaconStatus>;
@@ -40,6 +43,7 @@ export class BeaconRuntime {
     onStart,
     onDispose,
     record,
+    holdEvents,
     reportCleanupError,
   }: BeaconRuntimeOptions) {
     this.#status = new ValueStore(IDLE_STATUS, listeners);
@@ -47,6 +51,7 @@ export class BeaconRuntime {
     this.#onStart = onStart;
     this.#onDispose = onDispose;
     this.#record = record;
+    this.#holdEvents = holdEvents;
     this.#reportCleanupError = reportCleanupError;
   }
 
@@ -170,8 +175,12 @@ export class BeaconRuntime {
     }
 
     this.#phase = { state: "idle" };
-    this.#record("session-stopped");
-    phase.session.resources.dispose();
+
+    // The event is recorded first, and heard after the cleanups: a listener of it that starts the next session or disposes the Beacon finds every resource of this one released, as a listener of the stopped status does.
+    this.#holdEvents(() => {
+      this.#record("session-stopped");
+      phase.session.resources.dispose();
+    });
 
     // A cleanup may have opened the next session or ended the Beacon, and the status that one published stands.
     if (!this.#isIdle()) {

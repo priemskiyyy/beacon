@@ -26,6 +26,7 @@ const createRuntime = (hooks: Partial<Hooks> = {}) => {
       log.push(type);
       hooks.record?.(type);
     },
+    holdEvents: (work) => work(),
     reportCleanupError: reported,
   });
 

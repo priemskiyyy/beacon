@@ -289,6 +289,9 @@ export class RouteRecord {
 
   close = () => {
     this.#store.close();
+
+    // A handle never outlives the Beacon: one that ended while its last session was still being let go of has not taken the handle back yet.
+    this.#native.update(null);
     this.#native.close();
   };
 

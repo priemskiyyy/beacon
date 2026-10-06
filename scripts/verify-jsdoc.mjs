@@ -49,7 +49,7 @@ const PLACEHOLDERS = new Set(
     // What a test of its own builds.
     "fakeBackend fakeBridge fakePlatform fakeUpdates fakeWindow",
     // The values the code around the example holds.
-    "appId backend bridge browser buildNumbers candidate check commands context current devtools dirty drafts identity lease linking lookup manifest mechanism mock nextBeacon observation offer ota participant read ref registration relaunch release reload reservation resume response routes running signal source state storage text trains updates web",
+    "appId backend bridge browser buildNumbers candidate check commands context current devtools dirty drafts identity linking lookup manifest mechanism mock nextBeacon observation offer ota participant read ref registration relaunch release reload reservation response routes running signal source state storage text trains updates web",
   ].flatMap((names) => names.split(" ")),
 );
 

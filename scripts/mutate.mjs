@@ -255,7 +255,7 @@ const MUTANTS = [
   },
   {
     file: `${core}/internal/reads/SharedRead.ts`,
-    find: "this.#fail(flight, toBeaconError(cause, errors.failed));\n\n      return;",
+    find: "this.#fail(flight, toBeaconError(cause, errors.failed), cause);\n\n      return;",
     replace: "throw cause;",
     project: "core",
     describes: "a host clock that refuses a timer rejecting the check",
@@ -284,8 +284,8 @@ const MUTANTS = [
   },
   {
     file: `${core}/internal/feeds/FeedRecord.ts`,
-    find: "    this.#accepted = null;\n  };",
-    replace: "  };",
+    find: "    this.#accepted = null;\n    this.#failure = null;\n  };",
+    replace: "    this.#failure = null;\n  };",
     project: "core",
     describes: "a revision high-water mark carried into another scope",
   },
@@ -620,6 +620,321 @@ const MUTANTS = [
     describes: "a participant that answers nothing taken as having reserved",
   },
   {
+    file: `${core}/internal/disruptions/DisruptionRegistry.ts`,
+    find: "return describeImpacts(context.impacts).disruptive;",
+    replace: "return false;",
+    project: "core",
+    describes: "a guard that names no impacts never asked before a reload",
+  },
+  {
+    file: `${core}/internal/disruptions/DisruptionRegistry.ts`,
+    find: "if (participant.impacts?.length === 0) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "a participant that lists no impacts registered anyway",
+  },
+  {
+    file: `${core}/internal/disruptions/DisruptionRegistry.ts`,
+    find: "reservation.resume?.();",
+    replace: "",
+    project: "core",
+    describes: "a reservation that is never resumed",
+  },
+  {
+    file: `${core}/internal/reads/SharedRead.ts`,
+    find: "      reason: error.code,\n      cause,\n    });",
+    replace: "      reason: error.code,\n    });",
+    project: "core",
+    describes:
+      "a failed read leaving what its source threw off the diagnostic event",
+  },
+  {
+    file: `${core}/internal/routes/FeedRoutes.ts`,
+    find: "          reason: error.code,\n          cause,\n        });",
+    replace: "          reason: error.code,\n        });",
+    project: "core",
+    describes:
+      "a select function that throws leaving its error off the diagnostic event",
+  },
+  {
+    file: `${core}/internal/routes/DriverRoutes.ts`,
+    find: "this.#recordFailure(name, entry.notOpen);",
+    replace: "this.#recordFailure(name);",
+    project: "core",
+    describes: "a held native module left unexplained by the event at start",
+  },
+  {
+    file: `${core}/internal/routes/DriverRoutes.ts`,
+    find: "      this.#recordFailure(name, cause);\n\n      return;\n    }\n\n    entry.session = opened;",
+    replace:
+      "      this.#recordFailure(name);\n\n      return;\n    }\n\n    entry.session = opened;",
+    project: "core",
+    describes:
+      "a provider that threw when it opened leaving its error off the event at start",
+  },
+  {
+    file: `${core}/internal/routes/DriverRoutes.ts`,
+    find: "entry.notOpen ??\n        new BeaconError({",
+    replace: "new BeaconError({",
+    project: "core",
+    describes: "a check of a route that failed to open not saying why",
+  },
+  {
+    file: `${core}/internal/running/RunningRegistry.ts`,
+    find: "cause: this.#thrown.get(next),",
+    replace: "",
+    project: "core",
+    describes:
+      "a failed running reader leaving its error off the diagnostic event",
+  },
+  {
+    file: `${core}/internal/policy/PolicyRecord.ts`,
+    find: "this.#options.onFailure(next.error, next.cause);",
+    replace: "this.#options.onFailure(next.error);",
+    project: "core",
+    describes:
+      "a support policy that throws leaving its error off the diagnostic event",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: 'record("journal-failed", { reason: "read", cause });',
+    replace: 'record("journal-failed", { reason: "read" });',
+    project: "core",
+    describes:
+      "a journal read that fails leaving its error off the diagnostic event",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: 'record("journal-failed", { reason: "clear", cause });',
+    replace: 'record("journal-failed", { reason: "clear" });',
+    project: "core",
+    describes:
+      "a journal removal that fails leaving its error off the diagnostic event",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: 'this.#config.record("journal-failed", { reason: "write", cause });',
+    replace: 'this.#config.record("journal-failed", { reason: "write" });',
+    project: "core",
+    describes:
+      "a journal write that fails leaving its error off the diagnostic event",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: 'record("journal-failed", { reason: "write", cause });\n      this.#publish({ journal: "degraded" });',
+    replace:
+      'record("journal-failed", { reason: "write" });\n      this.#publish({ journal: "degraded" });',
+    project: "core",
+    describes:
+      "a journal reconciliation that fails to write leaving its error off the event",
+  },
+  {
+    file: `${core}/internal/commands/CommandCoordinator.ts`,
+    find: "cause: this.#thrown.get(outcome),",
+    replace: "",
+    project: "core",
+    describes: "a failed command leaving what was thrown off the settled event",
+  },
+  {
+    file: `${core}/internal/commands/CommandCoordinator.ts`,
+    find: "this.#thrown.set(failed, written.value.error.cause);",
+    replace: "",
+    project: "core",
+    describes:
+      "a command stopped by its journal leaving the storage error off the settled event",
+  },
+  {
+    file: `${core}/internal/diagnostics/Diagnostics.ts`,
+    find: "cause: cause ?? null,",
+    replace: "cause: null,",
+    project: "core",
+    describes: "an event that drops the cause it was given",
+  },
+  {
+    file: `${core}/internal/feeds/FeedRecord.ts`,
+    find: 'if (error.code !== "ABORTED") {',
+    replace: "if (true) {",
+    project: "core",
+    describes:
+      "a read nobody waited for taken for a failure of the policy source",
+  },
+  {
+    file: `${core}/internal/feeds/FeedRecord.ts`,
+    find: "this.#accepted = held;\n    this.#failure = null;",
+    replace: "this.#accepted = held;",
+    project: "core",
+    describes: "a failed policy read remembered after a read is accepted",
+  },
+  {
+    file: `${core}/internal/feeds/FeedRecord.ts`,
+    find: "this.#accepted = null;\n    this.#failure = null;",
+    replace: "this.#accepted = null;",
+    project: "core",
+    describes: "a failed policy read remembered across a scope replacement",
+  },
+  {
+    file: `${core}/internal/policy/PolicyRecord.ts`,
+    find: 'reason: "read-failed",\n      evaluation: null,',
+    replace: 'reason: "not-checked",\n      evaluation: null,',
+    project: "core",
+    describes: "a policy whose first read failed reported as not checked",
+  },
+  {
+    file: `${core}/internal/policy/PolicyRecord.ts`,
+    find: "if (readFailure !== null) {",
+    replace: "if (false) {",
+    project: "core",
+    describes:
+      "a policy that lapsed after a failed read reported as only expired",
+  },
+  {
+    file: `${core}/internal/selection/selectTarget.ts`,
+    find: "running.identity.reason,\n    );",
+    replace: "null,\n    );",
+    project: "core",
+    describes:
+      "an unknown running identity left without the reason its reader gave",
+  },
+  {
+    file: `${core}/internal/selection/selectTarget.ts`,
+    find: "describeIdentityMismatch(running.identity, release.identity),",
+    replace: "null,",
+    project: "core",
+    describes: "identities that cannot be compared left without what differs",
+  },
+  {
+    file: `${core}/internal/selection/describeIdentityMismatch.ts`,
+    find: "if (running.authority !== offered.authority) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "an authority that differs left out of what is said to differ",
+  },
+  {
+    file: `${core}/internal/selection/describeIdentityMismatch.ts`,
+    find: "if (running.domain !== offered.domain) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "a domain that differs left out of what is said to differ",
+  },
+  {
+    file: `${core}/internal/routes/RouteRecord.ts`,
+    find: "detail: selection.detail,\n        candidate: selection.candidate,\n      });\n\n      return;\n    }\n\n    assertUnreachable(selection);",
+    replace:
+      "detail: null,\n        candidate: selection.candidate,\n      });\n\n      return;\n    }\n\n    assertUnreachable(selection);",
+    project: "core",
+    describes: "an inconclusive observation that drops its detail",
+  },
+  {
+    file: `${devtools}/components/Routes/ObservationSection.tsx`,
+    find: '              <Field label="Reason">{observation.reason}</Field>\n              <Field label="Detail">\n                {formatOptionalText(observation.detail)}\n              </Field>\n              <Field label="Candidate">\n                {formatRelease(observation.candidate)}\n              </Field>\n            </Fields>\n            <EvidenceFields evidence={observation.evidence} />\n          </>\n        );\n      }\n\n      return assertUnreachable',
+    replace:
+      '              <Field label="Reason">{observation.reason}</Field>\n              <Field label="Candidate">\n                {formatRelease(observation.candidate)}\n              </Field>\n            </Fields>\n            <EvidenceFields evidence={observation.evidence} />\n          </>\n        );\n      }\n\n      return assertUnreachable',
+    project: "devtools",
+    describes: "an inconclusive observation shown without its detail",
+  },
+  {
+    file: `${core}/internal/options/resolveJournalOptions.ts`,
+    find: 'mode: options.mode ?? "best-effort",',
+    replace: 'mode: options.mode ?? "required",',
+    project: "core",
+    describes: "a journal that names no mode made required",
+  },
+  {
+    file: `${core}/internal/options/resolveJournalOptions.ts`,
+    find: 'if ("getItem" in storage) {',
+    replace: "if (false) {",
+    project: "core",
+    describes:
+      "a key-value store handed to the journal used as a journal storage",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "this.#judgedHere.add(transition.intent);",
+    replace: "",
+    project: "core",
+    describes: "an intent judged by this boot not remembered as judged here",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "judgedHere: this.#judgedHere.has(latest.intent),",
+    replace: "judgedHere: true,",
+    project: "core",
+    describes: "an intent of another boot said to be judged by this one",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "judgedHere: this.#judgedHere.has(latest.intent),",
+    replace: "judgedHere: false,",
+    project: "core",
+    describes: "an intent judged by this boot said to be judged by another",
+  },
+  {
+    file: `${devtools}/components/Overview/TransitionsSection.tsx`,
+    find: '{latest().judgedHere ? ", judged by this boot" : ""}',
+    replace: '{""}',
+    project: "devtools",
+    describes: "an outcome shown without saying this boot judged it",
+  },
+  {
+    file: `${core}/internal/commands/resolveCommand.ts`,
+    find: "return given.ref;\n  }\n\n  return given;\n};\n\nconst readPreparedReference",
+    replace:
+      "return given;\n  }\n\n  return given;\n};\n\nconst readPreparedReference",
+    project: "core",
+    describes:
+      "a command handed the offer itself that does not read the reference inside it",
+  },
+  {
+    file: `${core}/internal/commands/resolveCommand.ts`,
+    find: "return given.ref;\n  }\n\n  return given;\n};\n\nconst findOffer",
+    replace: "return given;\n  }\n\n  return given;\n};\n\nconst findOffer",
+    project: "core",
+    describes:
+      "a command handed the prepared target itself that does not read the reference inside it",
+  },
+  {
+    file: `${devtools}/utils/copyEvent.ts`,
+    find: "cause: describeCause(event.cause),",
+    replace: "cause: null,",
+    project: "devtools",
+    describes: "an event copy that keeps no cause for the panel",
+  },
+  {
+    file: `${devtools}/formatting/formatEventText.ts`,
+    find: "return `${fields}\\n\\ncause\\n${event.cause}`;",
+    replace: "return fields;",
+    project: "devtools",
+    describes: "an expanded row that does not show what a failure threw",
+  },
+  {
+    file: `${devtools}/utils/inspectCause.ts`,
+    find: 'description["message"] = readData(error, "message");',
+    replace: "",
+    project: "devtools",
+    describes: "a thrown error shown without its message",
+  },
+  {
+    file: `${devtools}/utils/inspectCause.ts`,
+    find: "description[key] = readData(error, key);",
+    replace: "",
+    project: "devtools",
+    describes: "a thrown error shown without its own fields",
+  },
+  {
+    file: `${devtools}/utils/inspectCause.ts`,
+    find: 'description["cause"] = describe(cause, depth + 1);',
+    replace: "",
+    project: "devtools",
+    describes: "a thrown error shown without its cause",
+  },
+  {
+    file: `${devtools}/utils/inspectCause.ts`,
+    find: "if (!(value instanceof Error) || depth >= CHAIN) {",
+    replace: "if (!(value instanceof Error)) {",
+    project: "devtools",
+    describes: "a chain of causes shown without an end",
+  },
+  {
     file: `${core}/internal/commands/CommandCoordinator.ts`,
     find: "if (this.#options.disruptions.getRevision() !== lease.revision) {",
     replace: "if (false) {",
@@ -628,8 +943,9 @@ const MUTANTS = [
   },
   {
     file: `${core}/internal/commands/CommandCoordinator.ts`,
-    find: '      this.#release(operation);\n\n      return {\n        status: "failed",',
-    replace: '      return {\n        status: "failed",',
+    find: '      this.#release(operation);\n\n      return this.#fail(cause, {\n        code: "COMMAND_FAILED",\n        message: "A command could not be carried out.",',
+    replace:
+      '      return this.#fail(cause, {\n        code: "COMMAND_FAILED",\n        message: "A command could not be carried out.",',
     project: "core",
     describes: "a call that fails leaving its route and reservations held",
   },

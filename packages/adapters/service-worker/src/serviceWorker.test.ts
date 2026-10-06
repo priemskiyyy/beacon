@@ -425,7 +425,7 @@ test("a change after the session stopped is not reported", async () => {
   expect(worker.state.get()).toBe(before);
 });
 
-test("without a container or a registration, as in a server render, there is nothing to update and no listener", async () => {
+test("without a container or a registration, as in a server render, the environment cannot say, and nothing is listened to", async () => {
   const beacon = new Beacon({
     scope: SCOPE,
     running: { boot: { id: "boot-1" } },
@@ -437,12 +437,36 @@ test("without a container or a registration, as in a server render, there is not
   await settle();
 
   expect(beacon.route("worker").native.get()?.container).toBeNull();
+  expect(beacon.route("worker").state.get().observation).toMatchObject({
+    status: "unknown",
+    reason: "unsupported-environment",
+  });
   await expect(beacon.route("worker").check()).resolves.toMatchObject({
     status: "succeeded",
   });
+  expect(beacon.route("worker").state.get().observation).toEqual({
+    status: "unknown",
+    reason: "unsupported-environment",
+  });
+  expect(beacon.route("worker").state.get().prepared).toEqual({
+    status: "unknown",
+  });
+});
+
+test("a registration the application holds is read even where the page has no container", async () => {
+  const beacon = new Beacon({
+    scope: SCOPE,
+    running: { boot: { id: "boot-1" } },
+    routes: { worker: serviceWorker({ registration: updateReady() }) },
+    clock: createTestClock({ now: 1_000 }),
+  });
+
+  beacon.start();
+  await settle();
+
+  expect(beacon.route("worker").native.get()?.container).toBeNull();
   expect(beacon.route("worker").state.get().observation).toMatchObject({
-    status: "none",
-    detail: "no-registration",
+    status: "available",
   });
 });
 

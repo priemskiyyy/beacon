@@ -22,6 +22,10 @@ const readFlows = (info: { flexible: boolean; immediate: boolean }) => {
   return flows;
 };
 
+// A version code is a positive whole number. Anything else is a bridge that garbled its answer, and naming a build "NaN" or "undefined" would be a made-up identity.
+const isVersionCode = (value: number) =>
+  Number.isSafeInteger(value) && value > 0;
+
 // A query that finds the download done says the update is prepared, and one that does not says nothing: Play cannot say that nothing is prepared.
 const readPrepared = (
   release: PlayPrepared["release"],
@@ -31,15 +35,17 @@ const readPrepared = (
     return null;
   }
 
-  return { status: "ready", value: { release, flow: "flexible" } };
+  return { status: "ready", value: { release } };
 };
 
 /**
  * What a query of Play means, in its four categories. A version, its priority
  * and its staleness are read only where Play defines them; anything Play does
  * not say becomes unknown, never a synthetic version, and so does a category
- * a native module invents. Not available is no offer here, not proof that no
- * release exists.
+ * a native module invents or a version code that is no positive integer. The
+ * unknown observation carries no reason of its own: a driver's `unknown` can
+ * only say that the provider cannot run here. Not available is no offer here,
+ * not proof that no release exists.
  */
 export const readUpdateInfo = (
   info: PlayUpdateInfo,
@@ -75,7 +81,7 @@ export const readUpdateInfo = (
     };
   }
 
-  if (info.availability === "available") {
+  if (info.availability === "available" && isVersionCode(info.versionCode)) {
     // A published build is named by the version code Play orders builds with, under the application that publishes it.
     const release: PlayOffer["release"] = {
       identity: {

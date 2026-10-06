@@ -1,10 +1,9 @@
-import type { ManifestLike } from "src/types/ManifestLike";
-
 /**
  * The part of `UpdateCheckResult` the adapter reads, in all three of its
  * variants: an available update, a rollback to the embedded update, and a
- * valid answer with neither, whose `reason` is the SDK's own code. The real
- * result satisfies it.
+ * valid answer with neither, whose `reason` is the SDK's own code. Of an
+ * update's manifest it reads the id its server assigns. The real result
+ * satisfies it.
  *
  * @example
  * ```ts
@@ -15,7 +14,7 @@ export type CheckResultLike =
   | {
       isAvailable: true;
       isRollBackToEmbedded: false;
-      manifest: ManifestLike;
+      manifest: { id: string };
       reason: undefined;
     }
   | {

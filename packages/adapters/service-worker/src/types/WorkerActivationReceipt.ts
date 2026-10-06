@@ -5,10 +5,10 @@
  *
  * @example
  * ```ts
- * const receipt: ActivationReceipt = { kind: "activation-requested", worker: { id: 1 } };
+ * const receipt: WorkerActivationReceipt = { kind: "activation-requested", worker: { id: 1 } };
  * ```
  */
-export type ActivationReceipt = {
+export type WorkerActivationReceipt = {
   kind: "activation-requested";
   worker: { id: number };
 };

@@ -27,3 +27,8 @@ testReleaseDriver({
     };
   },
 });
+
+testReleaseDriver({
+  name: "service-worker without a container",
+  create: () => ({ route: serviceWorker() }),
+});

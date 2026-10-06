@@ -1,9 +1,9 @@
 import { createReleaseDriver } from "@priemskiyyy/beacon";
 import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon";
 
-import type { ActivationReceipt } from "src/types/ActivationReceipt";
 import type { ServiceWorkerNative } from "src/types/ServiceWorkerNative";
 import type { ServiceWorkerOptions } from "src/types/ServiceWorkerOptions";
+import type { WorkerActivationReceipt } from "src/types/WorkerActivationReceipt";
 import type { WorkerBody } from "src/types/WorkerBody";
 import type { WorkerReloadReceipt } from "src/types/WorkerReloadReceipt";
 import { SKIP_WAITING_MESSAGE } from "src/utils/constants/messages";
@@ -27,7 +27,7 @@ const createCommands = ({
         native,
         offer,
         signal,
-      }): Promise<ProviderResult<ActivationReceipt>> => {
+      }): Promise<ProviderResult<WorkerActivationReceipt>> => {
         const registration = await native.registration();
 
         // The wait ended while the registration was found, by the caller's abort or the end of the session. A takeover reaches every tab, so it is not started then, and cancelled releases the route that the ended wait left unresolved.
@@ -109,6 +109,7 @@ export const serviceWorker = (options: ServiceWorkerOptions = {}) =>
       const session = new WorkerSession({
         container,
         resolve: registration,
+        supported: container !== null || options.registration !== undefined,
         emit,
       });
 

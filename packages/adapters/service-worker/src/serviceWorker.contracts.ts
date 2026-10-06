@@ -9,11 +9,11 @@ import type {
 import { expectTypeOf } from "vitest";
 
 import { serviceWorker } from "src/serviceWorker";
-import type { ActivationReceipt } from "src/types/ActivationReceipt";
 import type { ContainerLike } from "src/types/ContainerLike";
 import type { RegistrationLike } from "src/types/RegistrationLike";
 import type { ServiceWorkerNative } from "src/types/ServiceWorkerNative";
 import type { ServiceWorkerWindow } from "src/types/ServiceWorkerWindow";
+import type { WorkerActivationReceipt } from "src/types/WorkerActivationReceipt";
 import type { WorkerLike } from "src/types/WorkerLike";
 import type { WorkerReloadReceipt } from "src/types/WorkerReloadReceipt";
 
@@ -56,7 +56,7 @@ export const receipt = async () => {
   const settled = await handle.activate({ offer });
 
   if (settled.status === "accepted") {
-    expectTypeOf(settled.receipt).toEqualTypeOf<ActivationReceipt>();
+    expectTypeOf(settled.receipt).toEqualTypeOf<WorkerActivationReceipt>();
 
     // @ts-expect-error -- an accepted activation request proves no activation.
     return settled.receipt.activated;

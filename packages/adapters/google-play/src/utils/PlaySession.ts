@@ -198,7 +198,6 @@ export class PlaySession {
         status: "ready",
         value: {
           release: this.#waiting?.release ?? { identity: DOWNLOADED_IDENTITY },
-          flow: "flexible",
         },
       });
       this.#settle({

@@ -103,7 +103,7 @@ test("PLAY-08 a flexible update is prepared when Play says it downloaded, and pr
   });
   expect(context.binary.state.get().prepared).toMatchObject({
     status: "ready",
-    value: { flow: "flexible", release: { identity: { value: "412" } } },
+    value: { release: { identity: { value: "412" } } },
   });
   expect(context.binary.state.get().operation).toEqual({ state: "idle" });
 });
@@ -266,7 +266,7 @@ test("PLAY-13 an update already downloaded when the app starts is prepared witho
 
   expect(context.binary.state.get().prepared).toMatchObject({
     status: "ready",
-    value: { flow: "flexible", release: { identity: { value: "412" } } },
+    value: { release: { identity: { value: "412" } } },
   });
 });
 
@@ -763,7 +763,6 @@ test("PLAY-13 a download Play reports before any version was named is prepared u
   expect(context.binary.state.get().prepared).toMatchObject({
     status: "ready",
     value: {
-      flow: "flexible",
       release: {
         identity: { status: "unknown", reason: "play-update-downloaded" },
       },
@@ -863,4 +862,32 @@ test("an install event a bridge still delivers after the session ended changes n
 
   expect(context.binary.state.get()).toBe(before);
   expect(context.beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
+});
+
+test("PLAY-02 a version code the bridge garbles is an environment that cannot say, and prepares nothing", async () => {
+  const context = create(
+    availableInfo(Number.NaN, { installStatus: "downloaded" }),
+  );
+
+  context.beacon.start();
+  await context.binary.check();
+
+  expect(context.binary.state.get().observation).toMatchObject({
+    status: "unknown",
+    reason: "unsupported-environment",
+  });
+  expect(context.binary.state.get().prepared).toEqual({ status: "unknown" });
+});
+
+test("PLAY-02 an offer is stale when Play garbles its version code, and no flow starts", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setInfo(availableInfo(-1));
+
+  await expect(context.binary.download({ offer: offer.ref })).resolves.toEqual({
+    status: "stale",
+    reason: "provider-changed",
+  });
+  expect(context.calls.flexible).toBe(0);
 });

@@ -1,4 +1,4 @@
-import type { DriverEmitter } from "@priemskiyyy/beacon";
+import type { DriverEmitter, ObservationDraft } from "@priemskiyyy/beacon";
 
 import type { ContainerLike } from "src/types/ContainerLike";
 import type { RegistrationLike } from "src/types/RegistrationLike";
@@ -10,7 +10,15 @@ import { readWorkers } from "src/utils/readWorkers";
 type WorkerSessionOptions = {
   container: ContainerLike | null;
   resolve: () => Promise<RegistrationLike | undefined>;
+  /** Whether there is anything to read: a container, or a registration the application holds. */
+  supported: boolean;
   emit: DriverEmitter<WorkerBody, WorkerBody>;
+};
+
+// A page with no service workers, as in a server render or an insecure context, cannot say: that is not a registration that is missing.
+const UNSUPPORTED: ObservationDraft<WorkerBody> = {
+  status: "unknown",
+  reason: "unsupported-environment",
 };
 
 /**
@@ -22,6 +30,7 @@ type WorkerSessionOptions = {
  */
 export class WorkerSession {
   #resolve: WorkerSessionOptions["resolve"];
+  #supported: boolean;
   #emit: DriverEmitter<WorkerBody, WorkerBody>;
   #registration: RegistrationLike | undefined = undefined;
   #baseline: WorkerLike | null = null;
@@ -29,8 +38,9 @@ export class WorkerSession {
   #stops: Array<() => void> = [];
   #disposed = false;
 
-  constructor({ container, resolve, emit }: WorkerSessionOptions) {
+  constructor({ container, resolve, supported, emit }: WorkerSessionOptions) {
     this.#resolve = resolve;
+    this.#supported = supported;
     this.#emit = emit;
 
     container?.addEventListener("controllerchange", this.#refresh);
@@ -41,12 +51,22 @@ export class WorkerSession {
 
   /** Reads the registration and the workers again, as after a restart or a return to the page, and reports them. */
   reconcile = async () => {
+    if (!this.#supported) {
+      this.#emit.observation(UNSUPPORTED);
+
+      return;
+    }
+
     this.#attach(await this.#resolve());
     this.#refresh();
   };
 
   /** Asks the browser for a newer worker script, then answers what the workers say. */
   check = async () => {
+    if (!this.#supported) {
+      return UNSUPPORTED;
+    }
+
     const registration = await this.#resolve();
 
     // Watched before it is asked: the worker the update finds is heard as it installs, and a registration whose update fails is still known.

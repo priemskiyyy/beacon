@@ -8,5 +8,4 @@ export type { ExpoNative } from "src/types/ExpoNative";
 export type { ExpoOptions } from "src/types/ExpoOptions";
 export type { ExpoReloadReceipt } from "src/types/ExpoReloadReceipt";
 export type { FetchResultLike } from "src/types/FetchResultLike";
-export type { ManifestLike } from "src/types/ManifestLike";
 export type { UpdatesLike } from "src/types/UpdatesLike";

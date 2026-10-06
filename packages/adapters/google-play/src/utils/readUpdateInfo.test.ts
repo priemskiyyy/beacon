@@ -66,7 +66,7 @@ test("PLAY-13 an available update Play reports as downloaded is prepared under t
 
   expect(prepared).toEqual({
     status: "ready",
-    value: { release: observation.offer.release, flow: "flexible" },
+    value: { release: observation.offer.release },
   });
 });
 
@@ -107,4 +107,27 @@ test("PLAY-02 an answer outside Play's four categories is an environment that ca
     observation: { status: "unknown", reason: "unsupported-environment" },
     prepared: null,
   });
+});
+
+test("PLAY-02 an available answer whose version code is no positive integer is an environment that cannot say, never a known identity", () => {
+  const rest =
+    '"flexible":true,"immediate":true,"priority":2,"stalenessDays":5,"installStatus":"downloaded"';
+
+  // What a native module can hand over, though its type says otherwise.
+  const strays: PlayUpdateInfo[] = [
+    `{"availability":"available",${rest}}`,
+    `{"availability":"available","versionCode":null,${rest}}`,
+    `{"availability":"available","versionCode":"412",${rest}}`,
+  ].map((text) => JSON.parse(text));
+
+  const numbers = [Number.NaN, Infinity, -412, 0, 412.5].map((code) =>
+    availableInfo(code, { installStatus: "downloaded" }),
+  );
+
+  for (const info of [...strays, ...numbers]) {
+    expect(readUpdateInfo(info, APPLICATION)).toEqual({
+      observation: { status: "unknown", reason: "unsupported-environment" },
+      prepared: null,
+    });
+  }
 });

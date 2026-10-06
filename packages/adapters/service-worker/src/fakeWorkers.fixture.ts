@@ -4,13 +4,14 @@ import type { WorkerLike } from "src/types/WorkerLike";
 import type { WorkerMessage } from "src/types/WorkerMessage";
 
 export type FakeWorker = WorkerLike & {
+  state: ServiceWorkerState;
   messages: WorkerMessage[];
   listeners: () => number;
-  transition: (state: WorkerLike["state"]) => void;
+  transition: (state: ServiceWorkerState) => void;
 };
 
 export const fakeWorker = (
-  state: WorkerLike["state"] = "installed",
+  state: ServiceWorkerState = "installed",
 ): FakeWorker => {
   const listeners = new Set<() => void>();
 

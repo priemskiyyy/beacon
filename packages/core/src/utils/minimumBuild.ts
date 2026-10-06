@@ -45,7 +45,8 @@ export const minimumBuild = <TDocument, TRoute extends string = never>({
 }: MinimumBuildOptions<TDocument, TRoute>): SupportPolicy<
   TDocument,
   string,
-  TRoute
+  // Only the remediation names a route: written inline in the options of a Beacon, the Beacon's own routes are no evidence of which one this policy sends a build to.
+  NoInfer<TRoute>
 > => ({
   // The same source, so the policy shares its one read with the routes that select from it.
   source: {

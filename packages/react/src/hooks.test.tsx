@@ -648,48 +648,51 @@ test("useDisruption asks the latest participant, without registering again", asy
   expect(asked.count).toBe(2);
 });
 
-test("a participant in a subtree that Activity hides is unregistered while it is hidden, and registered again when it is shown", async () => {
-  const { beacon } = createWebBeacon();
+test.skipIf(Activity === undefined)(
+  "a participant in a subtree that Activity hides is unregistered while it is hidden, and registered again when it is shown",
+  async () => {
+    const { beacon } = createWebBeacon();
 
-  const Editor = () => {
-    useDisruption(
-      draftEditor({
-        reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
-      }),
+    const Editor = () => {
+      useDisruption(
+        draftEditor({
+          reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+        }),
+      );
+
+      return null;
+    };
+
+    const view = (mode: "visible" | "hidden") => (
+      <BeaconProvider beacon={beacon} start={false}>
+        <Activity mode={mode}>
+          <Editor />
+        </Activity>
+      </BeaconProvider>
     );
 
-    return null;
-  };
+    const { rerender } = render(view("visible"));
 
-  const view = (mode: "visible" | "hidden") => (
-    <BeaconProvider beacon={beacon} start={false}>
-      <Activity mode={mode}>
-        <Editor />
-      </Activity>
-    </BeaconProvider>
-  );
+    beacon.start();
 
-  const { rerender } = render(view("visible"));
+    await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+      status: "blocked",
+    });
 
-  beacon.start();
+    rerender(view("hidden"));
 
-  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
-    status: "blocked",
-  });
+    await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+      status: "accepted",
+    });
 
-  rerender(view("hidden"));
+    beacon.route("web").acknowledge();
+    rerender(view("visible"));
 
-  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
-    status: "accepted",
-  });
-
-  beacon.route("web").acknowledge();
-  rerender(view("visible"));
-
-  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
-    status: "blocked",
-  });
-});
+    await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+      status: "blocked",
+    });
+  },
+);
 
 test("useDisruption asks the latest name and impacts too", async () => {
   const { beacon } = createWebBeacon();

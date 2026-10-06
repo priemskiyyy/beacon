@@ -51,6 +51,17 @@ export const supported = new Beacon({
   }),
 });
 
+// Written inline and naming no route, it still fits: the Beacon's own routes are no evidence of one.
+export const nameless = new Beacon({
+  scope,
+  running: { boot: { id: "boot-1" } },
+  routes: { web },
+  policy: supportPolicy({
+    source: manifest.select((document) => document.support),
+    evaluate: () => ({ status: "supported", reasons: [], remediation: [] }),
+  }),
+});
+
 export const unconfigured = new Beacon({
   scope,
   running: { boot: { id: "boot-1" } },

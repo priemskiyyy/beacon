@@ -63,6 +63,15 @@ expectTypeOf(bare).toEqualTypeOf<SupportPolicy<Config, string, never>>();
 
 export const lonely = new Beacon({ scope, routes: { store }, policy: bare });
 
+// Written inline, with no route to name, it still fits: what the Beacon's own routes are is not a guess for it to make.
+export const inline = new Beacon({
+  scope,
+  routes: { store },
+  policy: minimumBuild({
+    source: config.select((document) => document.minimumBuild),
+  }),
+});
+
 export const ghost = new Beacon({
   scope,
   routes: { store },

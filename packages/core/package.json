@@ -59,7 +59,8 @@
       "types": "./dist/triggers-browser.d.ts",
       "import": "./dist/triggers-browser.js",
       "default": "./dist/triggers-browser.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsdown",
@@ -82,7 +83,7 @@
     "beacon"
   ],
   "peerDependencies": {
-    "vitest": ">=4 <5"
+    "vitest": ">=4"
   },
   "peerDependenciesMeta": {
     "vitest": {

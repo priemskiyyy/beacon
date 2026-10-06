@@ -14,6 +14,11 @@ import type { SupportPolicy } from "src/types/SupportPolicy";
  * });
  * ```
  */
-export const supportPolicy = <TDocument, TPolicy, TRoute extends string>(
+export const supportPolicy = <
+  TDocument,
+  TPolicy,
+  TRoute extends string = never,
+>(
   policy: SupportPolicy<TDocument, TPolicy, TRoute>,
-): SupportPolicy<TDocument, TPolicy, TRoute> => policy;
+  // Only a remediation names a route: written inline in the options of a Beacon, the Beacon's own routes are no evidence of which one the policy sends a user to.
+): SupportPolicy<TDocument, TPolicy, NoInfer<TRoute>> => policy;

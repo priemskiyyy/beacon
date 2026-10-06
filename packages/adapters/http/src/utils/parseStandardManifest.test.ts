@@ -560,12 +560,35 @@ describe("the fingerprint", () => {
     expect(other.digest).not.toBe(parse(VALID).digest);
   });
 
-  test("changes with a support fact", () => {
+  test("stays the same when only the support facts change, since they carry a revision of their own", () => {
     const other = parse(
-      withSupport({ ...buildSupport(), reasonCode: "other" }),
+      withSupport({
+        ...buildSupport(),
+        revision: "policy-44",
+        deniedReleaseIds: ["web-build-b", "web-build-c"],
+      }),
     );
 
-    expect(other.digest).not.toBe(parse(VALID).digest);
+    expect(other.digest).toBe(parse(VALID).digest);
+    expect(other.document.support?.revision).toBe("policy-44");
+  });
+
+  test("stays the same when metadata is written in another order", () => {
+    const first = parse(
+      withWebRelease({
+        ...buildRelease("a"),
+        metadata: { alpha: "a", beta: "b" },
+      }),
+    );
+
+    const second = parse(
+      withWebRelease({
+        ...buildRelease("a"),
+        metadata: { beta: "b", alpha: "a" },
+      }),
+    );
+
+    expect(second.digest).toBe(first.digest);
   });
 });
 

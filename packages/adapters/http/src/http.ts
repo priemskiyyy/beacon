@@ -27,7 +27,6 @@ import { toSourceRead } from "src/utils/toSourceRead";
  */
 export const http = <TDocument>({
   name = "http",
-  partition,
   request,
 }: HttpAdapterOptions<TDocument>): ReleaseSource<TDocument> => {
   let memory: HttpMemory<TDocument> | null = null;
@@ -35,10 +34,7 @@ export const http = <TDocument>({
   return createReleaseSource<TDocument>({
     name,
     read: async ({ scope, signal, attempt }) => {
-      const owner = partition?.() ?? null;
-
-      const held =
-        memory?.scope === scope && memory.partition === owner ? memory : null;
+      const held = memory?.scope === scope ? memory : null;
 
       const answer = await request({
         scope,
@@ -52,7 +48,6 @@ export const http = <TDocument>({
 
         memory = {
           scope,
-          partition: owner,
           validator: answer.validator ?? null,
           read,
         };
@@ -69,7 +64,7 @@ export const http = <TDocument>({
 
       const read = renewRead(held.read, answer.expiresAt);
 
-      memory = { scope, partition: owner, validator: held.validator, read };
+      memory = { scope, validator: held.validator, read };
 
       return read;
     },

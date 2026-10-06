@@ -20,11 +20,18 @@ export const readMetadata = (
     );
   }
 
+  // Sorted, so the same metadata written in another order is the same document.
+  const sorted = entries.sort(
+    ([left], [right]) => Number(left > right) - Number(left < right),
+  );
+
   return Object.fromEntries(
-    entries.map(([key, entry]) => {
+    sorted.map(([key, entry]) => {
       if (UNSAFE_KEYS.includes(key)) {
         throw invalidManifest(`${field} must not have the key ${key}.`);
       }
+
+      readText(key, `A key of ${field}`);
 
       return [key, readText(entry, `${field}.${key}`)];
     }),

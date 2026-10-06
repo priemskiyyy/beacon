@@ -39,3 +39,15 @@ test("a part that contains a separator cannot reach into another scope's key", (
     }),
   );
 });
+
+test("an account partition is part of the key, and no partition is not an empty one", () => {
+  expect(createJournalKey({ ...scope, partition: "user-42" })).toBe(
+    "beacon/v1/com.example.notes/production/web/public-web/user-42",
+  );
+  expect(createJournalKey({ ...scope, partition: "" })).not.toBe(
+    createJournalKey(scope),
+  );
+  expect(createJournalKey({ ...scope, partition: "user-1" })).not.toBe(
+    createJournalKey({ ...scope, partition: "user-2" }),
+  );
+});

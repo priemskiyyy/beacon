@@ -73,15 +73,18 @@ export const parseStandardManifest = <TDeclarations extends RouteDeclarations>({
 
   const expiresAt = readValidity({ record, now, limits: bounds });
 
+  const decisions = readRoutes(record, routes);
+
   const document = {
-    routes: readRoutes(record, routes),
+    routes: decisions,
     support: readSupport(record, listRouteNames(routes)),
   };
 
   return {
     document,
     revision,
-    digest: fingerprint(JSON.stringify(document)),
+    // The support facts carry a revision of their own, so a policy update under the same decision is a renewal, not a conflict.
+    digest: fingerprint(JSON.stringify(decisions)),
     expiresAt,
   };
 };

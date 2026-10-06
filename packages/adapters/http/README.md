@@ -58,16 +58,13 @@ A `not-modified` without an `expiresAt` keeps the old expiry, so an answer is ne
 
 ## Partitions
 
-When the answers differ by account, name the account with `partition`:
+When the answers differ by account, name the account in the scope, as opaque text:
 
 ```ts
-const manifest = http({
-  request,
-  partition: () => session.userId,
-});
+beacon.replaceScope({ ...scope, partition: session.userId });
 ```
 
-The source keeps and renews an answer only for the partition it was given, so a validator or a document never crosses from one account to another. The partition is opaque text held in memory to compare with the next read: it is never stored and never sent, so it is not a place for a token.
+The source keeps and renews an answer only for the scope it was read for, so a validator or a document never crosses from one account to another, and the core forgets what the last account taught. The partition is never sent to your client except as part of the scope: it is not a place for a token.
 
 ## The standard manifest
 
@@ -75,11 +72,12 @@ A small, optional schema for a manifest that one application, environment, platf
 
 ```ts
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
+import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
 
 const routes = {
   web: { kind: "target" },
   binary: { kind: "candidate", order: "text" },
-};
+} satisfies RouteDeclarations;
 
 const manifest = http({
   name: "release-manifest",

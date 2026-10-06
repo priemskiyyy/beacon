@@ -13,6 +13,7 @@
 - Errors are `BeaconError`s with a `code`. Only misconfiguration and use after disposal throw.
 - Support: `supportPolicy({ source, evaluate })` evaluates the application's own policy against what is running, and `beacon.support` publishes the status, the last evaluation, the routes that would satisfy it and whether each is usable. A policy that lapses is unknown with its last decision kept, a failing evaluation keeps the last valid one in force beside the error, and a route the Beacon does not have cannot be named.
 - Transition journal: off by default, or `best-effort` or `required` over an injected `JournalStorage`. An intent is written before a command that replaces the realm and read back by the next boot as `target-running`, `target-not-running`, `different-target`, `inconclusive` or `same-boot`, with the attempts that left a target unreached and whether the budget is spent. A required write that fails stops the command, a corrupt or future record is ignored, the history is bounded, and `beacon.reportReady()` and `beacon.clearJournal()` are the application's.
+- `ReleaseScope` can name an account with `partition`, which every source read and journal record is kept apart by.
 - `beacon.replaceScope(next)` puts another scope in force: results of the old scope are fenced, what it taught is forgotten, running facts stay, and a route with an operation running or unresolved blocks it.
 - A driver can name the native manager it holds with `exclusive`, so a second session cannot open it. `testReleaseSource` takes the scope a source speaks for.
 - Not built yet: the scheduler. See `docs/decisions.md`.
@@ -20,7 +21,7 @@
 ## @priemskiyyy/beacon-http 0.1.0 - Unreleased
 
 - First release. `http({ request })` turns the application's client call into a release source. The client validates the response and resolves `changed` with the document and its evidence, or `not-modified`, which renews the document held for the scope with the new expiry when the backend gave one.
-- `readStandardManifest` and `parseStandardManifest` are the optional standard manifest: a response or its text becomes a typed document for the routes the application declares, or a `BeaconError` that names the rule it broke. `partition` keeps an account's answers apart.
+- `readStandardManifest` and `parseStandardManifest` are the optional standard manifest: a response or its text becomes a typed document for the routes the application declares, or a `BeaconError` that names the rule it broke. An account's answers stay apart through `partition` in the scope.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-browser 0.1.0 - Unreleased

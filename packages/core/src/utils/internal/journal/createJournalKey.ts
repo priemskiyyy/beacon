@@ -4,12 +4,13 @@ import {
   JOURNAL_VERSION,
 } from "src/utils/constants/journal";
 
-/** The key of one scope's record, partitioned by application, environment, platform and distribution, so no scope reads another's. */
+/** The key of one scope's record, partitioned by application, environment, platform, distribution and the partition when there is one, so no scope reads another's. */
 export const createJournalKey = ({
   application,
   environment,
   platform,
   distribution,
+  partition,
 }: ReleaseScope) =>
   [
     JOURNAL_NAMESPACE,
@@ -18,6 +19,7 @@ export const createJournalKey = ({
     environment,
     platform,
     distribution,
+    ...(partition === undefined ? [] : [partition]),
   ]
     .map(encodeURIComponent)
     .join("/");

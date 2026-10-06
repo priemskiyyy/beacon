@@ -218,20 +218,18 @@ test("selecting a view reads nothing and belongs to the source", () => {
   expect(backend.requests).toEqual([]);
 });
 
+const ALICE = { ...SCOPE, partition: "alice" };
+const BOB = { ...SCOPE, partition: "bob" };
+
+const readFor = (scope: typeof SCOPE) => ({ ...buildRead(), scope });
+
 test("HTTP-02 the same scope for another partition is neither sent the validator nor renewed by it", async () => {
   const backend = fakeBackend();
-  let account = "alice";
+  const source = http({ request: backend.request });
 
-  const source = http({
-    partition: () => account,
-    request: backend.request,
-  });
-
-  await source.read(buildRead());
-  await source.read(buildRead());
-
-  account = "bob";
-  await source.read(buildRead());
+  await source.read(readFor(ALICE));
+  await source.read(readFor(ALICE));
+  await source.read(readFor(BOB));
 
   expect(backend.requests.map((request) => request.validator)).toEqual([
     null,
@@ -242,11 +240,9 @@ test("HTTP-02 the same scope for another partition is neither sent the validator
 
 test("HTTP-02 a not modified answer for another partition renews nothing of the first", async () => {
   const backend = fakeBackend();
-  let account = "alice";
   let notModified = false;
 
   const source = http({
-    partition: () => account,
     request: (request) => {
       if (notModified) {
         return { status: "not-modified" };
@@ -256,49 +252,26 @@ test("HTTP-02 a not modified answer for another partition renews nothing of the 
     },
   });
 
-  await source.read(buildRead());
+  await source.read(readFor(ALICE));
 
-  account = "bob";
   notModified = true;
 
-  await expect(source.read(buildRead())).rejects.toMatchObject({
+  await expect(source.read(readFor(BOB))).rejects.toMatchObject({
     code: "SOURCE_FAILED",
   });
 });
 
-test("a partition that returns to the first one finds nothing to renew either, since the source keeps one answer", async () => {
-  const backend = fakeBackend();
-  let account = "alice";
-
-  const source = http({
-    partition: () => account,
-    request: backend.request,
-  });
-
-  await source.read(buildRead());
-
-  account = "bob";
-  await source.read(buildRead());
-
-  account = "alice";
-  await source.read(buildRead());
-
-  expect(backend.requests.map((request) => request.validator)).toEqual([
-    null,
-    null,
-    null,
-  ]);
-});
-
-test("without a partition every read speaks for the same one", async () => {
+test("a partition that returns finds nothing to renew either, since the source keeps one answer", async () => {
   const backend = fakeBackend();
   const source = http({ request: backend.request });
 
-  await source.read(buildRead());
-  await source.read(buildRead());
+  await source.read(readFor(ALICE));
+  await source.read(readFor(BOB));
+  await source.read(readFor(ALICE));
 
   expect(backend.requests.map((request) => request.validator)).toEqual([
     null,
-    '"208"',
+    null,
+    null,
   ]);
 });

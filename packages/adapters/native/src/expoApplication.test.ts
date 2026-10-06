@@ -1,4 +1,5 @@
 import { Beacon } from "@priemskiyyy/beacon";
+import type { ReleaseScope } from "@priemskiyyy/beacon";
 import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 
@@ -9,15 +10,16 @@ import {
   SCOPE,
 } from "src/fakeApplication.fixture";
 
+const IOS_SCOPE: ReleaseScope = { ...SCOPE, platform: "ios" };
+
 const read = async (
   facts: Parameters<typeof fakeApplication>[0],
   options: Partial<Parameters<typeof expoApplication>[0]> = {},
+  scope: ReleaseScope = SCOPE,
 ) => {
   const { application } = fakeApplication(facts);
 
-  return expoApplication({ application, platform: "android", ...options })({
-    scope: SCOPE,
-  });
+  return expoApplication({ application, ...options })({ scope });
 };
 
 test("an Android build is named by its version code, under its application id, in the words the Play adapter offers in", async () => {
@@ -38,7 +40,7 @@ test("an Android build is named by its version code, under its application id, i
 });
 
 test("an iOS build is named by its build number, and its marketing version is the fact the App Store adapter reads", async () => {
-  await expect(read({}, { platform: "ios" })).resolves.toEqual({
+  await expect(read({}, {}, IOS_SCOPE)).resolves.toEqual({
     identity: {
       status: "known",
       authority: APPLICATION,
@@ -51,6 +53,48 @@ test("an iOS build is named by its build number, and its marketing version is th
       shortVersion: "2.4.0",
       buildNumber: "108",
     },
+  });
+});
+
+test("the platform comes from the scope of the read, and Platform.OS is what a scope says", async () => {
+  await expect(read({}, {}, IOS_SCOPE)).resolves.toMatchObject({
+    identity: { domain: "ios-build" },
+  });
+  await expect(read({}, {}, SCOPE)).resolves.toMatchObject({
+    identity: { domain: "android-version-code" },
+  });
+});
+
+test("a platform given wins over the scope's", async () => {
+  await expect(read({}, { platform: "ios" }, SCOPE)).resolves.toMatchObject({
+    identity: { domain: "ios-build" },
+    raw: { shortVersion: "2.4.0", buildNumber: "108" },
+  });
+});
+
+// A scope of a web application, a desktop shell or anything else than the two stores has no build number of this kind, and the module is not asked.
+test("a scope that is not Android or iOS is unknown with the reason unsupported-platform, and the module is not asked", async () => {
+  for (const platform of ["web", "macos", "windows", ""]) {
+    const { application, reads } = fakeApplication();
+
+    const release = await expoApplication({ application })({
+      scope: { ...SCOPE, platform },
+    });
+
+    expect(release).toEqual({
+      identity: { status: "unknown", reason: "unsupported-platform" },
+      label: null,
+      raw: {},
+    });
+    expect(reads()).toBe(0);
+  }
+});
+
+test("a platform given is read whatever the scope says, so a web scope can still name an iOS binary", async () => {
+  await expect(
+    read({}, { platform: "ios" }, { ...SCOPE, platform: "web" }),
+  ).resolves.toMatchObject({
+    identity: { status: "known", domain: "ios-build" },
   });
 });
 
@@ -83,7 +127,7 @@ test("a value is text with no space around it, so a padded build is the same bui
 
 test("a build number the module did not give is unknown, never a build named null, and the marketing version stays", async () => {
   for (const build of [null, "", "   "]) {
-    const release = await read({ build }, { platform: "ios" });
+    const release = await read({ build }, {}, IOS_SCOPE);
 
     expect(release).toEqual({
       identity: { status: "unknown", reason: "build-not-read" },
@@ -119,32 +163,49 @@ test("a module that gave neither is unknown for its build, the fact the journal 
 });
 
 test("a binary that gave no marketing version has no label, and is still a known build", async () => {
-  const release = await read({ version: null }, { platform: "ios" });
+  const release = await read({ version: null }, {}, IOS_SCOPE);
 
   expect(release.identity.status).toBe("known");
   expect(release.label).toBeNull();
   expect(release.raw).toMatchObject({ shortVersion: null, buildNumber: "108" });
 });
 
-test("without an authority the binary names itself, whichever application it is", async () => {
-  const release = await read({ applicationId: "host.exp.Exponent" });
-
-  expect(release.identity).toMatchObject({
-    status: "known",
-    authority: "host.exp.Exponent",
-  });
-});
-
 test("a binary of another application, such as Expo Go running this code, is unknown, and none of its version numbers is kept", async () => {
   const release = await read(
     { applicationId: "host.exp.Exponent", version: "2.32.0", build: "1017" },
-    { platform: "ios", authority: APPLICATION },
+    {},
+    IOS_SCOPE,
   );
 
   expect(release).toEqual({
     identity: { status: "unknown", reason: "another-application" },
     label: null,
     raw: { applicationId: "host.exp.Exponent" },
+  });
+});
+
+test("the authority is the application of the scope, and a scope of another application makes this binary another application", async () => {
+  await expect(
+    read({}, {}, { ...SCOPE, application: "com.example.other" }),
+  ).resolves.toMatchObject({
+    identity: { status: "unknown", reason: "another-application" },
+  });
+});
+
+test("an authority given is the one a binary is checked against, instead of the scope's application", async () => {
+  const release = await read(
+    { applicationId: "host.exp.Exponent" },
+    { authority: "host.exp.Exponent" },
+  );
+
+  expect(release.identity).toMatchObject({
+    status: "known",
+    authority: "host.exp.Exponent",
+  });
+  await expect(
+    read({}, { authority: "host.exp.Exponent" }),
+  ).resolves.toMatchObject({
+    identity: { status: "unknown", reason: "another-application" },
   });
 });
 
@@ -175,7 +236,7 @@ test("an authority the binary does not report, when the module gave no id at all
 test("creating the reader reads nothing, and the constants are read when the reader runs", async () => {
   const { application, facts, reads } = fakeApplication();
 
-  const reader = expoApplication({ application, platform: "android" });
+  const reader = expoApplication({ application });
 
   expect(reads()).toBe(0);
 
@@ -198,9 +259,9 @@ test("an authority or a domain that is empty or has a space around it is refused
     { domain: "" },
     { domain: "ios-build " },
   ]) {
-    expect(() =>
-      expoApplication({ application, platform: "ios", ...options }),
-    ).toThrowError(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
+    expect(() => expoApplication({ application, ...options })).toThrowError(
+      expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
+    );
   }
 
   expect(reads()).toBe(0);
@@ -214,11 +275,7 @@ test("the running fact of the native subject is known once the session reads it,
       scope: SCOPE,
       running: {
         boot: { id: "boot-1" },
-        native: expoApplication({
-          application,
-          platform: "android",
-          authority: SCOPE.application,
-        }),
+        native: expoApplication({ application }),
       },
       routes: {},
       clock: createTestClock({ now: 1_000 }),
@@ -247,5 +304,30 @@ test("the running fact of the native subject is known once the session reads it,
   expect(expoGo.running.get().native).toMatchObject({
     state: "known",
     release: { identity: { status: "unknown", reason: "another-application" } },
+  });
+});
+
+test("after replaceScope the next read names the binary under the platform of the new scope", async () => {
+  const { application } = fakeApplication();
+
+  const beacon = new Beacon({
+    scope: SCOPE,
+    running: { native: expoApplication({ application }) },
+    routes: {},
+    clock: createTestClock({ now: 1_000 }),
+  });
+
+  beacon.start();
+  await settle();
+
+  expect(beacon.running.get().native).toMatchObject({
+    release: { identity: { domain: "android-version-code" } },
+  });
+
+  beacon.replaceScope(IOS_SCOPE);
+  await settle();
+
+  expect(beacon.running.get().native).toMatchObject({
+    release: { identity: { domain: "ios-build" } },
   });
 });

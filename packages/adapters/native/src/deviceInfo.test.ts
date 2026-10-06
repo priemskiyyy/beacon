@@ -1,4 +1,5 @@
 import { Beacon } from "@priemskiyyy/beacon";
+import type { ReleaseScope } from "@priemskiyyy/beacon";
 import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 
@@ -6,15 +7,16 @@ import { deviceInfo } from "src/deviceInfo";
 import { APPLICATION, SCOPE } from "src/fakeApplication.fixture";
 import { fakeDeviceInfo } from "src/fakeDeviceInfo.fixture";
 
+const IOS_SCOPE: ReleaseScope = { ...SCOPE, platform: "ios" };
+
 const read = (
   answers: Parameters<typeof fakeDeviceInfo>[0],
   options: Partial<Parameters<typeof deviceInfo>[0]> = {},
+  scope: ReleaseScope = SCOPE,
 ) => {
   const { deviceInfo: sdk } = fakeDeviceInfo(answers);
 
-  return deviceInfo({ deviceInfo: sdk, platform: "android", ...options })({
-    scope: SCOPE,
-  });
+  return deviceInfo({ deviceInfo: sdk, ...options })({ scope });
 };
 
 test("an Android build is named by its version code, and an iOS build by its build number, under the bundle id", async () => {
@@ -32,7 +34,7 @@ test("an Android build is named by its version code, and an iOS build by its bui
       versionCode: "108",
     },
   });
-  await expect(read({}, { platform: "ios" })).resolves.toEqual({
+  await expect(read({}, {}, IOS_SCOPE)).resolves.toEqual({
     identity: {
       status: "known",
       authority: APPLICATION,
@@ -46,6 +48,30 @@ test("an Android build is named by its version code, and an iOS build by its bui
       buildNumber: "108",
     },
   });
+});
+
+test("a platform given wins over the scope's, and the scope's says which numbers a build has", async () => {
+  await expect(read({}, { platform: "ios" }, SCOPE)).resolves.toMatchObject({
+    identity: { domain: "ios-build" },
+  });
+});
+
+// Whatever else than the two stores a scope is for, such as a web application or a desktop shell, the library is not asked for a build number.
+test("a scope that is not Android or iOS is unknown with the reason unsupported-platform, and the library is not asked", async () => {
+  for (const platform of ["web", "macos", "windows", ""]) {
+    const { deviceInfo: sdk, reads } = fakeDeviceInfo();
+
+    const release = await deviceInfo({ deviceInfo: sdk })({
+      scope: { ...SCOPE, platform },
+    });
+
+    expect(release).toEqual({
+      identity: { status: "unknown", reason: "unsupported-platform" },
+      label: null,
+      raw: {},
+    });
+    expect(reads()).toBe(0);
+  }
 });
 
 test("the library answers the text unknown where it has no value, and that is not a build", async () => {
@@ -63,7 +89,7 @@ test("the library answers the text unknown where it has no value, and that is no
 });
 
 test("a build the library could not read is unknown whatever else it read, and the marketing version stays", async () => {
-  const release = await read({ build: "unknown" }, { platform: "ios" });
+  const release = await read({ build: "unknown" }, {}, IOS_SCOPE);
 
   expect(release).toEqual({
     identity: { status: "unknown", reason: "build-not-read" },
@@ -104,7 +130,8 @@ test("a marketing version the library could not read is no label, and the build 
 test("a binary of another application, such as Expo Go running this code, is unknown, and none of its version numbers is kept", async () => {
   const release = await read(
     { bundleId: "host.exp.Exponent", version: "2.32.0", build: "1017" },
-    { platform: "ios", authority: APPLICATION },
+    {},
+    IOS_SCOPE,
   );
 
   expect(release).toEqual({
@@ -114,9 +141,22 @@ test("a binary of another application, such as Expo Go running this code, is unk
   });
 });
 
+test("the authority is the application of the scope unless one is given", async () => {
+  await expect(
+    read({}, {}, { ...SCOPE, application: "com.example.other" }),
+  ).resolves.toMatchObject({
+    identity: { status: "unknown", reason: "another-application" },
+  });
+  await expect(
+    read({ bundleId: "host.exp.Exponent" }, { authority: "host.exp.Exponent" }),
+  ).resolves.toMatchObject({
+    identity: { status: "known", authority: "host.exp.Exponent" },
+  });
+});
+
 test("creating the reader asks the library for nothing, and it is asked each time the reader runs", async () => {
   const { deviceInfo: sdk, answers, reads } = fakeDeviceInfo();
-  const reader = deviceInfo({ deviceInfo: sdk, platform: "android" });
+  const reader = deviceInfo({ deviceInfo: sdk });
 
   expect(reads()).toBe(0);
 
@@ -135,7 +175,7 @@ test("a call that throws rejects the read, which is not a build and not an old o
   fail();
 
   await expect(
-    deviceInfo({ deviceInfo: sdk, platform: "ios" })({ scope: SCOPE }),
+    deviceInfo({ deviceInfo: sdk })({ scope: IOS_SCOPE }),
   ).rejects.toThrowError("The native module refused the call.");
 });
 
@@ -143,9 +183,9 @@ test("an authority or a domain that is empty or has a space around it is refused
   const { deviceInfo: sdk, reads } = fakeDeviceInfo();
 
   for (const options of [{ authority: " " }, { domain: "" }]) {
-    expect(() =>
-      deviceInfo({ deviceInfo: sdk, platform: "ios", ...options }),
-    ).toThrowError(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
+    expect(() => deviceInfo({ deviceInfo: sdk, ...options })).toThrowError(
+      expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
+    );
   }
 
   expect(reads()).toBe(0);
@@ -163,11 +203,7 @@ test("through a Beacon, a call that throws is a failed running fact, and one tha
       scope: SCOPE,
       running: {
         boot: { id: "boot-1" },
-        native: deviceInfo({
-          deviceInfo: sdk,
-          platform: "android",
-          authority: SCOPE.application,
-        }),
+        native: deviceInfo({ deviceInfo: sdk }),
       },
       routes: {},
       clock: createTestClock({ now: 1_000 }),

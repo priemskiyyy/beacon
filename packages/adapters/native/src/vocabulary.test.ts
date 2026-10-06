@@ -11,7 +11,7 @@ import { expect, test } from "vitest";
 
 import { expoApplication } from "src/expoApplication";
 import { fakeApplication, SCOPE } from "src/fakeApplication.fixture";
-import type { NativeReaderOptions } from "src/types/NativeReaderOptions";
+import type { ExpoApplicationOptions } from "src/types/ExpoApplicationOptions";
 
 // The adapters cannot import each other, so the words this package writes are held to the words the store adapters read and offer by running them together.
 
@@ -34,7 +34,7 @@ const createBridge = (versionCode: number): PlayBridge => ({
 const bootWith = (
   { build, boot, offered }: { build: string; boot: string; offered: number },
   storage: ReturnType<typeof createMockJournalStorage>,
-  options: Partial<NativeReaderOptions> = {},
+  options: Pick<ExpoApplicationOptions, "domain"> = {},
 ) => {
   const { application } = fakeApplication({ build });
 
@@ -42,12 +42,7 @@ const bootWith = (
     scope: SCOPE,
     running: {
       boot: { id: boot },
-      native: expoApplication({
-        application,
-        platform: "android",
-        authority: SCOPE.application,
-        ...options,
-      }),
+      native: expoApplication({ application, ...options }),
     },
     routes: { binary: googlePlay({ bridge: createBridge(offered) }) },
     journal: { mode: "required", storage },
@@ -58,7 +53,7 @@ const bootWith = (
 // Boot one runs build 112 and is offered 113; the immediate flow is started; boot two runs what the reader says.
 const updateAndBootAgain = async (
   next: { build: string },
-  options: Partial<NativeReaderOptions> = {},
+  options: Pick<ExpoApplicationOptions, "domain"> = {},
 ) => {
   const storage = createMockJournalStorage();
 
@@ -128,11 +123,9 @@ test("a build nobody read leaves the journal unable to say, never an old build",
 test("the marketing version an iOS binary reports is the fact the App Store adapter reads as the order of what runs", async () => {
   const { application } = fakeApplication({ version: "2.5.0" });
 
-  const release = await expoApplication({
-    application,
-    platform: "ios",
-    authority: SCOPE.application,
-  })({ scope: SCOPE });
+  const release = await expoApplication({ application })({
+    scope: { ...SCOPE, platform: "ios" },
+  });
 
   expect(appleMarketingVersion(release)).toBe("2.5.0");
 });
@@ -140,8 +133,8 @@ test("the marketing version an iOS binary reports is the fact the App Store adap
 test("a binary that gave no marketing version has no order for the App Store adapter", async () => {
   const { application } = fakeApplication({ version: null });
 
-  const release = await expoApplication({ application, platform: "ios" })({
-    scope: SCOPE,
+  const release = await expoApplication({ application })({
+    scope: { ...SCOPE, platform: "ios" },
   });
 
   expect(appleMarketingVersion(release)).toBeNull();

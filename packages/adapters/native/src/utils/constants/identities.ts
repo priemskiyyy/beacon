@@ -4,6 +4,7 @@ import {
   ANOTHER_APPLICATION,
   APPLICATION_NOT_READ,
   BUILD_NOT_READ,
+  UNSUPPORTED_PLATFORM,
 } from "src/utils/constants/reasons";
 
 /** A build nobody read is unknown, never build zero. */
@@ -22,4 +23,10 @@ export const APPLICATION_NOT_READ_IDENTITY: ReleaseIdentity = Object.freeze({
 export const ANOTHER_APPLICATION_IDENTITY: ReleaseIdentity = Object.freeze({
   status: "unknown",
   reason: ANOTHER_APPLICATION,
+});
+
+/** A scope that is not Android or iOS has no build number to name, and what is not asked is not guessed. */
+export const UNSUPPORTED_PLATFORM_IDENTITY: ReleaseIdentity = Object.freeze({
+  status: "unknown",
+  reason: UNSUPPORTED_PLATFORM,
 });

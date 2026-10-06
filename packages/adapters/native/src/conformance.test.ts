@@ -1,33 +1,39 @@
+import type { ReleaseScope } from "@priemskiyyy/beacon";
 import { testRunningReader } from "@priemskiyyy/beacon/testing";
 
 import { deviceInfo } from "src/deviceInfo";
 import { expoApplication } from "src/expoApplication";
-import { APPLICATION, fakeApplication } from "src/fakeApplication.fixture";
+import {
+  fakeApplication,
+  SCOPE as ANDROID_SCOPE,
+} from "src/fakeApplication.fixture";
 import { fakeDeviceInfo } from "src/fakeDeviceInfo.fixture";
 import type { NativePlatform } from "src/types/NativePlatform";
 
 const PLATFORMS: NativePlatform[] = ["android", "ios"];
 
 for (const platform of PLATFORMS) {
+  const scope: ReleaseScope = { ...ANDROID_SCOPE, platform };
+
   const createApplication = (
     facts: Parameters<typeof fakeApplication>[0] = {},
   ) => {
     const { application, reads } = fakeApplication(facts);
 
-    return {
-      reader: expoApplication({
-        application,
-        platform,
-        authority: APPLICATION,
-      }),
-      reads,
-    };
+    return { reader: expoApplication({ application }), reads };
   };
 
   testRunningReader({
     name: `expo-application on ${platform}`,
     create: () => createApplication(),
+    scope,
     situations: [
+      {
+        name: "the scope is a web application's",
+        answers: "unknown",
+        scope: { ...scope, platform: "web" },
+        create: () => createApplication(),
+      },
       {
         name: "the module gave no build number",
         answers: "unknown",
@@ -56,17 +62,20 @@ for (const platform of PLATFORMS) {
   ) => {
     const { deviceInfo: sdk, reads, fail } = fakeDeviceInfo(facts);
 
-    return {
-      reader: deviceInfo({ deviceInfo: sdk, platform, authority: APPLICATION }),
-      reads,
-      fail,
-    };
+    return { reader: deviceInfo({ deviceInfo: sdk }), reads, fail };
   };
 
   testRunningReader({
     name: `react-native-device-info on ${platform}`,
     create: () => createDeviceInfo(),
+    scope,
     situations: [
+      {
+        name: "the scope is a web application's",
+        answers: "unknown",
+        scope: { ...scope, platform: "web" },
+        create: () => createDeviceInfo(),
+      },
       {
         name: "the library has no build number and answers unknown",
         answers: "unknown",

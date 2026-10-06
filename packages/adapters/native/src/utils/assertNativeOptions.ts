@@ -1,6 +1,6 @@
 import { BeaconError } from "@priemskiyyy/beacon";
 
-import type { NativeReaderOptions } from "src/types/NativeReaderOptions";
+import type { NativeReaderOptions } from "src/types/internal/NativeReaderOptions";
 import { cleanText } from "src/utils/cleanText";
 
 const assertText = (name: string, value: string | undefined) => {

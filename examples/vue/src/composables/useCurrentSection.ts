@@ -22,6 +22,7 @@ const pickSection = (crossing: Set<SectionId>) => {
 /** The section the reader is in, for the navigation to mark. */
 export const useCurrentSection = () => {
   const current = ref<SectionId>("status");
+
   let stop = () => {};
 
   onMounted(() => {

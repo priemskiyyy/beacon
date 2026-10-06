@@ -5,6 +5,7 @@ import type { EventLog } from "example-shared/types/EventLog";
 /** The entries of a log as a read-only ref, subscribed while the component is mounted. */
 export const useEventLog = <T>(log: EventLog<T>) => {
   const entries = shallowRef(log.getSnapshot());
+
   let unsubscribe = () => {};
 
   onMounted(() => {

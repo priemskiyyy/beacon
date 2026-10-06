@@ -8,6 +8,6 @@ export const assertIdentityText = (name: string, text: string) => {
 
   throw new BeaconError({
     code: "INVALID_CONFIGURATION",
-    message: `The ${name} of a web build is text with no space around it.`,
+    message: `The ${name} of a web build or release is text with no space around it.`,
   });
 };

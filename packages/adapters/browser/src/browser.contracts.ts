@@ -8,6 +8,7 @@ import type {
   NoneDecision,
   OfferReference,
   PreparedReference,
+  Release,
   RouteHandle,
   RunningReaders,
   TargetDecision,
@@ -21,6 +22,7 @@ import type { BrowserReloadReceipt } from "src/types/BrowserReloadReceipt";
 import type { BrowserStorageWindowLike } from "src/types/BrowserStorageWindowLike";
 import type { BrowserWindowLike } from "src/types/BrowserWindowLike";
 import { webBuild } from "src/webBuild";
+import { webRelease } from "src/webRelease";
 
 export const target: BrowserWindowLike = window;
 
@@ -117,3 +119,25 @@ webBuild({ id: "a91b44e" });
 
 // @ts-expect-error -- a build id is text.
 webBuild({ authority: "com.example.notes", id: 7 });
+
+// A release a custom source names is a release of a target decision as it stands, and it says which build, so a build nobody named cannot be left out.
+export const named = webRelease({
+  authority: "com.example.notes",
+  id: "a91b44e",
+});
+
+expectTypeOf(named).toEqualTypeOf<Release>();
+
+export const decision: TargetDecision = { kind: "target", release: named };
+
+// @ts-expect-error -- a release names its build, so the id is required.
+webRelease({ authority: "com.example.notes" });
+
+// @ts-expect-error -- a release is an authority's claim, so an id nobody defined cannot be passed as a missing one.
+webRelease({ authority: "com.example.notes", id: undefined });
+
+// @ts-expect-error -- the authority is who assigns the ids, so it is required.
+webRelease({ id: "a91b44e" });
+
+// @ts-expect-error -- a build id is text.
+webRelease({ authority: "com.example.notes", id: 7 });

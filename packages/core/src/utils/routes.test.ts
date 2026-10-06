@@ -1,12 +1,16 @@
 import { expect, test } from "vitest";
 
 import { createMockSource } from "src/mock/createMockSource";
+import type { CandidateDecision } from "src/types/CandidateDecision";
+import type { NoneDecision } from "src/types/NoneDecision";
 import {
   buildWebRelease,
   createRoutedBeacon,
   settle,
 } from "src/utils/Beacon.fixture";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
+import { integer } from "src/utils/versions/integer";
+import { newerRoute } from "src/utils/newerRoute";
 import { targetRoute } from "src/utils/targetRoute";
 import {
   createTwoRouteBeacon,
@@ -14,6 +18,8 @@ import {
   target,
 } from "src/utils/routes.fixture";
 import type { Manifest } from "src/utils/routes.fixture";
+
+type CandidateManifest = { binary: CandidateDecision<number> | NoneDecision };
 
 const startAndCheck = async (context: ReturnType<typeof createWebBeacon>) => {
   context.beacon.start();
@@ -415,4 +421,92 @@ test("CORE-07 a running fact that changes routes of several sources reaches a li
   expect(seen.filter((entry) => entry.startsWith("known"))).toEqual(
     seen.filter((entry) => entry === "known:none:none"),
   );
+});
+
+test("CORE-02 a selection that fails when a running fact changes shows on the check, and clears when it selects again", async () => {
+  const mock = createMockSource<CandidateManifest>({ name: "manifest" });
+  const running = { build: 100 };
+
+  const binary = newerRoute({
+    subject: "native",
+    source: mock.source.select((manifest) => manifest.binary),
+    version: integer(),
+    current: (release) => {
+      const build = Number(release?.raw["build"]);
+
+      if (build === 999) {
+        throw new Error("This build cannot be ordered.");
+      }
+
+      return build;
+    },
+    mechanism: createUpdateMechanism({
+      name: "inert",
+      open: () => ({ native: {} }),
+      commands: {},
+    }),
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { binary },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        native: () => ({
+          identity: {
+            status: "known",
+            authority: "com.example.notes",
+            domain: "android-version-code",
+            value: String(running.build),
+          },
+          label: `Build ${running.build}`,
+          raw: { build: running.build },
+        }),
+      },
+    },
+  );
+
+  mock.answer({
+    document: {
+      binary: {
+        kind: "candidate",
+        release: {
+          identity: {
+            status: "known",
+            authority: "com.example.notes",
+            domain: "android-version-code",
+            value: "120",
+          },
+          order: 120,
+        },
+      },
+    },
+  });
+
+  const route = beacon.route("binary");
+
+  beacon.start();
+  await route.check();
+
+  expect(route.state.get()).toMatchObject({
+    check: { state: "succeeded" },
+    observation: { status: "available" },
+  });
+
+  running.build = 999;
+  beacon.stop();
+  beacon.start();
+  await settle();
+
+  expect(route.state.get().check).toMatchObject({
+    state: "failed",
+    error: { code: "SELECTION_FAILED" },
+  });
+
+  running.build = 100;
+  beacon.stop();
+  beacon.start();
+  await settle();
+
+  expect(route.state.get().check).toMatchObject({ state: "succeeded" });
 });

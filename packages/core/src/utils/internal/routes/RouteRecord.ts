@@ -1,4 +1,5 @@
 import type { BeaconClock } from "src/types/BeaconClock";
+import type { CheckState } from "src/types/CheckState";
 import type { Evidence } from "src/types/Evidence";
 import type { RouteState } from "src/types/internal/RouteState";
 import type { Observation } from "src/types/Observation";
@@ -116,7 +117,12 @@ export class RouteRecord {
     });
   };
 
-  /** Ends the attempt that is checking; an error fails it and the observation stays. */
+  /**
+   * Ends the attempt that is checking; an error fails it and the observation
+   * stays. Selecting again from the document that attempt accepted, as a
+   * running fact does when it changes, settles it again: a selection that
+   * starts to throw fails it, and one that works again clears the failure.
+   */
   settleCheck = (
     transaction: Transaction,
     attempt: number,
@@ -124,7 +130,7 @@ export class RouteRecord {
   ) => {
     const { check } = this.#store.get();
 
-    if (check.state !== "checking" || check.attempt !== attempt) {
+    if (check.state === "idle" || check.attempt !== attempt) {
       return;
     }
 
@@ -134,21 +140,19 @@ export class RouteRecord {
       settledAt: this.#clock.now(),
     };
 
-    if (error === null) {
-      this.#apply(transaction, {
-        check: Object.freeze({ state: "succeeded", ...times }),
-      });
+    const settled: CheckState =
+      error === null
+        ? { state: "succeeded", ...times }
+        : { state: "failed", ...times, error: toErrorInfo(error) };
 
+    if (
+      check.state !== "checking" &&
+      isSameData({ ...check, settledAt: 0 }, { ...settled, settledAt: 0 })
+    ) {
       return;
     }
 
-    this.#apply(transaction, {
-      check: Object.freeze({
-        state: "failed",
-        ...times,
-        error: toErrorInfo(error),
-      }),
-    });
+    this.#apply(transaction, { check: Object.freeze(settled) });
   };
 
   installSelection = (

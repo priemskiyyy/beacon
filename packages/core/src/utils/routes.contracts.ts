@@ -239,16 +239,33 @@ createUpdateMechanism({
       reference: "none",
       impacts: [],
       binding: "provider-current",
-      run: async ({
-        parameters,
-        // @ts-expect-error A command cannot declare a parameter named after a Beacon key.
-      }: CommandRunContext<Browser, { signal: string }>): Promise<
-        ProviderResult<ReloadReceipt>
-      > => {
-        parameters.signal.trim();
+      // @ts-expect-error A command cannot declare a parameter named after a Beacon key.
+      run: async (context: {
+        native: Browser;
+        signal: AbortSignal;
+        parameters: { signal: string };
+      }): Promise<ProviderResult<ReloadReceipt>> => {
+        context.parameters.signal.trim();
 
         return { status: "accepted", receipt: { kind: "reload-requested" } };
       },
+    },
+  },
+});
+
+createUpdateMechanism({
+  name: "colliding",
+  open: () => ({ native: browser }),
+  commands: {
+    // @ts-expect-error A command cannot take the name of a member every route handle has.
+    check: {
+      reference: "none",
+      impacts: [],
+      binding: "provider-current",
+      run: async (): Promise<ProviderResult<ReloadReceipt>> => ({
+        status: "accepted",
+        receipt: { kind: "reload-requested" },
+      }),
     },
   },
 });

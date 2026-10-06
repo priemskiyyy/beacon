@@ -7,17 +7,17 @@ export const compareAppleVersions = (
   candidate: AppleVersion,
   current: AppleVersion,
 ): Comparison => {
-  for (const [index, part] of candidate.entries()) {
-    const other = current[index] ?? 0;
+  // The first number that differs decides; each has at most nine digits, so the difference is exact.
+  const difference =
+    candidate[0] - current[0] ||
+    candidate[1] - current[1] ||
+    candidate[2] - current[2];
 
-    if (part === other) {
-      continue;
-    }
+  if (difference > 0) {
+    return "newer";
+  }
 
-    if (part > other) {
-      return "newer";
-    }
-
+  if (difference < 0) {
     return "older";
   }
 

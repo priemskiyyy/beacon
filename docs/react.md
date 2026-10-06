@@ -329,7 +329,7 @@ Strict Mode runs the provider's effect, cleans it up and runs it again. The resu
 
 Nothing in the provider or the hooks reaches for a DOM: the package imports React and Beacon and no other library, and loading it reads no browser global. They are tested with `react-test-renderer`, which has no DOM, on a concurrent root, in the environment of a React Native app with `window` the global object and no `document`. That run proves the provider starts the session while it is mounted and ends it on unmount, that every hook reads and renders again, that a participant registers and unregisters, that Strict Mode leaves one session and one subscription, that a remount and a new Beacon, as Fast Refresh makes them, are followed, and that unmounting leaves no listener on the Beacon. The hooks read a Beacon and start nothing on any renderer, so a selector that builds a new object needs an `isEqual` here as it does on the web.
 
-The registration example above creates its boot id with `crypto.randomUUID()`, which a browser has and Hermes does not. [React Native](react-native.md#the-boot-id) has the id to use there, and the rest of what differs on a device.
+The registration example above creates its boot id with `createBootId()`, which works on Hermes too, where there is no `crypto`. [React Native](react-native.md#the-boot-id) has the rest of what differs on a device.
 
 ## Server rendering and hydration
 

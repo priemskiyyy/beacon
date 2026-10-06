@@ -11,12 +11,12 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play
 ## Create a route
 
 ```ts
-import { Beacon } from "@priemskiyyy/beacon";
+import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
 
 const beacon = new Beacon({
   scope, // scope.application is the Android application id
-  running: { boot: { id: BOOT_ID } },
+  running: { boot: { id: createBootId() } },
   routes: { binary: googlePlay({ bridge: playBridge }) },
 });
 ```

@@ -194,7 +194,7 @@ The server and the hydrating render read the state as it stood before any sessio
 
 ### crypto.randomUUID is not a function
 
-Hermes has no `crypto`. The boot id only has to differ between runtimes, so mint one from the clock and `Math.random()`: [the boot id](react-native.md#the-boot-id).
+Hermes has no `crypto`. Mint the boot id with `createBootId()` from `@priemskiyyy/beacon`, which falls back to `Math.random()`: [the boot id](react-native.md#the-boot-id).
 
 ### An async function answers undefined
 

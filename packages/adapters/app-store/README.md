@@ -11,7 +11,7 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-app-store
 ## Create a route
 
 ```ts
-import { Beacon, newerRoute } from "@priemskiyyy/beacon";
+import { Beacon, createBootId, newerRoute } from "@priemskiyyy/beacon";
 import {
   appleMarketingVersion,
   appleVersion,
@@ -43,7 +43,7 @@ declare const buildNumber: string;
 const beacon = new Beacon({
   scope, // scope.application is the bundle id
   running: {
-    boot: { id: BOOT_ID },
+    boot: { id: createBootId() },
     native: () => ({
       identity: {
         status: "known",

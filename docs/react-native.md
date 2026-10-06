@@ -46,7 +46,7 @@ Hermes and React Native are not a browser and not Node. Two Hermes builds were r
 
 | Beacon never uses                                                        | Why                                                                                        |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `crypto.randomUUID`, `crypto.getRandomValues`                            | No `crypto` global on either Hermes. You mint the boot id ([below](#the-boot-id))          |
+| `crypto.randomUUID`, `crypto.getRandomValues`                            | No `crypto` global on either Hermes. `createBootId()` covers it ([below](#the-boot-id))    |
 | `URL`, `URLSearchParams`                                                 | React Native's have a setter for `search` alone, no `canParse`, and read only http(s) URLs |
 | `structuredClone`, `TextDecoder`, `Buffer`, `Intl.Segmenter` and its kin | Not there on either Hermes. Expo's runtime adds some that a bare app does not have         |
 | `Promise.withResolvers`, `Promise.try`, `WeakRef`, `Set` methods         | Missing on classic Hermes, though V1 has them                                              |
@@ -62,13 +62,7 @@ Create the Beacon in a module of its own, outside React. Fast Refresh re-runs a 
 
 ### The boot id
 
-A boot is one JavaScript runtime. Hermes has no `crypto.randomUUID`, and the id only has to differ from the next runtime's, so this is enough.
-
-```ts
-// src/createBootId.ts
-export const createBootId = () =>
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-```
+A boot is one JavaScript runtime, and its id only has to differ from the next runtime's. Hermes has no `crypto.randomUUID` without a polyfill, so `createBootId()` from the core falls back to `crypto.getRandomValues` and then to `Math.random`, and never throws. Make one when the Beacon is created, as [the Beacon below](#the-beacon) does.
 
 ### What the binary is
 
@@ -126,30 +120,25 @@ export const readNativeBuild =
 
 ### The journal's storage
 
-A reload replaces the JavaScript runtime, and the journal is how the next boot learns what it reached. It keeps its record in storage that survives. `expo-sqlite` has a key-value store, and so do AsyncStorage and MMKV, and a write that resolves means the value is stored. [Journal](journal.md) says what is written and when.
+A reload replaces the JavaScript runtime, and the journal is how the next boot learns what it reached. It keeps its record in storage that survives. `expo-sqlite` has a key-value store, and so do AsyncStorage and MMKV, and `keyValueJournalStorage` adapts any of them, reading a record back before it says a write is stored. [Journal](journal.md) says what is written and when.
 
 ```ts
 // src/journalStorage.ts
-import type { JournalStorage } from "@priemskiyyy/beacon";
+import { keyValueJournalStorage } from "@priemskiyyy/beacon";
 import keyValueStore from "expo-sqlite/kv-store";
 
-export const journalStorage: JournalStorage = {
-  read: (key) => keyValueStore.getItem(key),
-  write: (key, value) => keyValueStore.setItem(key, value),
-  remove: (key) => keyValueStore.removeItem(key),
-};
+export const journalStorage = keyValueJournalStorage(keyValueStore);
 ```
 
 ### The Beacon
 
 ```ts
 // src/beacon.ts
-import { Beacon } from "@priemskiyyy/beacon";
+import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 
-import { createBootId } from "src/createBootId";
 import { journalStorage } from "src/journalStorage";
 import { readNativeBuild } from "src/nativeBuild";
 

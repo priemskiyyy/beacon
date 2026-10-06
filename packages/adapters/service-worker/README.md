@@ -11,12 +11,12 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-service-worker
 ## Create a route
 
 ```ts
-import { Beacon } from "@priemskiyyy/beacon";
+import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { serviceWorker } from "@priemskiyyy/beacon-service-worker";
 
 const beacon = new Beacon({
   scope,
-  running: { boot: { id: BOOT_ID } },
+  running: { boot: { id: createBootId() } },
   routes: { worker: serviceWorker() },
 });
 ```

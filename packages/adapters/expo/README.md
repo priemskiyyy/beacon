@@ -11,13 +11,13 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo expo-updates
 ## Create a route
 
 ```ts
-import { Beacon } from "@priemskiyyy/beacon";
+import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import * as Updates from "expo-updates";
 
 const beacon = new Beacon({
   scope,
-  running: { boot: { id: BOOT_ID }, bundle: expoBundle(Updates) },
+  running: { boot: { id: createBootId() }, bundle: expoBundle(Updates) },
   routes: { ota: expoUpdates({ updates: Updates }) },
 });
 ```

@@ -6,6 +6,7 @@ const eslint = new ESLint();
 const CORE = "packages/core/src/utils/lint-probe.ts";
 const CLOCK = "packages/core/src/utils/internal/clock/createSystemClock.ts";
 const MOCK = "packages/core/src/mock/lint-probe.ts";
+const SUITE = "packages/core/src/testing/lint-probe.ts";
 const ADAPTER = "packages/adapters/http/src/lint-probe.ts";
 const NATIVE_ADAPTER = "packages/adapters/expo/src/lint-probe.ts";
 const REACT = "packages/react/src/lint-probe.ts";
@@ -133,6 +134,8 @@ const boundaries = [
   ],
   ['import { Platform } from "react-native";', "no-restricted-imports", REACT],
   ['import { expect } from "vitest";', "no-restricted-imports", MOCK],
+  ['import { useState } from "react";', "no-restricted-imports", SUITE],
+  ["setTimeout(() => {}, 0);", "no-restricted-globals", SUITE],
   [
     'import { render } from "@testing-library/react";',
     "no-restricted-imports",
@@ -181,6 +184,7 @@ const allowed = [
   ...entryPoints.map((file) => ['export { value } from "src/value";', file]),
   ["export const value = { key: 1 } satisfies Record<string, number>;", CORE],
   ['import { expect } from "vitest";\n\nexpect(1).toBe(1);', TEST],
+  ['import { expect } from "vitest";\n\nexpect(1).toBe(1);', SUITE],
   [
     'import * as Updates from "expo-updates";\n\nexport const sdk = Updates;',
     "packages/adapters/expo/src/expo.contracts.ts",

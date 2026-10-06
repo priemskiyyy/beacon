@@ -278,9 +278,24 @@ export default tseslint.config(
   },
   {
     files: ["packages/core/src/**/*.ts"],
-    ignores: [...tests, ...entryPoints],
+    ignores: [...tests, ...entryPoints, "packages/core/src/testing/**"],
     rules: {
       ...restrictImports([react, sdks, testRunners]),
+      "no-restricted-globals": [
+        "error",
+        ...hostTimers,
+        ...hostGlobals,
+        ...portableGlobals,
+      ],
+      "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
+    },
+  },
+  {
+    // A conformance suite runs inside the adapter's own test run, so it is the one part of the core that imports the runner.
+    files: ["packages/core/src/testing/**/*.ts"],
+    ignores: [...tests, ...entryPoints],
+    rules: {
+      ...restrictImports([react, sdks]),
       "no-restricted-globals": [
         "error",
         ...hostTimers,

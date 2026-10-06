@@ -5,6 +5,7 @@ export default defineConfig({
     index: "src/index.ts",
     versions: "src/versions.ts",
     mock: "src/mock.ts",
+    testing: "src/testing.ts",
   },
   format: ["esm"],
   target: "es2022",

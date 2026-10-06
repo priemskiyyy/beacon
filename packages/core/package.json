@@ -39,6 +39,11 @@
       "types": "./dist/mock.d.ts",
       "import": "./dist/mock.js",
       "default": "./dist/mock.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "default": "./dist/testing.js"
     }
   },
   "scripts": {
@@ -59,5 +64,13 @@
     "typescript",
     "react-native",
     "beacon"
-  ]
+  ],
+  "peerDependencies": {
+    "vitest": ">=4 <5"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  }
 }

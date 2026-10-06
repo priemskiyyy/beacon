@@ -189,12 +189,32 @@ const svelte = {
 };
 
 const sdks = {
-  names: ["react-native", "expo-updates", "expo-application", "workbox-window"],
+  names: [
+    "react-native",
+    "expo-updates",
+    "expo-application",
+    "workbox-window",
+    "react-native-device-info",
+    "react-native-code-push",
+    "@revopush/react-native-code-push",
+    "@bravemobile/react-native-code-push",
+    "@appzung/react-native-code-push",
+    "@react-native-community/netinfo",
+    "firebase",
+  ],
   groups: [
     "react-native/*",
     "expo-updates/*",
     "expo-application/*",
     "workbox-window/*",
+    "react-native-device-info/*",
+    "react-native-code-push/*",
+    "@revopush/react-native-code-push/*",
+    "@bravemobile/react-native-code-push/*",
+    "@appzung/react-native-code-push/*",
+    "@react-native-firebase/*",
+    "@react-native-community/netinfo/*",
+    "firebase/*",
   ],
   message:
     "No runtime code imports a provider SDK; the application passes it in, and the type is structural.",

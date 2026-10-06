@@ -138,6 +138,41 @@ const boundaries = [
     "no-restricted-imports",
     ADAPTER,
   ],
+  [
+    'import * as Application from "expo-application";',
+    "no-restricted-imports",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'import DeviceInfo from "react-native-device-info";',
+    "no-restricted-imports",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'import CodePush from "react-native-code-push";',
+    "no-restricted-imports",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'import CodePush from "@bravemobile/react-native-code-push";',
+    "no-restricted-imports",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'import remoteConfig from "@react-native-firebase/remote-config";',
+    "no-restricted-imports",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'import NetInfo from "@react-native-community/netinfo";',
+    "no-restricted-imports",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'import { getRemoteConfig } from "firebase/remote-config";',
+    "no-restricted-imports",
+    ADAPTER,
+  ],
   ['import { Platform } from "react-native";', "no-restricted-imports", REACT],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", CORE],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", REACT],
@@ -270,6 +305,10 @@ const allowed = [
   [
     'import * as Updates from "expo-updates";\n\nexport const sdk = Updates;',
     "packages/adapters/expo/src/expoUpdates.contracts.ts",
+  ],
+  [
+    'import type remoteConfig from "@react-native-firebase/remote-config";\n\nexport const sdk: typeof remoteConfig | null = null;',
+    "packages/adapters/firebase-remote-config/src/firebaseRemoteConfig.contracts.ts",
   ],
   [
     'import { useState } from "react";\n\nexport const useValue = () => useState(0);',

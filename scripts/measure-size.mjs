@@ -38,6 +38,8 @@ const ENTRIES = [
     budget: 2 * 1024,
   },
   { name: "react", files: ["react/dist/index.js"], budget: 1.5 * 1024 },
+  { name: "solid", files: ["solid/dist/index.js"], budget: 1.5 * 1024 },
+  { name: "vue", files: ["vue/dist/index.js"], budget: 1.5 * 1024 },
   { name: "mock", files: ["core/dist/mock.js"], budget: null },
   { name: "testing", files: ["core/dist/testing.js"], budget: null },
 ];
@@ -45,7 +47,15 @@ const ENTRIES = [
 const measure = async (files) => {
   const bundle = await rolldown({
     input: files.map((file) => `${packages}${file}`),
-    external: [/^@priemskiyyy\/beacon(\/|$)/, "react", "react-dom", "vitest"],
+    external: [
+      /^@priemskiyyy\/beacon(\/|$)/,
+      "react",
+      "react-dom",
+      "solid-js",
+      "vue",
+      /^svelte(\/|$)/,
+      "vitest",
+    ],
     logLevel: "silent",
   });
 

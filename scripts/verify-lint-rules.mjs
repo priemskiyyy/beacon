@@ -10,6 +10,9 @@ const SUITE = "packages/core/src/testing/lint-probe.ts";
 const ADAPTER = "packages/adapters/http/src/lint-probe.ts";
 const NATIVE_ADAPTER = "packages/adapters/expo/src/lint-probe.ts";
 const REACT = "packages/react/src/lint-probe.ts";
+const SOLID = "packages/solid/src/lint-probe.ts";
+const VUE = "packages/vue/src/lint-probe.ts";
+const SVELTE = "packages/svelte/src/lint-probe.ts";
 const TEST = "packages/core/src/utils/lint-probe.test.ts";
 
 const syntax = [
@@ -133,6 +136,23 @@ const boundaries = [
     ADAPTER,
   ],
   ['import { Platform } from "react-native";', "no-restricted-imports", REACT],
+  ['import { createSignal } from "solid-js";', "no-restricted-imports", CORE],
+  ['import { createSignal } from "solid-js";', "no-restricted-imports", REACT],
+  ['import { createSignal } from "solid-js";', "no-restricted-imports", VUE],
+  ['import { isServer } from "solid-js/web";', "no-restricted-imports", ADAPTER],
+  ['import { ref } from "vue";', "no-restricted-imports", CORE],
+  ['import { ref } from "vue";', "no-restricted-imports", SOLID],
+  ['import { ref } from "@vue/reactivity";', "no-restricted-imports", REACT],
+  ['import { onMount } from "svelte";', "no-restricted-imports", CORE],
+  ['import { onMount } from "svelte";', "no-restricted-imports", REACT],
+  ['import { writable } from "svelte/store";', "no-restricted-imports", VUE],
+  ['import { ref } from "vue";', "no-restricted-imports", SVELTE],
+  ['import { useState } from "react";', "no-restricted-imports", SOLID],
+  ['import { useState } from "react";', "no-restricted-imports", SVELTE],
+  ['import { Platform } from "react-native";', "no-restricted-imports", VUE],
+  ["const time = Date.now();", "no-restricted-syntax", SOLID],
+  ["setTimeout(() => {}, 0);", "no-restricted-globals", VUE],
+  ["const time = Date.now();", "no-restricted-syntax", SVELTE],
   ['import { expect } from "vitest";', "no-restricted-imports", MOCK],
   ['import { useState } from "react";', "no-restricted-imports", SUITE],
   ["setTimeout(() => {}, 0);", "no-restricted-globals", SUITE],
@@ -177,6 +197,9 @@ const entryPoints = [
   "packages/core/src/versions.ts",
   "packages/adapters/http/src/index.ts",
   "packages/react/src/index.ts",
+  "packages/solid/src/index.ts",
+  "packages/vue/src/index.ts",
+  "packages/svelte/src/index.ts",
 ];
 
 const allowed = [
@@ -192,6 +215,19 @@ const allowed = [
   [
     'import { useState } from "react";\n\nexport const useValue = () => useState(0);',
     REACT,
+  ],
+  [
+    'import { createSignal } from "solid-js";\n\nexport const signal = createSignal;',
+    SOLID,
+  ],
+  ['import { ref } from "vue";\n\nexport const value = ref;', VUE],
+  [
+    'import { writable } from "svelte/store";\n\nexport const store = writable;',
+    SVELTE,
+  ],
+  [
+    'import { value } from "./value.js";\n\nexport const copy = value;',
+    SVELTE,
   ],
   [
     'import { vi } from "vitest";\n\nexport const spy = vi.fn();',

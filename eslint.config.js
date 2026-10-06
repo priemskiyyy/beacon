@@ -1,5 +1,6 @@
 import eslint from "@eslint/js";
 import reactHooks from "eslint-plugin-react-hooks";
+import sveltePlugin from "eslint-plugin-svelte";
 import tseslint from "typescript-eslint";
 
 const toRestrictions = (entries) =>
@@ -168,6 +169,24 @@ const react = {
   message: "Only the React binding imports React.",
 };
 
+const solid = {
+  names: ["solid-js"],
+  groups: ["solid-js/*"],
+  message: "Only the Solid binding imports Solid.",
+};
+
+const vue = {
+  names: ["vue"],
+  groups: ["vue/*", "@vue/*"],
+  message: "Only the Vue binding imports Vue.",
+};
+
+const svelte = {
+  names: ["svelte"],
+  groups: ["svelte/*"],
+  message: "Only the Svelte binding imports Svelte.",
+};
+
 const sdks = {
   names: ["react-native", "expo-updates", "expo-application", "workbox-window"],
   groups: [
@@ -179,6 +198,8 @@ const sdks = {
   message:
     "No runtime code imports a provider SDK; the application passes it in, and the type is structural.",
 };
+
+const frameworks = [react, solid, vue, svelte];
 
 const testRunners = {
   names: ["vitest"],
@@ -225,6 +246,7 @@ export default tseslint.config(
       "**/node_modules/**",
       ".artifacts/**",
       "tasks/**",
+      "**/.svelte-kit/**",
       "docs/.vitepress/cache/**",
       "docs/.vitepress/dist/**",
       "test-results/**",
@@ -237,8 +259,14 @@ export default tseslint.config(
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+  ...sveltePlugin.configs.recommended,
   {
-    files: ["**/*.{js,mjs,ts,tsx}"],
+    // Template comments disable rules through this plugin rule, which noInlineConfig does not reach.
+    files: ["**/*.svelte"],
+    rules: { "svelte/comment-directive": "off" },
+  },
+  {
+    files: ["**/*.{js,mjs,ts,tsx,svelte}"],
     rules: {
       "padding-line-between-statements": [
         "error",
@@ -256,7 +284,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ["**/*.{ts,tsx,svelte}"],
     rules: {
       curly: ["error", "all"],
       "no-else-return": ["error", { allowElseIf: false }],
@@ -271,17 +299,29 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/**/src/**/*.{ts,tsx}"],
+    files: ["packages/**/src/**/*.{ts,tsx,svelte}"],
     ignores: entryPoints,
     rules: {
       "no-restricted-syntax": ["error", ...packageSyntax],
     },
   },
   {
+    // svelte-package rewrites no aliases, so the Svelte binding imports by relative path.
+    files: ["packages/svelte/**/*.{ts,svelte}"],
+    rules: { "no-restricted-syntax": ["error", ...bannedSyntax] },
+  },
+  {
+    files: ["packages/svelte/src/**/*.{ts,svelte}"],
+    ignores: entryPoints,
+    rules: {
+      "no-restricted-syntax": ["error", ...bannedSyntax, ...reexports],
+    },
+  },
+  {
     files: ["packages/core/src/**/*.ts"],
     ignores: [...tests, ...entryPoints, "packages/core/src/testing/**"],
     rules: {
-      ...restrictImports([react, sdks, testRunners]),
+      ...restrictImports([...frameworks, sdks, testRunners]),
       "no-restricted-globals": [
         "error",
         ...hostTimers,
@@ -296,7 +336,7 @@ export default tseslint.config(
     files: ["packages/core/src/testing/**/*.ts"],
     ignores: [...tests, ...entryPoints],
     rules: {
-      ...restrictImports([react, sdks]),
+      ...restrictImports([...frameworks, sdks]),
       "no-restricted-globals": [
         "error",
         ...hostTimers,
@@ -318,21 +358,35 @@ export default tseslint.config(
     files: ["packages/adapters/*/src/**/*.ts"],
     ignores: [...tests, ...entryPoints],
     rules: {
-      ...restrictImports([react, sdks, testRunners]),
+      ...restrictImports([...frameworks, sdks, testRunners]),
       "no-restricted-globals": ["error", ...hostTimers, ...portableGlobals],
       "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
     },
   },
-  {
-    // A binding reads Beacon's observables and never a provider SDK or the host's timers.
-    files: ["packages/react/src/**/*.{ts,tsx}"],
+  ...[
+    { framework: react, files: ["packages/react/src/**/*.{ts,tsx}"] },
+    { framework: solid, files: ["packages/solid/src/**/*.{ts,tsx}"] },
+    { framework: vue, files: ["packages/vue/src/**/*.{ts,tsx}"] },
+    {
+      framework: svelte,
+      files: ["packages/svelte/src/**/*.{ts,svelte}"],
+      // svelte-package rewrites no aliases, so this binding imports by relative path.
+      syntax: [...bannedSyntax, ...reexports],
+    },
+  ].map(({ framework, files, syntax = packageSyntax }) => ({
+    // A binding reads Beacon's observables, imports only its own framework, and never a provider SDK or the host's timers.
+    files,
     ignores: [...tests, ...entryPoints],
     rules: {
-      ...restrictImports([sdks, testRunners]),
+      ...restrictImports([
+        ...frameworks.filter((other) => other !== framework),
+        sdks,
+        testRunners,
+      ]),
       "no-restricted-globals": ["error", ...hostTimers, ...portableGlobals],
-      "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
+      "no-restricted-syntax": ["error", ...syntax, ...clockReads],
     },
-  },
+  })),
   {
     // Declaration merging is how an application tells a binding which Beacon it has, and only an interface can be merged.
     files: [
@@ -346,9 +400,22 @@ export default tseslint.config(
   },
   {
     // React rules only where React runs.
-    files: ["packages/react/**/*.{ts,tsx}"],
+    files: [
+      "packages/react/**/*.{ts,tsx}",
+      "examples/{react,expo}/**/*.{ts,tsx}",
+    ],
     plugins: { "react-hooks": reactHooks },
     rules: reactHooks.configs.recommended.rules,
+  },
+  {
+    files: ["**/*.svelte", "**/*.svelte.ts"],
+    languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
+        extraFileExtensions: [".svelte"],
+      },
+    },
+    rules: { "no-undef": "off" },
   },
   {
     files: ["**/*.{js,mjs}"],

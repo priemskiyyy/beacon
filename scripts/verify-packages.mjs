@@ -3,10 +3,17 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // What each built package may import at runtime. The core imports nothing, an
-// adapter only the core, and the React binding the core and React: a consumer
-// of the web packages never receives a native module, React, Workbox or a
-// SemVer library it did not ask for.
+// adapter only the core, and a framework binding the core and its own
+// framework: a consumer of the web packages never receives a native module,
+// another framework, Workbox or a SemVer library it did not ask for.
 const CORE = "@priemskiyyy/beacon";
+
+const FRAMEWORKS = {
+  "packages/react": "react",
+  "packages/solid": "solid-js",
+  "packages/vue": "vue",
+  "packages/svelte": "svelte",
+};
 
 const findPackages = (directory) =>
   readdirSync(directory).flatMap((name) => {
@@ -51,8 +58,10 @@ const allowed = (path, file) => {
     return [];
   }
 
-  if (path === "packages/react") {
-    return [CORE, "react"];
+  const framework = FRAMEWORKS[path];
+
+  if (framework !== undefined) {
+    return [CORE, framework];
   }
 
   return [CORE];
@@ -72,7 +81,7 @@ for (const path of packages) {
     const imports = readImports(stripComments(readFileSync(file, "utf8")));
 
     for (const specifier of imports) {
-      // BIND-10 A built package imports only what its role allows, so a web consumer receives no native module, React, Workbox or SemVer library.
+      // BIND-10 A built package imports only what its role allows, so a web consumer receives no native module, framework, Workbox or SemVer library.
       assert(
         isAllowed(specifier, allowed(path, file)),
         `${file} imports "${specifier}", which ${path} may not.`,

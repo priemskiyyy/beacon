@@ -206,7 +206,6 @@ import {
   foreground,
   interval,
   reconnect,
-  startup,
 } from "@priemskiyyy/beacon-triggers";
 import NetInfo from "@react-native-community/netinfo";
 import { useEffect } from "react";
@@ -219,7 +218,6 @@ export const useUpdateChecks = () => {
     () =>
       checkOn(beacon, {
         triggers: [
-          startup(),
           foreground({ appState: AppState, minAway: 30_000 }),
           reconnect({ netInfo: NetInfo }),
           interval({ every: 30 * 60_000, jitter: 0.2 }),
@@ -231,7 +229,7 @@ export const useUpdateChecks = () => {
 };
 ```
 
-`checkOn` subscribes to nothing until it is called, and then only to the Beacon's status: each trigger subscribes to its own source while the session that the provider's `start` opened is open, and takes it back when it ends or when the effect's cleanup stops it. So the order of the provider's effect and this one does not matter. `foreground` listens to `AppState`'s `change` event, `reconnect` to NetInfo's state, and `interval` arms one timer that pauses while the app is in the background. NetInfo tells a new listener the state it knows at once, which is not a reconnect, so nothing is checked because of it.
+`checkOn` checks once each time the session opens, without a trigger to list, and subscribes to nothing until it is called, and then only to the Beacon's status: each trigger subscribes to its own source while the session that the provider's `start` opened is open, and takes it back when it ends or when the effect's cleanup stops it. So the order of the provider's effect and this one does not matter. `foreground` listens to `AppState`'s `change` event, `reconnect` to NetInfo's state, and `interval` arms one timer that pauses while the app is in the background. NetInfo tells a new listener the state it knows at once, which is not a reconnect, so nothing is checked because of it.
 
 Several signals at once cost one read, signals inside `minInterval` (5 seconds) become one later start, and `backoff` holds the next check off after a failure, so an Expo update server that rate limits is not asked faster than you say. `minAway` skips a return after less than that many milliseconds. [Triggers](triggers.md) has the timing of each, what it does not do and what a device still has to show.
 

@@ -1,6 +1,6 @@
 # @priemskiyyy/beacon-triggers
 
-Checks a [Beacon](../../core) on the moments an app needs it: when it starts, when it returns from the background, when the network comes back, now and then, and when a push says so. React Native first, with `AppState` and NetInfo as they are; React on the web through the sources you already have. One gate behind every trigger shares reads, holds a burst to one start, backs off after a failure and stops when you say so. Beacon itself has no timer and no subscription, and nothing here is subscribed before you call `checkOn`.
+Checks a [Beacon](../../core) on the moments an app needs it: when it starts, when it returns from the background or a tab is shown again, when the network comes back, now and then, and when a push says so. React Native first, with `AppState` and NetInfo as they are, and the browser through the `/browser` subpath. One gate behind every trigger shares reads, holds a burst to one start, backs off after a failure and stops when you say so. Beacon itself has no timer and no subscription, and nothing here is subscribed before you call `checkOn`.
 
 ## Installation
 
@@ -18,7 +18,6 @@ import {
   foreground,
   interval,
   reconnect,
-  startup,
 } from "@priemskiyyy/beacon-triggers";
 import NetInfo from "@react-native-community/netinfo";
 import { useEffect } from "react";
@@ -29,7 +28,6 @@ export const useUpdateChecks = () => {
     () =>
       checkOn(beacon, {
         triggers: [
-          startup(),
           foreground({ appState: AppState, minAway: 30_000 }),
           reconnect({ netInfo: NetInfo }),
           interval({ every: 30 * 60_000, jitter: 0.2 }),
@@ -41,7 +39,29 @@ export const useUpdateChecks = () => {
 };
 ```
 
-`checkOn` answers its stop, which is what `useEffect` wants as a cleanup, and it is safe under Strict Mode: the effect runs, stops and runs again, and one set of listeners is left. Call the hook below `BeaconProvider`, which starts the session: a trigger is installed when the session opens, whichever came first. [React Native](../../../docs/react-native.md#when-to-check) has the wiring of the whole app.
+`checkOn` checks once each time a session opens, with no trigger to list for it: pass `startup: false` where the first check belongs to something else. It answers its stop, which is what `useEffect` wants as a cleanup, and it is safe under Strict Mode: the effect runs, stops and runs again, and one set of listeners is left. Call the hook below `BeaconProvider`, which starts the session: a trigger is installed when the session opens, whichever came first. [React Native](../../../docs/react-native.md#when-to-check) has the wiring of the whole app.
+
+## Use it on the web
+
+The `/browser` subpath has the same two triggers over the page's own events, with the same names and reasons:
+
+```tsx
+import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
+import { foreground, reconnect } from "@priemskiyyy/beacon-triggers/browser";
+import { useEffect } from "react";
+
+export const useUpdateChecks = () => {
+  useEffect(
+    () =>
+      checkOn(beacon, {
+        triggers: [foreground(), reconnect(), interval({ every: 10 * 60_000 })],
+      }),
+    [],
+  );
+};
+```
+
+`foreground({ target?, minAway? })` checks when a hidden tab is shown or the browser restores the page from the back-forward cache, and pauses an `interval` while the tab is hidden. `reconnect({ target? })` checks when the window fires `online`, never at startup. Both read the global `window` when a session opens, or the `target` you pass, and install nothing where there is no browser window: in a server render, or in React Native.
 
 ## What each trigger subscribes to
 
@@ -49,15 +69,16 @@ export const useUpdateChecks = () => {
 
 | Trigger                                 | Subscribes to                                  | Checks when                                                          | Reason         |
 | --------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------- | -------------- |
-| `startup()`                             | nothing                                        | a session opens, and again for the session `replaceScope` starts     | `startup`      |
 | `foreground({ appState, minAway? })`    | `AppState`'s `change` event, one listener      | the app comes back after a trip through `background`                 | `foreground`   |
-| `pulseForeground({ source, minAway? })` | a Pulse's `foreground` and `background` events | the Pulse says the app returned                                      | `foreground`   |
+| `foreground({ target?, minAway? })`     | `visibilitychange` and `pageshow` (`/browser`) | a hidden tab is shown, or the page comes back from the cache         | `foreground`   |
 | `reconnect({ netInfo })`                | NetInfo's state, one listener                  | an observed change from not connected to connected, never at startup | `reconnect`    |
-| `reachReconnect({ condition })`         | a Reach condition                              | it goes from unmet to met                                            | `reconnect`    |
+| `reconnect({ target? })`                | the window's `online` event (`/browser`)       | the browser says the network came back, never at startup             | `reconnect`    |
 | `interval({ every, jitter? })`          | nothing: one timer on the Beacon's clock       | `every` milliseconds after the last check the gate started settled   | `interval`     |
+| `pulseForeground({ source, minAway? })` | a Pulse's `foreground` and `background` events | the Pulse says the app returned                                      | `foreground`   |
+| `reachReconnect({ condition })`         | a Reach condition                              | it goes from unmet to met                                            | `reconnect`    |
 | `invalidation({ source })`              | anything with `subscribe(listener)`            | it says so; its payload is never read                                | `invalidation` |
 
-The options add two more: `onExpiry` subscribes to each route's state, and a backoff arms one timer while it waits. The reasons are the core's `CheckReason`; a retry and an expiry are labelled `interval`, since the core has no label for them.
+The check at startup is the gate's and has the reason `startup`. A backoff arms one timer while it waits, and a retry and an expiry are labelled `interval`, since the core has no label for them.
 
 ### The return from the background
 
@@ -84,29 +105,27 @@ Start the Pulse yourself: a Pulse that was never started says nothing. A source 
 
 Every trigger only offers a reason. One gate, made anew for each session, decides whether and when a check starts:
 
-| Situation                                            | What the gate does                                                                                                       |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| signals of one moment                                | one read: a signal during the check it started is answered by it                                                         |
-| a signal within `minInterval` of the last start      | waits, and the signals that wait become one start when it ends                                                           |
-| a `reconnect`                                        | `after-current`: a read that began before it cannot answer it, so the check begins after                                 |
-| a failed check                                       | with a `backoff`, waits `first`, then twice as long for each failure up to `max`, and retries by itself `attempts` times |
-| a `reconnect` during that wait                       | checks at once, since the network coming back is the reason the failure may be over                                      |
-| a check that succeeded                               | the failure count starts again                                                                                           |
-| the app in the background                            | `interval` pauses and waits its full delay again after the return                                                        |
-| `whileFresh: "skip"`                                 | a `foreground` or `interval` signal is dropped while every route holds fresh evidence that can expire                    |
-| the authority's `expiresAt` passing, with `onExpiry` | one check, heard through the route state, with no timer of the gate's own                                                |
-| the session ending, or `replaceScope`                | the gate and everything it held goes; the next session starts with no failure counted                                    |
+| Situation                                       | What the gate does                                                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| signals of one moment                           | one read: a signal during the check it started is answered by it                                                    |
+| a signal within `minInterval` of the last start | waits, and the signals that wait become one start when it ends                                                      |
+| a `reconnect`                                   | `after-current`: a read that began before it cannot answer it, so the check begins after                            |
+| a failed check                                  | with a `backoff`, waits `first`, then twice as long for each failure up to `max`, and retries by itself a few times |
+| a `reconnect` during that wait                  | checks at once, since the network coming back is the reason the failure may be over                                 |
+| a check that succeeded                          | the failure count starts again                                                                                      |
+| the app in the background                       | `interval` pauses and waits its full delay again after the return                                                   |
+| the session ending, or `replaceScope`           | the gate and everything it held goes; the next session starts with no failure counted and checks at startup again   |
 
 ## Options
 
-| Option        | Default       | Means                                                                                                                                                                  |
-| ------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `triggers`    | required      | the moments to check on                                                                                                                                                |
-| `minInterval` | `5_000`       | the least time between two starts                                                                                                                                      |
-| `backoff`     | `false`       | `{ first, max, jitter?, attempts? }`: the wait after a failure, doubled for each consecutive one, with `jitter` (0.2) of it added at random and `attempts` (3) retries |
-| `whileFresh`  | `"check"`     | `"skip"` drops a `foreground` or `interval` signal while every route holds fresh evidence whose `expiresAt` is not `null`                                              |
-| `onExpiry`    | `false`       | checks when a route's evidence goes from fresh to expired                                                                                                              |
-| `random`      | `Math.random` | the source of the jitter                                                                                                                                               |
+| Option        | Default  | Means                                                                                     |
+| ------------- | -------- | ----------------------------------------------------------------------------------------- |
+| `triggers`    | required | the moments to check on                                                                   |
+| `startup`     | `true`   | checks once each time a session opens, including the one `replaceScope` starts            |
+| `minInterval` | `5_000`  | the least time between two starts                                                         |
+| `backoff`     | `false`  | `{ first, max }`: the wait after a failure, doubled for each consecutive one, up to `max` |
+
+The [advanced options](../../../docs/triggers.md#advanced) are `backoff.jitter` and `backoff.attempts`, `whileFresh: "skip"`, which drops a `foreground` or `interval` signal while every route holds fresh evidence whose `expiresAt` is not `null`, `onExpiry`, which checks when a route's evidence goes from fresh to expired, and `random`, the source of the jitter.
 
 The clock is `beacon.clock`, so a test clock moves every timer of the gate. A trigger that throws on install costs only itself and its error reaches the host outside the call, as a listener's does in Beacon.
 
@@ -117,20 +136,25 @@ The clock is `beacon.clock`, so a test clock moves every timer of the gate. A tr
 - A reconnect says the device is connected, not that the authority is reachable.
 - The gate is per JavaScript runtime: N tabs are N gates and N reads.
 - `Retry-After` is not read, and a failed check is a failed check. There is no `beacon.reconcile()` yet, so `foreground` only checks.
-- It stores nothing: every launch checks at `startup`.
+- It stores nothing: every launch checks at startup.
 
 ## Verification
 
-| Claim                                                                                                                                                      | Proven by                                                                  | State          |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------- |
-| Nothing is subscribed or armed before `checkOn`, `stop` leaves no listener and no timer, a session's end takes the triggers                                | scenarios over the real core, the test clock and fakes (`TRIG-01` to `08`) | tested         |
-| One read per moment, a reconnect reads after the current one, a burst is one start, backoff, jitter, freshness, expiry and a clock that cannot arm a timer | the same, with the mock source (`TRIG-09` to `19`, `TRIG-30`)              | tested         |
-| The return rule of `AppState`, `minAway`, NetInfo's first call, a condition, a push                                                                        | the same over fakes of each source (`TRIG-20` to `29`)                     | tested         |
-| A Pulse's events and `observedAway` decide the check                                                                                                       | the real Pulse 0.1.0 over its own mock adapter (`TRIG-27`)                 | tested         |
-| The real `AppState` of React Native 0.86.3, NetInfo 12.0.1 and Pulse 0.1.0 satisfy the structural types                                                    | `src/checkOn.contracts.ts`, typechecked                                    | tested         |
-| A Reach 0.1.0 condition, React Native 0.87.1 and the strict API of 0.86.3 satisfy them                                                                     | typechecked once in a scratch directory: Reach 0.1.0 is unpublished        | not in CI      |
-| `AppState` on a device: a system dialog taking iOS to `inactive` and back, every Android pause being `background`                                          | nothing                                                                    | **UNVERIFIED** |
-| NetInfo on a device: its first call, its state across a real change of network                                                                             | nothing                                                                    | **UNVERIFIED** |
-| Background timers: iOS suspending JavaScript, Android throttling it, a hidden tab throttling a timer                                                       | nothing                                                                    | **UNVERIFIED** |
-| An `interval` that resumes at the return, and a check that is in flight when the app is suspended                                                          | nothing                                                                    | **UNVERIFIED** |
-| The triggers under Hermes                                                                                                                                  | the same scenarios in the Hermes-like environment, not a device            | tested         |
+| Claim                                                                                                                                                         | Proven by                                                                                         | State          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------- |
+| Nothing is subscribed or armed before `checkOn`, `stop` leaves no listener and no timer, a session's end takes the triggers                                   | scenarios over the real core, the test clock and fakes (`TRIG-01` to `08`)                        | tested         |
+| One read per moment, a reconnect reads after the current one, a burst is one start, backoff, jitter, freshness, expiry and a clock that cannot arm a timer    | the same, with the mock source (`TRIG-09` to `19`, `TRIG-30`)                                     | tested         |
+| The return rule of `AppState`, `minAway`, NetInfo's first call, a condition, a push                                                                           | the same over fakes of each source (`TRIG-20` to `29`)                                            | tested         |
+| A session checks at startup by itself, and `startup: false` leaves the first check to the triggers                                                            | the same, and a real Chromium (`examples/triggers-browser.spec.ts`)                               | tested         |
+| The browser triggers: a hidden tab shown again, the back-forward cache, `minAway`, the interval pausing, no window and a window that is React Native's global | scenarios over a fake page (`TRIG-01`, `TRIG-20` to `23`), also under the Hermes-like environment | tested         |
+| The `online` event of a real browser is a reconnect, never at startup, and stopping removes the listener                                                      | a real Chromium going offline and back, by `examples/triggers-browser.spec.ts`                    | tested         |
+| The real `window` satisfies the structural types of the browser triggers                                                                                      | `src/browser.contracts.ts`, typechecked                                                           | tested         |
+| A hidden tab and a page restored from the back-forward cache in a real browser, Safari and Firefox                                                            | nothing: a headless page cannot be hidden                                                         | **UNVERIFIED** |
+| A Pulse's events and `observedAway` decide the check                                                                                                          | the real Pulse 0.1.0 over its own mock adapter (`TRIG-27`)                                        | tested         |
+| The real `AppState` of React Native 0.86.3, NetInfo 12.0.1 and Pulse 0.1.0 satisfy the structural types                                                       | `src/checkOn.contracts.ts`, typechecked                                                           | tested         |
+| A Reach 0.1.0 condition, React Native 0.87.1 and the strict API of 0.86.3 satisfy them                                                                        | typechecked once in a scratch directory: Reach 0.1.0 is unpublished                               | not in CI      |
+| `AppState` on a device: a system dialog taking iOS to `inactive` and back, every Android pause being `background`                                             | nothing                                                                                           | **UNVERIFIED** |
+| NetInfo on a device: its first call, its state across a real change of network                                                                                | nothing                                                                                           | **UNVERIFIED** |
+| Background timers: iOS suspending JavaScript, Android throttling it, a hidden tab throttling a timer                                                          | nothing                                                                                           | **UNVERIFIED** |
+| An `interval` that resumes at the return, and a check that is in flight when the app is suspended                                                             | nothing                                                                                           | **UNVERIFIED** |
+| The triggers under Hermes                                                                                                                                     | the same scenarios in the Hermes-like environment, not a device                                   | tested         |

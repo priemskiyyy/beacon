@@ -73,6 +73,12 @@ An accepted reload leaves the route unresolved, because the old document may sta
 `webRelease({ authority, id, label })` makes the `Release` that `webBuild` reads back when that build runs, so a custom source, such as a version file, names its build without an identity written by hand:
 
 ```ts
+import { targetRoute } from "@priemskiyyy/beacon";
+import type { ReleaseSource } from "@priemskiyyy/beacon";
+import { browserReload, webRelease } from "@priemskiyyy/beacon-browser";
+
+declare const versionFile: ReleaseSource<{ build: string }>;
+
 const web = targetRoute({
   subject: "web",
   source: versionFile.select((file) => ({

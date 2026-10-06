@@ -64,6 +64,8 @@ export default defineConfig({
     { name: "expo", testMatch: "expo.spec.ts" },
     // The built browser package alone, in a page of its own that the spec serves.
     { name: "browser-storage", testMatch: "browser-storage.spec.ts" },
+    // The built browser triggers alone, in a page of their own.
+    { name: "triggers-browser", testMatch: "triggers-browser.spec.ts" },
   ],
   // A run of one app starts its own preview and sets this, so it builds nothing else.
   webServer: process.env.EXAMPLE_SERVERS_STARTED === undefined ? servers : [],

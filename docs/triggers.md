@@ -1,5 +1,5 @@
 ---
-description: "Check a Beacon on startup, a return from the background, a network that came back, an interval or a push with checkOn: what each trigger subscribes to, how one gate times, joins and backs off a check, how a fresh answer is skipped, and what it does not do."
+description: "Check a Beacon at startup, on a return from the background or a tab shown again, a network that came back, an interval or a push with checkOn, in React Native and in the browser: what each trigger subscribes to, how one gate times, joins and backs off a check, and what it does not do."
 ---
 
 # Triggers
@@ -21,7 +21,6 @@ import {
   foreground,
   interval,
   reconnect,
-  startup,
 } from "@priemskiyyy/beacon-triggers";
 import NetInfo from "@react-native-community/netinfo";
 import { useEffect } from "react";
@@ -32,7 +31,6 @@ export const useUpdateChecks = () => {
     () =>
       checkOn(beacon, {
         triggers: [
-          startup(),
           foreground({ appState: AppState, minAway: 30_000 }),
           reconnect({ netInfo: NetInfo }),
           interval({ every: 30 * 60_000, jitter: 0.2 }),
@@ -44,60 +42,34 @@ export const useUpdateChecks = () => {
 };
 ```
 
+`checkOn` checks once each time a session opens, with no trigger to list for it, and then on the moments its triggers name. `foreground` alone is the smallest useful set: `checkOn(beacon, { triggers: [foreground({ appState: AppState })] })`.
+
 `checkOn` answers its stop, which is what `useEffect` wants back as a cleanup. Under Strict Mode the effect runs, stops and runs again, and one set of listeners is left. Call the hook below `BeaconProvider` with `start`: the session it opens is what installs the triggers, so the order of the two effects does not matter. [React Native](react-native.md#when-to-check) has the wiring of the whole app, and `@react-native-community/netinfo` is yours to install if you use `reconnect`.
 
-## React on the web
+## On the web
 
-The package takes no `document` and no `window`, so on the web the sources are yours. A Pulse is one, through `pulseForeground`, and so is a Reach condition, through `reachReconnect`. Without them, a trigger of your own is a few lines, and it keeps the reason the core knows it by:
+The `@priemskiyyy/beacon-triggers/browser` subpath has the same two triggers over the page's own events, under the same names and with the same reasons, so nothing has to be written by hand:
 
 ```tsx
 // src/useUpdateChecks.web.ts
-import { checkOn, interval, startup } from "@priemskiyyy/beacon-triggers";
-import type { BeaconTrigger } from "@priemskiyyy/beacon-triggers";
+import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
+import { foreground, reconnect } from "@priemskiyyy/beacon-triggers/browser";
 import { useEffect } from "react";
-
-const visible: BeaconTrigger = (target) => {
-  const listener = () => {
-    const away = document.visibilityState !== "visible";
-
-    target.setAway(away);
-
-    if (!away) {
-      target.signal("foreground");
-    }
-  };
-
-  target.setAway(document.visibilityState !== "visible");
-  document.addEventListener("visibilitychange", listener);
-
-  return () => document.removeEventListener("visibilitychange", listener);
-};
-
-const online: BeaconTrigger = (target) => {
-  const listener = () => target.signal("reconnect");
-
-  addEventListener("online", listener);
-
-  return () => removeEventListener("online", listener);
-};
 
 export const useUpdateChecks = () => {
   useEffect(
     () =>
       checkOn(beacon, {
-        triggers: [
-          startup(),
-          visible,
-          online,
-          interval({ every: 10 * 60_000 }),
-        ],
+        triggers: [foreground(), reconnect(), interval({ every: 10 * 60_000 })],
       }),
     [],
   );
 };
 ```
 
-The browser's `online` event fires when the network comes, never at startup, which is the rule `reconnect` keeps for NetInfo. A hidden tab's timers are throttled, so `visible` also tells the gate where the page is with `target.setAway`, and `interval` pauses while it is hidden, as it does for `foreground` and `pulseForeground`.
+`foreground({ target?, minAway? })` listens to the document's `visibilitychange` and the window's `pageshow`. A tab that is hidden and shown again is a return, a page the browser restores from the back-forward cache is one too, and a page that was never hidden is not. It also tells the gate where the page is, so `interval` pauses while the tab is hidden, where a browser throttles its timers, and waits its full delay again after the return. `reconnect({ target? })` listens to the window's `online` event, which fires only on a change, so a page that loads online is not a reconnect and nothing is checked at startup.
+
+Both listen to the global `window`, reached when a session opens and never when the trigger is made, or to a `target` you pass, such as another frame's window or a fake in a test. Where there is no window, as in a server render, or where `window` is not a browser's, as React Native's global object is not, they install nothing and cost nothing. The `minAway` of `foreground` is the same throttle as in React Native. Safari, Firefox and the back-forward cache are not run against a real browser: see [what no device has run](#what-it-does-not-do).
 
 ## The triggers
 
@@ -105,15 +77,16 @@ The browser's `online` event fires when the network comes, never at startup, whi
 
 | Trigger                                 | Subscribes to                             | Offers a check when                                                | Reason         |
 | --------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------ | -------------- |
-| `startup()`                             | nothing                                   | a session opens, and again for the one `replaceScope` starts       | `startup`      |
 | `foreground({ appState, minAway? })`    | `AppState`'s `change` event, one listener | the app comes back after a trip through `background`               | `foreground`   |
-| `pulseForeground({ source, minAway? })` | a Pulse's `foreground` and `background`   | the Pulse says the app returned                                    | `foreground`   |
+| `foreground({ target?, minAway? })`     | `visibilitychange` and `pageshow`         | a hidden tab is shown, or the page comes back from the cache       | `foreground`   |
 | `reconnect({ netInfo })`                | NetInfo's state, one listener             | NetInfo was seen not connected, and now is connected               | `reconnect`    |
-| `reachReconnect({ condition })`         | a Reach condition                         | the condition was unmet, and now is met                            | `reconnect`    |
+| `reconnect({ target? })`                | the window's `online` event               | the browser says the network came back                             | `reconnect`    |
 | `interval({ every, jitter? })`          | nothing: one timer on the Beacon's clock  | `every` milliseconds after the last check the gate started settled | `interval`     |
+| `pulseForeground({ source, minAway? })` | a Pulse's `foreground` and `background`   | the Pulse says the app returned                                    | `foreground`   |
+| `reachReconnect({ condition })`         | a Reach condition                         | the condition was unmet, and now is met                            | `reconnect`    |
 | `invalidation({ source })`              | anything with `subscribe(listener)`       | it says so; its payload is never read                              | `invalidation` |
 
-The options add two more. `onExpiry` subscribes to each route's state, and a `backoff` arms one timer while it waits. A retry and an expiry are labelled `interval`, since the core's `CheckReason` has no label for either.
+The first two pairs of rows are two imports: the React Native ones come from `@priemskiyyy/beacon-triggers` and the browser ones from `@priemskiyyy/beacon-triggers/browser`. The check at startup is not a trigger: each time a session opens, including the one `replaceScope` starts for a new scope, the gate checks once with the reason `startup`. Pass `startup: false` to `checkOn` where the first check belongs to something else. A retry and an expiry are labelled `interval`, since the core's `CheckReason` has no label for either.
 
 ### foreground
 
@@ -140,7 +113,7 @@ A Pulse says the same thing with more care, on the web and in React Native. `pul
 
 ### reconnect and reachReconnect
 
-NetInfo calls a new listener with the state it knows as soon as it subscribes, and then on every change. So `reconnect` does not read "connected" as a reconnect: only an observed change from `isConnected: false` to `true` is one, nothing is checked at startup, and an unknown state (`null`) is neither a loss nor a return. An app that starts offline checks when the network first comes.
+NetInfo calls a new listener with the state it knows as soon as it subscribes, and then on every change. So `reconnect({ netInfo })` does not read "connected" as a reconnect: only an observed change from `isConnected: false` to `true` is one, nothing is checked at startup, and an unknown state (`null`) is neither a loss nor a return. An app that starts offline checks when the network first comes. The browser's `online` event only fires on a change, so `reconnect()` of the browser subpath keeps the same rule without looking at `navigator.onLine`.
 
 `reachReconnect({ condition })` keeps the same rule over a Reach condition: it was `unmet`, and now it is `met`. A reconnect does not wait out a backoff, and its check begins after any read that was under way, since that read may have met the dead network. It says the device is connected, not that the authority is reachable.
 
@@ -194,24 +167,42 @@ Every duration is milliseconds on the Beacon's clock, which a test clock replace
 | `minInterval`          | the last start of a check                                   | 5,000                      |
 | `backoff.first`, `max` | the settling of a failed check                              | no backoff                 |
 | `backoff.jitter`       | added to a wait, as a share of it                           | 0.2                        |
-| `backoff.attempts`     | counted in consecutive failures                             | 3                          |
 | `interval.every`       | the last check the gate started that settled, or the return | required                   |
 | `interval.jitter`      | added to `every`, as a share of it                          | 0                          |
 | `minAway`              | the report of the departure                                 | 0, so no return is skipped |
-| `onExpiry`             | the authority's own `expiresAt`, through the route's state  | off                        |
+
+The [advanced options](#advanced) have their own defaults: `backoff.attempts` counts consecutive failures and is 3, and `onExpiry` measures from the authority's own `expiresAt` and is off.
 
 ### Backoff
 
 ```ts
-import { checkOn, interval, startup } from "@priemskiyyy/beacon-triggers";
+import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
 
 export const stop = checkOn(beacon, {
-  triggers: [startup(), interval({ every: 30 * 60_000 })],
-  backoff: { first: 10_000, max: 15 * 60_000, jitter: 0.2, attempts: 3 },
+  triggers: [interval({ every: 30 * 60_000 })],
+  backoff: { first: 10_000, max: 15 * 60_000 },
 });
 ```
 
-After a failed check, the gate waits `first` milliseconds, then twice as long for each consecutive failure up to `max`, with up to `jitter` of the wait added at random and never past `max`. When the wait ends, it starts a check by itself, for as many failures as `attempts` allows. Then it waits for the next signal, which starts a check as soon as its wait is over. Signals that come during a wait become one start at its end, together with the retry. One read that failed is one failure, however many signals it answered. The default is `backoff: false`: nothing is retried by itself and nothing is delayed beyond `minInterval`. A failure of the support policy counts as a failure, and so does any route's.
+After a failed check, the gate waits `first` milliseconds, then twice as long for each consecutive failure up to `max`, with up to 20 percent of the wait added at random and never past `max`. When the wait ends, it starts a check by itself, for a few failures. Then it waits for the next signal, which starts a check as soon as its wait is over. Signals that come during a wait become one start at its end, together with the retry. One read that failed is one failure, however many signals it answered. The default is `backoff: false`: nothing is retried by itself and nothing is delayed beyond `minInterval`. A failure of the support policy counts as a failure, and so does any route's.
+
+## Advanced
+
+The defaults are right until a real authority says otherwise. These are the options that most applications never set.
+
+### Retries, jitter and the random source
+
+`backoff: { first, max, jitter, attempts }` also takes `jitter`, the share of a wait added at random (0.2 by default), and `attempts`, the retries the gate starts by itself before it waits for the next signal (3 by default). `random` is the source of every jitter, `Math.random` by default: pass a fixed one in a test.
+
+```ts
+import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
+
+export const stop = checkOn(beacon, {
+  triggers: [interval({ every: 30 * 60_000 })],
+  backoff: { first: 10_000, max: 15 * 60_000, jitter: 0.2, attempts: 3 },
+  random: () => 0.5,
+});
+```
 
 ### Freshness
 
@@ -227,11 +218,11 @@ After a failed check, the gate waits `first` milliseconds, then twice as long fo
 
 - **It makes no runtime run.** A timer of a backgrounded app or tab may be throttled, suspended or never fire: iOS suspends JavaScript soon after the app leaves, Android may keep it a while, and a hidden tab's timers are throttled. Keep `foreground` beside `interval`.
 - **The away time is an estimate.** A Pulse's `observedAway` and the time `foreground` measures only throttle a check, and neither is a stopwatch.
-- **A reconnect does not prove the authority is reachable.** NetInfo and a condition say the device has a connection. A captive portal or a blocked host still fails the check.
+- **A reconnect does not prove the authority is reachable.** NetInfo, the browser's `online` and a condition say the device has a connection. A captive portal or a blocked host still fails the check.
 - **The gate is per JavaScript runtime.** N tabs are N gates and N reads, and nothing here coordinates them.
 - **`Retry-After` is not read.** A `429` fails the read like any failure, and the backoff is yours to configure.
 - **`foreground` only checks.** Beacon has no `beacon.reconcile()` yet, so a driver reconciles when a session opens and not on a return.
-- **It stores nothing.** A launch has no memory of the last check, so `startup` checks every time.
+- **It stores nothing.** A launch has no memory of the last check, so the check at startup runs every time.
 - **A check is a read of the authority.** A trigger that fires often asks often: pick `minInterval`, `backoff` and `whileFresh` for the authority you have.
 
-What no device has run, and stays unverified: `AppState` on a device (a system dialog taking iOS to `inactive` and back, every Android pause being `background`), what NetInfo reports on a real change of network and when, and the behavior of timers while the app is in the background. The tests run the triggers over fakes of each source, the real Pulse over its own mock adapter, and the real Beacon and its test clock. [React Native](react-native.md#what-no-device-has-run) lists the rest.
+What no device has run, and stays unverified: `AppState` on a device (a system dialog taking iOS to `inactive` and back, every Android pause being `background`), what NetInfo reports on a real change of network and when, and the behavior of timers while the app is in the background. On the web, Chromium has run the `online` event through a real change of the network, and nothing has run `visibilitychange` on a real hidden tab, the `pageshow` of the back-forward cache, Safari or Firefox: the tests drive the browser triggers over a fake page. The tests run the triggers over fakes of each source, the real Pulse over its own mock adapter, and the real Beacon and its test clock. [React Native](react-native.md#what-no-device-has-run) lists the rest.

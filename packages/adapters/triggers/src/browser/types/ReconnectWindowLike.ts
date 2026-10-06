@@ -5,6 +5,8 @@
  *
  * @example
  * ```ts
+ * import { reconnect } from "@priemskiyyy/beacon-triggers/browser";
+ *
  * const back = reconnect({ target: window });
  * ```
  */

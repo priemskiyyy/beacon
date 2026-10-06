@@ -85,6 +85,9 @@
 ## @priemskiyyy/beacon-triggers 0.1.0 - Unreleased
 
 - First release. `checkOn(beacon, { triggers })` checks a Beacon on startup, a return from the background, a network that came back, an interval and a push, through one gate that shares reads, holds a burst to one start and backs off after a failure. React Native's `AppState` and NetInfo are taken as they are, a Pulse and a Reach condition are the other inputs, and nothing is subscribed before `checkOn`.
+- `checkOn` checks once each time a session opens, including the one `replaceScope` starts, with no trigger to list for it; `startup: false` opts out. The `startup()` trigger factory is removed: there is one way to ask for the first check.
+- `@priemskiyyy/beacon-triggers/browser` has `foreground({ target?, minAway? })`, which checks when a hidden tab is shown or the browser restores the page from the back-forward cache and pauses an `interval` while the tab is hidden, and `reconnect({ target? })`, which checks when the window fires `online` and never at startup. Both read the global `window` only when a session opens and install nothing without a browser window, in a server render or in React Native; the `online` event is run in Chromium against a real change of network.
+- `whileFresh`, `onExpiry`, `random` and `backoff.attempts` are documented as advanced options, after the ones most applications set.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased

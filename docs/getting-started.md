@@ -270,11 +270,11 @@ export const beacon = new Beacon({
 
 `expoBundle` reads the update that launched. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`. `expoApplication` reads the installed binary, its version code on Android or its build number on iOS, in the words the store adapters and the journal compare in, and a binary of another application, such as Expo Go, is unknown and never your build.
 
-Start the session at bootstrap, check when the app starts and when it returns from the background, and apply an update in two commands: `download` prepares it and `reload` restarts the runtime with it.
+Start the session at bootstrap, check when the app starts (`checkOn` does that by itself) and when it returns from the background, and apply an update in two commands: `download` prepares it and `reload` restarts the runtime with it.
 
 ```ts
 // src/updates.ts
-import { checkOn, foreground, startup } from "@priemskiyyy/beacon-triggers";
+import { checkOn, foreground } from "@priemskiyyy/beacon-triggers";
 import { AppState } from "react-native";
 
 import { beacon } from "src/beacon.native";
@@ -284,7 +284,7 @@ export const startUpdates = () => {
 
   // Only a trip through the background is a return: on iOS a system dialog is inactive and back to active, and `foreground` knows it.
   const stopChecking = checkOn(beacon, {
-    triggers: [startup(), foreground({ appState: AppState })],
+    triggers: [foreground({ appState: AppState })],
   });
 
   return () => {

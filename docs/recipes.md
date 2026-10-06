@@ -208,7 +208,6 @@ import {
   foreground,
   interval,
   reconnect,
-  startup,
 } from "@priemskiyyy/beacon-triggers";
 import NetInfo from "@react-native-community/netinfo";
 import { AppState } from "react-native";
@@ -220,7 +219,6 @@ export const watchNative = () => {
 
   const stopChecking = checkOn(native, {
     triggers: [
-      startup(),
       foreground({ appState: AppState, minAway: 30_000 }),
       reconnect({ netInfo: NetInfo }),
       interval({ every: 30 * 60_000, jitter: 0.2 }),
@@ -235,45 +233,20 @@ export const watchNative = () => {
 };
 ```
 
-On the web the sources are yours, and a trigger of your own is a few lines that keep the reason the core knows it by:
+On the web, the `/browser` subpath of the package has the same two triggers over the page's own events: `foreground` listens to `visibilitychange` and `pageshow`, and pauses an interval while the tab is hidden, and `reconnect` listens to `online`. The check at startup is `checkOn`'s own.
 
 ```ts
 // src/watchForUpdates.ts
-import { checkOn, interval, startup } from "@priemskiyyy/beacon-triggers";
-import type { BeaconTrigger } from "@priemskiyyy/beacon-triggers";
+import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
+import { foreground, reconnect } from "@priemskiyyy/beacon-triggers/browser";
 
 import { beacon } from "src/beacon";
-
-const visible: BeaconTrigger = (target) => {
-  const listener = () => {
-    const away = document.visibilityState !== "visible";
-
-    target.setAway(away);
-
-    if (!away) {
-      target.signal("foreground");
-    }
-  };
-
-  target.setAway(document.visibilityState !== "visible");
-  document.addEventListener("visibilitychange", listener);
-
-  return () => document.removeEventListener("visibilitychange", listener);
-};
-
-const online: BeaconTrigger = (target) => {
-  const listener = () => target.signal("reconnect");
-
-  addEventListener("online", listener);
-
-  return () => removeEventListener("online", listener);
-};
 
 export const watchForUpdates = (every: number) => {
   const stop = beacon.start();
 
   const stopChecking = checkOn(beacon, {
-    triggers: [startup(), visible, online, interval({ every, jitter: 0.2 })],
+    triggers: [foreground(), reconnect(), interval({ every, jitter: 0.2 })],
   });
 
   return () => {

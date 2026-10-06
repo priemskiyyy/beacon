@@ -1,5 +1,5 @@
 import type { BeaconDiagnosticEvent } from "@priemskiyyy/beacon";
-import { checkOn, foreground, startup } from "@priemskiyyy/beacon-triggers";
+import { checkOn, foreground } from "@priemskiyyy/beacon-triggers";
 import type React from "react";
 import { useEffect } from "react";
 import { AppState, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -25,7 +25,7 @@ export const NativeApplication: React.FunctionComponent<
 
     // Only a trip through the background is a return: on iOS a system dialog is inactive and back to active.
     const stopChecking = checkOn(beacon, {
-      triggers: [startup(), foreground({ appState: AppState })],
+      triggers: [foreground({ appState: AppState })],
     });
 
     return () => {

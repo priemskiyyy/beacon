@@ -1,7 +1,7 @@
 {
   "name": "@priemskiyyy/beacon-triggers",
   "version": "0.1.0",
-  "description": "Checks a Beacon on the moments an app needs it: startup, a return from the background, a network that came back, an interval and a push, through one gate that shares reads, backs off after a failure and subscribes to nothing before you ask.",
+  "description": "Checks a Beacon on the moments an app needs it: startup, a return from the background or a tab shown again, a network that came back, an interval and a push, in React Native and in the browser, through one gate that shares reads, backs off after a failure and subscribes to nothing before you ask.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -52,6 +52,7 @@
     "appstate",
     "netinfo",
     "foreground",
+    "visibilitychange",
     "reconnect",
     "polling",
     "backoff",

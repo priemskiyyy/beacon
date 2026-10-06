@@ -7,6 +7,8 @@
  *
  * @example
  * ```ts
+ * import { foreground } from "@priemskiyyy/beacon-triggers/browser";
+ *
  * const returns = foreground({ target: window });
  * ```
  */

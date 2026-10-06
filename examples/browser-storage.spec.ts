@@ -336,7 +336,7 @@ for (const { name, env, known } of DEFINES) {
     try {
       writeFileSync(
         path.join(folder, "main.js"),
-        `import { webBuild } from ${JSON.stringify(BROWSER)};\nwindow.__release = webBuild({ authority: "com.example.notes", id: import.meta.env.VITE_BUILD_ID })();\n`,
+        `import { webBuild } from ${JSON.stringify(BROWSER)};\nwindow.__release = webBuild({ id: import.meta.env.VITE_BUILD_ID })({ scope: { application: "com.example.notes", environment: "production", platform: "web", distribution: "public-web" } });\n`,
       );
 
       if (env === undefined) {

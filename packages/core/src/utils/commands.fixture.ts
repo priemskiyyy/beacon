@@ -9,7 +9,7 @@ import type { ReserveResult } from "src/types/ReserveResult";
 import type { Settlement } from "src/types/Settlement";
 import { buildWebRelease, createRoutedBeacon } from "src/utils/Beacon.fixture";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
-import { settle } from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
 import { target } from "src/utils/routes.fixture";
 import type {
   Manifest,

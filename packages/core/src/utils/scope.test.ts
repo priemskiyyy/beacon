@@ -1,7 +1,8 @@
 import { expect, test } from "vitest";
 
 import type { ReleaseScope } from "src/types/ReleaseScope";
-import { SCOPE, settle } from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
+import { SCOPE } from "src/utils/Beacon.fixture";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,
@@ -9,11 +10,8 @@ import {
   startWithOffer,
   takeRun,
 } from "src/utils/commands.fixture";
-import {
-  buildIntent,
-  buildStored,
-  createMemoryStorage,
-} from "src/utils/journal.fixture";
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
+import { buildIntent, buildStored } from "src/utils/journal.fixture";
 import { target } from "src/utils/routes.fixture";
 import { createJournalKey } from "src/utils/internal/journal/createJournalKey";
 import { serializeJournal } from "src/utils/internal/journal/serializeJournal";
@@ -299,10 +297,10 @@ test("the revision of the support state keeps growing when a scope forgets what 
 });
 
 test("the journal reads the record of the next scope, and shows nothing of the last", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const context = createWebCommandBeacon({
-    journal: { mode: "best-effort", storage: memory.storage },
+    journal: { mode: "best-effort", storage: memory },
   });
 
   const offer = await startWithOffer(context);
@@ -320,21 +318,21 @@ test("the journal reads the record of the next scope, and shows nothing of the l
   await settle();
 
   expect(context.beacon.transitions.get().latest).toBeNull();
-  expect(memory.data.has(createJournalKey(SCOPE))).toBe(true);
-  expect(memory.data.has(createJournalKey(STAGING))).toBe(false);
+  expect(memory.records.has(createJournalKey(SCOPE))).toBe(true);
+  expect(memory.records.has(createJournalKey(STAGING))).toBe(false);
 });
 
 test("the journal reads the record of the next scope, whatever the last one held", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const context = createWebCommandBeacon({
-    journal: { mode: "best-effort", storage: memory.storage },
+    journal: { mode: "best-effort", storage: memory },
   });
 
   context.beacon.start();
   await settle();
 
-  memory.data.set(
+  memory.records.set(
     createJournalKey(STAGING),
     serializeJournal([buildStored(buildIntent({ boot: { id: "boot-0" } }))]),
   );
@@ -348,16 +346,16 @@ test("the journal reads the record of the next scope, whatever the last one held
 });
 
 test("a listener that starts the Beacon while the scope is replaced leaves the journal reading the record of the next scope", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const context = createWebCommandBeacon({
-    journal: { mode: "required", storage: memory.storage },
+    journal: { mode: "required", storage: memory },
   });
 
   context.beacon.start();
   await settle();
 
-  memory.data.set(
+  memory.records.set(
     createJournalKey(STAGING),
     serializeJournal([buildStored(buildIntent({ boot: { id: "boot-0" } }))]),
   );
@@ -380,10 +378,10 @@ test("a listener that starts the Beacon while the scope is replaced leaves the j
 });
 
 test("the intents of the last scope are not shown for the next when its record cannot be read", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const context = createWebCommandBeacon({
-    journal: { mode: "best-effort", storage: memory.storage },
+    journal: { mode: "best-effort", storage: memory },
   });
 
   const offer = await startWithOffer(context);

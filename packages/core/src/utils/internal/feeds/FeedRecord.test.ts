@@ -7,7 +7,7 @@ import {
   createSession,
 } from "src/utils/internal/feeds/FeedRecord.fixture";
 import type { Manifest } from "src/utils/internal/feeds/FeedRecord.fixture";
-import { settle } from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
 
 test("HTTP-01 callers of one source share a single read and its attempt", async () => {
   const { feed, mock, accepted } = createFeed();

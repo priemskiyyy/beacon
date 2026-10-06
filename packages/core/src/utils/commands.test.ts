@@ -1,7 +1,8 @@
 import { expect, test, vi } from "vitest";
 
-import { SCOPE, settle } from "src/utils/Beacon.fixture";
-import { createMemoryStorage } from "src/utils/journal.fixture";
+import { settle } from "src/mock/settle";
+import { SCOPE } from "src/utils/Beacon.fixture";
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,
@@ -935,17 +936,17 @@ test("diagnostics record the admission and the settlement of a command", async (
 
 test("SAFE-06 the provider is never asked once the caller has given up, however the abort interleaves with the intent's write", async () => {
   for (const hops of [0, 1, 2, 3, 4, 5, 6, 8]) {
-    const memory = createMemoryStorage();
+    const memory = createMockJournalStorage();
     const controller = new AbortController();
 
     const context = createWebCommandBeacon({
-      journal: { mode: "best-effort", storage: memory.storage },
+      journal: { mode: "best-effort", storage: memory },
     });
 
     const offer = await startWithOffer(context);
-    const write = memory.storage.write;
+    const write = memory.write;
 
-    memory.storage.write = async (key, value) => {
+    memory.write = async (key, value) => {
       await write(key, value);
 
       // The abort lands a number of microtask turns after the write resolves.

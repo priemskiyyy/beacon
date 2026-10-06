@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { createBrokenClock, settle } from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
+import { createBrokenClock } from "src/utils/Beacon.fixture";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,

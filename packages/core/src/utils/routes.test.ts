@@ -3,11 +3,8 @@ import { expect, test } from "vitest";
 import { createMockSource } from "src/mock/createMockSource";
 import type { CandidateDecision } from "src/types/CandidateDecision";
 import type { NoneDecision } from "src/types/NoneDecision";
-import {
-  buildWebRelease,
-  createRoutedBeacon,
-  settle,
-} from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
+import { buildWebRelease, createRoutedBeacon } from "src/utils/Beacon.fixture";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
 import { integer } from "src/utils/versions/integer";
 import { newerRoute } from "src/utils/newerRoute";

@@ -6,7 +6,8 @@ import { SCOPE } from "src/utils/Beacon.fixture";
 import { Journal } from "src/utils/internal/journal/Journal";
 import { Listeners } from "src/utils/internal/observable/Listeners";
 import { ResourceScope } from "src/utils/internal/runtime/ResourceScope";
-import { buildIntent, createMemoryStorage } from "src/utils/journal.fixture";
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
+import { buildIntent } from "src/utils/journal.fixture";
 
 const DRAFT: IntentDraft = buildIntent();
 
@@ -16,7 +17,7 @@ test("a hydration that fails leaves the queue working for what is queued behind 
   const journal = new Journal({
     options: {
       mode: "required",
-      storage: createMemoryStorage().storage,
+      storage: createMockJournalStorage(),
       budget: 3,
       retention: 86_400_000,
       timeout: 10_000,

@@ -5,14 +5,14 @@ import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import type { RunningRelease } from "src/types/RunningRelease";
 import { createMockSource } from "src/mock/createMockSource";
 import { createTestClock } from "src/mock/createTestClock";
+import { settle } from "src/mock/settle";
 import {
   buildWebRelease,
   createBeacon,
   createRoutedBeacon,
-  settle,
 } from "src/utils/Beacon.fixture";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
-import { createMemoryStorage } from "src/utils/journal.fixture";
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
 import { targetRoute } from "src/utils/targetRoute";
 import { createWebBeacon } from "src/utils/routes.fixture";
 import type { Manifest } from "src/utils/routes.fixture";
@@ -590,11 +590,11 @@ test("a reader that checks while it is being read is still read once", async () 
 });
 
 test("JOURNAL-04 a reader that never answered in an ended session does not hold the journal of the next", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const { beacon, clock } = createHungBeacon({
     mode: "best-effort",
-    storage: memory.storage,
+    storage: memory,
   });
 
   beacon.start();

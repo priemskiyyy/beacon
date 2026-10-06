@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { settle } from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,

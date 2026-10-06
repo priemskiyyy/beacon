@@ -4,7 +4,8 @@ import { createTestClock } from "src/mock/createTestClock";
 import type { ReadOptions } from "src/types/internal/ReadOptions";
 import type { SharedReadHooks } from "src/types/internal/SharedReadHooks";
 import type { BeaconError } from "src/utils/BeaconError";
-import { createBrokenClock, settle } from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
+import { createBrokenClock } from "src/utils/Beacon.fixture";
 import { createSession } from "src/utils/internal/feeds/FeedRecord.fixture";
 import { SharedRead } from "src/utils/internal/reads/SharedRead";
 

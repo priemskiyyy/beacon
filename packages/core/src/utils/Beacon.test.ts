@@ -1,27 +1,23 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
 import { createMockSource } from "src/mock/createMockSource";
 import { createTestClock } from "src/mock/createTestClock";
 import type { ReleaseScope } from "src/types/ReleaseScope";
 import { Beacon } from "src/utils/Beacon";
+import { settle } from "src/mock/settle";
 import {
   SCOPE,
   buildWebRelease,
   createBeacon,
   createRoutedBeacon,
-  settle,
 } from "src/utils/Beacon.fixture";
 import {
   createWebCommandBeacon,
   startWithOffer,
 } from "src/utils/commands.fixture";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
-import {
-  buildIntent,
-  buildStored,
-  createMemoryStorage,
-  seed,
-} from "src/utils/journal.fixture";
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
+import { buildIntent, buildStored, seed } from "src/utils/journal.fixture";
 import { createPolicyBeacon } from "src/utils/policy.fixture";
 import type { Manifest } from "src/utils/routes.fixture";
 import { targetRoute } from "src/utils/targetRoute";
@@ -51,6 +47,71 @@ test("CORE-01 constructing arms no timer, reads no clock and calls no reader", (
   expect(reader).not.toHaveBeenCalled();
   expect(clock.pendingTimers()).toBe(0);
   expect(now).not.toHaveBeenCalled();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+test("the clock a Beacon runs on is the one it was given, and reading it starts nothing", () => {
+  const clock = createTestClock({ now: 5_000 });
+  const now = vi.fn(clock.now);
+
+  const given = { ...clock, now };
+
+  const beacon = new Beacon({
+    scope: SCOPE,
+    routes: {},
+    running: { boot: { id: "boot-1" } },
+    clock: given,
+  });
+
+  expect(beacon.clock).toBe(given);
+  expect(now).not.toHaveBeenCalled();
+  expect(clock.pendingTimers()).toBe(0);
+});
+
+test("a timer armed on beacon.clock runs when the test clock passed to the Beacon advances", () => {
+  const { beacon, clock } = createBeacon();
+  const fired = vi.fn();
+  const cancelled = vi.fn();
+
+  expect(beacon.clock).toBe(clock);
+
+  beacon.clock.setTimer(fired, 50);
+  beacon.clock.setTimer(cancelled, 50)();
+
+  expect(beacon.clock.now()).toBe(1_000);
+
+  clock.advance(50);
+
+  expect(fired).toHaveBeenCalledTimes(1);
+  expect(cancelled).not.toHaveBeenCalled();
+  expect(beacon.clock.now()).toBe(1_050);
+});
+
+test("a Beacon given no clock runs on the host's: its time and its timers", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(123_456);
+
+  const beacon = new Beacon({
+    scope: SCOPE,
+    routes: {},
+    running: { boot: { id: "boot-1" } },
+  });
+
+  const fired = vi.fn();
+  const cancelled = vi.fn();
+
+  expect(beacon.clock.now()).toBe(123_456);
+
+  beacon.clock.setTimer(fired, 100);
+  beacon.clock.setTimer(cancelled, 100)();
+  vi.advanceTimersByTime(100);
+
+  expect(fired).toHaveBeenCalledTimes(1);
+  expect(cancelled).not.toHaveBeenCalled();
+  expect(beacon.clock.now()).toBe(123_556);
 });
 
 test("CORE-01 reading and subscribing start nothing, and the observables work detached", () => {
@@ -145,10 +206,10 @@ test("disposing is terminal, idempotent and leaves the last snapshots readable",
 });
 
 test("disposing leaves every last snapshot as it was, whatever the application still calls", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const context = createWebCommandBeacon({
-    journal: { mode: "best-effort", storage: memory.storage },
+    journal: { mode: "best-effort", storage: memory },
   });
 
   const web = context.beacon.route("web");
@@ -261,7 +322,7 @@ test("a provider that starts the next session while its route is released leaves
 
 test("a reader that ends the session while it is asked leaves the later readers, the routes and the journal alone", async () => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const opens = vi.fn(() => ({ native: {} }));
   const later = vi.fn(() => buildWebRelease("web-build-b"));
 
@@ -287,7 +348,7 @@ test("a reader that ends the session while it is asked leaves the later readers,
         },
         web: later,
       },
-      journal: { mode: "best-effort", storage: memory.storage },
+      journal: { mode: "best-effort", storage: memory },
     },
   );
 
@@ -296,13 +357,13 @@ test("a reader that ends the session while it is asked leaves the later readers,
 
   expect(opens).not.toHaveBeenCalled();
   expect(later).not.toHaveBeenCalled();
-  expect(memory.calls.reads).toBe(0);
+  expect(memory.reads()).toBe(0);
   expect(beacon.status.get()).toEqual({ state: "stopped" });
 });
 
 test("a provider that ends the session while its route opens leaves the journal alone", async () => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const web = targetRoute({
     subject: "web",
@@ -320,13 +381,13 @@ test("a provider that ends the session while its route opens leaves the journal 
 
   const { beacon } = createRoutedBeacon(
     { web },
-    { journal: { mode: "best-effort", storage: memory.storage } },
+    { journal: { mode: "best-effort", storage: memory } },
   );
 
   beacon.start();
   await settle();
 
-  expect(memory.calls.reads).toBe(0);
+  expect(memory.reads()).toBe(0);
   expect(beacon.status.get()).toEqual({ state: "stopped" });
 });
 
@@ -382,10 +443,10 @@ test("a check that a listener makes while the scope is being forgotten, and the 
 });
 
 test("a listener that starts the session again while the scope is replaced leaves one session, reading the record of the next scope", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const context = createWebCommandBeacon({
-    journal: { mode: "best-effort", storage: memory.storage },
+    journal: { mode: "best-effort", storage: memory },
   });
 
   context.beacon.start();
@@ -406,7 +467,7 @@ test("a listener that starts the session again while the scope is replaced leave
 
   expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
   expect(context.beacon.transitions.get().journal).toBe("ready");
-  expect(memory.calls.reads).toBe(2);
+  expect(memory.reads()).toBe(2);
 });
 
 test("a scope that a listener puts in force while another is being replaced is the one that stays", async () => {
@@ -525,8 +586,8 @@ test("the hydration of a journal whose storage fails on every call, beside reade
   process.on("unhandledRejection", unhandled);
 
   try {
-    const unreadable = createMemoryStorage();
-    const unwritable = createMemoryStorage();
+    const unreadable = createMockJournalStorage();
+    const unwritable = createMockJournalStorage();
 
     unreadable.failReads(new Error("The storage is offline."));
     seed(unwritable, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
@@ -534,7 +595,7 @@ test("the hydration of a journal whose storage fails on every call, beside reade
 
     for (const memory of [unreadable, unwritable]) {
       const { beacon } = createBeacon({
-        journal: { mode: "best-effort", storage: memory.storage },
+        journal: { mode: "best-effort", storage: memory },
         running: {
           boot: { id: "boot-1" },
           web: () => Promise.reject(new Error("The build is unknown.")),

@@ -14,7 +14,7 @@ import type { SupportPolicy } from "src/types/SupportPolicy";
  * ```ts
  * const options: BeaconOptions<{ web: typeof web }> = {
  *   scope: { application: "com.example.notes", environment: "production", platform: "web", distribution: "public-web" },
- *   running: { boot: { id: BOOT_ID }, web: readWebRelease },
+ *   running: { boot: { id: createBootId() }, web: readWebRelease },
  *   routes: { web },
  *   journal: { mode: "best-effort", storage },
  *   timeouts: { check: 5_000, journal: 2_000 },

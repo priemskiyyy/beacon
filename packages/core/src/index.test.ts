@@ -7,10 +7,13 @@ test("the package root exports exactly its supported runtime names", () => {
     "Beacon",
     "BeaconError",
     "compareIdentities",
+    "createBootId",
     "createReleaseDriver",
     "createReleaseSource",
     "createUpdateMechanism",
+    "keyValueJournalStorage",
     "newerRoute",
+    "parseUtcTimestamp",
     "supportPolicy",
     "targetRoute",
   ]);

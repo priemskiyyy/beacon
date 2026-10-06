@@ -18,12 +18,6 @@ export const buildWebRelease = (value: string): RunningRelease => ({
   raw: {},
 });
 
-// Lets every queued promise continuation run before the test goes on.
-export const settle = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
-
 export const SCOPE: ReleaseScope = {
   application: "com.example.notes",
   environment: "production",

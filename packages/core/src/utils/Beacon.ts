@@ -1,3 +1,4 @@
+import type { BeaconClock } from "src/types/BeaconClock";
 import type { BeaconDiagnostics } from "src/types/BeaconDiagnostics";
 import type { BeaconErrorInfo } from "src/types/BeaconErrorInfo";
 import type { BeaconOptions } from "src/types/BeaconOptions";
@@ -58,7 +59,7 @@ import { RunningRegistry } from "src/utils/internal/running/RunningRegistry";
  * ```ts
  * const beacon = new Beacon({
  *   scope,
- *   running: { boot: { id: BOOT_ID }, web: readWebRelease },
+ *   running: { boot: { id: createBootId() }, web: readWebRelease },
  *   routes: { web },
  * });
  * const stop = beacon.start();
@@ -77,6 +78,7 @@ export class Beacon<
   #scope: ReleaseScope;
   #commands: CommandCoordinator;
   #diagnostics: Diagnostics;
+  #clock: BeaconClock;
   #entries: RouteEntry[];
   #handles: {
     [TName in keyof TRoutes & string]: RouteHandle<TName, TRoutes[TName]>;
@@ -196,6 +198,8 @@ export class Beacon<
 
     const journalOptions = resolveJournalOptions(journal, journalTimeout);
 
+    this.#clock = clock;
+
     this.#diagnostics = new Diagnostics({
       clock,
       getSession: () => this.#runtime.getSession()?.id ?? null,
@@ -306,6 +310,24 @@ export class Beacon<
     this.transitions = this.#journal.state;
     this.diagnostics = this.#diagnostics.view;
     this.disruptions = Object.freeze({ register: disruptions.register });
+  }
+
+  /**
+   * The clock this Beacon runs on: the one passed as `clock`, else the host's.
+   * Anything that shares the Beacon's time, such as an adapter or an
+   * integration that schedules a check, reads the time and arms a timer here
+   * and never through `Date.now` or the host's timers, so that a test clock
+   * replaces them all at once. Reading it starts and reads nothing.
+   *
+   * @example
+   * ```ts
+   * const cancel = beacon.clock.setTimer(() => {
+   *   beacon.check({ reason: "interval" });
+   * }, 600_000);
+   * ```
+   */
+  get clock(): BeaconClock {
+    return this.#clock;
   }
 
   /**
@@ -472,10 +494,11 @@ export class Beacon<
 
   /**
    * Removes the journal's record, for a privacy flow. Nothing in it is
-   * replayed, and no native operation is cancelled or inferred. It still
-   * removes the stored record after `dispose()`, since erasing what a finished
-   * Beacon left is the point of the flow, and the last snapshot stays as it
-   * was.
+   * replayed, and no native operation is cancelled or inferred. A journal
+   * whose first read failed is ready again once the removal succeeds, since
+   * an empty record is then what it holds. It still removes the stored record
+   * after `dispose()`, since erasing what a finished Beacon left is the point
+   * of the flow, and the last snapshot stays as it was.
    *
    * @example
    * ```ts

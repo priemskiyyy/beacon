@@ -2,6 +2,7 @@
 // so that Beacon does not check it again at runtime.
 import { expectTypeOf } from "vitest";
 
+import type { BeaconClock } from "src/types/BeaconClock";
 import type { CandidateDecision } from "src/types/CandidateDecision";
 import type { CommandDescriptor } from "src/types/CommandDescriptor";
 import type { NoneDecision } from "src/types/NoneDecision";
@@ -425,6 +426,13 @@ beacon.route("nope");
 beacon.replaceScope({ application: "com.example.notes" });
 
 expectTypeOf(beacon.replaceScope).returns.toEqualTypeOf<ScopeReplacement>();
+
+expectTypeOf(beacon.clock).toEqualTypeOf<BeaconClock>();
+
+declare const otherClock: BeaconClock;
+
+// @ts-expect-error The clock is the one the Beacon runs on, and cannot be swapped from outside.
+beacon.clock = otherClock;
 
 export const trains = custom({
   name: "trains",

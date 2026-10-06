@@ -4,11 +4,11 @@ import { createMockSource } from "src/mock/createMockSource";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RunningRelease } from "src/types/RunningRelease";
 import type { SupportVerdict } from "src/types/SupportVerdict";
+import { settle } from "src/mock/settle";
 import {
   buildWebRelease,
   createBeacon,
   createRoutedBeacon,
-  settle,
 } from "src/utils/Beacon.fixture";
 import { DEFAULT_RUNNING_TIMEOUT } from "src/utils/constants/defaults";
 import { createReleaseSource } from "src/utils/createReleaseSource";

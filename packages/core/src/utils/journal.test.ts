@@ -1,7 +1,8 @@
 import { expect, test } from "vitest";
 
 import type { RunningRelease } from "src/types/RunningRelease";
-import { buildWebRelease, SCOPE, settle } from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
+import { buildWebRelease, SCOPE } from "src/utils/Beacon.fixture";
 import { DEFAULT_RUNNING_TIMEOUT } from "src/utils/constants/defaults";
 import {
   ACCEPTED_RELOAD,
@@ -11,13 +12,9 @@ import {
   startWithOffer,
   takeRun,
 } from "src/utils/commands.fixture";
-import {
-  buildIntent,
-  buildStored,
-  createMemoryStorage,
-  KEY,
-  seed,
-} from "src/utils/journal.fixture";
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
+import type { MockJournalStorage } from "src/mock/types/MockJournalStorage";
+import { buildIntent, buildStored, KEY, seed } from "src/utils/journal.fixture";
 import { createDeferred } from "src/utils/internal/common/createDeferred";
 import { createJournalKey } from "src/utils/internal/journal/createJournalKey";
 import { parseJournal } from "src/utils/internal/journal/parseJournal";
@@ -26,12 +23,12 @@ import { serializeJournal } from "src/utils/internal/journal/serializeJournal";
 type Mode = "best-effort" | "required";
 
 const createJournaled = (
-  memory: ReturnType<typeof createMemoryStorage>,
+  memory: MockJournalStorage,
   mode: Mode = "required",
   extra: Parameters<typeof createWebCommandBeacon>[0] = {},
 ) =>
   createWebCommandBeacon({
-    journal: { mode, storage: memory.storage },
+    journal: { mode, storage: memory },
     ...extra,
   });
 
@@ -47,8 +44,8 @@ const reload = async (
   return pending;
 };
 
-const readRecord = (memory: ReturnType<typeof createMemoryStorage>) => {
-  const text = memory.data.get(KEY);
+const readRecord = (memory: MockJournalStorage) => {
+  const text = memory.records.get(KEY);
 
   if (text === undefined) {
     return [];
@@ -70,7 +67,7 @@ test("a Beacon without a journal says it is off and writes nothing", async () =>
 });
 
 test("JOURNAL-01 a required intent that cannot be written stops the command before the provider", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory);
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
@@ -87,7 +84,7 @@ test("JOURNAL-01 a required intent that cannot be written stops the command befo
 });
 
 test("JOURNAL-02 a best-effort intent that cannot be written is visible, and the command goes on", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory, "best-effort");
   const offer = await startWithOffer(context);
   const events: string[] = [];
@@ -105,11 +102,11 @@ test("JOURNAL-02 a best-effort intent that cannot be written is visible, and the
     journal: "degraded",
     latest: { outcome: "same-boot", intent: { command: "reload" } },
   });
-  expect(memory.data.has(KEY)).toBe(false);
+  expect(memory.records.has(KEY)).toBe(false);
 });
 
 test("JOURNAL-02 a best-effort intent that cannot be written is announced once, in the state that says the journal degraded", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory, "best-effort");
   const offer = await startWithOffer(context);
   const heard: Array<ReturnType<typeof context.beacon.transitions.get>> = [];
@@ -128,7 +125,7 @@ test("JOURNAL-02 a best-effort intent that cannot be written is announced once, 
 });
 
 test("an intent is written before the provider is asked, and holds identities and nothing else", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory);
   const offer = await startWithOffer(context);
   const pending = context.beacon.route("web").reload({ offer });
@@ -170,7 +167,7 @@ test("an intent is written before the provider is asked, and holds identities an
 });
 
 test("an intent names what ran as it was known: an unnamed build as unknown, and a build not read as nothing", async () => {
-  const unnamed = createMemoryStorage();
+  const unnamed = createMockJournalStorage();
   const first = createJournaled(unnamed, "required", { build: null });
 
   first.beacon.start();
@@ -181,7 +178,7 @@ test("an intent names what ran as it was known: an unnamed build as unknown, and
     target: null,
   });
 
-  const unread = createMemoryStorage();
+  const unread = createMockJournalStorage();
   const second = createJournaled(unread, "required", { failRead: true });
 
   second.beacon.start();
@@ -194,7 +191,7 @@ test("an intent names what ran as it was known: an unnamed build as unknown, and
 });
 
 test("an intent names what the reader answered when it answers a macrotask after a command issued in the turn of start", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const held = createDeferred<RunningRelease>();
 
   const context = createJournaled(memory, "required", {
@@ -208,7 +205,7 @@ test("an intent names what the reader answered when it answers a macrotask after
   await settle();
 
   // The command waits for the reader, and nothing is written about a build nobody has named yet.
-  expect(memory.calls.writes).toBe(0);
+  expect(memory.writes()).toBe(0);
   expect(context.beacon.route("web").state.get().operation).toMatchObject({
     state: "running",
   });
@@ -222,7 +219,7 @@ test("an intent names what the reader answered when it answers a macrotask after
 });
 
 test("a command that waits for the reader waits no longer than the running timeout, and the intent then names nothing as running", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const context = createJournaled(memory, "required", {
     reader: () => new Promise(() => {}),
@@ -233,7 +230,7 @@ test("a command that waits for the reader waits no longer than the running timeo
   const refreshing = context.beacon.route("web").refresh();
 
   await settle();
-  expect(memory.calls.writes).toBe(0);
+  expect(memory.writes()).toBe(0);
 
   context.clock.advance(DEFAULT_RUNNING_TIMEOUT);
   await refreshing;
@@ -242,7 +239,7 @@ test("a command that waits for the reader waits no longer than the running timeo
 });
 
 test("a caller that stops waiting while the command waits for the reader cancels it before anything is written or dispatched", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const controller = new AbortController();
 
   const context = createJournaled(memory, "required", {
@@ -262,14 +259,14 @@ test("a caller that stops waiting while the command waits for the reader cancels
     status: "cancelled",
     stage: "journaling",
   });
-  expect(memory.calls.writes).toBe(0);
+  expect(memory.writes()).toBe(0);
   expect(context.beacon.route("web").state.get().operation).toMatchObject({
     state: "idle",
   });
 });
 
 test("a session that ends while the command waits for the reader cancels it, and the next session can command again", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const context = createJournaled(memory, "required", {
     reader: () => new Promise(() => {}),
@@ -286,7 +283,7 @@ test("a session that ends while the command waits for the reader cancels it, and
     status: "cancelled",
     stage: "journaling",
   });
-  expect(memory.calls.writes).toBe(0);
+  expect(memory.writes()).toBe(0);
   expect(context.beacon.route("web").state.get().operation).toMatchObject({
     state: "idle",
   });
@@ -305,17 +302,17 @@ test("a command without a journal does not wait for a reader that has not answer
 });
 
 test("a command that changes nothing that is running writes no intent", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory);
 
   context.beacon.start();
   await context.beacon.route("web").prefetch();
 
-  expect(memory.calls.writes).toBe(0);
+  expect(memory.writes()).toBe(0);
 });
 
 test("what the journal publishes about an intent cannot be changed, whether the intent was written by this boot or read from an earlier one", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
 
@@ -345,7 +342,7 @@ test("what the journal publishes about an intent cannot be changed, whether the 
 });
 
 test("JOURNAL-03 an intent written before a crash is read back as an intent, not as proof of a dispatch", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent())]);
 
@@ -362,7 +359,7 @@ test("JOURNAL-03 an intent written before a crash is read back as an intent, not
 });
 
 test("JOURNAL-04 a next boot that runs the comparable target has reached it, and nothing more is claimed", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent())]);
 
@@ -382,7 +379,7 @@ test("JOURNAL-04 a next boot that runs the comparable target has reached it, and
 });
 
 test("WEB-04 a reload after which the same build is served is read back as not reached, and counted", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const first = createJournaled(memory);
   const offer = await startWithOffer(first);
 
@@ -404,7 +401,7 @@ test("WEB-04 a reload after which the same build is served is read back as not r
 });
 
 test("JOURNAL-05 an intent still queued when the scope is replaced is never written under the next scope's key", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory, "best-effort");
   const controller = new AbortController();
   const staging = { ...SCOPE, environment: "staging" };
@@ -422,7 +419,7 @@ test("JOURNAL-05 an intent still queued when the scope is replaced is never writ
   controller.abort();
   await expect(pending).resolves.toMatchObject({ status: "cancelled" });
 
-  memory.data.set(
+  memory.records.set(
     createJournalKey(staging),
     serializeJournal([buildStored(buildIntent({ boot: { id: "boot-7" } }))]),
   );
@@ -433,7 +430,7 @@ test("JOURNAL-05 an intent still queued when the scope is replaced is never writ
   await settle();
 
   expect(
-    parseJournal(memory.data.get(createJournalKey(staging)) ?? "")?.map(
+    parseJournal(memory.records.get(createJournalKey(staging)) ?? "")?.map(
       ({ intent }) => intent.boot.id,
     ),
   ).toEqual(["boot-7"]);
@@ -443,7 +440,7 @@ test("JOURNAL-05 an intent still queued when the scope is replaced is never writ
 });
 
 test("JOURNAL-06 the same boot resuming is not a new boot and confirms nothing", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent())]);
 
@@ -459,7 +456,7 @@ test("JOURNAL-06 the same boot resuming is not a new boot and confirms nothing",
 });
 
 test("JOURNAL-07 a target that runs without a reported checkpoint has unknown readiness, and reporting one is idempotent", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent())]);
 
@@ -484,7 +481,7 @@ test("JOURNAL-07 a target that runs without a reported checkpoint has unknown re
 });
 
 test("JOURNAL-08 a storage that acknowledged a write it then failed to flush is a failed write", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory);
   const offer = await startWithOffer(context);
 
@@ -500,7 +497,7 @@ test("JOURNAL-08 a storage that acknowledged a write it then failed to flush is 
 });
 
 test("JOURNAL-09 a hydration that finishes late does not overwrite an intent written after it began", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [
     buildStored(
@@ -530,10 +527,10 @@ test("JOURNAL-09 a hydration that finishes late does not overwrite an intent wri
 });
 
 test("JOURNAL-10 a corrupt record is ignored with a diagnostic, and never executed", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const events: string[] = [];
 
-  memory.data.set(KEY, "{not json");
+  memory.records.set(KEY, "{not json");
 
   const context = createJournaled(memory);
 
@@ -552,9 +549,9 @@ test("JOURNAL-10 a corrupt record is ignored with a diagnostic, and never execut
 });
 
 test("JOURNAL-10 a record of a future schema is ignored, not read as a version it is not", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
-  memory.data.set(KEY, JSON.stringify({ version: 99, transitions: [] }));
+  memory.records.set(KEY, JSON.stringify({ version: 99, transitions: [] }));
 
   const context = createJournaled(memory);
 
@@ -593,7 +590,7 @@ test("a storage that answers nothing at all for a missing key has no record, as 
 });
 
 test("JOURNAL-11 boots in a row that leave the same target unreached use up the budget, and a new target starts again", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const target = buildIntent().target;
 
   seed(memory, [
@@ -621,7 +618,7 @@ test("JOURNAL-11 boots in a row that leave the same target unreached use up the 
     exhausted: true,
   });
 
-  const other = createMemoryStorage();
+  const other = createMockJournalStorage();
 
   seed(other, [
     buildStored(
@@ -652,7 +649,7 @@ test("JOURNAL-11 boots in a row that leave the same target unreached use up the 
 });
 
 test("a scope with text that is not well formed in it starts, and its record is read", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory);
 
   context.beacon.replaceScope({ ...SCOPE, partition: "user-\uD800" });
@@ -660,12 +657,12 @@ test("a scope with text that is not well formed in it starts, and its record is 
   expect(() => context.beacon.start()).not.toThrow();
   await settle();
 
-  expect(memory.calls.reads).toBe(1);
+  expect(memory.reads()).toBe(1);
   expect(context.beacon.transitions.get().journal).toBe("ready");
 });
 
 test("JOURNAL-12 two contexts share no atomic counter: the last write wins and is what a later boot reads", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const first = createJournaled(memory, "required", { boot: "boot-a" });
   const second = createJournaled(memory, "required", { boot: "boot-b" });
   const firstOffer = await startWithOffer(first);
@@ -680,7 +677,7 @@ test("JOURNAL-12 two contexts share no atomic counter: the last write wins and i
 });
 
 test("JOURNAL-13 a privacy flow clears the record, and nothing stored is replayed", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent())]);
 
@@ -690,13 +687,13 @@ test("JOURNAL-13 a privacy flow clears the record, and nothing stored is replaye
   await settle();
   await context.beacon.clearJournal();
 
-  expect(memory.data.has(KEY)).toBe(false);
+  expect(memory.records.has(KEY)).toBe(false);
   expect(context.beacon.transitions.get().latest).toBeNull();
   expect(context.runs).toHaveLength(0);
 });
 
 test("JOURNAL-13 a privacy flow can still clear the record after the Beacon was disposed, and the last snapshot stays", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent())]);
 
@@ -710,7 +707,7 @@ test("JOURNAL-13 a privacy flow can still clear the record after the Beacon was 
 
   await context.beacon.clearJournal();
 
-  expect(memory.data.has(KEY)).toBe(false);
+  expect(memory.records.has(KEY)).toBe(false);
   expect(context.beacon.transitions.get()).toBe(held);
   expect(held.latest).not.toBeNull();
 });
@@ -728,7 +725,7 @@ test("JOURNAL-13 clearing a Beacon that has no journal has nothing to remove", a
 });
 
 test("JOURNAL-13 a record that cannot be removed leaves the journal degraded, with what it held forgotten", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const events: string[] = [];
 
   seed(memory, [buildStored(buildIntent())]);
@@ -741,7 +738,7 @@ test("JOURNAL-13 a record that cannot be removed leaves the journal degraded, wi
   context.beacon.start();
   await settle();
 
-  memory.storage.remove = async () => {
+  memory.remove = async () => {
     throw new Error("storage offline");
   };
 
@@ -754,8 +751,87 @@ test("JOURNAL-13 a record that cannot be removed leaves the journal degraded, wi
   });
 });
 
+test("JOURNAL-13 clearing the record recovers a journal whose first read failed: it is ready, and a command writes", async () => {
+  const memory = createMockJournalStorage();
+
+  seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
+  memory.failReads(new Error("storage offline"));
+
+  const context = createJournaled(memory, "required", { boot: "boot-2" });
+  const offer = await startWithOffer(context);
+
+  expect(context.beacon.transitions.get().journal).toBe("degraded");
+
+  memory.failReads(null);
+
+  await context.beacon.clearJournal();
+
+  expect(memory.records.has(KEY)).toBe(false);
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "ready",
+    latest: null,
+  });
+
+  await expect(reload(context, offer)).resolves.toMatchObject({
+    status: "accepted",
+  });
+  expect(readRecord(memory).map(({ intent }) => intent.boot.id)).toEqual([
+    "boot-2",
+  ]);
+  expect(context.beacon.transitions.get().journal).toBe("ready");
+});
+
+test("JOURNAL-13 a record that cannot be removed does not recover a journal whose first read failed", async () => {
+  const memory = createMockJournalStorage();
+
+  memory.failReads(new Error("storage offline"));
+
+  const context = createJournaled(memory, "required", { boot: "boot-2" });
+  const offer = await startWithOffer(context);
+
+  memory.failReads(null);
+
+  memory.remove = async () => {
+    throw new Error("storage offline");
+  };
+
+  await context.beacon.clearJournal();
+
+  expect(context.beacon.transitions.get().journal).toBe("degraded");
+  await expect(
+    context.beacon.route("web").reload({ offer }),
+  ).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "JOURNAL_FAILED" },
+  });
+  expect(context.runs).toHaveLength(0);
+});
+
+test("JOURNAL-13 a record cleared for the scope that ended recovers nothing for the next one", async () => {
+  const memory = createMockJournalStorage();
+  const hold = createDeferred<void>();
+
+  memory.failReads(new Error("storage offline"));
+
+  const context = createJournaled(memory, "required", { boot: "boot-2" });
+
+  await startWithOffer(context);
+  memory.failReads(null);
+  memory.remove = () => hold.promise;
+
+  const clearing = context.beacon.clearJournal();
+
+  await settle();
+  context.beacon.replaceScope({ ...SCOPE, environment: "staging" });
+  hold.resolve();
+  await clearing;
+
+  // The next scope's record was never read, and what cleared another scope's says nothing about it.
+  expect(context.beacon.transitions.get().journal).toBe("reading");
+});
+
 test("JOURNAL-04 a judged record that cannot be written back is still read, and the journal says degraded", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const events: string[] = [];
 
   seed(memory, [buildStored(buildIntent())]);
@@ -777,7 +853,7 @@ test("JOURNAL-04 a judged record that cannot be written back is still read, and 
 });
 
 test("JOURNAL-14 the journal keeps a bounded history, and says how much older correlation it let go", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(
     memory,
@@ -803,7 +879,7 @@ test("JOURNAL-14 the journal keeps a bounded history, and says how much older co
 });
 
 test("JOURNAL-14 an intent past its retention is dropped when the record is read, and counted", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent({ expiresAt: 500 }))]);
 
@@ -819,7 +895,7 @@ test("JOURNAL-14 an intent past its retention is dropped when the record is read
 });
 
 test("a participant is still settled before the intent is written", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory);
   const log: string[] = [];
   const offer = await startWithOffer(context);
@@ -828,11 +904,11 @@ test("a participant is still settled before the intent is written", async () => 
   await reload(context, offer);
 
   expect(log).toEqual(["drafts:reserve", "drafts:settle"]);
-  expect(memory.calls.writes).toBe(1);
+  expect(memory.writes()).toBe(1);
 });
 
 test("SAFE-07 an offer replaced while the intent is written stops the command before the provider", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory);
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
@@ -858,7 +934,7 @@ test("SAFE-07 an offer replaced while the intent is written stops the command be
 });
 
 test("a caller that aborts while the intent is written cancels, and asks no provider", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory);
   const offer = await startWithOffer(context);
   const controller = new AbortController();
@@ -882,7 +958,7 @@ test("a caller that aborts while the intent is written cancels, and asks no prov
 });
 
 test("JOURNAL-05 an intent still queued when the scope is replaced is never written under the next scope's key", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory, "best-effort");
   const offer = await startWithOffer(context);
   const controller = new AbortController();
@@ -898,7 +974,7 @@ test("JOURNAL-05 an intent still queued when the scope is replaced is never writ
   controller.abort();
   await expect(pending).resolves.toMatchObject({ status: "cancelled" });
 
-  memory.data.set(
+  memory.records.set(
     createJournalKey(staging),
     serializeJournal([buildStored(buildIntent({ boot: { id: "boot-7" } }))]),
   );
@@ -908,7 +984,7 @@ test("JOURNAL-05 an intent still queued when the scope is replaced is never writ
   await settle();
 
   expect(
-    parseJournal(memory.data.get(createJournalKey(staging)) ?? "")?.map(
+    parseJournal(memory.records.get(createJournalKey(staging)) ?? "")?.map(
       ({ intent }) => intent.boot.id,
     ),
   ).toEqual(["boot-7"]);
@@ -918,7 +994,7 @@ test("JOURNAL-05 an intent still queued when the scope is replaced is never writ
 });
 
 test("JOURNAL-06 boots in a row are counted, not the intents of one boot", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [
     buildStored(buildIntent({ boot: { id: "boot-0" }, operation: { id: 1 } })),
@@ -939,7 +1015,7 @@ test("JOURNAL-06 boots in a row are counted, not the intents of one boot", async
 });
 
 test("JOURNAL-07 a retention or budget that cannot work is refused when the Beacon is made", () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   for (const journal of [
     { retention: Number.POSITIVE_INFINITY },
@@ -949,32 +1025,32 @@ test("JOURNAL-07 a retention or budget that cannot work is refused when the Beac
   ]) {
     expect(() =>
       createWebCommandBeacon({
-        journal: { mode: "best-effort", storage: memory.storage, ...journal },
+        journal: { mode: "best-effort", storage: memory, ...journal },
       }),
     ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
   }
 });
 
 test("JOURNAL-08 a record that could not be read is not replaced by an intent that knows nothing of it", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
   memory.failReads(new Error("storage offline"));
 
   const context = createJournaled(memory, "best-effort", { boot: "boot-2" });
   const offer = await startWithOffer(context);
-  const before = memory.data.get(KEY);
+  const before = memory.records.get(KEY);
 
   memory.failReads(null);
 
   await reload(context, offer);
 
-  expect(memory.data.get(KEY)).toBe(before);
+  expect(memory.records.get(KEY)).toBe(before);
   expect(context.beacon.transitions.get().journal).toBe("degraded");
 });
 
 test("JOURNAL-09 intents lost to the capacity of a journal that cannot be written are counted", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createJournaled(memory, "best-effort");
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
@@ -992,7 +1068,7 @@ test("JOURNAL-09 intents lost to the capacity of a journal that cannot be writte
 const JOURNAL_TIMEOUT = 500;
 
 const createBounded = (
-  memory: ReturnType<typeof createMemoryStorage>,
+  memory: MockJournalStorage,
   mode: Mode,
   extra: Parameters<typeof createWebCommandBeacon>[0] = {},
 ) =>
@@ -1017,7 +1093,7 @@ const countLate = (context: ReturnType<typeof createWebCommandBeacon>) =>
   context.beacon.diagnostics.get().counters.lateCallbacks;
 
 test("JOURNAL-08 a read that never answers is a failed read at its deadline, and a command waiting behind it goes on", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
   memory.holdReads();
@@ -1047,7 +1123,7 @@ test("JOURNAL-08 a read that never answers is a failed read at its deadline, and
 });
 
 test("JOURNAL-08 a late answer of a read that timed out is counted and changes nothing", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
   memory.holdReads();
@@ -1074,7 +1150,7 @@ test("JOURNAL-08 a late answer of a read that timed out is counted and changes n
 });
 
 test("JOURNAL-01 a required intent whose write never answers fails the command at the deadline, before the provider", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createBounded(memory, "required");
   const events = listenToJournal(context);
   const offer = await startWithOffer(context);
@@ -1106,7 +1182,7 @@ test("JOURNAL-01 a required intent whose write never answers fails the command a
 });
 
 test("JOURNAL-02 a best-effort intent whose write never answers is degraded at the deadline, and the command goes on", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createBounded(memory, "best-effort");
   const events = listenToJournal(context);
   const offer = await startWithOffer(context);
@@ -1132,7 +1208,7 @@ test("JOURNAL-02 a best-effort intent whose write never answers is degraded at t
 });
 
 test("an abandoned write does not block the queue, and its late answer is counted and changes nothing", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createBounded(memory, "best-effort");
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
@@ -1169,7 +1245,7 @@ test("an abandoned write does not block the queue, and its late answer is counte
 });
 
 test("JOURNAL-04 a judged record whose write-back never answers is still read, and the journal says degraded", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   seed(memory, [buildStored(buildIntent())]);
   memory.holdWrites();
@@ -1192,7 +1268,7 @@ test("JOURNAL-04 a judged record whose write-back never answers is still read, a
 });
 
 test("JOURNAL-13 a record whose removal never answers leaves the journal degraded at the deadline, with what it held forgotten", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const hold = createDeferred<void>();
 
   seed(memory, [buildStored(buildIntent())]);
@@ -1202,7 +1278,7 @@ test("JOURNAL-13 a record whose removal never answers leaves the journal degrade
 
   context.beacon.start();
   await settle();
-  memory.storage.remove = () => hold.promise;
+  memory.remove = () => hold.promise;
 
   const clearing = context.beacon.clearJournal();
 
@@ -1223,7 +1299,7 @@ test("JOURNAL-13 a record whose removal never answers leaves the journal degrade
 });
 
 test("a storage call that answers within its deadline leaves no timer and no late callback behind", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
   const context = createBounded(memory, "required");
   const offer = await startWithOffer(context);
 
@@ -1242,7 +1318,7 @@ test("a storage call that answers within its deadline leaves no timer and no lat
 });
 
 test("a storage call gets its deadline from timeouts.journal, 10,000 milliseconds by default", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   memory.holdReads();
 
@@ -1260,12 +1336,12 @@ test("a storage call gets its deadline from timeouts.journal, 10,000 millisecond
 });
 
 test("JOURNAL-07 a journal timeout that cannot work is refused when the Beacon is made", () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   for (const journal of [Number.POSITIVE_INFINITY, Number.NaN, 0, -1, 1.5]) {
     expect(() =>
       createWebCommandBeacon({
-        journal: { mode: "best-effort", storage: memory.storage },
+        journal: { mode: "best-effort", storage: memory },
         timeouts: { journal },
       }),
     ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));

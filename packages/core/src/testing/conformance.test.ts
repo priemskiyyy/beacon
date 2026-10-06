@@ -1,14 +1,20 @@
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
 import { createMockSource } from "src/mock/createMockSource";
+import { testJournalStorage } from "src/testing/testJournalStorage";
 import { testReleaseDriver } from "src/testing/testReleaseDriver";
 import { testReleaseSource } from "src/testing/testReleaseSource";
+import { testRunningReader } from "src/testing/testRunningReader";
 import { testUpdateMechanism } from "src/testing/testUpdateMechanism";
 import { testVersionStrategy } from "src/testing/testVersionStrategy";
 import type { Release } from "src/types/Release";
+import type { RunningReader } from "src/types/RunningReader";
 import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import { createHeldMechanism } from "src/utils/commands.fixture";
 import { createReleaseDriver } from "src/utils/createReleaseDriver";
 import { createReleaseSource } from "src/utils/createReleaseSource";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
+import { keyValueJournalStorage } from "src/utils/keyValueJournalStorage";
+import { createFakeStore } from "src/utils/keyValueJournalStorage.fixture";
 import { integer } from "src/utils/versions/integer";
 import { semver } from "src/utils/versions/semver";
 
@@ -192,4 +198,164 @@ testReleaseDriver({
   name: "fake provider that cannot name its release",
   create: () =>
     createPreparingDriver({ status: "unknown", reason: "not-reported" }),
+});
+
+testJournalStorage({
+  name: "mock",
+  create: () => {
+    const first = createMockJournalStorage();
+
+    return {
+      storage: first,
+      reopen: () => {
+        const reopened = createMockJournalStorage();
+
+        for (const [key, value] of first.records) {
+          reopened.records.set(key, value);
+        }
+
+        return reopened;
+      },
+    };
+  },
+});
+
+// A store that answers at once and says `null` for a missing key, as localStorage does.
+testJournalStorage({
+  name: "key-value store that answers at once",
+  create: () => {
+    const { store, backend } = createFakeStore();
+
+    return {
+      storage: keyValueJournalStorage(store),
+      reopen: () => keyValueJournalStorage(createFakeStore({ backend }).store),
+    };
+  },
+});
+
+// A store that answers later and says `undefined` for a missing key, as some stores do.
+testJournalStorage({
+  name: "key-value store that answers later with undefined",
+  create: () => {
+    const { store, backend } = createFakeStore({
+      answers: "later",
+      missing: "undefined",
+    });
+
+    return {
+      storage: keyValueJournalStorage(store),
+      reopen: () =>
+        keyValueJournalStorage(
+          createFakeStore({ backend, answers: "later", missing: "undefined" })
+            .store,
+        ),
+    };
+  },
+});
+
+// A store with a narrow key alphabet, reached through an injective mapping of the key.
+testJournalStorage({
+  name: "key-value store with a mapped key and no read back",
+  create: () => {
+    const { store, backend } = createFakeStore({ answers: "later" });
+
+    const options = {
+      verify: false,
+      key: (key: string) =>
+        [...key].map((char) => char.charCodeAt(0).toString(16)).join("."),
+    };
+
+    return {
+      storage: keyValueJournalStorage(store, options),
+      reopen: () =>
+        keyValueJournalStorage(
+          createFakeStore({ backend, answers: "later" }).store,
+          options,
+        ),
+    };
+  },
+});
+
+// A fixture that cannot reopen still runs every check that does not need a restart.
+testJournalStorage({
+  name: "key-value store without a reopen",
+  create: () => ({
+    storage: keyValueJournalStorage(createFakeStore().store),
+  }),
+});
+
+// A reader over a fake host that counts how often it is asked, as the readers of the adapters are.
+const createBuildReader = (build: { id: string | null }) => {
+  const host = { asked: 0 };
+
+  const reader: RunningReader = () => {
+    host.asked += 1;
+
+    if (build.id === null) {
+      return {
+        identity: { status: "unknown", reason: "build-not-read" },
+        label: null,
+        raw: { embedded: true },
+      };
+    }
+
+    return {
+      identity: {
+        status: "known",
+        authority: "com.example.notes",
+        domain: "native-android-build",
+        value: build.id,
+      },
+      label: `Build ${build.id}`,
+      raw: { channel: "production", build: 113, embedded: false },
+    };
+  };
+
+  return { reader, reads: () => host.asked };
+};
+
+testRunningReader({
+  name: "a reader over its host",
+  create: () => createBuildReader({ id: "113" }),
+  situations: [
+    {
+      name: "the host cannot name the build",
+      answers: "unknown",
+      create: () => createBuildReader({ id: null }),
+    },
+    {
+      name: "the host is not there",
+      answers: "rejection",
+      create: () => ({
+        reader: () => Promise.reject(new Error("Not implemented on web.")),
+      }),
+    },
+  ],
+});
+
+// A reader that answers later, as the native ones do.
+testRunningReader({
+  name: "a reader that answers later",
+  create: () => {
+    const { reader, reads } = createBuildReader({ id: "113" });
+
+    return { reader: async () => reader(), reads };
+  },
+});
+
+// A reader over a constant has no host to ask, and no count to give.
+testRunningReader({
+  name: "a reader over a constant",
+  create: () => ({
+    reader: () => ({
+      identity: {
+        status: "known",
+        authority: "com.example.notes",
+        domain: "web-artifact",
+        value: "build-a",
+      },
+      label: null,
+      raw: {},
+    }),
+  }),
 });

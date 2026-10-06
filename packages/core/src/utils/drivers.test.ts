@@ -5,7 +5,8 @@ import type { DriverEmitter } from "src/types/DriverEmitter";
 import type { ObservationDraft } from "src/types/ObservationDraft";
 import type { ProviderResult } from "src/types/ProviderResult";
 import type { RouteBody } from "src/types/RouteBody";
-import { createRoutedBeacon, settle } from "src/utils/Beacon.fixture";
+import { settle } from "src/mock/settle";
+import { createRoutedBeacon } from "src/utils/Beacon.fixture";
 import {
   BODY,
   createDriverBeacon,
@@ -13,7 +14,7 @@ import {
 } from "src/utils/drivers.fixture";
 import { createReleaseDriver } from "src/utils/createReleaseDriver";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
-import { createMemoryStorage } from "src/utils/journal.fixture";
+import { createMockJournalStorage } from "src/mock/createMockJournalStorage";
 import { target } from "src/utils/routes.fixture";
 import { targetRoute } from "src/utils/targetRoute";
 import type { Manifest } from "src/utils/routes.fixture";
@@ -473,7 +474,7 @@ test("a prepared target the provider confirms again keeps its reference until th
 });
 
 test("a disruptive command of a driver route is journaled against the subject its provider replaces", async () => {
-  const memory = createMemoryStorage();
+  const memory = createMockJournalStorage();
 
   const restarting = createReleaseDriver({
     name: "restarting",
@@ -503,7 +504,7 @@ test("a disruptive command of a driver route is journaled against the subject it
 
   const { beacon } = createRoutedBeacon(
     { ota: restarting },
-    { journal: { mode: "best-effort", storage: memory.storage } },
+    { journal: { mode: "best-effort", storage: memory } },
   );
 
   beacon.start();

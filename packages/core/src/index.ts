@@ -1,10 +1,13 @@
 export { Beacon } from "src/utils/Beacon";
 export { BeaconError } from "src/utils/BeaconError";
 export { compareIdentities } from "src/utils/compareIdentities";
+export { createBootId } from "src/utils/createBootId";
 export { createReleaseDriver } from "src/utils/createReleaseDriver";
 export { createReleaseSource } from "src/utils/createReleaseSource";
 export { createUpdateMechanism } from "src/utils/createUpdateMechanism";
+export { keyValueJournalStorage } from "src/utils/keyValueJournalStorage";
 export { newerRoute } from "src/utils/newerRoute";
+export { parseUtcTimestamp } from "src/utils/parseUtcTimestamp";
 export { supportPolicy } from "src/utils/supportPolicy";
 export { targetRoute } from "src/utils/targetRoute";
 
@@ -50,6 +53,8 @@ export type { Impact } from "src/types/Impact";
 export type { InconclusiveReason } from "src/types/InconclusiveReason";
 export type { JournalOptions } from "src/types/JournalOptions";
 export type { JournalStorage } from "src/types/JournalStorage";
+export type { KeyValueJournalOptions } from "src/types/KeyValueJournalOptions";
+export type { KeyValueStoreLike } from "src/types/KeyValueStoreLike";
 export type { MechanismSession } from "src/types/MechanismSession";
 export type { NewerRouteOptions } from "src/types/NewerRouteOptions";
 export type { NoneDecision } from "src/types/NoneDecision";

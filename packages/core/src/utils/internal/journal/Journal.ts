@@ -161,7 +161,7 @@ export class Journal {
     return { status: "recorded", checkpoint };
   };
 
-  /** Removes the record and forgets it, for a privacy flow. Nothing in it is replayed, and nothing native is cancelled. */
+  /** Removes the record and forgets it, for a privacy flow. Nothing in it is replayed, and nothing native is cancelled. A removal that succeeds leaves an empty record that is known, so a journal whose first read failed is ready again. */
   clear = () =>
     this.#enqueue(async (claim) => {
       const { options, record } = this.#config;
@@ -182,7 +182,17 @@ export class Journal {
       } catch {
         record("journal-failed", { reason: "clear" });
         this.#publish({ journal: "degraded" });
+
+        return;
       }
+
+      // The record of a scope that ended says nothing about the one in force.
+      if (claim.generation !== this.#generation) {
+        return;
+      }
+
+      this.#hydrated = true;
+      this.#publish({ journal: "ready" });
     });
 
   /** Forgets the intents of the scope that ended, so the next session reads the record of the next one. */

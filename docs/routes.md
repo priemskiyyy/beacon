@@ -33,7 +33,7 @@ import type {
 type Deployment = { web: TargetDecision | NoneDecision };
 
 declare const api: {
-  getDeployment(request: {
+  getDeployment(options: {
     scope: ReleaseScope;
     signal: AbortSignal;
   }): Promise<Deployment>;

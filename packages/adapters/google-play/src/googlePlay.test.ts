@@ -533,3 +533,64 @@ test("LIFE-11 a second Beacon on the same bridge cannot open the route, and says
 
   expect(second.route("binary").native.get()).not.toBeNull();
 });
+
+test("SEC-10 a session that ends while Play is asked again starts no flow", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.holdQueries();
+
+  const flexible = context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+  await settle();
+  context.beacon.stop();
+  context.releaseQueries();
+  await flexible;
+
+  expect(context.calls.flexible).toBe(0);
+
+  context.beacon.start();
+  await context.binary.check();
+
+  const { observation } = context.binary.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  context.holdQueries();
+
+  const immediate = context.binary.startImmediateUpdate({
+    offer: observation.offer.ref,
+  });
+
+  await settle();
+  context.beacon.stop();
+  context.releaseQueries();
+  await immediate;
+
+  expect(context.calls.immediate).toBe(0);
+});
+
+test("PLAY-11 a download the user or the system cancels is cancelled, not a failure", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+  await settle();
+  context.install(installEvent("canceled"));
+
+  await expect(starting).resolves.toMatchObject({ status: "cancelled" });
+});
+
+test("PLAY-01 a flow Play no longer allows when it is asked again is unsupported, and no flow starts", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setInfo(availableInfo(412, { flexible: false }));
+
+  await expect(
+    context.binary.startFlexibleUpdate({ offer: offer.ref }),
+  ).resolves.toMatchObject({ status: "unsupported" });
+  expect(context.calls.flexible).toBe(0);
+});

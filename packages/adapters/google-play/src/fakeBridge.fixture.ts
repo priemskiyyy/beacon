@@ -44,14 +44,27 @@ export const fakeBridge = (
     immediate: "started",
   };
 
-  const state: { info: PlayUpdateInfo; failure: Error | null } = {
+  const state: {
+    info: PlayUpdateInfo;
+    failure: Error | null;
+    holding: boolean;
+  } = {
     info: initial,
     failure: null,
+    holding: false,
   };
+
+  const held: Array<() => void> = [];
 
   const bridge: PlayBridge = {
     getUpdateInfo: async () => {
       calls.queries += 1;
+
+      if (state.holding) {
+        await new Promise<void>((resolve) => {
+          held.push(resolve);
+        });
+      }
 
       if (state.failure !== null) {
         throw state.failure;
@@ -87,6 +100,16 @@ export const fakeBridge = (
     listeners: () => listeners.size,
     setInfo: (info: PlayUpdateInfo) => {
       state.info = info;
+    },
+    holdQueries: () => {
+      state.holding = true;
+    },
+    releaseQueries: () => {
+      state.holding = false;
+
+      for (const resolve of held.splice(0)) {
+        resolve();
+      }
     },
     failQueries: (error: Error | null) => {
       state.failure = error;

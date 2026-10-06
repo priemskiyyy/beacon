@@ -64,27 +64,36 @@ export class PlaySession {
   };
 
   /**
-   * Whether Play still offers what the user was shown. Play allows one use of
-   * its update information, so this only confirms the offer stands; the bridge
-   * acquires a fresh one to start with.
+   * What Play offers now if it is still what the user was shown, else `null`.
+   * Play allows one use of its update information, so this only confirms the
+   * offer stands; the bridge acquires a fresh one to start with. The fresh
+   * offer is the one whose flows decide what may start.
    */
-  confirm = async (offer: PlayOffer) => {
+  confirm = async (offer: PlayOffer): Promise<PlayOffer | null> => {
     const { observation } = this.#read(await this.#bridge.getUpdateInfo());
 
     if (observation.status !== "available") {
-      return false;
+      return null;
     }
 
-    if (observation.offer.inProgress || offer.inProgress) {
-      return observation.offer.inProgress && offer.inProgress;
+    const fresh = observation.offer;
+
+    if (fresh.inProgress !== offer.inProgress) {
+      return null;
     }
 
-    return (
-      compareIdentities(
-        observation.offer.release.identity,
-        offer.release.identity,
-      ) === "same"
-    );
+    if (fresh.inProgress) {
+      return fresh;
+    }
+
+    if (
+      compareIdentities(fresh.release.identity, offer.release.identity) !==
+      "same"
+    ) {
+      return null;
+    }
+
+    return fresh;
   };
 
   /** Starts the flexible flow and answers when Play says the download ended; the listener is armed first, so nothing is missed. */
@@ -116,9 +125,9 @@ export class PlaySession {
     }
 
     this.#disposed = true;
-    this.#stop();
     this.#waiting?.resolve({ status: "session-ended" });
     this.#waiting = null;
+    this.#stop();
   };
 
   #read(info: PlayUpdateInfo) {
@@ -161,7 +170,14 @@ export class PlaySession {
       return;
     }
 
-    if (event.status !== "failed" && event.status !== "canceled") {
+    if (event.status === "canceled") {
+      this.#emit.progress(null);
+      this.#settle({ status: "cancelled", stage: "download" });
+
+      return;
+    }
+
+    if (event.status !== "failed") {
       return;
     }
 

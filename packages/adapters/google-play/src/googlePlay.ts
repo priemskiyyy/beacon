@@ -14,7 +14,7 @@ const commands = {
     reference: "offer",
     impacts: ["may-activate-on-next-start"],
     binding: "provider-current",
-    run: async ({ native, offer }) => {
+    run: async ({ native, offer, signal }) => {
       const session = getSession(native);
 
       if (session === undefined) {
@@ -25,8 +25,18 @@ const commands = {
         return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
       }
 
-      if (!(await session.confirm(offer))) {
+      const fresh = await session.confirm(offer);
+
+      if (fresh === null) {
         return { status: "stale" };
+      }
+
+      if (signal.aborted) {
+        return { status: "cancelled", stage: "session-ended" };
+      }
+
+      if (!fresh.flows.includes("flexible")) {
+        return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
       }
 
       const result = await session.downloadFlexible();
@@ -56,7 +66,7 @@ const commands = {
     reference: "offer",
     impacts: ["native-update-flow", "javascript-restart"],
     binding: "provider-current",
-    run: async ({ native, offer }) => {
+    run: async ({ native, offer, signal }) => {
       const session = getSession(native);
 
       if (session === undefined) {
@@ -67,8 +77,18 @@ const commands = {
         return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
       }
 
-      if (!(await session.confirm(offer))) {
+      const fresh = await session.confirm(offer);
+
+      if (fresh === null) {
         return { status: "stale" };
+      }
+
+      if (signal.aborted) {
+        return { status: "cancelled", stage: "session-ended" };
+      }
+
+      if (!fresh.flows.includes("immediate")) {
+        return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
       }
 
       const flow = await native.bridge.startImmediate();

@@ -45,7 +45,10 @@ export const reload = handle.requestReload({ prepared });
 handle.download();
 
 // @ts-expect-error -- a reload needs a prepared target, not an offer.
-handle.requestReload({ offer });
+handle.requestReload({ prepared: offer });
+
+// @ts-expect-error -- a download needs an offer, not a prepared target.
+handle.download({ offer: prepared });
 
 // @ts-expect-error -- the download command takes no parameters of its own.
 handle.download({ offer, channel: "staging" });

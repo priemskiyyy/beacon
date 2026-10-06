@@ -5,6 +5,7 @@ import { createReleaseSource, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   OfferReference,
+  PreparedReference,
   RouteHandle,
   TargetDecision,
 } from "@priemskiyyy/beacon";
@@ -40,6 +41,8 @@ declare const web: RouteHandle<"web", typeof routes.web>;
 
 declare const offer: OfferReference<"web">;
 
+declare const prepared: PreparedReference<"web">;
+
 export const outcome = web.requestReload({ offer });
 
 // @ts-expect-error -- a reload needs the offer the user was shown.
@@ -50,7 +53,7 @@ web.requestReload();
 web.requestReload({ offer, hard: true });
 
 // @ts-expect-error -- a prepared reference never fits where an offer is asked for.
-web.requestReload({ prepared: { kind: "prepared", route: "web", id: 1 } });
+web.requestReload({ offer: prepared });
 
 // BIND-05 The native handle of a typed route is the provider's own type, without an assertion.
 expectTypeOf(web.native.get()).toEqualTypeOf<BrowserNative | null>();

@@ -37,10 +37,10 @@ export const activation = handle.activateWaiting({ offer });
 export const reload = handle.requestReload({ prepared });
 
 // @ts-expect-error -- an activation needs the offer, not the prepared target.
-handle.activateWaiting({ prepared });
+handle.activateWaiting({ offer: prepared });
 
 // @ts-expect-error -- a reload needs a prepared target, which only an observed activation gives.
-handle.requestReload({ offer });
+handle.requestReload({ prepared: offer });
 
 export const native: ServiceWorkerNative | null = handle.native.get();
 

@@ -37,7 +37,10 @@ export const immediate = handle.startImmediateUpdate({ offer });
 export const complete = handle.completeUpdate({ prepared });
 
 // @ts-expect-error -- completing needs the prepared download, not the offer.
-handle.completeUpdate({ offer });
+handle.completeUpdate({ prepared: offer });
+
+// @ts-expect-error -- a flow needs the offer, not a prepared download.
+handle.startFlexibleUpdate({ offer: prepared });
 
 // @ts-expect-error -- a flow is a command of its own, not a parameter.
 handle.startFlexibleUpdate({ offer, flow: "immediate" });

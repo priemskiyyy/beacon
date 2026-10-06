@@ -1,7 +1,6 @@
 import type {
   Evidence,
   ReleaseIdentity,
-  SupportState,
   TransitionState,
 } from "@priemskiyyy/beacon";
 import { render } from "solid-js/web";
@@ -282,21 +281,13 @@ test("capabilities list each command with what it needs and can do, and say when
   );
 });
 
-const support = (patch: Partial<SupportState>): SupportState => ({
-  revision: 4,
-  status: "unknown",
-  reason: null,
-  evaluation: null,
-  error: null,
-  ...patch,
-});
-
-test("support that failed to evaluate shows its error beside the reason, and the last evaluation still in view", () => {
+test("a lapsed policy whose evaluation also failed shows its error beside the reason, and the last evaluation still in view", () => {
   const container = show(() => (
     <SupportSection
-      support={support({
+      support={{
+        revision: 4,
         status: "unknown",
-        reason: "evaluation-failed",
+        reason: "expired",
         error: { code: "POLICY_FAILED", message: "The policy threw." },
         evaluation: {
           status: "deprecated",
@@ -308,14 +299,14 @@ test("support that failed to evaluate shows its error beside the reason, and the
           evaluatedRunningRevision: 3,
           evidence,
         },
-      })}
+      }}
     />
   ));
 
   const text = words(container);
 
   expect(text).toContain("unknown snapshot 4");
-  expect(text).toContain("Reason evaluation-failed");
+  expect(text).toContain("Reason expired");
   expect(text).toContain("Error POLICY_FAILED: The policy threw.");
   expect(text).toContain("Evaluated status deprecated");
   expect(text).toContain("Under running revision 3");
@@ -328,8 +319,11 @@ test("support that failed to evaluate shows its error beside the reason, and the
 test("an evaluation with no reasons and no remediation says none of each", () => {
   const container = show(() => (
     <SupportSection
-      support={support({
+      support={{
+        revision: 4,
         status: "supported",
+        reason: null,
+        error: null,
         evaluation: {
           status: "supported",
           reasons: [],
@@ -337,7 +331,7 @@ test("an evaluation with no reasons and no remediation says none of each", () =>
           evaluatedRunningRevision: 1,
           evidence,
         },
-      })}
+      }}
     />
   ));
 

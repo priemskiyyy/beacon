@@ -1,7 +1,6 @@
 import type { BeaconErrorInfo } from "src/types/BeaconErrorInfo";
 import type { SupportEvaluation } from "src/types/SupportEvaluation";
 import type { SupportStatus } from "src/types/SupportStatus";
-import type { SupportUnknownReason } from "src/types/SupportUnknownReason";
 
 /**
  * Everything published about support, in dimensions that never rewrite each
@@ -12,23 +11,43 @@ import type { SupportUnknownReason } from "src/types/SupportUnknownReason";
  * `evaluation-failed`. A failing check, or a failing evaluation, never turns
  * `supported` into `unsupported`, and a dismissal never changes it at all.
  *
+ * `reason` says why `status` is unknown when Beacon reached that itself, and
+ * is `null` when an evaluation is in force. Which of `evaluation` and `error`
+ * are there follows from it, so a state narrowed by `reason` needs no null
+ * check for what it must have.
+ *
  * @example
  * ```ts
- * const { status, evaluation } = beacon.support.get();
+ * const support = beacon.support.get();
  *
- * if (status === "unsupported" && evaluation !== null) {
- *   console.info(evaluation.reasons.map((reason) => reason.code));
+ * if (support.reason === null && support.status === "unsupported") {
+ *   console.info(support.evaluation.reasons.map((reason) => reason.code));
  * }
  * ```
  */
-export type SupportState = {
-  /** Grows with every meaningful change of this snapshot. */
-  revision: number;
-  status: SupportStatus;
-  /** Why `status` is unknown when Beacon reached that itself, else `null`. */
-  reason: SupportUnknownReason | null;
-  /** The last evaluation, in force unless `reason` says it is not. */
-  evaluation: SupportEvaluation | null;
-  /** The policy-stage failure of the latest evaluation, kept beside the last valid one. */
-  error: BeaconErrorInfo | null;
-};
+export type SupportState = { revision: number } & (
+  | {
+      status: "unknown";
+      reason: "no-policy" | "not-checked";
+      evaluation: null;
+      error: null;
+    }
+  | {
+      status: "unknown";
+      reason: "evaluation-failed";
+      evaluation: null;
+      error: BeaconErrorInfo;
+    }
+  | {
+      status: "unknown";
+      reason: "expired";
+      evaluation: SupportEvaluation;
+      error: BeaconErrorInfo | null;
+    }
+  | {
+      status: SupportStatus;
+      reason: null;
+      evaluation: SupportEvaluation;
+      error: BeaconErrorInfo | null;
+    }
+);

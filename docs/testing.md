@@ -417,6 +417,6 @@ A test with a fake proves how Beacon maps a native result. It never proves that 
 
 The conformance suites of `@priemskiyyy/beacon/testing` (`testReleaseSource`, `testVersionStrategy`, `testUpdateMechanism` and `testReleaseDriver`) register the contract every adapter keeps. [Custom adapters](custom-adapters.md#prove-it) shows how to call them.
 
-## React
+## The framework bindings
 
-Render `BeaconProvider` around your component with a real Beacon over the mock source and the test clock, and drive it the way these tests do: answer, check, advance. Wrap what changes state in `act`. Reading in a hook never starts a session, so start the Beacon in the test, or pass `start` to the provider.
+Render `BeaconProvider` around your component with a real Beacon over the mock source and the test clock, and drive it the way these tests do: answer, check, advance. Reading in a hook never starts a session, so start the Beacon in the test, or pass `start` to the provider. In React, wrap what changes state in `act`. The pages for [Vue](vue.md#testing), [Solid](solid.md#testing) and [Svelte](svelte.md#testing) show how to flush their own updates.

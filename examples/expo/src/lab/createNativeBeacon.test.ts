@@ -1,4 +1,5 @@
 import type { RunningApplication } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import type { UpdatesLike } from "@priemskiyyy/beacon-expo";
 import { expect, test } from "vitest";
 
@@ -41,11 +42,6 @@ const fakeUpdates = (isEnabled: boolean, running = EMBEDDED) => {
 
   return { updates, calls };
 };
-
-const settle = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
 
 test("a device without updates enabled cannot check, and Beacon says so instead of saying nothing is on offer", async () => {
   const { updates } = fakeUpdates(false);

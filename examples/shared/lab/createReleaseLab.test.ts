@@ -1,15 +1,9 @@
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 
 import { formatTimelineEntry } from "example-shared/formatting/formatTimelineEntry";
 import { CHECK_TIMEOUT, MANIFEST_TTL } from "example-shared/lab/constants/lab";
 import { createReleaseLab } from "example-shared/lab/createReleaseLab";
-
-// Lets every queued promise continuation run before the test goes on; time itself is the test clock's.
-const settle = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
 
 const setup = () => {
   const clock = createTestClock({ now: 1_000_000 });

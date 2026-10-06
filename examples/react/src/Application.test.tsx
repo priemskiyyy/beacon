@@ -1,4 +1,4 @@
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import {
   act,
   cleanup,
@@ -36,21 +36,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// Lets every queued promise continuation run; time itself is the test clock's.
-const settle = () =>
-  act(
-    () =>
-      new Promise<void>((resolve) => {
-        setTimeout(resolve, 0);
-      }),
-  );
+// React applies what the settled promises changed only inside `act`.
+const flush = () => act(() => settle());
 
 const renderApplication = async () => {
   const lab = createReleaseLab({ clock: createTestClock({ now: 1_000_000 }) });
 
   labs.push(lab);
   render(<Application lab={lab} />);
-  await settle();
+  await flush();
 
   return lab;
 };
@@ -61,7 +55,7 @@ const banner = () => screen.getByRole("region", { name: "Update banner" });
 
 const press = async (name: string, scope: HTMLElement = document.body) => {
   fireEvent.click(within(scope).getByRole("button", { name }));
-  await settle();
+  await flush();
 };
 
 test("the provider starts the session and the startup check reports what runs", async () => {
@@ -140,7 +134,7 @@ test("under StrictMode the startup check still finds the session the provider st
       <Application lab={lab} />
     </StrictMode>,
   );
-  await settle();
+  await flush();
 
   expect(fact("Session").textContent).toBe("running");
   expect(fact("Check").textContent).toContain("Succeeded");

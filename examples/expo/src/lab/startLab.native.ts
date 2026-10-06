@@ -1,4 +1,4 @@
-import { createBootId } from "@priemskiyyy/beacon";
+import { createBootId, keyValueJournalStorage } from "@priemskiyyy/beacon";
 import type { BeaconDiagnosticEvent } from "@priemskiyyy/beacon";
 import * as Application from "expo-application";
 import keyValueStore from "expo-sqlite/kv-store";
@@ -7,7 +7,6 @@ import { Platform } from "react-native";
 
 import { TIMELINE_LENGTH } from "example-shared/lab/constants/lab";
 import { createEventLog } from "example-shared/utils/createEventLog";
-import { createJournalStorage } from "src/lab/createJournalStorage";
 import { createNativeBeacon } from "src/lab/createNativeBeacon";
 import type { ExpoStart } from "src/lab/types/ExpoStart";
 
@@ -21,7 +20,7 @@ export const startLab = (): ExpoStart => {
     // Minted once per JavaScript runtime, which is what a boot is.
     boot: { id: createBootId() },
     // A reload replaces this runtime, so what it asked for is recorded in storage that survives it.
-    journal: createJournalStorage(keyValueStore),
+    journal: keyValueJournalStorage(keyValueStore),
     application: Application,
   });
 

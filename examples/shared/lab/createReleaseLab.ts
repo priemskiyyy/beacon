@@ -1,4 +1,7 @@
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import {
+  createMockJournalStorage,
+  createTestClock,
+} from "@priemskiyyy/beacon/mock";
 
 import { TIMELINE_LENGTH } from "example-shared/lab/constants/lab";
 import type { LabBoot } from "example-shared/lab/types/LabBoot";
@@ -12,7 +15,6 @@ import type { TimelineEntry } from "example-shared/lab/types/TimelineEntry";
 import type { LabWorld } from "example-shared/lab/types/LabWorld";
 import type { WorldEvent } from "example-shared/lab/types/WorldEvent";
 import { createDraftParticipant } from "example-shared/lab/utils/createDraftParticipant";
-import { createJournalStorage } from "example-shared/lab/utils/createJournalStorage";
 import { createLabBeacon } from "example-shared/lab/utils/createLabBeacon";
 import { createManifestSource } from "example-shared/lab/utils/createManifestSource";
 import { createWorld } from "example-shared/lab/utils/createWorld";
@@ -38,8 +40,8 @@ export const createReleaseLab = ({
   const { log, add } = createEventLog<TimelineEntry>(TIMELINE_LENGTH);
   const world = createValueStore(createWorld());
   const draft = createValueStore<LabDraft>({ dirty: false, locked: false });
-  const records = new Map<string, string>();
-  const storage = createJournalStorage(records);
+  // Shared by every document of the lab, as `localStorage` would be by every load of a page.
+  const storage = createMockJournalStorage();
   const manifest = createManifestSource({ world, clock, latency });
   let nextId = 1;
   let number = 0;
@@ -199,7 +201,7 @@ export const createReleaseLab = ({
     reset: () => {
       boot.get().beacon.dispose();
       stopRecording();
-      records.clear();
+      storage.records.clear();
       log.clear();
       world.set(createWorld());
       draft.set({ dirty: false, locked: false });

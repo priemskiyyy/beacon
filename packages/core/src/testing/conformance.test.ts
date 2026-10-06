@@ -84,7 +84,7 @@ testReleaseDriver({
   create: () => {
     const provider = createFakeProvider();
 
-    const driver = createReleaseDriver({
+    const route = createReleaseDriver({
       name: "fake-provider",
       prepares: false,
       open: ({ emit }) => {
@@ -109,6 +109,6 @@ testReleaseDriver({
       commands: {},
     });
 
-    return { driver, provider };
+    return { route, provider };
   },
 });

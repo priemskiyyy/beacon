@@ -11,7 +11,7 @@ import type { RouteBody } from "src/types/RouteBody";
  *
  * @example
  * ```ts
- * const driver = createReleaseDriver<Updates, UpdateBody, UpdateBody, typeof commands>({
+ * const ota = createReleaseDriver<Updates, UpdateBody, UpdateBody, typeof commands>({
  *   name: "expo-updates",
  *   prepares: true,
  *   open: ({ emit }) => ({ native: updates, check }),

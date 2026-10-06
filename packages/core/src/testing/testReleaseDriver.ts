@@ -4,7 +4,7 @@ import type { CommandMap } from "src/types/CommandMap";
 import type { DriverEmitter } from "src/types/DriverEmitter";
 import type { ObservationDraft } from "src/types/ObservationDraft";
 import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
-import type { ReleaseDriver } from "src/types/ReleaseDriver";
+import type { DriverRoute } from "src/types/DriverRoute";
 import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { RouteBody } from "src/types/RouteBody";
 import type { RunningApplication } from "src/types/RunningApplication";
@@ -18,7 +18,7 @@ export type ReleaseDriverFixture<
   TPrepared extends RouteBody,
   TCommands extends CommandMap<TNative, TOffer, TPrepared>,
 > = {
-  driver: ReleaseDriver<TNative, TOffer, TPrepared, TCommands>;
+  route: DriverRoute<TNative, TOffer, TPrepared, TCommands>;
   /** The provider's change events. Leave it out when the provider reports no changes. */
   provider?: {
     /** Makes the provider report a change, as its SDK would. */
@@ -143,7 +143,7 @@ const running = {
  *   create: () => {
  *     const fake = fakeUpdates();
  *
- *     return { driver: expoUpdates({ updates: fake.updates }) };
+ *     return { route: expoUpdates({ updates: fake.updates }) };
  *   },
  * });
  * ```
@@ -162,7 +162,7 @@ export const testReleaseDriver = <
   ) => {
     const recording = createRecordingEmitter<TOffer, TPrepared>();
 
-    const session = fixture.driver.open({
+    const session = fixture.route.driver.open({
       scope: SCOPE,
       running,
       emit: recording.emit,
@@ -173,11 +173,11 @@ export const testReleaseDriver = <
 
   describe(`release driver: ${name}`, () => {
     test("it has a name for diagnostics", () => {
-      expect(create().driver.name).not.toBe("");
+      expect(create().route.driver.name).not.toBe("");
     });
 
     test("every command declares a known reference, binding and impacts", () => {
-      expectValidCommands(create().driver.commands);
+      expectValidCommands(create().route.driver.commands);
     });
 
     test("it holds nothing on the provider until a session opens", () => {
@@ -203,7 +203,7 @@ export const testReleaseDriver = <
       fixture.provider?.update();
       session.dispose?.();
 
-      if (fixture.driver.prepares) {
+      if (fixture.route.driver.prepares) {
         return;
       }
 

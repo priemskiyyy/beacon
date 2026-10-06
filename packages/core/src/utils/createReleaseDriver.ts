@@ -1,15 +1,16 @@
 import type { CommandMap } from "src/types/CommandMap";
+import type { DriverRoute } from "src/types/DriverRoute";
 import type { ReleaseDriver } from "src/types/ReleaseDriver";
 import type { RouteBody } from "src/types/RouteBody";
 
 /**
- * Declares a provider-owned route. Name the native, offer and prepared types
- * once and each command's `run` receives them, typed, along with the
- * reference it declared.
+ * Declares a provider-owned route from its driver. Name the native, offer and
+ * prepared types once and each command's `run` receives them, typed, along
+ * with the reference it declared. The route goes into `routes` as it is.
  *
  * @example
  * ```ts
- * const driver = createReleaseDriver<Updates, UpdateBody, UpdateBody, typeof commands>({
+ * const ota = createReleaseDriver<Updates, UpdateBody, UpdateBody, typeof commands>({
  *   name: "expo-updates",
  *   prepares: true,
  *   open: () => ({ native: updates, check }),
@@ -24,4 +25,7 @@ export const createReleaseDriver = <
   TCommands extends CommandMap<TNative, TOffer, TPrepared>,
 >(
   driver: ReleaseDriver<TNative, TOffer, TPrepared, TCommands>,
-): ReleaseDriver<TNative, TOffer, TPrepared, TCommands> => driver;
+): DriverRoute<TNative, TOffer, TPrepared, TCommands> => ({
+  kind: "driver",
+  driver,
+});

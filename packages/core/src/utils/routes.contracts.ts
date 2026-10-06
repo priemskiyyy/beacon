@@ -205,11 +205,9 @@ export const play = createReleaseDriver<
   },
 });
 
-export const driverRoutes = {
-  play: { kind: "driver", driver: play },
-} satisfies Record<string, RouteDefinition>;
+export const driverRoutes = { play } satisfies Record<string, RouteDefinition>;
 
-declare const playHandle: RouteHandle<"binary", typeof driverRoutes.play>;
+declare const playHandle: RouteHandle<"binary", typeof play>;
 
 declare const playOffer: OfferReference<"binary">;
 

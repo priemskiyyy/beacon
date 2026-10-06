@@ -368,6 +368,19 @@ See [App Store](app-store.md).
 | `AppStoreHandoffReceipt` | type     | `store-handoff-requested`                                              |
 | `AppleVersion`           | type     | a marketing version as three numbers                                   |
 
+## @priemskiyyy/beacon-firebase-remote-config
+
+See [Firebase Remote Config](firebase-remote-config.md).
+
+| Export                        | Kind     | What it is                                                                                        |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `firebaseRemoteConfig`        | function | Firebase Remote Config as a release source, such as a minimum build, built from the server's text |
+| `FirebaseRemoteConfigOptions` | type     | the instance, the SDK module, the document builder, `name`, `maxAge` and `onFetchFailure`         |
+| `RemoteConfigLike`            | type     | the part of a Remote Config instance the source reads                                             |
+| `RemoteConfigModuleLike`      | type     | the three functions of the SDK module the source calls                                            |
+| `RemoteValueLike`             | type     | one parameter: its text and where it came from                                                    |
+| `RemoteParameters`            | type     | what the document builder reads: `remote(key)` and `source(key)`                                  |
+
 ## @priemskiyyy/beacon-react
 
 See [React](react.md).

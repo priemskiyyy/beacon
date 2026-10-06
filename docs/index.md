@@ -31,19 +31,20 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 
 ## Install
 
-| Package                              | Use it for                                                  |
-| ------------------------------------ | ----------------------------------------------------------- |
-| `@priemskiyyy/beacon`                | The runtime, `./versions`, `./mock` and `./testing`         |
-| `@priemskiyyy/beacon-http`           | Your own release manifest endpoint, through your own client |
-| `@priemskiyyy/beacon-browser`        | Reloading the browser document                              |
-| `@priemskiyyy/beacon-service-worker` | A waiting service worker as an update that is ready         |
-| `@priemskiyyy/beacon-expo`           | Expo Updates                                                |
-| `@priemskiyyy/beacon-google-play`    | Google Play in-app updates, over a native bridge you inject |
-| `@priemskiyyy/beacon-app-store`      | App Store metadata and store handoff                        |
-| `@priemskiyyy/beacon-react`          | A provider and hooks, typed by the Beacon you register      |
-| `@priemskiyyy/beacon-vue`            | A provider and composables for Vue, typed the same way      |
-| `@priemskiyyy/beacon-solid`          | A provider and primitives for Solid, typed the same way     |
-| `@priemskiyyy/beacon-svelte`         | A provider and utilities for Svelte 5, typed the same way   |
+| Package                                      | Use it for                                                  |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| `@priemskiyyy/beacon`                        | The runtime, `./versions`, `./mock` and `./testing`         |
+| `@priemskiyyy/beacon-http`                   | Your own release manifest endpoint, through your own client |
+| `@priemskiyyy/beacon-browser`                | Reloading the browser document                              |
+| `@priemskiyyy/beacon-service-worker`         | A waiting service worker as an update that is ready         |
+| `@priemskiyyy/beacon-expo`                   | Expo Updates                                                |
+| `@priemskiyyy/beacon-google-play`            | Google Play in-app updates, over a native bridge you inject |
+| `@priemskiyyy/beacon-app-store`              | App Store metadata and store handoff                        |
+| `@priemskiyyy/beacon-firebase-remote-config` | Firebase Remote Config as a source, such as a minimum build |
+| `@priemskiyyy/beacon-react`                  | A provider and hooks, typed by the Beacon you register      |
+| `@priemskiyyy/beacon-vue`                    | A provider and composables for Vue, typed the same way      |
+| `@priemskiyyy/beacon-solid`                  | A provider and primitives for Solid, typed the same way     |
+| `@priemskiyyy/beacon-svelte`                 | A provider and utilities for Svelte 5, typed the same way   |
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http @priemskiyyy/beacon-browser
@@ -135,7 +136,7 @@ It is not an installer, a cache, a scheduler or a policy engine. It never claims
 - [Getting started](getting-started.md): the browser with HTTP and a framework binding, then React Native with Expo.
 - [The mental model](mental-model.md): subjects, routes, decisions, evidence, references and outcomes.
 - Guides: [routes](routes.md), [commands](commands.md), [support](support.md), [disruptions](disruptions.md), [journal](journal.md), [scopes](scopes.md) and [sessions](sessions.md).
-- Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [Google Play](google-play.md), [App Store](app-store.md) and [custom adapters](custom-adapters.md).
+- Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [Google Play](google-play.md), [App Store](app-store.md), [Firebase Remote Config](firebase-remote-config.md) and [custom adapters](custom-adapters.md).
 - Bindings: [React](react.md), [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
 - [Recipes](recipes.md), [testing](testing.md) and [troubleshooting](troubleshooting.md).
 - [API](api.md), [verification](verification.md), [limits](limits.md), [decisions](decisions.md) and [architecture](internals/architecture.md).

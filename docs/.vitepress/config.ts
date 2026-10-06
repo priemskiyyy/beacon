@@ -73,6 +73,7 @@ export default defineConfig({
           { text: "Expo", link: "/expo" },
           { text: "Google Play", link: "/google-play" },
           { text: "App Store", link: "/app-store" },
+          { text: "Firebase Remote Config", link: "/firebase-remote-config" },
           { text: "Custom adapters", link: "/custom-adapters" },
         ],
       },

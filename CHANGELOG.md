@@ -61,6 +61,11 @@
 - `appStoreLookup` answers no release, with no request, for a scope whose distribution is not `app-store`, and refuses a lookup that breaks its contract as `INVALID_DOCUMENT`, as the standard manifest does.
 - Requires `@priemskiyyy/beacon` 0.1.
 
+## @priemskiyyy/beacon-firebase-remote-config 0.1.0 - Unreleased
+
+- First release. `firebaseRemoteConfig({ remoteConfig, sdk, document })` fetches and activates Remote Config on the web or in React Native and builds a document from what the server sent, dated by the fetch that got it, and never from a default, a missing key or a configuration that never fetched.
+- Requires `@priemskiyyy/beacon` 0.1 and the SDK you pass in: `@react-native-firebase/remote-config` 26 or `firebase` 12.
+
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased
 
 - First release. `BeaconProvider` and the hooks `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useStatus`, `useObservable`, `useDisruption` and `useBeacon`, typed by the `Register`ed Beacon so a route is read by its name. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.

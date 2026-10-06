@@ -64,20 +64,21 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 
 ## Packages
 
-| Package                                                                  | What it is                                                                |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| [`@priemskiyyy/beacon`](packages/core)                                   | The runtime, the version strategies, the mocks and the conformance suites |
-| [`@priemskiyyy/beacon-http`](packages/adapters/http)                     | Your release manifest endpoint, through your own client                   |
-| [`@priemskiyyy/beacon-browser`](packages/adapters/browser)               | Reloading the browser document                                            |
-| [`@priemskiyyy/beacon-service-worker`](packages/adapters/service-worker) | A waiting service worker as an update that is ready                       |
-| [`@priemskiyyy/beacon-expo`](packages/adapters/expo)                     | Expo Updates                                                              |
-| [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)       | Google Play in-app updates, over a native bridge                          |
-| [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)           | App Store metadata and store handoff                                      |
-| [`@priemskiyyy/beacon-react`](packages/react)                            | A provider and hooks                                                      |
-| [`@priemskiyyy/beacon-vue`](packages/vue)                                | A provider and composables                                                |
-| [`@priemskiyyy/beacon-solid`](packages/solid)                            | A provider and primitives                                                 |
-| [`@priemskiyyy/beacon-svelte`](packages/svelte)                          | A provider and utilities, on Svelte 5 runes                               |
-| [`@priemskiyyy/beacon-devtools`](packages/devtools)                      | An inspector for the session, the routes and the diagnostic events        |
+| Package                                                                                  | What it is                                                                |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`@priemskiyyy/beacon`](packages/core)                                                   | The runtime, the version strategies, the mocks and the conformance suites |
+| [`@priemskiyyy/beacon-http`](packages/adapters/http)                                     | Your release manifest endpoint, through your own client                   |
+| [`@priemskiyyy/beacon-browser`](packages/adapters/browser)                               | Reloading the browser document                                            |
+| [`@priemskiyyy/beacon-service-worker`](packages/adapters/service-worker)                 | A waiting service worker as an update that is ready                       |
+| [`@priemskiyyy/beacon-expo`](packages/adapters/expo)                                     | Expo Updates                                                              |
+| [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)                       | Google Play in-app updates, over a native bridge                          |
+| [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)                           | App Store metadata and store handoff                                      |
+| [`@priemskiyyy/beacon-firebase-remote-config`](packages/adapters/firebase-remote-config) | Firebase Remote Config as a source, such as a minimum build               |
+| [`@priemskiyyy/beacon-react`](packages/react)                                            | A provider and hooks                                                      |
+| [`@priemskiyyy/beacon-vue`](packages/vue)                                                | A provider and composables                                                |
+| [`@priemskiyyy/beacon-solid`](packages/solid)                                            | A provider and primitives                                                 |
+| [`@priemskiyyy/beacon-svelte`](packages/svelte)                                          | A provider and utilities, on Svelte 5 runes                               |
+| [`@priemskiyyy/beacon-devtools`](packages/devtools)                                      | An inspector for the session, the routes and the diagnostic events        |
 
 Every package is ESM only, side-effect free and typed. The core has no dependencies, and no adapter imports a provider SDK: you pass in the one you already use.
 
@@ -89,13 +90,13 @@ Everything is tested in process against fakes, and the Expo and React Native ada
 
 The site is at [priemskiyyy.github.io/beacon](https://priemskiyyy.github.io/beacon/), and `pnpm dev:docs` serves it locally. Its source is in [docs](docs).
 
-| Section                | Pages                                                                                                                                                                                                             |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start here             | [Getting started][docs-getting-started] · [The mental model][docs-mental-model]                                                                                                                                   |
-| Guides                 | [Routes][docs-routes] · [Commands][docs-commands] · [Support][docs-support] · [Disruptions][docs-disruptions] · [Journal][docs-journal] · [Scopes][docs-scopes] · [Sessions][docs-sessions]                       |
-| Adapters               | [HTTP][docs-http] · [Browser][docs-browser] · [Service worker][docs-service-worker] · [Expo][docs-expo] · [Google Play][docs-google-play] · [App Store][docs-app-store] · [Custom adapters][docs-custom-adapters] |
-| Build your application | [React][docs-react] · [Vue][docs-vue] · [Solid][docs-solid] · [Svelte][docs-svelte] · [Devtools][docs-devtools] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]     |
-| Reference              | [API][docs-api] · [Verification][docs-verification] · [Limits][docs-limits] · [Decisions][docs-decisions] · [Architecture][docs-architecture]                                                                     |
+| Section                | Pages                                                                                                                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start here             | [Getting started][docs-getting-started] · [The mental model][docs-mental-model]                                                                                                                                                                                           |
+| Guides                 | [Routes][docs-routes] · [Commands][docs-commands] · [Support][docs-support] · [Disruptions][docs-disruptions] · [Journal][docs-journal] · [Scopes][docs-scopes] · [Sessions][docs-sessions]                                                                               |
+| Adapters               | [HTTP][docs-http] · [Browser][docs-browser] · [Service worker][docs-service-worker] · [Expo][docs-expo] · [Google Play][docs-google-play] · [App Store][docs-app-store] · [Firebase Remote Config][docs-firebase-remote-config] · [Custom adapters][docs-custom-adapters] |
+| Build your application | [React][docs-react] · [Vue][docs-vue] · [Solid][docs-solid] · [Svelte][docs-svelte] · [Devtools][docs-devtools] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]                                                             |
+| Reference              | [API][docs-api] · [Verification][docs-verification] · [Limits][docs-limits] · [Decisions][docs-decisions] · [Architecture][docs-architecture]                                                                                                                             |
 
 Also the README of each package above, and [Contributing](CONTRIBUTING.md), [support](SUPPORT.md) and [security](SECURITY.md).
 
@@ -114,6 +115,7 @@ Also the README of each package above, and [Contributing](CONTRIBUTING.md), [sup
 [docs-expo]: https://priemskiyyy.github.io/beacon/expo
 [docs-google-play]: https://priemskiyyy.github.io/beacon/google-play
 [docs-app-store]: https://priemskiyyy.github.io/beacon/app-store
+[docs-firebase-remote-config]: https://priemskiyyy.github.io/beacon/firebase-remote-config
 [docs-custom-adapters]: https://priemskiyyy.github.io/beacon/custom-adapters
 [docs-react]: https://priemskiyyy.github.io/beacon/react
 [docs-vue]: https://priemskiyyy.github.io/beacon/vue

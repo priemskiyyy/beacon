@@ -332,6 +332,7 @@ Everything here is tested in process, and the packages were also run on the two 
 - The journal's storage under a kill during a write.
 - Play's flows through a real bridge, and the install events of a flexible update.
 - The App Store page opened by `Linking.openURL`, and the lookup over a real connection.
+- Firebase Remote Config: `fetchAndActivate` on a device, the fetch time of 0 that iOS answers before any fetch, throttling, and when activation reaches the screens ([Firebase Remote Config](firebase-remote-config.md)).
 - `fetch` on iOS keeping a cached answer and never giving a `304` to JavaScript, and `response.url` after a redirect on each platform.
 - Fast Refresh in a running Metro session. A re-mount and a new Beacon are tested with a test renderer, not with Metro.
 

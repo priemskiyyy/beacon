@@ -525,7 +525,7 @@ test("an update is checked, downloaded and then restarted with what was prepared
 });
 ```
 
-The other adapters work the same way. `googlePlay({ bridge })` takes an object that keeps the `PlayBridge` contract. `serviceWorker({ container, registration })` takes fakes of the container and the registration. `appStoreHandoff({ appId, linking })` takes anything with `openURL`. `browserReload({ target })` takes anything with `location.reload()`. `http({ fetch })` takes your own function.
+The other adapters work the same way. `googlePlay({ bridge })` takes an object that keeps the `PlayBridge` contract. `serviceWorker({ container, registration })` takes fakes of the container and the registration. `appStoreHandoff({ appId, linking })` takes anything with `openURL`. `browserReload({ target })` takes anything with `location.reload()`. `http({ fetch })` takes your own function. `firebaseRemoteConfig({ remoteConfig, sdk, document })` takes an instance and the three functions of the SDK module it calls.
 
 ### A fake that answers later
 

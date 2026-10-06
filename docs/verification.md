@@ -34,6 +34,6 @@ Every provider SDK, the clock and the network are faked in process. The Expo Upd
 
 ## What they are not
 
-Nothing has run in a real browser, on a device, or against a real Play or App Store distribution, and a fake bridge verifies state handling, not installation. What a stable release of each adapter still needs is in [the decision record](decisions.md#not-verified-on-a-device).
+Nothing has run in a real browser, on a device, against a real Play or App Store distribution, or against a Firebase project, and a fake bridge verifies state handling, not installation. What a stable release of each adapter still needs is in [the decision record](decisions.md#not-verified-on-a-device).
 
 The rows without a test belong to features that are not built yet, such as the dismissal of a banner (`POL-12`), or need a device or a real distribution to prove. [The decision record](decisions.md#not-built-yet) lists them.

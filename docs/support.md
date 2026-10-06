@@ -10,7 +10,7 @@ Beacon does not decide it. You write the policy, Beacon evaluates it against wha
 
 ## A policy
 
-`supportPolicy({ source, evaluate })` takes a view of a source's document and a pure function of that view and the running facts. The standard manifest of the [HTTP adapter](http.md) carries a denylist for this purpose, and the example reads it.
+`supportPolicy({ source, evaluate })` takes a view of a source's document and a pure function of that view and the running facts. The standard manifest of the [HTTP adapter](http.md) carries a denylist for this purpose, and the example reads it. A minimum build kept in Firebase Remote Config is read the same way: see [Firebase Remote Config](firebase-remote-config.md).
 
 ```ts
 import {

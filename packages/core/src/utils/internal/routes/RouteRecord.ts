@@ -42,6 +42,7 @@ type Body = RouteBody;
  */
 export class RouteRecord {
   #name: string;
+  #initial: RouteState;
   #ledger: ReferenceLedger;
   #clock: BeaconClock;
   #store: ValueStore<RouteState>;
@@ -65,19 +66,18 @@ export class RouteRecord {
       ? { status: "unknown" }
       : { status: "not-applicable" };
 
-    this.#store = new ValueStore<RouteState>(
-      Object.freeze({
-        revision: 0,
-        check: IDLE_CHECK,
-        observation: Object.freeze({
-          status: "unknown",
-          reason: "not-checked",
-        }),
-        prepared: Object.freeze(prepared),
-        operation: IDLE_OPERATION,
+    this.#initial = Object.freeze({
+      revision: 0,
+      check: IDLE_CHECK,
+      observation: Object.freeze({
+        status: "unknown",
+        reason: "not-checked",
       }),
-      listeners,
-    );
+      prepared: Object.freeze(prepared),
+      operation: IDLE_OPERATION,
+    });
+
+    this.#store = new ValueStore<RouteState>(this.#initial, listeners);
     this.#native = new ValueStore<object | null>(null);
     this.state = this.#store.observable;
     this.native = this.#native.observable;
@@ -286,6 +286,16 @@ export class RouteRecord {
 
   installNative = (transaction: Transaction, native: object | null) => {
     transaction.set(this.#native, native);
+  };
+
+  /** Goes back to knowing nothing, as a route does that has never been checked; the references it minted no longer match anything. */
+  reset = (transaction: Transaction) => {
+    const { revision } = this.#store.get();
+
+    transaction.set(
+      this.#store,
+      Object.freeze({ ...this.#initial, revision: revision + 1 }),
+    );
   };
 
   close = () => {

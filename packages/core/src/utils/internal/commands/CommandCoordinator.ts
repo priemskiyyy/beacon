@@ -109,6 +109,9 @@ export class CommandCoordinator {
     this.#release(operation);
   };
 
+  /** The name of a route whose operation is running or unresolved, or `undefined` when none is. */
+  findBusy = () => this.#operations.keys().next().value;
+
   /** Releases every reservation still held, as the Beacon ends. */
   close = () => {
     const held = [...this.#operations.values()];

@@ -10,6 +10,7 @@ import type { PreparedReference } from "src/types/PreparedReference";
 import type { Release } from "src/types/Release";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RouteHandle } from "src/types/RouteHandle";
+import type { ScopeReplacement } from "src/types/ScopeReplacement";
 import type { TargetDecision } from "src/types/TargetDecision";
 import type { Beacon } from "src/utils/Beacon";
 import { createReleaseDriver } from "src/utils/createReleaseDriver";
@@ -284,6 +285,11 @@ declare const beacon: Beacon<{ web: typeof web }>;
 // BIND-01 A route name that was never defined does not compile.
 // @ts-expect-error A route name that was never defined does not compile.
 beacon.route("nope");
+
+// @ts-expect-error A scope names all four of its fields.
+beacon.replaceScope({ application: "com.example.notes" });
+
+expectTypeOf(beacon.replaceScope).returns.toEqualTypeOf<ScopeReplacement>();
 
 export const trains = custom({
   name: "trains",

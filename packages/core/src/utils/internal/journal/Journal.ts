@@ -147,6 +147,16 @@ export class Journal {
       }
     });
 
+  /** Forgets the intents of the scope that ended, so the next session reads the record of the next one. */
+  reset = () => {
+    this.#transitions = [];
+    this.#hydrated = false;
+    this.#publish({
+      journal: this.#config.options === undefined ? "off" : "reading",
+      dropped: 0,
+    });
+  };
+
   close = () => {
     this.#store.close();
   };

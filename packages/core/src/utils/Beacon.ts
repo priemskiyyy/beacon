@@ -9,6 +9,8 @@ import type { CommandTarget } from "src/types/internal/CommandTarget";
 import type { Disruptions } from "src/types/Disruptions";
 import type { Session } from "src/types/internal/Session";
 import type { ObservableValue } from "src/types/ObservableValue";
+import type { ReleaseScope } from "src/types/ReleaseScope";
+import type { ScopeReplacement } from "src/types/ScopeReplacement";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RouteHandle } from "src/types/RouteHandle";
 import type { RunningApplication } from "src/types/RunningApplication";
@@ -27,6 +29,7 @@ import { Journal } from "src/utils/internal/journal/Journal";
 import { DisruptionRegistry } from "src/utils/internal/disruptions/DisruptionRegistry";
 import { createSystemClock } from "src/utils/internal/clock/createSystemClock";
 import { Diagnostics } from "src/utils/internal/diagnostics/Diagnostics";
+import { isSameData } from "src/utils/internal/common/isSameData";
 import { createDisposedError } from "src/utils/internal/errors/createDisposedError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import { Listeners } from "src/utils/internal/observable/Listeners";
@@ -67,6 +70,7 @@ export class Beacon<
   #routes: RouteRegistry;
   #disruptions: DisruptionRegistry;
   #journal: Journal;
+  #scope: ReleaseScope;
   #commands: CommandCoordinator;
   #diagnostics: Diagnostics;
   #names: Array<keyof TRoutes & string>;
@@ -204,12 +208,12 @@ export class Beacon<
       record: this.#diagnostics.record,
     });
 
-    const frozenScope = Object.freeze({ ...scope });
+    this.#scope = Object.freeze({ ...scope });
 
     this.#routes = new RouteRegistry({
       definitions: routes,
       policy: policy ?? null,
-      getScope: () => frozenScope,
+      getScope: () => this.#scope,
       running: this.#running.state,
       clock,
       timeout: checkTimeout,
@@ -227,7 +231,7 @@ export class Beacon<
 
     this.#journal = new Journal({
       options: journal,
-      getScope: () => frozenScope,
+      getScope: () => this.#scope,
       clock,
       listeners: createListeners(),
       record: this.#diagnostics.record,
@@ -308,6 +312,50 @@ export class Beacon<
    * ```
    */
   start = () => this.#runtime.start();
+
+  /**
+   * Puts another scope in force, all at once. Every result of the old scope's
+   * reads is fenced, what it taught is forgotten (the documents, the offers
+   * and the references to them, the prepared targets, the support evaluated
+   * from them and the journal's intents), and the session, if one is open,
+   * starts again with the next scope. What is running is never rewritten: a
+   * new environment label does not change the build in memory. A route whose
+   * operation is running or unresolved blocks the replacement, since that work
+   * cannot be given to another scope: acknowledge it first.
+   *
+   * @example
+   * ```ts
+   * const replacement = beacon.replaceScope({ ...scope, environment: "staging" });
+   * ```
+   */
+  replaceScope = (next: ReleaseScope): ScopeReplacement => {
+    if (this.#runtime.status.get().state === "disposed") {
+      throw createDisposedError();
+    }
+
+    const busy = this.#commands.findBusy();
+
+    if (busy !== undefined) {
+      return { status: "blocked", route: busy };
+    }
+
+    if (isSameData(this.#scope, next)) {
+      return { status: "unchanged" };
+    }
+
+    const wasOpen = this.#runtime.getSession() !== null;
+
+    this.#runtime.stop();
+    this.#scope = Object.freeze({ ...next });
+    this.#routes.reset();
+    this.#journal.reset();
+
+    if (wasOpen) {
+      this.#runtime.start();
+    }
+
+    return { status: "replaced" };
+  };
 
   /**
    * Ends the open session: callbacks fall silent and owned timers stop. It

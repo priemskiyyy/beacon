@@ -91,6 +91,7 @@ export type { RunningReader } from "src/types/RunningReader";
 export type { RunningReaders } from "src/types/RunningReaders";
 export type { RunningRelease } from "src/types/RunningRelease";
 export type { RunningSubject } from "src/types/RunningSubject";
+export type { ScopeReplacement } from "src/types/ScopeReplacement";
 export type { SemVer } from "src/types/SemVer";
 export type { SemVerIdentifier } from "src/types/SemVerIdentifier";
 export type { SemVerOptions } from "src/types/SemVerOptions";

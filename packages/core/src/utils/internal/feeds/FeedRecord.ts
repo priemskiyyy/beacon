@@ -93,6 +93,15 @@ export class FeedRecord {
     this.#armExpiry(session, accepted);
   };
 
+  /** Forgets the document and its revision high-water mark, as another scope's evidence is never compared with this one's. */
+  reset = () => {
+    this.#cancelExpiry();
+
+    this.#cancelExpiry = () => {};
+
+    this.#accepted = null;
+  };
+
   // Throws the error a rejected answer becomes; the held document is never touched here.
   #judge(attempt: number, read: SourceRead<unknown>): Verdict {
     const revision = read.revision ?? null;

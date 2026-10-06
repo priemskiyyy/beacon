@@ -75,6 +75,18 @@ export class PolicyRecord {
     this.#install(transaction, held);
   };
 
+  /** Forgets every evaluation, as a policy of another scope says nothing about this one. */
+  reset = (transaction: Transaction) => {
+    this.#held = null;
+    this.#lastValid = null;
+    this.#reported = null;
+
+    transaction.set(
+      this.#store,
+      this.#options.policy === null ? NO_POLICY_SUPPORT : NOT_CHECKED_SUPPORT,
+    );
+  };
+
   /** The last evaluation failed, or `null`. */
   getFailure = () => {
     if (this.#held?.evaluation.status !== "failed") {

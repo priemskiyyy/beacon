@@ -178,6 +178,28 @@ export class RouteRegistry {
     }
   };
 
+  /**
+   * Forgets what the scope that ended taught: every document held, what each
+   * route observed and prepared, the failures of the last reads and the support
+   * evaluated from them. The routes, their mechanisms and the running facts stay.
+   */
+  reset = () => {
+    this.#failures.clear();
+    this.#policyFailure = null;
+
+    for (const feed of this.#feeds.values()) {
+      feed.record.reset();
+    }
+
+    this.#commit((transaction) => {
+      for (const entry of this.#entries.values()) {
+        entry.record.reset(transaction);
+      }
+
+      this.#policy.reset(transaction);
+    });
+  };
+
   close = () => {
     for (const entry of this.#entries.values()) {
       entry.record.close();

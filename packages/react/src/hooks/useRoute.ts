@@ -1,36 +1,38 @@
-import type { ObservableValue } from "@priemskiyyy/beacon";
-
-import { useSelectedValue } from "src/hooks/internal/useSelectedValue";
+import { useBeacon } from "src/hooks/useBeacon";
+import { useObservable } from "src/hooks/useObservable";
+import type {
+  RegisteredRouteName,
+  RegisteredRouteState,
+} from "src/types/Register";
 import type { SelectorOptions } from "src/types/SelectorOptions";
 import { selectValue } from "src/utils/selectValue";
 
 /**
- * Reads a route's state and renders again when it changes; with a selector,
- * only when the selection changes. It never checks the route or starts a
- * session, and the types of the route's offer and prepared target come from
- * its handle.
+ * Reads the state of a route of the provider's Beacon, by name, and renders
+ * again when it changes; with a selector, only when the selection changes. It
+ * never checks the route or starts a session. For a route handle you hold,
+ * read `handle.state` with `useObservable`.
  *
  * @example
  * ```ts
- * const web = beacon.route("web");
- * const snapshot = useRoute(web);
- * const checking = useRoute(web, ({ check }) => check.state === "checking");
+ * const snapshot = useRoute("web");
+ * const checking = useRoute("web", ({ check }) => check.state === "checking");
  * ```
  */
-export function useRoute<TSnapshot>(route: {
-  state: ObservableValue<TSnapshot>;
-}): TSnapshot;
+export function useRoute<TName extends RegisteredRouteName>(
+  name: TName,
+): RegisteredRouteState<TName>;
 
-export function useRoute<TSnapshot, TSelected>(
-  route: { state: ObservableValue<TSnapshot> },
-  selector: (snapshot: TSnapshot) => TSelected,
+export function useRoute<TName extends RegisteredRouteName, TSelected>(
+  name: TName,
+  selector: (snapshot: RegisteredRouteState<TName>) => TSelected,
   options?: SelectorOptions<NoInfer<TSelected>>,
 ): TSelected;
 
-export function useRoute<TSnapshot>(
-  route: { state: ObservableValue<TSnapshot> },
-  selector: (snapshot: TSnapshot) => unknown = selectValue,
-  { isEqual = Object.is }: SelectorOptions<unknown> = {},
+export function useRoute<TName extends RegisteredRouteName>(
+  name: TName,
+  selector: (snapshot: RegisteredRouteState<TName>) => unknown = selectValue,
+  options: SelectorOptions<unknown> = {},
 ): unknown {
-  return useSelectedValue(route.state, selector, isEqual);
+  return useObservable(useBeacon().route(name).state, selector, options);
 }

@@ -1,5 +1,7 @@
 import { createContext } from "react";
 
-import type { ReactBeacon } from "src/types/ReactBeacon";
+import type { RegisteredBeacon } from "src/types/Register";
 
-export const BeaconContext = createContext<ReactBeacon | undefined>(undefined);
+export const BeaconContext = createContext<RegisteredBeacon | undefined>(
+  undefined,
+);

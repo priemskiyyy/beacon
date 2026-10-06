@@ -53,5 +53,5 @@
 
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased
 
-- First release. `BeaconProvider`, `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useDisruption` and `useBeacon`. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
+- First release. `BeaconProvider` and the hooks `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useStatus`, `useObservable`, `useDisruption` and `useBeacon`, typed by the `Register`ed Beacon so a route is read by its name. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
 - Requires `@priemskiyyy/beacon` 0.1 and React 19.2.

@@ -334,6 +334,17 @@ export default tseslint.config(
     },
   },
   {
+    // Declaration merging is how an application tells a binding which Beacon it has, and only an interface can be merged.
+    files: [
+      "packages/*/src/types/Register.ts",
+      "packages/*/src/register.fixture.ts",
+    ],
+    rules: {
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
+    },
+  },
+  {
     // React rules only where React runs.
     files: ["packages/react/**/*.{ts,tsx}"],
     plugins: { "react-hooks": reactHooks },

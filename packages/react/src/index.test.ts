@@ -7,8 +7,10 @@ test("the entry exports the provider and the hooks, and nothing else", () => {
     "BeaconProvider",
     "useBeacon",
     "useDisruption",
+    "useObservable",
     "useRoute",
     "useRunning",
+    "useStatus",
     "useSupport",
     "useTransitions",
   ]);

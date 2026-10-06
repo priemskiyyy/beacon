@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 
-import type { ReactBeacon } from "src/types/ReactBeacon";
+import type { RegisteredBeacon } from "src/types/Register";
 
 /**
  * The Beacon to publish, and whether the provider holds the observation
@@ -12,6 +12,6 @@ import type { ReactBeacon } from "src/types/ReactBeacon";
  * ```
  */
 export type BeaconProviderProps = PropsWithChildren<{
-  beacon: ReactBeacon;
+  beacon: RegisteredBeacon;
   start?: boolean;
 }>;

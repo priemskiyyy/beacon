@@ -74,12 +74,15 @@ export const createWebBeacon = () => {
   return { beacon, mock };
 };
 
+export type WebBeacon = ReturnType<typeof createWebBeacon>["beacon"];
+
 // A copy of an observable that counts its live listeners, which is what a leak looks like.
 export const countListeners = <TValue>(value: ObservableValue<TValue>) => {
   const counts = { live: 0 };
 
   const observable: ObservableValue<TValue> = {
     get: value.get,
+    getInitial: value.getInitial,
     subscribe: (listener) => {
       counts.live += 1;
 

@@ -7,10 +7,13 @@ import { afterEach, expect, test } from "vitest";
 
 import { BeaconProvider } from "src/context/BeaconProvider";
 import { countListeners, createWebBeacon, target } from "src/beacon.fixture";
+import type { WebBeacon } from "src/beacon.fixture";
 import { useBeacon } from "src/hooks/useBeacon";
 import { useDisruption } from "src/hooks/useDisruption";
+import { useObservable } from "src/hooks/useObservable";
 import { useRoute } from "src/hooks/useRoute";
 import { useRunning } from "src/hooks/useRunning";
+import { useStatus } from "src/hooks/useStatus";
 import { useSupport } from "src/hooks/useSupport";
 import { useTransitions } from "src/hooks/useTransitions";
 
@@ -25,9 +28,19 @@ const answer = (context: ReturnType<typeof createWebBeacon>, build: string) => {
   });
 };
 
-test("useRoute reads the route as it stands, and starts nothing", () => {
+// The tree every hook below reads from, as an application publishes its Beacon once.
+const providerOf =
+  (beacon: WebBeacon) =>
+  ({ children }: PropsWithChildren) => (
+    <BeaconProvider beacon={beacon}>{children}</BeaconProvider>
+  );
+
+test("useRoute reads the route by name as it stands, and starts nothing", () => {
   const { beacon, mock } = createWebBeacon();
-  const { result } = renderHook(() => useRoute(beacon.route("web")));
+
+  const { result } = renderHook(() => useRoute("web"), {
+    wrapper: providerOf(beacon),
+  });
 
   expect(result.current).toMatchObject({
     check: { state: "idle" },
@@ -40,7 +53,10 @@ test("useRoute reads the route as it stands, and starts nothing", () => {
 test("useRoute renders the offer once a check is accepted", async () => {
   const context = createWebBeacon();
   const web = context.beacon.route("web");
-  const { result } = renderHook(() => useRoute(web));
+
+  const { result } = renderHook(() => useRoute("web"), {
+    wrapper: providerOf(context.beacon),
+  });
 
   context.beacon.start();
 
@@ -56,16 +72,26 @@ test("useRoute renders the offer once a check is accepted", async () => {
   });
 });
 
+test("a route handle held outside a provider is read with useObservable", () => {
+  const { beacon } = createWebBeacon();
+  const { result } = renderHook(() => useObservable(beacon.route("web").state));
+
+  expect(result.current.observation).toMatchObject({ status: "unknown" });
+});
+
 test("BIND-06 useRoute with a selector renders again only when the selection changes", async () => {
   const context = createWebBeacon();
   const web = context.beacon.route("web");
   const renders = { count: 0 };
 
-  const { result } = renderHook(() => {
-    renders.count += 1;
+  const { result } = renderHook(
+    () => {
+      renders.count += 1;
 
-    return useRoute(web, ({ observation }) => observation.status);
-  });
+      return useRoute("web", ({ observation }) => observation.status);
+    },
+    { wrapper: providerOf(context.beacon) },
+  );
 
   expect(result.current).toBe("unknown");
 
@@ -90,11 +116,10 @@ test("BIND-06 useRoute with a selector renders again only when the selection cha
   expect(renders.count).toBe(settled);
 });
 
-test("useRoute subscribes while mounted and lets go on unmount", () => {
+test("useObservable subscribes while mounted and lets go on unmount", () => {
   const { beacon } = createWebBeacon();
-  const web = beacon.route("web");
-  const counted = countListeners(web.state);
-  const { unmount } = renderHook(() => useRoute({ state: counted.observable }));
+  const counted = countListeners(beacon.route("web").state);
+  const { unmount } = renderHook(() => useObservable(counted.observable));
 
   expect(counted.listeners()).toBe(1);
 
@@ -103,32 +128,60 @@ test("useRoute subscribes while mounted and lets go on unmount", () => {
   expect(counted.listeners()).toBe(0);
 });
 
-test("useRunning reads what is running, of the given Beacon or the provider's", async () => {
+test("useObservable reads any observable of the Beacon, such as a route's native handle", () => {
   const { beacon } = createWebBeacon();
 
-  const wrapper = ({ children }: PropsWithChildren) => (
-    <BeaconProvider beacon={beacon}>{children}</BeaconProvider>
+  beacon.start();
+
+  const { result } = renderHook(() =>
+    useObservable(beacon.route("web").native),
   );
 
-  const given = renderHook(() => useRunning(beacon, ({ web }) => web.state));
-  const provided = renderHook(() => useRunning(), { wrapper });
+  expect(result.current).toEqual({});
+});
 
-  expect(given.result.current).toBe("pending");
-  expect(provided.result.current.web.state).toBe("pending");
+test("useRunning reads what is running, of the provider's Beacon", async () => {
+  const { beacon } = createWebBeacon();
+
+  const all = renderHook(() => useRunning(), { wrapper: providerOf(beacon) });
+
+  const web = renderHook(() => useRunning(({ web }) => web.state), {
+    wrapper: providerOf(beacon),
+  });
+
+  expect(all.result.current.web.state).toBe("pending");
+  expect(web.result.current).toBe("pending");
 
   await act(async () => {
     beacon.start();
     await Promise.resolve();
   });
 
-  expect(given.result.current).toBe("known");
+  expect(web.result.current).toBe("known");
 });
 
-test("a hook with neither a Beacon nor a provider is misused", () => {
+test("useStatus reads where the session stands", () => {
+  const { beacon } = createWebBeacon();
+
+  const { result } = renderHook(() => useStatus(({ state }) => state), {
+    wrapper: providerOf(beacon),
+  });
+
+  expect(result.current).toBe("idle");
+
+  act(() => {
+    beacon.start();
+  });
+
+  expect(result.current).toBe("running");
+});
+
+test("a hook without a provider above it is misused", () => {
   expect(() => renderHook(() => useBeacon())).toThrow(BeaconError);
   expect(() => renderHook(() => useRunning())).toThrow(
-    "useRunning needs a Beacon, passed in or from a BeaconProvider.",
+    "useBeacon needs a BeaconProvider above it.",
   );
+  expect(() => renderHook(() => useRoute("web"))).toThrow(BeaconError);
 });
 
 test("the provider starts the session while mounted and ends it on unmount", () => {
@@ -184,16 +237,16 @@ const draftEditor = (
 });
 
 test("useDisruption registers while mounted and unregisters on unmount", async () => {
-  const context = createWebBeacon();
-  const { beacon } = context;
+  const { beacon } = createWebBeacon();
 
-  const { unmount } = renderHook(() =>
-    useDisruption(
-      draftEditor({
-        reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
-      }),
-      beacon,
-    ),
+  const { unmount } = renderHook(
+    () =>
+      useDisruption(
+        draftEditor({
+          reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+        }),
+      ),
+    { wrapper: providerOf(beacon) },
   );
 
   beacon.start();
@@ -212,22 +265,15 @@ test("useDisruption registers while mounted and unregisters on unmount", async (
 
 test("useDisruption asks the latest participant, without registering again", async () => {
   const { beacon } = createWebBeacon();
-  const registered = { count: 0 };
-  const register = beacon.disruptions.register;
-
-  const disruptions = {
-    register: (participant: DisruptionParticipant) => {
-      registered.count += 1;
-
-      return register(participant);
-    },
-  };
+  const asked = { count: 0 };
 
   const { rerender } = renderHook(
     ({ dirty }) =>
       useDisruption(
         draftEditor({
           reserve: () => {
+            asked.count += 1;
+
             if (dirty) {
               return { status: "blocked", code: "unsaved-draft" };
             }
@@ -235,9 +281,8 @@ test("useDisruption asks the latest participant, without registering again", asy
             return { status: "reserved", release: () => {} };
           },
         }),
-        { ...beacon, disruptions },
       ),
-    { initialProps: { dirty: true } },
+    { initialProps: { dirty: true }, wrapper: providerOf(beacon) },
   );
 
   beacon.start();
@@ -247,16 +292,21 @@ test("useDisruption asks the latest participant, without registering again", asy
   });
 
   rerender({ dirty: false });
+  rerender({ dirty: false });
 
   await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
     status: "accepted",
   });
-  expect(registered.count).toBe(1);
+  // One registration is asked once per command: two would have been asked twice.
+  expect(asked.count).toBe(2);
 });
 
 test("useSupport reads support as it stands, which is unknown without a policy", () => {
   const { beacon } = createWebBeacon();
-  const { result } = renderHook(() => useSupport(beacon));
+
+  const { result } = renderHook(() => useSupport(), {
+    wrapper: providerOf(beacon),
+  });
 
   expect(result.current).toMatchObject({
     status: "unknown",
@@ -267,21 +317,19 @@ test("useSupport reads support as it stands, which is unknown without a policy",
 test("useSupport with a selector renders the selection of the provider's Beacon", () => {
   const { beacon } = createWebBeacon();
 
-  const wrapper = ({ children }: PropsWithChildren) => (
-    <BeaconProvider beacon={beacon}>{children}</BeaconProvider>
-  );
-
-  const { result } = renderHook(
-    () => useSupport(beacon, ({ status }) => status),
-    { wrapper },
-  );
+  const { result } = renderHook(() => useSupport(({ status }) => status), {
+    wrapper: providerOf(beacon),
+  });
 
   expect(result.current).toBe("unknown");
 });
 
 test("useTransitions reads the journal as it stands, which is off without one", () => {
   const { beacon } = createWebBeacon();
-  const { result } = renderHook(() => useTransitions(beacon));
+
+  const { result } = renderHook(() => useTransitions(), {
+    wrapper: providerOf(beacon),
+  });
 
   expect(result.current).toMatchObject({ journal: "off", latest: null });
 });
@@ -289,8 +337,9 @@ test("useTransitions reads the journal as it stands, which is off without one", 
 test("useTransitions renders again when a checkpoint is reported", () => {
   const { beacon } = createWebBeacon();
 
-  const { result } = renderHook(() =>
-    useTransitions(beacon, ({ checkpoints }) => checkpoints),
+  const { result } = renderHook(
+    () => useTransitions(({ checkpoints }) => checkpoints),
+    { wrapper: providerOf(beacon) },
   );
 
   expect(result.current).toEqual([]);
@@ -307,9 +356,9 @@ test("SAFE-14 a reservation a component held is released when the command ends, 
   const released = { count: 0 };
   const settling: { finish: () => void } = { finish: () => {} };
 
-  const { unmount } = renderHook(() =>
-    useDisruption(
-      {
+  const { unmount } = renderHook(
+    () =>
+      useDisruption({
         name: "draft-editor",
         impacts: ["document-replacement"],
         reserve: () => ({
@@ -322,9 +371,8 @@ test("SAFE-14 a reservation a component held is released when the command ends, 
             released.count += 1;
           },
         }),
-      },
-      beacon,
-    ),
+      }),
+    { wrapper: providerOf(beacon) },
   );
 
   beacon.start();

@@ -1,7 +1,7 @@
 import { act } from "@testing-library/react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 
 import { BeaconProvider } from "src/context/BeaconProvider";
 import { createWebBeacon } from "src/beacon.fixture";
@@ -10,11 +10,14 @@ import { useRunning } from "src/hooks/useRunning";
 
 const create = () => {
   const context = createWebBeacon();
-  const web = context.beacon.route("web");
 
   const View = () => {
-    const observation = useRoute(web, ({ observation }) => observation.status);
-    const running = useRunning(context.beacon, ({ web }) => web.state);
+    const observation = useRoute(
+      "web",
+      ({ observation }) => observation.status,
+    );
+
+    const running = useRunning(({ web }) => web.state);
 
     return <span>{`${observation}/${running}`}</span>;
   };
@@ -40,17 +43,47 @@ test("BIND-08 hydrating the server markup does not mismatch, and the session sta
   const { beacon, view } = create();
   const markup = renderToString(view);
   const container = document.createElement("div");
-  const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+  const errors: unknown[] = [];
 
   container.innerHTML = markup;
 
   await act(async () => {
-    hydrateRoot(container, view);
+    hydrateRoot(container, view, {
+      onRecoverableError: (error) => errors.push(error),
+    });
     await Promise.resolve();
   });
 
-  expect(errors).not.toHaveBeenCalled();
+  expect(errors).toEqual([]);
   expect(beacon.status.get()).toMatchObject({ state: "running" });
+});
+
+test("BIND-08 a boundary that hydrates after the session started still matches the server markup", async () => {
+  const { beacon, view } = create();
+  const markup = renderToString(view);
+  const container = document.createElement("div");
+  const errors: unknown[] = [];
+
+  container.innerHTML = markup;
+
+  // What runs is known before the boundary hydrates, so the live state differs from the markup.
+  await act(async () => {
+    beacon.start();
+    await Promise.resolve();
+  });
+
+  expect(beacon.running.get().web.state).toBe("known");
+
+  await act(async () => {
+    hydrateRoot(container, view, {
+      onRecoverableError: (error) => errors.push(error),
+    });
+    await Promise.resolve();
+  });
+
+  expect(errors).toEqual([]);
+  // Hydration read the markup's snapshot, and the render after it read the live one.
+  expect(container.textContent).toBe("unknown/known");
 });
 
 test("BIND-09 two server requests for different accounts share no session and no state", () => {

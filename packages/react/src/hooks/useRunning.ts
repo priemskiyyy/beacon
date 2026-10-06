@@ -1,36 +1,28 @@
 import type { RunningApplication } from "@priemskiyyy/beacon";
 
-import { useSelectedValue } from "src/hooks/internal/useSelectedValue";
-import { useResolvedBeacon } from "src/hooks/internal/useResolvedBeacon";
-import type { ReactBeacon } from "src/types/ReactBeacon";
+import { useBeacon } from "src/hooks/useBeacon";
+import { useObservable } from "src/hooks/useObservable";
 import type { SelectorOptions } from "src/types/SelectorOptions";
 import { selectValue } from "src/utils/selectValue";
 
 /**
- * Reads what is running, of the given Beacon or the provider's, and renders
- * again when it changes; with a selector, only when the selection changes. A
- * subject that is not read yet is pending, never an old version.
+ * Reads what is running, of the provider's Beacon, and renders again when it changes; with a selector, only when the selection changes. A subject that is not read yet is pending, never an old version.
  *
  * @example
  * ```ts
- * const running = useRunning();
- * const web = useRunning(beacon, ({ web }) => web);
+ * const web = useRunning(({ web }) => web);
  * ```
  */
-export function useRunning(beacon?: ReactBeacon): RunningApplication;
+export function useRunning(): RunningApplication;
 
 export function useRunning<TSelected>(
-  beacon: ReactBeacon,
-  selector: (running: RunningApplication) => TSelected,
+  selector: (value: RunningApplication) => TSelected,
   options?: SelectorOptions<NoInfer<TSelected>>,
 ): TSelected;
 
 export function useRunning(
-  beacon?: ReactBeacon,
-  selector: (running: RunningApplication) => unknown = selectValue,
-  { isEqual = Object.is }: SelectorOptions<unknown> = {},
+  selector: (value: RunningApplication) => unknown = selectValue,
+  options: SelectorOptions<unknown> = {},
 ): unknown {
-  const { running } = useResolvedBeacon(beacon, "useRunning");
-
-  return useSelectedValue(running, selector, isEqual);
+  return useObservable(useBeacon().running, selector, options);
 }

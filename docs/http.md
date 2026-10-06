@@ -191,6 +191,8 @@ The whole manifest or none of it. `readStandardManifest` (the response) and `par
 
 The `ETag` is the validator for the next read and never the revision. A field the schema does not name is ignored and never reaches the document. A repeated JSON key keeps its last value, because the text is decoded as JSON.
 
+A redirect is told by `Response.redirected`. The `fetch` that ships with React Native does not set it, so there a redirect is not refused: serve the manifest from a URL that does not redirect.
+
 ### Evidence
 
 A valid manifest becomes a read with all its evidence present: the `revision`, a `digest` of the routes' decisions without their renewable times, and the narrowest `expiresAt`. The support facts carry a revision of their own, so a policy update under the same decision is a renewal, not a conflict.

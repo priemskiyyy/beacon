@@ -39,7 +39,7 @@ const binary = newerRoute({
 
 `fetch` is your client call: it owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw. The source then checks that the entry is your app and bundle, and refuses several entries, another app, a missing version or a malformed date, each with its own message.
 
-## What it reports
+## What a check reports
 
 | Lookup                          | Route observation                                                                     |
 | ------------------------------- | ------------------------------------------------------------------------------------- |
@@ -52,6 +52,10 @@ const binary = newerRoute({
 The running native release keeps `CFBundleShortVersionString` as `raw.shortVersion` and the build number as a separate fact; `appleMarketingVersion` reads the first. A marketing version can never satisfy a build-level minimum.
 
 ## Handoff
+
+| Command     | Needs             | Impact             | Binding             | Receipt                  |
+| ----------- | ----------------- | ------------------ | ------------------- | ------------------------ |
+| `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-accepted` |
 
 `openStore` takes an offer or none, since remediation can send a user to the store without one. It opens `https://apps.apple.com/app/id<appId>`, built from your configured id alone and never from a manifest. A resolved call means only that the OS accepted the request: the user can decline or never return, and the route settles as soon as it is accepted, without waiting for the app to come back.
 

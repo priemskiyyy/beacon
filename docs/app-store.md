@@ -88,7 +88,7 @@ The lookup and the handoff are separate. The route joins them: `newerRoute` sele
 
 The device's physical country does not establish its account storefront, so the storefront is your configuration.
 
-The source then checks that the entry is your app. It refuses several entries, another app id, another bundle id, a missing version and a malformed release date, each with `SOURCE_FAILED` and its own message. It never repairs a response into an answer.
+The source then checks that the entry is your app. It refuses several entries, another app id, another bundle id, a missing version and a malformed release date, each as `INVALID_DOCUMENT`, as the [standard manifest](http.md#what-is-accepted) refuses a document that breaks its contract, and each with its own message. It never repairs a response into an answer. A failure of your client stays yours: what it throws keeps its code, and anything else is `SOURCE_FAILED`.
 
 | Lookup                          | Route observation                                                                     |
 | ------------------------------- | ------------------------------------------------------------------------------------- |
@@ -112,6 +112,10 @@ A marketing version orders marketing releases only. It can never satisfy a build
 
 `appStoreHandoff({ appId, linking })` is a mechanism with one command, `openStore`. It takes an offer or none, because remediation can send a user to the store without one.
 
+| Command     | Needs             | Impact             | Binding             | Receipt                  |
+| ----------- | ----------------- | ------------------ | ------------------- | ------------------------ |
+| `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-accepted` |
+
 ```ts
 import { beacon } from "src/beacon";
 
@@ -124,13 +128,6 @@ if (observation.status === "available") {
   await route.openStore();
 }
 ```
-
-| Declared     | Value                    |
-| ------------ | ------------------------ |
-| reference    | an optional offer        |
-| `impacts`    | `external-handoff`       |
-| `binding`    | `store-destination`      |
-| receipt kind | `store-handoff-accepted` |
 
 It opens `https://apps.apple.com/app/id<appId>`, built from your configured id alone and never from a manifest. A resolved call means only that the OS accepted the request. The user can decline or never return, and the route settles as soon as it is accepted, without waiting for the app to come back. Nothing says an installation began.
 

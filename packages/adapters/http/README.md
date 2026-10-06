@@ -11,11 +11,8 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http
 ## Create a source
 
 ```ts
-import {
-  Beacon,
-  createUpdateMechanism,
-  targetRoute,
-} from "@priemskiyyy/beacon";
+import { targetRoute } from "@priemskiyyy/beacon";
+import { browserReload } from "@priemskiyyy/beacon-browser";
 import { http } from "@priemskiyyy/beacon-http";
 
 const manifest = http({
@@ -34,7 +31,7 @@ const manifest = http({
 
     return {
       status: "changed",
-      document: parseManifest(await response.json()),
+      document: parseManifest(await response.json()), // your validator
       ...(etag === null ? {} : { validator: etag }),
     };
   },
@@ -73,6 +70,8 @@ The source keeps and renews an answer only for the scope it was read for, so a v
 A small, optional schema for a manifest that one application, environment, platform and distribution serves. You need not use it: any client that answers a validated document works with `http()`. When you do, `readStandardManifest` turns the response of your `fetch` into the answer, and rejects everything that is not a valid manifest.
 
 ```ts
+import { targetRoute } from "@priemskiyyy/beacon";
+import { browserReload } from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
 
@@ -173,6 +172,8 @@ The whole manifest or none of it. `parseStandardManifest` (the text) and `readSt
 | A date that does not exist, a lifetime over the limit, a future issue, or an expired manifest | `INVALID_DOCUMENT`                                             |
 
 The `ETag` is the validator for the next read and never the revision. A field the schema does not name is ignored and never reaches the document, a key that could corrupt a registry (`__proto__`, `constructor`, `prototype`) is refused as metadata, and a repeated JSON key keeps its last value because the text is decoded as JSON.
+
+A redirect is told by `Response.redirected`. The `fetch` that ships with React Native does not set it, so there a redirect is not refused: serve the manifest from a URL that does not redirect.
 
 ### Limits
 

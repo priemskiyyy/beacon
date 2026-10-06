@@ -56,7 +56,13 @@ export const beacon = new Beacon({
 });
 ```
 
-The route has one method, `reload`, which needs the offer the user was shown.
+## Commands
+
+| Command  | Needs    | Impact                 | Binding               | Receipt            |
+| -------- | -------- | ---------------------- | --------------------- | ------------------ |
+| `reload` | an offer | `document-replacement` | `unpinned-navigation` | `reload-requested` |
+
+`reload` needs the offer the user was shown. Participants that guard unsaved work are asked before the navigation, the next navigation receives whatever is deployed, which may not be the offer, and the receipt says only that the request was made: the running build is unchanged until a later boot says otherwise.
 
 ```ts
 const { observation } = beacon.route("web").state.get();
@@ -69,12 +75,6 @@ if (observation.status === "available") {
   console.info(outcome.status);
 }
 ```
-
-| Declared     | Value                  | Why                                                                                    |
-| ------------ | ---------------------- | -------------------------------------------------------------------------------------- |
-| `impacts`    | `document-replacement` | participants that guard unsaved work are asked before the navigation                   |
-| `binding`    | `unpinned-navigation`  | the next navigation receives whatever is deployed, which may not be the offer          |
-| receipt kind | `reload-requested`     | the request was made; the running build is unchanged until a later boot says otherwise |
 
 ## What an accepted reload means
 

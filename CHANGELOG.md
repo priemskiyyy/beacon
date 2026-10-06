@@ -51,7 +51,7 @@
 ## @priemskiyyy/beacon-app-store 0.1.0 - Unreleased
 
 - First release. `appStoreLookup` reads Apple's lookup shape through your client as an advisory marketing-release source, `appStoreHandoff` opens the store page, and `appleVersion` orders marketing versions.
-- `appStoreLookup` answers no release, with no request, for a scope whose distribution is not `app-store`.
+- `appStoreLookup` answers no release, with no request, for a scope whose distribution is not `app-store`, and refuses a lookup that breaks its contract as `INVALID_DOCUMENT`, as the standard manifest does.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased

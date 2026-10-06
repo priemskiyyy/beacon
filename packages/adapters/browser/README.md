@@ -27,7 +27,13 @@ const beacon = new Beacon({
 });
 ```
 
-The route gets one method, `reload`, which needs the offer the user was shown:
+## Commands
+
+| Command  | Needs    | Impact                 | Binding               | Receipt            |
+| -------- | -------- | ---------------------- | --------------------- | ------------------ |
+| `reload` | an offer | `document-replacement` | `unpinned-navigation` | `reload-requested` |
+
+`reload` needs the offer the user was shown. Participants that guard unsaved work are asked before the navigation, the next navigation receives whatever is deployed, which may not be the offer, and the receipt says only that the request was made: the running build is unchanged until a later boot says otherwise.
 
 ```ts
 const { observation } = beacon.route("web").state.get();
@@ -38,12 +44,6 @@ if (observation.status === "available") {
     .reload({ offer: observation.offer.ref });
 }
 ```
-
-| Declared     | Value                  | Why                                                                                    |
-| ------------ | ---------------------- | -------------------------------------------------------------------------------------- |
-| `impacts`    | `document-replacement` | participants that guard unsaved work are asked before the navigation                   |
-| `binding`    | `unpinned-navigation`  | the next navigation receives whatever is deployed, which may not be the offer          |
-| receipt kind | `reload-requested`     | the request was made; the running build is unchanged until a later boot says otherwise |
 
 An accepted reload leaves the route unresolved, because the old document may stay alive: call `route.acknowledge()` once the application decides to continue in this runtime.
 

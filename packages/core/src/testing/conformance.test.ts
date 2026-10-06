@@ -1,8 +1,10 @@
 import { createMockSource } from "src/mock/createMockSource";
+import { testReleaseDriver } from "src/testing/testReleaseDriver";
 import { testReleaseSource } from "src/testing/testReleaseSource";
 import { testUpdateMechanism } from "src/testing/testUpdateMechanism";
 import { testVersionStrategy } from "src/testing/testVersionStrategy";
 import { createHeldMechanism } from "src/utils/commands.fixture";
+import { createReleaseDriver } from "src/utils/createReleaseDriver";
 import { integer } from "src/utils/versions/integer";
 import { semver } from "src/utils/versions/semver";
 
@@ -53,5 +55,60 @@ testUpdateMechanism({
       },
       opens: () => opened.count,
     };
+  },
+});
+
+// A provider SDK that reports its changes to whoever listens.
+const createFakeProvider = () => {
+  const listeners = new Set<() => void>();
+
+  return {
+    listeners: () => listeners.size,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    update: () => {
+      for (const listener of [...listeners]) {
+        listener();
+      }
+    },
+  };
+};
+
+testReleaseDriver({
+  name: "fake provider",
+  create: () => {
+    const provider = createFakeProvider();
+
+    const driver = createReleaseDriver({
+      name: "fake-provider",
+      prepares: false,
+      open: ({ emit }) => {
+        const unsubscribe = provider.subscribe(() => {
+          emit.observation({
+            status: "none",
+            reason: "no-decision",
+            detail: null,
+          });
+        });
+
+        return {
+          native: provider,
+          check: async () => ({
+            status: "none",
+            reason: "no-decision",
+            detail: null,
+          }),
+          dispose: unsubscribe,
+        };
+      },
+      commands: {},
+    });
+
+    return { driver, provider };
   },
 });

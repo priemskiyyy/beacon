@@ -3,11 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { CommandMap } from "src/types/CommandMap";
 import type { RouteBody } from "src/types/RouteBody";
 import type { UpdateMechanism } from "src/types/UpdateMechanism";
-import {
-  COMMAND_REFERENCES,
-  IMPACT_EFFECTS,
-  TARGET_BINDINGS,
-} from "src/utils/constants/commands";
+import { expectValidCommands } from "src/testing/expectValidCommands";
 
 /** A mechanism under test, over a fake platform created for this test alone. */
 export type UpdateMechanismFixture<
@@ -29,8 +25,6 @@ export type UpdateMechanismConformanceOptions<
   name: string;
   create: () => UpdateMechanismFixture<TNative, TCommands>;
 };
-
-const isKey = (keys: object, value: string) => Object.hasOwn(keys, value);
 
 /**
  * Registers the contract every update mechanism keeps: it touches its
@@ -76,17 +70,7 @@ export const testUpdateMechanism = <
     });
 
     test("every command declares a known reference, binding and impacts", () => {
-      const { mechanism } = create();
-
-      for (const command of Object.values(mechanism.commands)) {
-        expect(isKey(COMMAND_REFERENCES, command.reference)).toBe(true);
-        expect(isKey(TARGET_BINDINGS, command.binding)).toBe(true);
-        expect(new Set(command.impacts).size).toBe(command.impacts.length);
-
-        for (const impact of command.impacts) {
-          expect(isKey(IMPACT_EFFECTS, impact)).toBe(true);
-        }
-      }
+      expectValidCommands(create().mechanism.commands);
     });
 
     test("opening gives a native handle, and it can be opened again after it ended", () => {

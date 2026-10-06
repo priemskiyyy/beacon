@@ -9,7 +9,7 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | CORE    | Core state and observations         | 14        | 13     | 01, 02, 03, 04, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
 | VER     | Identity, ordering, and revision    | 18        | 17     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 18 |
 | HTTP    | HTTP, manifests, and shared feeds   | 18        | 4      | 01, 03, 04, 05                                                     |
-| POL     | Support policy                      | 14        | 1      | 04                                                                 |
+| POL     | Support policy                      | 14        | 12     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 13, 14                     |
 | WEB     | Browser reload and deployment       | 12        | 4      | 01, 02, 03, 12                                                     |
 | SW      | Service-worker and Workbox          | 16        | 5      | 01, 02, 03, 08, 13                                                 |
 | EXPO    | Expo Updates                        | 20        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 10, 18                             |
@@ -20,7 +20,7 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | LIFE    | Sessions and resource ownership     | 12        | 4      | 01, 02, 03, 06                                                     |
 | SEC     | Security and diagnostics            | 12        | 1      | 05                                                                 |
 | BIND    | Types, React, and SSR               | 10        | 2      | 01, 03                                                             |
-| Total   |                                     | 202       | 83     |                                                                    |
+| Total   |                                     | 202       | 94     |                                                                    |
 
 <!-- scenarios:end -->
 
@@ -32,4 +32,4 @@ Every provider SDK, the clock and the network are faked in process. The Expo Upd
 
 Nothing has run in a real browser, on a device, or against a real Play or App Store distribution, and a fake bridge verifies state handling, not installation. What a stable release of each adapter still needs is in [the decision record](decisions.md#not-verified-on-a-device).
 
-The groups with few or no proven rows are features that are not built yet: the support policy (`POL`), the transition journal and boot reconciliation (`JOURNAL`), and the parts of `HTTP`, `SEC` and `BIND` that belong to a standard manifest, the diagnostics inspector and the other framework bindings. [The decision record](decisions.md#not-built-yet) lists them.
+The groups with few or no proven rows are features that are not built yet: the transition journal and boot reconciliation (`JOURNAL`), the dismissal of a banner (`POL`), and the parts of `HTTP`, `SEC` and `BIND` that belong to a standard manifest, the diagnostics inspector and the other framework bindings. [The decision record](decisions.md#not-built-yet) lists them.

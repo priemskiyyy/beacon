@@ -11,6 +11,7 @@ import type { RunningRelease } from "src/types/RunningRelease";
 import type { RunningSubject } from "src/types/RunningSubject";
 import { RUNNING_SUBJECTS } from "src/utils/constants/subjects";
 import { BeaconError } from "src/utils/BeaconError";
+import { mapNames } from "src/utils/internal/routes/mapRoutes";
 import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import type { Listeners } from "src/utils/internal/observable/Listeners";
@@ -75,12 +76,11 @@ export class RunningRegistry {
     this.state = this.#store.observable;
   }
 
-  /** Reads every configured subject again; resolves once each has answered, failed or timed out, and never rejects. */
-  read = async (session: Session) => {
-    await Promise.all(
-      RUNNING_SUBJECTS.map((subject) => this.#readSubject(subject, session)),
+  /** Reads every configured subject again; each subject's promise resolves once it has answered, failed or timed out, and none rejects. */
+  read = (session: Session) =>
+    mapNames(RUNNING_SUBJECTS, (subject) =>
+      this.#readSubject(subject, session),
     );
-  };
 
   close = () => {
     this.#store.close();

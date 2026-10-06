@@ -11,6 +11,7 @@ test("the package root exports exactly its supported runtime names", () => {
     "createReleaseSource",
     "createUpdateMechanism",
     "newerRoute",
+    "supportPolicy",
     "targetRoute",
   ]);
 });

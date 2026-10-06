@@ -10,6 +10,7 @@ export const COUNTED_EVENTS = {
   "running-failed": null,
   "check-requested": null,
   "route-failed": null,
+  "policy-failed": null,
   "command-admitted": null,
   "command-settled": null,
   "read-started": null,

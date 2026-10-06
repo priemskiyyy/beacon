@@ -2,6 +2,7 @@ import type { BeaconClock } from "src/types/BeaconClock";
 import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RunningReaders } from "src/types/RunningReaders";
+import type { SupportPolicy } from "src/types/SupportPolicy";
 
 /**
  * What one Beacon observes: the scope its authorities speak for, the local
@@ -22,6 +23,8 @@ export type BeaconOptions<TRoutes extends Record<string, RouteDefinition>> = {
   scope: ReleaseScope;
   running: RunningReaders;
   routes: TRoutes;
+  /** The support policy, if the application has one; it may only name routes of this Beacon. */
+  policy?: SupportPolicy<unknown, unknown, keyof TRoutes & string>;
   timeouts?: {
     /** Milliseconds a running fact may take to be read, 10,000 by default. */
     running?: number;

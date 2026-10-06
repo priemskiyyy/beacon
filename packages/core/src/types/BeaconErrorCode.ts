@@ -27,6 +27,8 @@
  *   which is never assumed to be newer.
  * - `COMMAND_FAILED`: a provider command threw, so it reports a failure that
  *   did not take effect.
+ * - `POLICY_FAILED`: the support policy threw while it was projected or
+ *   evaluated, or named a route that is not configured.
  *
  * @example
  * ```ts
@@ -49,4 +51,5 @@ export type BeaconErrorCode =
   | "REVISION_REGRESSION"
   | "REVISION_CONFLICT"
   | "REVISION_EPOCH_CHANGED"
-  | "COMMAND_FAILED";
+  | "COMMAND_FAILED"
+  | "POLICY_FAILED";

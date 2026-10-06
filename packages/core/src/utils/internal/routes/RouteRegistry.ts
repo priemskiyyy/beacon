@@ -3,6 +3,7 @@ import type { DriverSession } from "src/types/DriverSession";
 import type { CheckOutcome } from "src/types/CheckOutcome";
 import type { DriverEntry } from "src/types/internal/DriverEntry";
 import type { ErasedDriver } from "src/types/internal/ErasedDriver";
+import type { ErasedPolicy } from "src/types/internal/ErasedPolicy";
 import type { FeedEntry } from "src/types/internal/FeedEntry";
 import type { ReadResult } from "src/types/internal/ReadResult";
 import type { RouteEntry } from "src/types/internal/RouteEntry";
@@ -26,12 +27,16 @@ import { commitChange } from "src/utils/internal/observable/commitChange";
 import type { Transaction } from "src/utils/internal/observable/Transaction";
 import { SharedRead } from "src/utils/internal/reads/SharedRead";
 import { ReferenceLedger } from "src/utils/internal/routes/ReferenceLedger";
+import { PolicyRecord } from "src/utils/internal/policy/PolicyRecord";
 import { RouteRecord } from "src/utils/internal/routes/RouteRecord";
 
 type CheckOptions = {
   mode: "join" | "after-current";
   signal: AbortSignal | undefined;
 };
+
+/** A selection or an evaluation that failed after its read was accepted, and the attempt it belongs to. */
+type Failure = { attempt: number; error: BeaconError };
 
 /**
  * Owns every route: its published state, the source it reads or the driver it
@@ -46,7 +51,10 @@ export class RouteRegistry {
   #feeds = new Map<ReleaseSource<unknown>, FeedEntry>();
   #feedOf = new Map<string, FeedEntry>();
   #drivers = new Map<string, DriverEntry>();
-  #failures = new Map<string, { attempt: number; error: BeaconError }>();
+  #failures = new Map<string, Failure>();
+  #policy: PolicyRecord;
+  #policyFeed: FeedEntry | null = null;
+  #policyFailure: Failure | null = null;
 
   constructor(options: RouteRegistryOptions) {
     this.#options = options;
@@ -72,6 +80,16 @@ export class RouteRegistry {
         assertUnreachable(definition);
       }
     }
+
+    this.#policy = new PolicyRecord({
+      policy: options.policy,
+      listeners: options.createListeners(),
+      getRoute: (name) => this.#entries.get(name)?.record.state.get(),
+      onFailure: (error) =>
+        options.record("policy-failed", { reason: error.code }),
+    });
+
+    this.#policyFeed = this.#addPolicyFeed(options.policy);
   }
 
   /** The references this Beacon has minted, for the commands that take them back. */
@@ -109,7 +127,10 @@ export class RouteRegistry {
     const feed = this.#feedOf.get(name);
 
     if (feed !== undefined) {
-      return this.#toOutcome(name, await feed.record.read(session, options));
+      return this.#toOutcome(
+        await feed.record.read(session, options),
+        this.#failures.get(name),
+      );
     }
 
     const driver = this.#drivers.get(name);
@@ -121,7 +142,26 @@ export class RouteRegistry {
       });
     }
 
-    return this.#toOutcome(name, await driver.read.read(session, options));
+    return this.#toOutcome(await driver.read.read(session, options), undefined);
+  };
+
+  /** What is known about support, which is unknown until a policy is accepted. */
+  getSupport = () => this.#policy.state;
+
+  hasPolicy = () => this.#policyFeed !== null;
+
+  /** Checks the support policy's source, joining any read of it already under way; `null` without a policy. */
+  checkPolicy = async (
+    session: Session,
+    options: CheckOptions,
+  ): Promise<CheckOutcome | null> => {
+    if (this.#policyFeed === null) {
+      return null;
+    }
+
+    const result = await this.#policyFeed.record.read(session, options);
+
+    return this.#toOutcome(result, this.#policyFailure);
   };
 
   /** Selects again from every document held, since what is running decides what is on offer. */
@@ -133,7 +173,7 @@ export class RouteRegistry {
         continue;
       }
 
-      commitChange((transaction) => this.#consume(transaction, feed, accepted));
+      this.#commit((transaction) => this.#consume(transaction, feed, accepted));
     }
   };
 
@@ -141,6 +181,8 @@ export class RouteRegistry {
     for (const entry of this.#entries.values()) {
       entry.record.close();
     }
+
+    this.#policy.close();
   };
 
   #prepares(definition: RouteDefinition) {
@@ -156,19 +198,32 @@ export class RouteRegistry {
   }
 
   #addFeedRoute(entry: RouteEntry, source: ReleaseSource<unknown>) {
+    const feed = this.#getFeed(source);
+
+    feed.consumers.push(entry);
+    this.#feedOf.set(entry.name, feed);
+  }
+
+  #addPolicyFeed(policy: ErasedPolicy | null) {
+    if (policy === null) {
+      return null;
+    }
+
+    return this.#getFeed(policy.source.source);
+  }
+
+  // Every consumer of a source, routes and the support policy alike, shares its one feed.
+  #getFeed(source: ReleaseSource<unknown>) {
     const held = this.#feeds.get(source);
 
     if (held !== undefined) {
-      held.consumers.push(entry);
-      this.#feedOf.set(entry.name, held);
-
-      return;
+      return held;
     }
 
     const { clock, timeout, getScope, record } = this.#options;
 
     const feed: FeedEntry = {
-      consumers: [entry],
+      consumers: [],
       record: new FeedRecord({
         source,
         clock,
@@ -176,17 +231,17 @@ export class RouteRegistry {
         getScope,
         hooks: {
           started: (attempt) =>
-            commitChange((transaction) => {
+            this.#commit((transaction) => {
               for (const consumer of feed.consumers) {
                 consumer.record.beginCheck(transaction, attempt);
               }
             }),
           accepted: (accepted) =>
-            commitChange((transaction) =>
+            this.#commit((transaction) =>
               this.#consume(transaction, feed, accepted),
             ),
           failed: (attempt, error) =>
-            commitChange((transaction) => {
+            this.#commit((transaction) => {
               for (const consumer of feed.consumers) {
                 consumer.record.settleCheck(transaction, attempt, error);
               }
@@ -197,7 +252,35 @@ export class RouteRegistry {
     };
 
     this.#feeds.set(source, feed);
-    this.#feedOf.set(entry.name, feed);
+
+    return feed;
+  }
+
+  // The support policy reads routes to say which remediation is usable, so it follows every change of one.
+  #commit(apply: (transaction: Transaction) => void) {
+    commitChange((transaction) => {
+      apply(transaction);
+      this.#updatePolicy(transaction);
+    });
+  }
+
+  #updatePolicy(transaction: Transaction) {
+    if (this.#policyFeed === null) {
+      return;
+    }
+
+    const accepted = this.#policyFeed.record.getAccepted();
+
+    this.#policy.update(transaction, accepted, this.#options.running.get());
+
+    if (accepted === null) {
+      return;
+    }
+
+    const error = this.#policy.getFailure();
+
+    this.#policyFailure =
+      error === null ? null : { attempt: accepted.attempt, error };
   }
 
   // A selection that throws fails only its own route's check; the observation it held stays.
@@ -255,11 +338,11 @@ export class RouteRegistry {
         accept: (_attempt, draft) => draft,
         hooks: {
           started: (attempt) =>
-            commitChange((transaction) =>
+            this.#commit((transaction) =>
               entry.record.beginCheck(transaction, attempt),
             ),
           accepted: (attempt, draft) =>
-            commitChange((transaction) => {
+            this.#commit((transaction) => {
               entry.record.installDraft(
                 transaction,
                 draft,
@@ -268,7 +351,7 @@ export class RouteRegistry {
               entry.record.settleCheck(transaction, attempt, null);
             }),
           failed: (attempt, error) =>
-            commitChange((transaction) =>
+            this.#commit((transaction) =>
               entry.record.settleCheck(transaction, attempt, error),
             ),
           record,
@@ -327,12 +410,12 @@ export class RouteRegistry {
       return;
     }
 
-    commitChange((transaction) =>
+    this.#commit((transaction) =>
       entry.record.installNative(transaction, opened.native),
     );
 
     session.scope.add(() => {
-      commitChange((transaction) =>
+      this.#commit((transaction) =>
         entry.record.installNative(transaction, null),
       );
       opened.dispose?.();
@@ -361,7 +444,7 @@ export class RouteRegistry {
 
     driverEntry.session = opened;
 
-    commitChange((transaction) =>
+    this.#commit((transaction) =>
       entry.record.installNative(transaction, opened.native),
     );
 
@@ -370,7 +453,7 @@ export class RouteRegistry {
     session.scope.add(() => {
       controller.abort();
       driverEntry.session = null;
-      commitChange((transaction) =>
+      this.#commit((transaction) =>
         entry.record.installNative(transaction, null),
       );
       opened.dispose?.();
@@ -414,7 +497,7 @@ export class RouteRegistry {
         return;
       }
 
-      commitChange(apply);
+      this.#commit(apply);
     };
 
     return {
@@ -441,7 +524,10 @@ export class RouteRegistry {
     };
   }
 
-  #toOutcome(name: string, result: ReadResult): CheckOutcome {
+  #toOutcome(
+    result: ReadResult,
+    failure: Failure | undefined | null,
+  ): CheckOutcome {
     if (result.status === "cancelled") {
       return { status: "cancelled" };
     }
@@ -459,17 +545,22 @@ export class RouteRegistry {
     }
 
     if (result.status === "accepted") {
-      return this.#toAcceptedOutcome(name, result.attempt);
+      return this.#toAcceptedOutcome(result.attempt, failure);
     }
 
     return assertUnreachable(result);
   }
 
-  // An accepted answer can still fail this route's selection, which only the route knows.
-  #toAcceptedOutcome(name: string, attempt: number): CheckOutcome {
-    const failure = this.#failures.get(name);
-
-    if (failure === undefined || failure.attempt !== attempt) {
+  // An accepted answer can still fail this route's selection, or the policy's evaluation, which only they know.
+  #toAcceptedOutcome(
+    attempt: number,
+    failure: Failure | undefined | null,
+  ): CheckOutcome {
+    if (
+      failure === undefined ||
+      failure === null ||
+      failure.attempt !== attempt
+    ) {
       return { status: "succeeded", attempt };
     }
 

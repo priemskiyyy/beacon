@@ -12,6 +12,8 @@ import type { ObservableValue } from "src/types/ObservableValue";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RouteHandle } from "src/types/RouteHandle";
 import type { RunningApplication } from "src/types/RunningApplication";
+import type { RunningSubject } from "src/types/RunningSubject";
+import type { SupportState } from "src/types/SupportState";
 import { BeaconError } from "src/utils/BeaconError";
 import {
   DEFAULT_CHECK_TIMEOUT,
@@ -27,6 +29,8 @@ import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import { Listeners } from "src/utils/internal/observable/Listeners";
 import { resolveDuration } from "src/utils/internal/options/resolveDuration";
 import { reportUnhandledError } from "src/utils/internal/reporting/reportUnhandledError";
+import { RUNNING_SUBJECTS } from "src/utils/constants/subjects";
+import { getSubjects } from "src/utils/internal/routes/getSubjects";
 import { mapHandles, mapNames } from "src/utils/internal/routes/mapRoutes";
 import { getCommands } from "src/utils/internal/routes/getCommands";
 import { readCapabilities } from "src/utils/internal/routes/readCapabilities";
@@ -66,7 +70,10 @@ export class Beacon<
     [TName in keyof TRoutes & string]: RouteHandle<TName, TRoutes[TName]>;
   };
 
-  #initialReads: Promise<void> = Promise.resolve();
+  #initialReads: Record<RunningSubject, Promise<void>> = mapNames(
+    RUNNING_SUBJECTS,
+    () => Promise.resolve(),
+  );
 
   /**
    * Where the observation session stands: idle, running, stopped or disposed.
@@ -88,6 +95,19 @@ export class Beacon<
    * ```
    */
   running: ObservableValue<RunningApplication>;
+
+  /**
+   * Whether the running application is acceptable under the application's own
+   * policy: unknown until a policy is accepted and after it lapses, with the
+   * last decision kept beside it. A failing check never turns `supported` into
+   * `unsupported`.
+   *
+   * @example
+   * ```ts
+   * const { status } = beacon.support.get();
+   * ```
+   */
+  support: ObservableValue<SupportState>;
 
   /**
    * A passive snapshot and event stream for logs and devtools.
@@ -114,6 +134,7 @@ export class Beacon<
     scope,
     running,
     routes,
+    policy,
     timeouts = {},
     clock = createSystemClock(),
   }: BeaconOptions<TRoutes>) {
@@ -169,6 +190,7 @@ export class Beacon<
 
     this.#routes = new RouteRegistry({
       definitions: routes,
+      policy: policy ?? null,
       getScope: () => frozenScope,
       running: this.#running.state,
       clock,
@@ -216,6 +238,7 @@ export class Beacon<
     );
     this.status = this.#runtime.status;
     this.running = this.#running.state;
+    this.support = this.#routes.getSupport();
     this.diagnostics = this.#diagnostics.view;
     this.disruptions = Object.freeze({ register: this.#disruptions.register });
   }
@@ -281,9 +304,10 @@ export class Beacon<
   check = async (
     options: CheckOptions = {},
   ): Promise<CheckReport<keyof TRoutes & string>> => {
-    const outcomes = await Promise.all(
-      this.#names.map((name) => this.#checkRoute(name, options)),
-    );
+    const [outcomes, support] = await Promise.all([
+      Promise.all(this.#names.map((name) => this.#checkRoute(name, options))),
+      this.#checkSupport(options),
+    ]);
 
     return {
       routes: mapNames(this.#names, (name) => {
@@ -291,7 +315,7 @@ export class Beacon<
 
         return outcomes[index] ?? SUPERSEDED_OUTCOME;
       }),
-      support: null,
+      support,
     };
   };
 
@@ -355,6 +379,23 @@ export class Beacon<
     };
   }
 
+  async #checkSupport(options: CheckOptions): Promise<CheckOutcome | null> {
+    if (!this.#routes.hasPolicy()) {
+      return null;
+    }
+
+    const session = this.#runtime.getSession();
+
+    if (session === null) {
+      return this.#createNotActiveOutcome();
+    }
+
+    return this.#routes.checkPolicy(session, {
+      mode: options.mode ?? "join",
+      signal: options.signal,
+    });
+  }
+
   async #checkRoute(
     name: string,
     options: CheckOptions,
@@ -370,7 +411,7 @@ export class Beacon<
       ...(options.reason === undefined ? {} : { reason: options.reason }),
     });
 
-    await this.#initialReads;
+    await this.#awaitRunning(this.#getSubjects(name));
 
     if (!this.#isCurrent(session)) {
       return { status: "superseded" };
@@ -380,6 +421,21 @@ export class Beacon<
       mode: options.mode ?? "join",
       signal: options.signal,
     });
+  }
+
+  // A check waits only for the running subjects it depends on, not for every unrelated reader.
+  async #awaitRunning(subjects: RunningSubject[]) {
+    await Promise.all(subjects.map((subject) => this.#initialReads[subject]));
+  }
+
+  #getSubjects(name: string) {
+    const entry = this.#routes.getEntry(name);
+
+    if (entry === undefined) {
+      return [];
+    }
+
+    return getSubjects(entry.definition);
   }
 
   #isCurrent(session: Session) {

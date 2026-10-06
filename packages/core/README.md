@@ -37,6 +37,10 @@ Constructing, reading and subscribing start nothing: `start()` opens the observa
 
 A route's source is made with `createReleaseSource({ name, read })`, and its commands come from `createUpdateMechanism({ name, open, commands })`. Sources that share one object share one read, so keep one source per authority and `select` a view of it for each route.
 
+## Support
+
+`supportPolicy({ source, evaluate })` is the application's own policy: a view of a source's document and a pure function of it and what is running. `beacon.support` publishes `unknown`, `supported`, `deprecated` or `unsupported` with the reasons and the routes that would satisfy it, and whether each is usable now. A policy that lapses is unknown with its last decision kept, and a failing check never turns `supported` into `unsupported`. A requirement is satisfied only by newly observed running facts or a new accepted policy, never by opening a store or downloading.
+
 ## Commands
 
 Each command declares which reference it needs (`offer`, `prepared`, `optional-offer` or `none`), what it can do to the running application (`impacts`), and how tightly it is bound (`binding`). A route gets one method per command:

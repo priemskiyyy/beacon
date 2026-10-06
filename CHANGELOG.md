@@ -11,7 +11,8 @@
 - Disruption coordination: participants reserve, settle and are checked again before a provider is asked; one operation per route and one disruptive operation across routes; an identical call joins, a conflicting call is blocked; a caller's abort after a dispatch is `indeterminate`; a command that replaces the realm leaves its route unresolved until `route.acknowledge()`.
 - Passive diagnostics, and `createMockSource`, `createTestClock` under `./mock`, and `testReleaseSource`, `testVersionStrategy`, `testUpdateMechanism` and `testReleaseDriver` under `./testing`.
 - Errors are `BeaconError`s with a `code`. Only misconfiguration and use after disposal throw.
-- Not built yet: the support policy, the transition journal and boot reconciliation, scope replacement and the scheduler. See `docs/decisions.md`.
+- Support: `supportPolicy({ source, evaluate })` evaluates the application's own policy against what is running, and `beacon.support` publishes the status, the last evaluation, the routes that would satisfy it and whether each is usable. A policy that lapses is unknown with its last decision kept, a failing evaluation keeps the last valid one in force beside the error, and a route the Beacon does not have cannot be named.
+- Not built yet: the transition journal and boot reconciliation, scope replacement and the scheduler. See `docs/decisions.md`.
 
 ## @priemskiyyy/beacon-http 0.1.0 - Unreleased
 
@@ -46,5 +47,5 @@
 
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased
 
-- First release. `BeaconProvider`, `useRoute`, `useRunning`, `useDisruption` and `useBeacon`. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
+- First release. `BeaconProvider`, `useRoute`, `useRunning`, `useSupport`, `useDisruption` and `useBeacon`. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
 - Requires `@priemskiyyy/beacon` 0.1 and React 19.2.

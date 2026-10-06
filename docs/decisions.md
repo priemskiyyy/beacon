@@ -26,7 +26,7 @@ Beacon follows its specification and departs from it in the places below, each w
 
 Each item is a specified feature, not a decision to omit it.
 
-- **Support policy** (`SupportState`, `supportPolicy`): the `support` field of a check report is `null`. The `POL` scenarios are unproven except for evidence expiry.
+- **Dismissals** (`POL-12`): a dismissal never changes support, and none is stored yet. The presentation layer is headless and not built.
 - **Transition journal and boot reconciliation** (`reportReady`, `journal` modes): no command writes intent, so there is no cross-boot loop protection. The `JOURNAL` scenarios are unproven.
 - **Scope replacement** and `beacon.reconcile()`: a Beacon has one scope for its life. Drivers reconcile once when a session opens.
 - **Scheduler and triggers**, retries and backoff.

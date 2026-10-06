@@ -65,13 +65,24 @@ test("an entry with no version is refused", () => {
   ).toThrow("no version");
 });
 
-test("a malformed release date is refused", () => {
-  expect(() =>
-    readLookupEntry(
-      { results: [entry({ currentVersionReleaseDate: "yesterday" })] },
-      EXPECTED,
-    ),
-  ).toThrow("malformed release date");
+test("a malformed release date is refused, however leniently a date parser would read it", () => {
+  for (const currentVersionReleaseDate of [
+    "yesterday",
+    "2026-02-31T00:00:00Z",
+    "2026-09-02T24:00:00Z",
+    "2026-09-02",
+    "2026",
+    "12",
+    "Not a date 5",
+    "2026-09-02T09:15:00+02:00",
+  ]) {
+    expect(() =>
+      readLookupEntry(
+        { results: [entry({ currentVersionReleaseDate })] },
+        EXPECTED,
+      ),
+    ).toThrow("malformed release date");
+  }
 });
 
 test("a refusal is a source failure", () => {

@@ -44,9 +44,9 @@ export const appStoreLookup = ({
     name,
     read: async ({ scope, signal }) => {
       if (scope.distribution !== APP_STORE_DISTRIBUTION) {
+        // Decided here, without asking the store, so the store is not named as its issuer.
         return {
           document: { decision: { kind: "none", reason: OTHER_DISTRIBUTION } },
-          issuer: "app-store",
         };
       }
 

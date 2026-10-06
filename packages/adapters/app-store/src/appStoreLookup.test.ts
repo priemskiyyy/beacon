@@ -123,7 +123,6 @@ test("STORE-09 a scope of another distribution is answered without a request, an
       source.read({ ...read, scope: { ...read.scope, distribution } }),
     ).resolves.toEqual({
       document: { decision: { kind: "none", reason: "other-distribution" } },
-      issuer: "app-store",
     });
   }
 

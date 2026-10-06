@@ -10,6 +10,7 @@ import {
   MALFORMED_RELEASE_DATE,
   MISSING_VERSION,
 } from "src/utils/constants/messages";
+import { readReleaseDate } from "src/utils/readReleaseDate";
 
 type Expected = { appId: string; bundleId: string | undefined };
 
@@ -48,9 +49,9 @@ export const readLookupEntry = (
     throw refuse(MISSING_VERSION);
   }
 
-  const releasedAt = Date.parse(entry.currentVersionReleaseDate);
+  const releasedAt = readReleaseDate(entry.currentVersionReleaseDate);
 
-  if (Number.isNaN(releasedAt)) {
+  if (releasedAt === undefined) {
     throw refuse(MALFORMED_RELEASE_DATE);
   }
 

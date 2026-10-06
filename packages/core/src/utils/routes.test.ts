@@ -510,3 +510,30 @@ test("CORE-02 a selection that fails when a running fact changes shows on the ch
 
   expect(route.state.get().check).toMatchObject({ state: "succeeded" });
 });
+
+test("CORE-01 every observable can be read as it was before any session, which is what a server renders", async () => {
+  const context = createWebBeacon();
+  const { beacon } = context;
+  const web = beacon.route("web");
+
+  const before = {
+    status: beacon.status.get(),
+    running: beacon.running.get(),
+    support: beacon.support.get(),
+    transitions: beacon.transitions.get(),
+    diagnostics: beacon.diagnostics.get(),
+    route: web.state.get(),
+    native: web.native.get(),
+  };
+
+  await startAndCheck(context);
+
+  expect(beacon.status.getInitial()).toEqual(before.status);
+  expect(beacon.running.getInitial()).toEqual(before.running);
+  expect(beacon.support.getInitial()).toEqual(before.support);
+  expect(beacon.transitions.getInitial()).toEqual(before.transitions);
+  expect(beacon.diagnostics.getInitial()).toEqual(before.diagnostics);
+  expect(web.state.getInitial()).toEqual(before.route);
+  expect(web.native.getInitial()).toEqual(before.native);
+  expect(web.state.get()).not.toEqual(web.state.getInitial());
+});

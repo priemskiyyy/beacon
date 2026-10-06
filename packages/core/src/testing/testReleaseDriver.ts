@@ -121,6 +121,7 @@ const createRecordingEmitter = <
 
 const running = {
   get: () => RUNNING,
+  getInitial: () => RUNNING,
   subscribe: () => () => {},
 };
 

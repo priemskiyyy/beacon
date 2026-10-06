@@ -2,18 +2,22 @@ import type { ObservableValue } from "src/types/ObservableValue";
 import { Listeners } from "src/utils/internal/observable/Listeners";
 
 export class ValueStore<TValue> {
+  #initial: TValue;
   #value: TValue;
   #notified: TValue;
   #listeners: Listeners;
   #closed = false;
 
   constructor(initialValue: TValue, listeners = new Listeners()) {
+    this.#initial = initialValue;
     this.#value = initialValue;
     this.#notified = initialValue;
     this.#listeners = listeners;
   }
 
   get = () => this.#value;
+
+  getInitial = () => this.#initial;
 
   subscribe = (listener: () => void) => {
     if (this.#closed) {
@@ -61,6 +65,7 @@ export class ValueStore<TValue> {
   /** The read side, for owners that must not hand out `set`. */
   observable: ObservableValue<TValue> = Object.freeze({
     get: this.get,
+    getInitial: this.getInitial,
     subscribe: this.subscribe,
   });
 }

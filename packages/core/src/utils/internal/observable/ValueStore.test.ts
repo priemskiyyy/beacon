@@ -81,3 +81,13 @@ test("the read side works detached from the store", () => {
   expect(get()).toBe(2);
   expect(listener).toHaveBeenCalledTimes(1);
 });
+
+test("CORE-01 the initial value stays readable however the value changes", () => {
+  const store = new ValueStore({ count: 0 });
+
+  store.update({ count: 1 });
+
+  expect(store.get()).toEqual({ count: 1 });
+  expect(store.observable.getInitial()).toEqual({ count: 0 });
+  expect(store.observable.getInitial()).toBe(store.getInitial());
+});

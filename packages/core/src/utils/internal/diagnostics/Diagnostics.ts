@@ -5,7 +5,10 @@ import type { BeaconDiagnosticEventType } from "src/types/BeaconDiagnosticEventT
 import type { BeaconDiagnostics } from "src/types/BeaconDiagnostics";
 import type { BeaconDiagnosticSnapshot } from "src/types/BeaconDiagnosticSnapshot";
 import type { DiagnosticDetails } from "src/types/internal/DiagnosticDetails";
-import { COUNTED_EVENTS } from "src/utils/constants/diagnostics";
+import {
+  COUNTED_EVENTS,
+  INITIAL_DIAGNOSTICS,
+} from "src/utils/constants/diagnostics";
 import { Listeners } from "src/utils/internal/observable/Listeners";
 import { isolate } from "src/utils/internal/reporting/isolate";
 import { reportUnhandledError } from "src/utils/internal/reporting/reportUnhandledError";
@@ -95,6 +98,7 @@ export class Diagnostics {
 
   view: BeaconDiagnostics = Object.freeze({
     get: () => this.#getSnapshot(),
+    getInitial: () => INITIAL_DIAGNOSTICS,
     subscribe: (listener: () => void) => {
       if (this.#closed) {
         return () => {};

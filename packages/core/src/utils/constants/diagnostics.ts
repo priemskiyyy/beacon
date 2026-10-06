@@ -1,4 +1,5 @@
 import type { BeaconDiagnosticCounters } from "src/types/BeaconDiagnosticCounters";
+import type { BeaconDiagnosticSnapshot } from "src/types/BeaconDiagnosticSnapshot";
 import type { BeaconDiagnosticEventType } from "src/types/BeaconDiagnosticEventType";
 
 /** The counter each event type raises, or `null` when it only appears as an event. */
@@ -29,3 +30,14 @@ export const COUNTED_EVENTS = {
   BeaconDiagnosticEventType,
   keyof BeaconDiagnosticCounters | null
 >;
+
+/** What the diagnostics say before any session: nothing has happened, and nothing was counted. */
+export const INITIAL_DIAGNOSTICS: BeaconDiagnosticSnapshot = Object.freeze({
+  status: "idle",
+  session: null,
+  counters: Object.freeze({
+    lateCallbacks: 0,
+    listenerErrors: 0,
+    cleanupErrors: 0,
+  }),
+});

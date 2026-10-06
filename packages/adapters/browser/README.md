@@ -27,7 +27,7 @@ const beacon = new Beacon({
 });
 ```
 
-The route gets one method, `requestReload`, which needs the offer the user was shown:
+The route gets one method, `reload`, which needs the offer the user was shown:
 
 ```ts
 const { observation } = beacon.route("web").state.get();
@@ -35,7 +35,7 @@ const { observation } = beacon.route("web").state.get();
 if (observation.status === "available") {
   const outcome = await beacon
     .route("web")
-    .requestReload({ offer: observation.offer.ref });
+    .reload({ offer: observation.offer.ref });
 }
 ```
 
@@ -49,7 +49,7 @@ An accepted reload leaves the route unresolved, because the old document may sta
 
 ## Options
 
-`browserReload({ target })` reloads the document of `target`, the global `window` by default. Without either, such as in a server render, opening does nothing, `native.window` is `null` and `requestReload` settles as `unsupported`.
+`browserReload({ target })` reloads the document of `target`, the global `window` by default. Without either, such as in a server render, opening does nothing, `native.window` is `null` and `reload` settles as `unsupported`.
 
 ## A page restored from the back-forward cache
 

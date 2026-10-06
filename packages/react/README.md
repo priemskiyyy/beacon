@@ -43,7 +43,7 @@ const UpdateBanner = () => {
   }
 
   return (
-    <button onClick={() => web.requestReload({ offer: observation.offer.ref })}>
+    <button onClick={() => web.reload({ offer: observation.offer.ref })}>
       Update
     </button>
   );

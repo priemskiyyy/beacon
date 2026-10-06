@@ -35,7 +35,7 @@ export const createReloadMechanism = () => {
     name: "test-reload",
     open: () => ({ native: environment }),
     commands: {
-      requestReload: {
+      reload: {
         reference: "offer",
         impacts: ["document-replacement"],
         binding: "unpinned-navigation",

@@ -26,18 +26,18 @@
 
 ## @priemskiyyy/beacon-browser 0.1.0 - Unreleased
 
-- First release. `browserReload()` is a mechanism with one command, `requestReload`, bound to nothing: the next navigation receives whatever is deployed. Without a window it is unsupported.
+- First release. `browserReload()` is a mechanism with one command, `reload`, bound to nothing: the next navigation receives whatever is deployed. Without a window it is unsupported.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-service-worker 0.1.0 - Unreleased
 
-- First release. `serviceWorker()` reports a waiting worker next to an active one as an update that is ready, with the release unknown, `activateWaiting` asks it to skip waiting, and once the active worker was replaced `requestReload` reloads the document.
+- First release. `serviceWorker()` reports a waiting worker next to an active one as an update that is ready, with the release unknown, `activate` asks it to skip waiting, and once the active worker was replaced `reload` reloads the document.
 - It never registers or unregisters a worker, and activating one reaches every tab of the scope.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-expo 0.1.0 - Unreleased
 
-- First release. `expoUpdates({ updates })` maps the whole check result, including a rollback to the embedded update, and never reports a rejection or disabled updates as no update. `download` says whether what the provider prepared is the offer, and `requestReload` restarts the runtime. `expoBundle` reads the running update.
+- First release. `expoUpdates({ updates })` maps the whole check result, including a rollback to the embedded update, and never reports a rejection or disabled updates as no update. `download` says whether what the provider prepared is the offer, and `reload` restarts the runtime. `expoBundle` reads the running update.
 - Requires `@priemskiyyy/beacon` 0.1 and `expo-updates` 57.
 
 ## @priemskiyyy/beacon-google-play 0.1.0 - Unreleased

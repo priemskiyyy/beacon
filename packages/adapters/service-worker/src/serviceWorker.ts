@@ -17,7 +17,7 @@ const createCommands = ({
   message = SKIP_WAITING_MESSAGE,
 }: ServiceWorkerOptions) =>
   ({
-    activateWaiting: {
+    activate: {
       reference: "offer",
       impacts: ["worker-takeover"],
       binding: "exact-instance",
@@ -51,7 +51,7 @@ const createCommands = ({
         };
       },
     },
-    requestReload: {
+    reload: {
       reference: "prepared",
       impacts: ["document-replacement"],
       binding: "provider-current",
@@ -71,10 +71,10 @@ const createCommands = ({
 
 /**
  * A service worker registration as a Beacon route. A waiting worker, next to
- * one that is already active, is an update that is ready: `activateWaiting`
+ * one that is already active, is an update that is ready: `activate`
  * asks that worker to skip waiting, which proves no activation. Once the
  * worker that was active has been replaced, the route has a prepared target
- * and `requestReload` replaces the document. The release stays unknown,
+ * and `reload` replaces the document. The release stays unknown,
  * because the bytes behind a script URL can change. The adapter never
  * registers or unregisters a worker, and activating one is a takeover that
  * reaches every tab of the scope, not only this one.

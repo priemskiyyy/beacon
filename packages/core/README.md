@@ -76,7 +76,7 @@ Each command declares which reference it needs (`offer`, `prepared`, `optional-o
 ```ts
 const outcome = await beacon
   .route("web")
-  .requestReload({ offer: observation.offer.ref });
+  .reload({ offer: observation.offer.ref });
 
 if (outcome.status === "blocked") {
   console.info(outcome.reasons.map((reason) => reason.code));

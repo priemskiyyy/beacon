@@ -9,7 +9,7 @@ import type { TargetBinding } from "src/types/TargetBinding";
  *
  * @example
  * ```ts
- * const { impacts, binding } = beacon.route("web").capabilities.requestReload;
+ * const { impacts, binding } = beacon.route("web").capabilities.reload;
  * ```
  */
 export type RouteCapabilities<TCommands> = {

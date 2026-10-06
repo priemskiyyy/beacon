@@ -12,7 +12,7 @@ import type { RouteBody } from "src/types/RouteBody";
  * const mechanism = createUpdateMechanism({
  *   name: "browser-reload",
  *   open: (): MechanismSession<Browser> => ({ native: browser }),
- *   commands: { requestReload },
+ *   commands: { reload },
  * });
  * ```
  */

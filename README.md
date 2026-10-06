@@ -41,7 +41,7 @@ await beacon.check({ reason: "startup" });
 const { observation } = beacon.route("web").state.get();
 
 if (observation.status === "available") {
-  const outcome = await beacon.route("web").requestReload({
+  const outcome = await beacon.route("web").reload({
     offer: observation.offer.ref,
   });
 }

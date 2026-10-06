@@ -50,7 +50,7 @@ const browserReload = createUpdateMechanism({
   name: "browser-reload",
   open: () => ({ native: browser }),
   commands: {
-    requestReload: {
+    reload: {
       reference: "offer",
       impacts: ["document-replacement"],
       binding: "unpinned-navigation",
@@ -124,36 +124,34 @@ declare const otherOffer: OfferReference<"binary">;
 
 declare const webPrepared: PreparedReference<"web">;
 
-export const outcome = webHandle.requestReload({ offer: webOffer });
+export const outcome = webHandle.reload({ offer: webOffer });
 
 expectTypeOf(webHandle.native.get()).toEqualTypeOf<Browser | null>();
 
-expectTypeOf(
-  webHandle.capabilities.requestReload.reference,
-).toEqualTypeOf<"offer">();
+expectTypeOf(webHandle.capabilities.reload.reference).toEqualTypeOf<"offer">();
 
 expectTypeOf(webHandle.state.get().observation).toEqualTypeOf<
   Observation<"web", { release: Release<null> }>
 >();
 
 // @ts-expect-error A reload needs the offer reference.
-webHandle.requestReload({});
+webHandle.reload({});
 
 // @ts-expect-error A reload needs an argument.
-webHandle.requestReload();
+webHandle.reload();
 
 // BIND-03 A reference of another route or another kind does not compile.
 // @ts-expect-error An offer of another route is refused at compile time.
-webHandle.requestReload({ offer: otherOffer });
+webHandle.reload({ offer: otherOffer });
 
 // @ts-expect-error A prepared reference is not an offer reference.
-webHandle.requestReload({ offer: webPrepared });
+webHandle.reload({ offer: webPrepared });
 
 // BIND-02 A route without a command has no method for it in its inferred type.
 // @ts-expect-error There is no universal install.
 webHandle.install({ offer: webOffer });
 
-const settled = await webHandle.requestReload({ offer: webOffer });
+const settled = await webHandle.reload({ offer: webOffer });
 
 // @ts-expect-error A reload outcome has no updated flag.
 export const updated = settled.updated;

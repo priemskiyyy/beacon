@@ -10,7 +10,7 @@ import { PlaySession } from "src/utils/PlaySession";
 import { bindSession, getSession } from "src/utils/sessions";
 
 const commands = {
-  startFlexibleUpdate: {
+  download: {
     reference: "offer",
     impacts: ["may-activate-on-next-start"],
     binding: "provider-current",
@@ -62,7 +62,7 @@ const commands = {
       };
     },
   },
-  startImmediateUpdate: {
+  update: {
     reference: "offer",
     impacts: ["native-update-flow", "javascript-restart"],
     binding: "provider-current",
@@ -113,7 +113,7 @@ const commands = {
       };
     },
   },
-  completeUpdate: {
+  restart: {
     reference: "prepared",
     impacts: ["javascript-restart"],
     binding: "provider-current",
@@ -129,9 +129,9 @@ const commands = {
  * Google Play in-app updates as a Beacon route, over a native bridge you
  * inject. Play owns eligibility, the flows and the version order: an offer
  * names a version code, carries the flows Play allows now, and comes from a
- * fresh query, never from a manifest. `startFlexibleUpdate` answers when Play
+ * fresh query, never from a manifest. `download` answers when Play
  * says the download ended and prepares the update without restarting the app;
- * `completeUpdate` is a separate, guarded command. `startImmediateUpdate` is
+ * `restart` is a separate, guarded command. `update` is
  * disruptive from the moment the flow starts, and resumes one Play still
  * holds. Every command reconfirms the offer against Play first. Nothing here
  * is proof of an installation: only a later boot shows the running build, and

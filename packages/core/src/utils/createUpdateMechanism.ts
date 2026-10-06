@@ -12,7 +12,7 @@ import type { UpdateMechanism } from "src/types/UpdateMechanism";
  * const mechanism = createUpdateMechanism({
  *   name: "browser-reload",
  *   open: () => ({ native: browser }),
- *   commands: { requestReload },
+ *   commands: { reload },
  * });
  * ```
  */

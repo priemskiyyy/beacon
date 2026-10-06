@@ -39,13 +39,13 @@ declare const prepared: PreparedReference<"ota">;
 
 export const download = handle.download({ offer });
 
-export const reload = handle.requestReload({ prepared });
+export const reload = handle.reload({ prepared });
 
 // @ts-expect-error -- a download needs the offer the user was shown.
 handle.download();
 
 // @ts-expect-error -- a reload needs a prepared target, not an offer.
-handle.requestReload({ prepared: offer });
+handle.reload({ prepared: offer });
 
 // @ts-expect-error -- a download needs an offer, not a prepared target.
 handle.download({ offer: prepared });

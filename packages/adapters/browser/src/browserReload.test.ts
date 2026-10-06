@@ -98,7 +98,7 @@ test("WEB-01 an accepted reload proves only the request, and the running build s
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
 
-  await expect(web.requestReload({ offer })).resolves.toEqual({
+  await expect(web.reload({ offer })).resolves.toEqual({
     status: "accepted",
     operation: { id: 1 },
     receipt: { kind: "reload-requested" },
@@ -113,7 +113,7 @@ test("WEB-01 an accepted reload proves only the request, and the running build s
 test("WEB-01 the reload is a document replacement bound to nothing", () => {
   const { beacon } = createWebBeacon();
 
-  expect(beacon.route("web").capabilities.requestReload).toEqual({
+  expect(beacon.route("web").capabilities.reload).toEqual({
     reference: "offer",
     impacts: ["document-replacement"],
     binding: "unpinned-navigation",
@@ -125,7 +125,7 @@ test("WEB-02 a reload the browser refuses fails, and the route accepts commands 
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
 
-  await expect(web.requestReload({ offer })).resolves.toMatchObject({
+  await expect(web.reload({ offer })).resolves.toMatchObject({
     status: "failed",
     error: { code: "COMMAND_FAILED" },
   });
@@ -137,7 +137,7 @@ test("a reload that was accepted holds the route until the application acknowled
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
 
-  await web.requestReload({ offer });
+  await web.reload({ offer });
 
   expect(web.state.get().operation).toMatchObject({
     state: "indeterminate",
@@ -189,7 +189,7 @@ test("without a window a reload is unsupported, and nothing is claimed", async (
 
   const offer = await startWithOffer({ beacon, window: fakeWindow() });
 
-  await expect(beacon.route("web").requestReload({ offer })).resolves.toEqual({
+  await expect(beacon.route("web").reload({ offer })).resolves.toEqual({
     status: "unsupported",
     reason: "no-document",
   });
@@ -203,7 +203,7 @@ test("WEB-06 the intent is persisted before the reload is dispatched, never afte
 
   storage.holdWrites();
 
-  const pending = context.beacon.route("web").requestReload({ offer });
+  const pending = context.beacon.route("web").reload({ offer });
 
   await settle();
 
@@ -223,7 +223,7 @@ test("WEB-11 without a journal the limitation is visible and a reload still proc
   expect(context.beacon.transitions.get().journal).toBe("off");
 
   await expect(
-    context.beacon.route("web").requestReload({ offer }),
+    context.beacon.route("web").reload({ offer }),
   ).resolves.toMatchObject({ status: "accepted" });
 });
 
@@ -235,7 +235,7 @@ test("WEB-11 a required journal that cannot persist blocks the reload", async ()
   storage.failWrites();
 
   await expect(
-    context.beacon.route("web").requestReload({ offer }),
+    context.beacon.route("web").reload({ offer }),
   ).resolves.toMatchObject({
     status: "failed",
     error: { code: "JOURNAL_FAILED" },
@@ -254,7 +254,7 @@ test("WEB-10 a document restored from the back-forward cache is the same boot, a
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
 
-  await web.requestReload({ offer });
+  await web.reload({ offer });
 
   // The reload was requested, but the page was kept and shown again: nothing booted.
   web.acknowledge();

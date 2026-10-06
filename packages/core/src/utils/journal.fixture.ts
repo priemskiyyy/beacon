@@ -100,7 +100,7 @@ export const buildIntent = (
   operation: { id: 1 },
   boot: { id: "boot-1" },
   route: "web",
-  command: "requestReload",
+  command: "reload",
   subject: "web",
   current: {
     status: "known",

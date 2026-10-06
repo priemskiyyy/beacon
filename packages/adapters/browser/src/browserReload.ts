@@ -8,7 +8,7 @@ import { getWindow } from "src/utils/getWindow";
 
 /**
  * Reloading the browser document as a Beacon update mechanism. Its one
- * command, `requestReload`, needs the offer the user was shown, replaces the
+ * command, `reload`, needs the offer the user was shown, replaces the
  * document, and is bound to nothing: the next navigation receives whatever is
  * deployed, which may be another build than the offer. Accepting means the
  * reload was requested; only the next boot can show what runs. Without a
@@ -29,7 +29,7 @@ export const browserReload = ({ target }: BrowserReloadOptions = {}) =>
     name: "browser-reload",
     open: () => ({ native: { window: getWindow(target) } }),
     commands: {
-      requestReload: {
+      reload: {
         reference: "offer",
         impacts: ["document-replacement"],
         binding: "unpinned-navigation",

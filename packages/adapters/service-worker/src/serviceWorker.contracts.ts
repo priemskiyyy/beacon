@@ -32,20 +32,20 @@ declare const offer: OfferReference<"worker">;
 
 declare const prepared: PreparedReference<"worker">;
 
-export const activation = handle.activateWaiting({ offer });
+export const activation = handle.activate({ offer });
 
-export const reload = handle.requestReload({ prepared });
+export const reload = handle.reload({ prepared });
 
 // @ts-expect-error -- an activation needs the offer, not the prepared target.
-handle.activateWaiting({ offer: prepared });
+handle.activate({ offer: prepared });
 
 // @ts-expect-error -- a reload needs a prepared target, which only an observed activation gives.
-handle.requestReload({ prepared: offer });
+handle.reload({ prepared: offer });
 
 export const native: ServiceWorkerNative | null = handle.native.get();
 
 export const receipt = async () => {
-  const settled = await handle.activateWaiting({ offer });
+  const settled = await handle.activate({ offer });
 
   if (settled.status === "accepted") {
     // @ts-expect-error -- an accepted activation request proves no activation.

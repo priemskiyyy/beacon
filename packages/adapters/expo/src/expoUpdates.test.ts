@@ -258,7 +258,7 @@ test("SAFE-12 downloading may activate on the next start, which the route declar
     impacts: ["may-activate-on-next-start"],
     binding: "provider-current",
   });
-  expect(ota.capabilities.requestReload).toEqual({
+  expect(ota.capabilities.reload).toEqual({
     reference: "prepared",
     impacts: ["javascript-restart"],
     binding: "provider-current",
@@ -282,7 +282,7 @@ test("EXPO-18 a reload restarts the runtime, and the route is unresolved until t
   }
 
   await expect(
-    context.ota.requestReload({ prepared: prepared.value.ref }),
+    context.ota.reload({ prepared: prepared.value.ref }),
   ).resolves.toMatchObject({
     status: "accepted",
     receipt: { kind: "reload-requested" },
@@ -312,7 +312,7 @@ test("a reload the SDK rejects is a failed command", async () => {
   }
 
   await expect(
-    context.ota.requestReload({ prepared: prepared.value.ref }),
+    context.ota.reload({ prepared: prepared.value.ref }),
   ).resolves.toMatchObject({
     status: "failed",
   });
@@ -402,7 +402,7 @@ test("EXPO-09 a prepared reference that a later download replaced is refused bef
   await context.ota.download({ offer: observation.offer.ref });
 
   await expect(
-    context.ota.requestReload({ prepared: old.value.ref }),
+    context.ota.reload({ prepared: old.value.ref }),
   ).resolves.toEqual({ status: "stale", reason: "replaced" });
   expect(context.calls.reloads).toBe(0);
 });
@@ -419,10 +419,7 @@ test("EXPO-11 a session that starts without a prepared query does not know what 
 test("EXPO-19 the route has the commands it declares and no way to override the update URL, headers or signing", () => {
   const { ota } = create();
 
-  expect(Object.keys(ota.capabilities).sort()).toEqual([
-    "download",
-    "requestReload",
-  ]);
+  expect(Object.keys(ota.capabilities).sort()).toEqual(["download", "reload"]);
   expect(
     Object.keys(ota).filter((key) => /override|url|header|sign/i.test(key)),
   ).toEqual([]);

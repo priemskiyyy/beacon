@@ -36,13 +36,13 @@ An update Play reports as already downloaded is prepared when the app starts, wi
 
 ## Commands
 
-| Command                | Needs      | Impacts                                    | Receipt                  |
-| ---------------------- | ---------- | ------------------------------------------ | ------------------------ |
-| `startFlexibleUpdate`  | an offer   | `may-activate-on-next-start`               | `update-downloaded`      |
-| `startImmediateUpdate` | an offer   | `native-update-flow`, `javascript-restart` | `immediate-flow-started` |
-| `completeUpdate`       | a prepared | `javascript-restart`                       | `completion-requested`   |
+| Command    | Needs      | Impacts                                    | Receipt                  |
+| ---------- | ---------- | ------------------------------------------ | ------------------------ |
+| `download` | an offer   | `may-activate-on-next-start`               | `update-downloaded`      |
+| `update`   | an offer   | `native-update-flow`, `javascript-restart` | `immediate-flow-started` |
+| `restart`  | a prepared | `javascript-restart`                       | `completion-requested`   |
 
-Each flow is its own command, so its impacts are its own and a participant is asked only about what the flow does. Every start reconfirms the offer against Play and refuses a changed one as stale. `startFlexibleUpdate` answers when Play says the download ended, with Play's own progress and no invented total, and prepares the update without restarting the app. `completeUpdate` is the separate, guarded restart.
+Each flow is its own command, so its impacts are its own and a participant is asked only about what the flow does. Every start reconfirms the offer against Play and refuses a changed one as stale. `download` answers when Play says the download ended, with Play's own progress and no invented total, and prepares the update without restarting the app. `restart` is the separate, guarded restart.
 
 ## What it does not prove
 

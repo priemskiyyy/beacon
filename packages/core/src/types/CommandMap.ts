@@ -18,7 +18,7 @@ type HandleMembers = {
  *
  * @example
  * ```ts
- * const commands: CommandMap<Browser, RouteBody, RouteBody> = { requestReload };
+ * const commands: CommandMap<Browser, RouteBody, RouteBody> = { reload };
  * ```
  */
 export type CommandMap<

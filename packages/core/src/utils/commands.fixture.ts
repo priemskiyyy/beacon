@@ -35,7 +35,7 @@ export const createHeldMechanism = () => {
     name: "held",
     open: () => ({ native: {} }),
     commands: {
-      requestReload: {
+      reload: {
         reference: "offer",
         impacts: ["document-replacement"],
         binding: "unpinned-navigation",

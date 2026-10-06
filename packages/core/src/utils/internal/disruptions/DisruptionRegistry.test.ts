@@ -9,7 +9,7 @@ import { DisruptionRegistry } from "src/utils/internal/disruptions/DisruptionReg
 
 const RELOAD: ReserveContext = {
   route: "web",
-  command: "requestReload",
+  command: "reload",
   impacts: ["document-replacement"],
 };
 

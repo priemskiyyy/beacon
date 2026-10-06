@@ -71,7 +71,7 @@ test("what the last scope taught is forgotten, and an offer it made is stale", a
     observation: { status: "unknown", reason: "not-checked" },
     operation: { state: "idle" },
   });
-  await expect(web.requestReload({ offer })).resolves.toEqual({
+  await expect(web.reload({ offer })).resolves.toEqual({
     status: "stale",
     reason: "replaced",
   });
@@ -82,7 +82,7 @@ test("LIFE-08 an operation that is running blocks the replacement, and the old s
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reloading = web.requestReload({ offer });
+  const reloading = web.reload({ offer });
 
   await settle();
 
@@ -109,7 +109,7 @@ test("LIFE-08 an operation that is indeterminate blocks it until the application
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reloading = web.requestReload({ offer });
+  const reloading = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -129,7 +129,7 @@ test("LIFE-08 an operation that is indeterminate blocks it until the application
 test("LIFE-08 stopping the session does not free an operation for another scope", async () => {
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
-  const reloading = context.beacon.route("web").requestReload({ offer });
+  const reloading = context.beacon.route("web").reload({ offer });
 
   await settle();
   context.beacon.stop();
@@ -248,7 +248,7 @@ test("the journal reads the record of the next scope, and shows nothing of the l
 
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reloading = web.requestReload({ offer });
+  const reloading = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -297,7 +297,7 @@ test("the intents of the last scope are not shown for the next when its record c
 
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reloading = web.requestReload({ offer });
+  const reloading = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);

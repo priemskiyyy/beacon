@@ -36,14 +36,14 @@ You pass the `expo-updates` module in: the adapter never imports it, so a test p
 
 ## Commands
 
-| Command         | Needs      | Impact                       | Binding            | Receipt                                                      |
-| --------------- | ---------- | ---------------------------- | ------------------ | ------------------------------------------------------------ |
-| `download`      | an offer   | `may-activate-on-next-start` | `provider-current` | `update-prepared`, `rollback-prepared`, `no-new-preparation` |
-| `requestReload` | a prepared | `javascript-restart`         | `provider-current` | `reload-requested`                                           |
+| Command    | Needs      | Impact                       | Binding            | Receipt                                                      |
+| ---------- | ---------- | ---------------------------- | ------------------ | ------------------------------------------------------------ |
+| `download` | an offer   | `may-activate-on-next-start` | `provider-current` | `update-prepared`, `rollback-prepared`, `no-new-preparation` |
+| `reload`   | a prepared | `javascript-restart`         | `provider-current` | `reload-requested`                                           |
 
 `download` fetches the provider's current selection, which may differ from the offer: the receipt says `same`, `different` or `unknown`, and a different update gets a prepared reference of its own. A valid answer that is not new prepares nothing and never becomes a prepared update. An update that was downloaded can be selected at a later start whether or not you reload, so `download` declares that before the user agrees.
 
-`requestReload` restarts the JavaScript runtime; no code after it is guaranteed to run, and the route stays unresolved until you call `route.acknowledge()`.
+`reload` restarts the JavaScript runtime; no code after it is guaranteed to run, and the route stays unresolved until you call `route.acknowledge()`.
 
 ## What it does not do
 

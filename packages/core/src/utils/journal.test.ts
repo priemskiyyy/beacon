@@ -36,7 +36,7 @@ const reload = async (
   context: ReturnType<typeof createWebCommandBeacon>,
   offer: Awaited<ReturnType<typeof startWithOffer>>,
 ) => {
-  const pending = context.beacon.route("web").requestReload({ offer });
+  const pending = context.beacon.route("web").reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -74,7 +74,7 @@ test("JOURNAL-01 a required intent that cannot be written stops the command befo
 
   memory.failWrites(new Error("quota exceeded"));
 
-  await expect(web.requestReload({ offer })).resolves.toMatchObject({
+  await expect(web.reload({ offer })).resolves.toMatchObject({
     status: "failed",
     error: { code: "JOURNAL_FAILED" },
   });
@@ -100,7 +100,7 @@ test("JOURNAL-02 a best-effort intent that cannot be written is visible, and the
   expect(events).toContain("journal-failed");
   expect(context.beacon.transitions.get()).toMatchObject({
     journal: "degraded",
-    latest: { outcome: "same-boot", intent: { command: "requestReload" } },
+    latest: { outcome: "same-boot", intent: { command: "reload" } },
   });
   expect(memory.data.has(KEY)).toBe(false);
 });
@@ -109,7 +109,7 @@ test("an intent is written before the provider is asked, and holds identities an
   const memory = createMemoryStorage();
   const context = createJournaled(memory);
   const offer = await startWithOffer(context);
-  const pending = context.beacon.route("web").requestReload({ offer });
+  const pending = context.beacon.route("web").reload({ offer });
 
   await settle();
 
@@ -120,7 +120,7 @@ test("an intent is written before the provider is asked, and holds identities an
         operation: { id: 1 },
         boot: { id: "boot-1" },
         route: "web",
-        command: "requestReload",
+        command: "reload",
         subject: "web",
         current: {
           status: "known",
@@ -169,7 +169,7 @@ test("JOURNAL-03 an intent written before a crash is read back as an intent, not
 
   expect(next.beacon.transitions.get().latest).toMatchObject({
     outcome: "target-not-running",
-    intent: { command: "requestReload", boot: { id: "boot-1" } },
+    intent: { command: "reload", boot: { id: "boot-1" } },
   });
   expect(next.runs).toHaveLength(0);
 });
@@ -229,7 +229,7 @@ test("JOURNAL-05 an intent still queued when the scope is replaced is never writ
 
   const pending = context.beacon
     .route("web")
-    .requestReload({ offer, signal: controller.signal });
+    .reload({ offer, signal: controller.signal });
 
   await settle();
   controller.abort();
@@ -304,7 +304,7 @@ test("JOURNAL-08 a storage that acknowledged a write it then failed to flush is 
   memory.failWrites(new Error("flush failed after an optimistic set"));
 
   await expect(
-    context.beacon.route("web").requestReload({ offer }),
+    context.beacon.route("web").reload({ offer }),
   ).resolves.toMatchObject({
     status: "failed",
     error: { code: "JOURNAL_FAILED" },
@@ -326,7 +326,7 @@ test("JOURNAL-09 a hydration that finishes late does not overwrite an intent wri
 
   const context = createJournaled(memory, "required", { boot: "boot-2" });
   const offer = await startWithOffer(context);
-  const pending = context.beacon.route("web").requestReload({ offer });
+  const pending = context.beacon.route("web").reload({ offer });
 
   await settle();
   expect(context.runs).toHaveLength(0);
@@ -530,7 +530,7 @@ test("SAFE-07 an offer replaced while the intent is written stops the command be
 
   memory.holdWrites();
 
-  const pending = web.requestReload({ offer });
+  const pending = web.reload({ offer });
 
   await settle();
 
@@ -558,7 +558,7 @@ test("a caller that aborts while the intent is written cancels, and asks no prov
 
   const pending = context.beacon
     .route("web")
-    .requestReload({ offer, signal: controller.signal });
+    .reload({ offer, signal: controller.signal });
 
   await settle();
   controller.abort();
@@ -583,7 +583,7 @@ test("JOURNAL-05 an intent still queued when the scope is replaced is never writ
 
   const pending = context.beacon
     .route("web")
-    .requestReload({ offer, signal: controller.signal });
+    .reload({ offer, signal: controller.signal });
 
   await settle();
   controller.abort();

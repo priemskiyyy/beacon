@@ -36,12 +36,12 @@ The release is unknown because the bytes behind a script URL can change: without
 
 ## Commands
 
-| Command           | Needs      | Impact                 | Binding            | Receipt                |
-| ----------------- | ---------- | ---------------------- | ------------------ | ---------------------- |
-| `activateWaiting` | an offer   | `worker-takeover`      | `exact-instance`   | `activation-requested` |
-| `requestReload`   | a prepared | `document-replacement` | `provider-current` | `reload-requested`     |
+| Command    | Needs      | Impact                 | Binding            | Receipt                |
+| ---------- | ---------- | ---------------------- | ------------------ | ---------------------- |
+| `activate` | an offer   | `worker-takeover`      | `exact-instance`   | `activation-requested` |
+| `reload`   | a prepared | `document-replacement` | `provider-current` | `reload-requested`     |
 
-`activateWaiting` posts `{ type: "SKIP_WAITING" }`, or your `message`, to the worker the offer is about. The worker must implement that protocol and claim its clients; without a handler nothing happens, and nothing is reported as activated. Activation reaches every tab of the scope: one tab's guard cannot certify the others.
+`activate` posts `{ type: "SKIP_WAITING" }`, or your `message`, to the worker the offer is about. The worker must implement that protocol and claim its clients; without a handler nothing happens, and nothing is reported as activated. Activation reaches every tab of the scope: one tab's guard cannot certify the others.
 
 ## A page restored from the back-forward cache
 

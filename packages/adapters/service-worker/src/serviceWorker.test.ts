@@ -168,7 +168,7 @@ test("SW-05 activating the waiting worker posts the skip-waiting message and pro
   }
 
   await expect(
-    worker.activateWaiting({ offer: observation.offer.ref }),
+    worker.activate({ offer: observation.offer.ref }),
   ).resolves.toEqual({
     status: "accepted",
     operation: { id: 1 },
@@ -197,7 +197,7 @@ test("the message the worker listens for is the application's", async () => {
     throw new Error("The route has no offer.");
   }
 
-  await worker.activateWaiting({ offer: observation.offer.ref });
+  await worker.activate({ offer: observation.offer.ref });
 
   expect(registration.waiting?.messages).toEqual([{ type: "ACTIVATE_NOW" }]);
 });
@@ -218,7 +218,7 @@ test("SW-03 a waiting worker that changed without the route hearing of it is ref
   registration.waiting = fakeWorker();
 
   await expect(
-    worker.activateWaiting({ offer: observation.offer.ref }),
+    worker.activate({ offer: observation.offer.ref }),
   ).resolves.toEqual({
     status: "stale",
     reason: "provider-changed",
@@ -241,7 +241,7 @@ test("once the active worker is replaced the route has a prepared target, and a 
   }
 
   await expect(
-    worker.requestReload({ prepared: prepared.value.ref }),
+    worker.reload({ prepared: prepared.value.ref }),
   ).resolves.toMatchObject({
     status: "accepted",
     receipt: { kind: "reload-requested" },
@@ -280,7 +280,7 @@ test("without a registration an activation is unsupported", async () => {
   state.registration = undefined;
 
   await expect(
-    worker.activateWaiting({ offer: observation.offer.ref }),
+    worker.activate({ offer: observation.offer.ref }),
   ).resolves.toEqual({
     status: "unsupported",
     reason: "no-registration",
@@ -405,7 +405,7 @@ test("without a window a reload is unsupported", async () => {
   }
 
   await expect(
-    beacon.route("worker").requestReload({ prepared: prepared.value.ref }),
+    beacon.route("worker").reload({ prepared: prepared.value.ref }),
   ).resolves.toEqual({ status: "unsupported", reason: "no-document" });
 });
 
@@ -413,12 +413,12 @@ test("the route declares a takeover for the activation and a document replacemen
   const { worker } = createWorkerBeacon(undefined);
 
   expect(worker.capabilities).toEqual({
-    activateWaiting: {
+    activate: {
       reference: "offer",
       impacts: ["worker-takeover"],
       binding: "exact-instance",
     },
-    requestReload: {
+    reload: {
       reference: "prepared",
       impacts: ["document-replacement"],
       binding: "provider-current",
@@ -439,7 +439,7 @@ test("SW-04 a worker that becomes redundant during the activation request invent
     throw new Error("The route has no offer.");
   }
 
-  await worker.activateWaiting({ offer: observation.offer.ref });
+  await worker.activate({ offer: observation.offer.ref });
 
   const redundant = registration.waiting;
 
@@ -525,7 +525,7 @@ test("SW-15 a page restored with another worker in control reconciles from the r
   expect(worker.state.get().observation).toMatchObject({ status: "none" });
 
   await expect(
-    worker.activateWaiting({ offer: observation.offer.ref }),
+    worker.activate({ offer: observation.offer.ref }),
   ).resolves.toMatchObject({ status: "stale" });
   expect(staleWaiting?.messages).toEqual([]);
 });
@@ -562,7 +562,7 @@ test("SEC-10 a session that ends while the registration is resolved posts no mes
     throw new Error("The route has no offer.");
   }
 
-  const activating = worker.activateWaiting({ offer: observation.offer.ref });
+  const activating = worker.activate({ offer: observation.offer.ref });
 
   await settle();
   beacon.stop();
@@ -614,6 +614,6 @@ test("a registration that vanished takes its offer with it", async () => {
     detail: "no-registration",
   });
   await expect(
-    worker.activateWaiting({ offer: observation.offer.ref }),
+    worker.activate({ offer: observation.offer.ref }),
   ).resolves.toMatchObject({ status: "stale" });
 });

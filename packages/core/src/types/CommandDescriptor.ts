@@ -15,12 +15,12 @@ type CommandDeclaration = {
  * reference it needs (`offer`, `prepared`, an optional offer or none), what it
  * can do to the running application, and how tightly it is bound. `run`
  * dispatches once and reports the provider's evidence. The route facade always
- * enters Beacon's admission first, so a typed `route.requestReload()` can never
+ * enters Beacon's admission first, so a typed `route.reload()` can never
  * bypass a guard or the journal.
  *
  * @example
  * ```ts
- * const requestReload: CommandDescriptor<Browser, RouteBody, RouteBody, Record<never, never>, ReloadReceipt> = {
+ * const reload: CommandDescriptor<Browser, RouteBody, RouteBody, Record<never, never>, ReloadReceipt> = {
  *   reference: "offer",
  *   impacts: ["document-replacement"],
  *   binding: "unpinned-navigation",

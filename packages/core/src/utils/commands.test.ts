@@ -16,7 +16,7 @@ import {
 test("WEB-01 an accepted reload proves only the request, and the running build stays", async () => {
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -40,7 +40,7 @@ test("WEB-01 the realm is expected to end, so the operation stays unresolved unt
 
   context.beacon.disruptions.register(createParticipant("drafts", log));
 
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -49,7 +49,7 @@ test("WEB-01 the realm is expected to end, so the operation stays unresolved unt
   expect(web.state.get().operation).toEqual({
     state: "indeterminate",
     operation: { id: 1 },
-    command: "requestReload",
+    command: "reload",
     reason: "dispatch-unconfirmed",
   });
   expect(log).toEqual(["drafts:reserve", "drafts:settle"]);
@@ -64,13 +64,13 @@ test("a route that is unresolved refuses another command instead of replaying it
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
   await reload;
 
-  await expect(web.requestReload({ offer })).resolves.toEqual({
+  await expect(web.reload({ offer })).resolves.toEqual({
     status: "blocked",
     reasons: [{ code: "operation-indeterminate", participant: null }],
   });
@@ -86,7 +86,7 @@ test("WEB-02 a reload that throws fails, releases the reservations and keeps the
 
   context.beacon.disruptions.register(createParticipant("drafts", log));
 
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).fail(new Error("navigation refused"));
@@ -104,7 +104,7 @@ test("WEB-03 a reload that may have dispatched is indeterminate and is never ret
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith({
@@ -121,7 +121,7 @@ test("WEB-03 a reload that may have dispatched is indeterminate and is never ret
     state: "indeterminate",
     reason: "navigation-unconfirmed",
   });
-  await expect(web.requestReload({ offer })).resolves.toMatchObject({
+  await expect(web.reload({ offer })).resolves.toMatchObject({
     status: "blocked",
   });
   expect(context.runs).toHaveLength(0);
@@ -131,7 +131,7 @@ test("a provider that reports it no longer has the target settles as stale, and 
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith({ status: "stale" });
@@ -147,7 +147,7 @@ test("a provider that cannot do it settles as unsupported, and releases", async 
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith({
@@ -165,7 +165,7 @@ test("a provider that cannot do it settles as unsupported, and releases", async 
 test("a provider that cancelled settles as cancelled with its stage", async () => {
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith({ status: "cancelled", stage: "dialog" });
@@ -184,7 +184,7 @@ test("SAFE-02 a participant reserves before any settlement begins", async () => 
   context.beacon.disruptions.register(createParticipant("drafts", log));
   context.beacon.disruptions.register(createParticipant("uploads", log));
 
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   expect(log).toEqual([
     "drafts:reserve",
@@ -211,9 +211,7 @@ test("SAFE-03 a participant that refuses releases the earlier reservations in re
     }),
   );
 
-  await expect(
-    context.beacon.route("web").requestReload({ offer }),
-  ).resolves.toEqual({
+  await expect(context.beacon.route("web").reload({ offer })).resolves.toEqual({
     status: "blocked",
     reasons: [{ code: "signing-out", participant: { name: "session" } }],
   });
@@ -239,7 +237,7 @@ test("SAFE-04 a draft that cannot be saved blocks the reload and nothing is disp
     }),
   );
 
-  await expect(web.requestReload({ offer })).resolves.toEqual({
+  await expect(web.reload({ offer })).resolves.toEqual({
     status: "blocked",
     reasons: [{ code: "draft-not-saved", participant: { name: "drafts" } }],
   });
@@ -259,7 +257,7 @@ test("a participant that never settles blocks the command when its deadline pass
     }),
   );
 
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   await settle();
   context.clock.advance(10_000);
@@ -280,7 +278,7 @@ test("a participant that does not care about the impact is not asked", async () 
     createParticipant("uploads", log, { impacts: ["native-update-flow"] }),
   );
 
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -304,7 +302,7 @@ test("SAFE-06 a participant registered while settling changes the safety context
     }),
   );
 
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   await settle();
   context.beacon.disruptions.register(createParticipant("late", log));
@@ -333,7 +331,7 @@ test("an offer replaced while settling is stale, and nothing is dispatched", asy
     }),
   );
 
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   await settle();
 
@@ -356,8 +354,8 @@ test("an identical call while the command runs joins it and dispatches once", as
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const first = web.requestReload({ offer });
-  const second = web.requestReload({ offer });
+  const first = web.reload({ offer });
+  const second = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -377,8 +375,8 @@ test("a joined caller that aborts stops only its own wait", async () => {
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
   const controller = new AbortController();
-  const first = web.requestReload({ offer });
-  const second = web.requestReload({ offer, signal: controller.signal });
+  const first = web.reload({ offer });
+  const second = web.reload({ offer, signal: controller.signal });
 
   controller.abort();
 
@@ -397,7 +395,7 @@ test("a different command while the route is busy is blocked, not queued", async
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await expect(web.prefetch()).resolves.toEqual({
     status: "blocked",
@@ -415,19 +413,19 @@ test("SAFE-09 a guard that repeats the call it guards joins it instead of dispat
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const repeats: Array<ReturnType<typeof web.requestReload>> = [];
+  const repeats: Array<ReturnType<typeof web.reload>> = [];
 
   context.beacon.disruptions.register({
     name: "guard",
     impacts: ["document-replacement"],
     reserve: () => {
-      repeats.push(web.requestReload({ offer }));
+      repeats.push(web.reload({ offer }));
 
       return { status: "reserved", release: () => {} };
     },
   });
 
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -451,7 +449,7 @@ test("SAFE-10 a caller that aborts while participants settle cancels, releases, 
     }),
   );
 
-  const reload = web.requestReload({ offer, signal: controller.signal });
+  const reload = web.reload({ offer, signal: controller.signal });
 
   await settle();
   controller.abort();
@@ -474,7 +472,7 @@ test("SAFE-11 a caller that aborts after the dispatch gets indeterminate, never 
 
   context.beacon.disruptions.register(createParticipant("drafts", log));
 
-  const reload = web.requestReload({ offer, signal: controller.signal });
+  const reload = web.reload({ offer, signal: controller.signal });
 
   await settle();
   controller.abort();
@@ -500,7 +498,7 @@ test("a provider that later confirms the command failed releases what an abort l
 
   context.beacon.disruptions.register(createParticipant("drafts", log));
 
-  const reload = web.requestReload({ offer, signal: controller.signal });
+  const reload = web.reload({ offer, signal: controller.signal });
 
   await settle();
   controller.abort();
@@ -516,12 +514,10 @@ test("SAFE-08 a disruptive command on another route is blocked while one runs, n
   const context = createTwoRouteCommandBeacon();
   const offers = await startWithOffers(context);
 
-  const first = context.beacon
-    .route("first")
-    .requestReload({ offer: offers.first });
+  const first = context.beacon.route("first").reload({ offer: offers.first });
 
   await expect(
-    context.beacon.route("second").requestReload({ offer: offers.second }),
+    context.beacon.route("second").reload({ offer: offers.second }),
   ).resolves.toEqual({
     status: "blocked",
     reasons: [{ code: "operation-in-progress", participant: null }],
@@ -538,9 +534,7 @@ test("a route that changes nothing running is not held back by a disruptive comm
   const context = createTwoRouteCommandBeacon();
   const offers = await startWithOffers(context);
 
-  const first = context.beacon
-    .route("first")
-    .requestReload({ offer: offers.first });
+  const first = context.beacon.route("first").reload({ offer: offers.first });
 
   await expect(
     context.beacon.route("second").prefetch(),
@@ -555,9 +549,7 @@ test("acknowledging the route that holds the disruptive slot frees it for anothe
   const context = createTwoRouteCommandBeacon();
   const offers = await startWithOffers(context);
 
-  const first = context.beacon
-    .route("first")
-    .requestReload({ offer: offers.first });
+  const first = context.beacon.route("first").reload({ offer: offers.first });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -566,7 +558,7 @@ test("acknowledging the route that holds the disruptive slot frees it for anothe
 
   const second = context.beacon
     .route("second")
-    .requestReload({ offer: offers.second });
+    .reload({ offer: offers.second });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -593,7 +585,7 @@ test("a copy of a reference is refused as foreign", async () => {
   const offer = await startWithOffer(context);
 
   await expect(
-    context.beacon.route("web").requestReload({ offer: { ...offer } }),
+    context.beacon.route("web").reload({ offer: { ...offer } }),
   ).resolves.toEqual({ status: "stale", reason: "foreign" });
   expect(context.runs).toHaveLength(0);
 });
@@ -608,7 +600,7 @@ test("an offer that a later check replaced is refused as replaced", async () => 
   answerWithBuild(context.mock, "web-build-c", "209");
   await rechecking;
 
-  await expect(web.requestReload({ offer })).resolves.toEqual({
+  await expect(web.reload({ offer })).resolves.toEqual({
     status: "stale",
     reason: "replaced",
   });
@@ -620,9 +612,10 @@ test("an offer whose evidence lapsed is refused as expired", async () => {
 
   context.clock.advance(600_000);
 
-  await expect(
-    context.beacon.route("web").requestReload({ offer }),
-  ).resolves.toEqual({ status: "stale", reason: "expired" });
+  await expect(context.beacon.route("web").reload({ offer })).resolves.toEqual({
+    status: "stale",
+    reason: "expired",
+  });
 });
 
 test("a command before start fails as not started", async () => {
@@ -656,7 +649,7 @@ test("stopping the session while participants settle cancels the command", async
     }),
   );
 
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   await settle();
   context.beacon.stop();
@@ -672,7 +665,7 @@ test("stopping the session after the dispatch leaves the operation unresolved fo
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
   const web = context.beacon.route("web");
-  const reload = web.requestReload({ offer });
+  const reload = web.reload({ offer });
 
   await settle();
   context.beacon.stop();
@@ -695,7 +688,7 @@ test("disposing releases the reservations a command still holds", async () => {
 
   context.beacon.disruptions.register(createParticipant("drafts", log));
 
-  const reload = context.beacon.route("web").requestReload({ offer });
+  const reload = context.beacon.route("web").reload({ offer });
 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
@@ -760,7 +753,7 @@ test("SAFE-06 the provider is never asked once the caller has given up, however 
 
     const reloading = context.beacon
       .route("web")
-      .requestReload({ offer, signal: controller.signal });
+      .reload({ offer, signal: controller.signal });
 
     await settle();
 
@@ -783,9 +776,7 @@ test("SAFE-10 a caller that gave up before the call disrupts nobody", async () =
   controller.abort();
 
   await expect(
-    context.beacon
-      .route("web")
-      .requestReload({ offer, signal: controller.signal }),
+    context.beacon.route("web").reload({ offer, signal: controller.signal }),
   ).resolves.toMatchObject({ status: "cancelled" });
   expect(log).toEqual([]);
   expect(context.runs).toHaveLength(0);
@@ -810,9 +801,7 @@ test("SAFE-04 a participant whose settlement throws at once blocks the command b
     }),
   });
 
-  await expect(
-    context.beacon.route("web").requestReload({ offer }),
-  ).resolves.toEqual({
+  await expect(context.beacon.route("web").reload({ offer })).resolves.toEqual({
     status: "blocked",
     reasons: [{ code: "settlement-failed", participant: { name: "drafts" } }],
   });
@@ -828,8 +817,9 @@ test("SEC-03 an offer whose expiry the clock has passed is refused as expired ev
 
   context.clock.skip(700_000);
 
-  await expect(
-    context.beacon.route("web").requestReload({ offer }),
-  ).resolves.toEqual({ status: "stale", reason: "expired" });
+  await expect(context.beacon.route("web").reload({ offer })).resolves.toEqual({
+    status: "stale",
+    reason: "expired",
+  });
   expect(context.runs).toHaveLength(0);
 });

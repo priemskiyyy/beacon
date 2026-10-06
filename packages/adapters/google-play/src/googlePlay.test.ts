@@ -80,13 +80,13 @@ test("a check is a fresh query, and starts no flow", async () => {
 test("PLAY-08 a flexible update is prepared when Play says it downloaded, and progress is Play's own", async () => {
   const context = create();
   const offer = await checkOffer(context);
-  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const starting = context.binary.download({ offer: offer.ref });
 
   await settle();
 
   expect(context.binary.state.get().operation).toMatchObject({
     state: "running",
-    command: "startFlexibleUpdate",
+    command: "download",
   });
 
   context.install(downloading(1_024, 4_096));
@@ -111,7 +111,7 @@ test("PLAY-08 a flexible update is prepared when Play says it downloaded, and pr
 test("PLAY-08 a download is not an installation: completing it is a separate command that restarts nothing by itself", async () => {
   const context = create();
   const offer = await checkOffer(context);
-  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const starting = context.binary.download({ offer: offer.ref });
 
   await settle();
   context.install(installEvent("downloaded"));
@@ -126,7 +126,7 @@ test("PLAY-08 a download is not an installation: completing it is a separate com
   }
 
   await expect(
-    context.binary.completeUpdate({ prepared: prepared.value.ref }),
+    context.binary.restart({ prepared: prepared.value.ref }),
   ).resolves.toMatchObject({
     status: "accepted",
     receipt: { kind: "completion-requested" },
@@ -140,9 +140,7 @@ test("PLAY-11 a user who declines the consent dialog cancels the command, and no
 
   context.setFlow("flexible", "cancelled");
 
-  await expect(
-    context.binary.startFlexibleUpdate({ offer: offer.ref }),
-  ).resolves.toEqual({
+  await expect(context.binary.download({ offer: offer.ref })).resolves.toEqual({
     status: "cancelled",
     stage: "consent",
   });
@@ -152,7 +150,7 @@ test("PLAY-11 a user who declines the consent dialog cancels the command, and no
 test("a download Play reports as failed is a failed command", async () => {
   const context = create();
   const offer = await checkOffer(context);
-  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const starting = context.binary.download({ offer: offer.ref });
 
   await settle();
   context.install(installEvent("failed"));
@@ -171,7 +169,7 @@ test("a flow Play reports as failed at the consent step is a failed command", as
   context.setFlow("flexible", "failed");
 
   await expect(
-    context.binary.startFlexibleUpdate({ offer: offer.ref }),
+    context.binary.download({ offer: offer.ref }),
   ).resolves.toMatchObject({
     status: "failed",
   });
@@ -183,9 +181,7 @@ test("an offer Play no longer makes is stale, and no flow starts", async () => {
 
   context.setInfo(availableInfo(413));
 
-  await expect(
-    context.binary.startFlexibleUpdate({ offer: offer.ref }),
-  ).resolves.toEqual({
+  await expect(context.binary.download({ offer: offer.ref })).resolves.toEqual({
     status: "stale",
     reason: "provider-changed",
   });
@@ -196,9 +192,7 @@ test("PLAY-01 a flow Play does not allow for this update is unsupported, and no 
   const context = create(availableInfo(412, { immediate: false }));
   const offer = await checkOffer(context);
 
-  await expect(
-    context.binary.startImmediateUpdate({ offer: offer.ref }),
-  ).resolves.toEqual({
+  await expect(context.binary.update({ offer: offer.ref })).resolves.toEqual({
     status: "unsupported",
     reason: "flow-not-allowed",
   });
@@ -221,7 +215,7 @@ test("an immediate flow is disruptive, so a participant is asked, and the route 
   });
 
   await expect(
-    context.binary.startImmediateUpdate({ offer: offer.ref }),
+    context.binary.update({ offer: offer.ref }),
   ).resolves.toMatchObject({
     status: "accepted",
     receipt: { kind: "immediate-flow-started" },
@@ -239,9 +233,7 @@ test("PLAY-11 an immediate flow the user declines is cancelled and releases the 
 
   context.setFlow("immediate", "cancelled");
 
-  await expect(
-    context.binary.startImmediateUpdate({ offer: offer.ref }),
-  ).resolves.toEqual({
+  await expect(context.binary.update({ offer: offer.ref })).resolves.toEqual({
     status: "cancelled",
     stage: "consent",
   });
@@ -259,7 +251,7 @@ test("PLAY-12 a flow Play still holds after a restart is offered as a continuati
   expect(offer).toMatchObject({ inProgress: true, flows: ["immediate"] });
 
   await expect(
-    context.binary.startImmediateUpdate({ offer: offer.ref }),
+    context.binary.update({ offer: offer.ref }),
   ).resolves.toMatchObject({
     status: "accepted",
   });
@@ -283,7 +275,7 @@ test("PLAY-14 a callback lost after the dispatch leaves the command running, and
   const offer = await checkOffer(context);
   const controller = new AbortController();
 
-  const starting = context.binary.startFlexibleUpdate({
+  const starting = context.binary.download({
     offer: offer.ref,
     signal: controller.signal,
   });
@@ -298,7 +290,7 @@ test("PLAY-14 a callback lost after the dispatch leaves the command running, and
 test("ending the session while a download is awaited leaves the outcome unknown", async () => {
   const context = create();
   const offer = await checkOffer(context);
-  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const starting = context.binary.download({ offer: offer.ref });
 
   await settle();
   context.beacon.stop();
@@ -349,17 +341,17 @@ test("the route declares each flow's own impacts, so a participant is asked only
   const { binary } = create();
 
   expect(binary.capabilities).toEqual({
-    startFlexibleUpdate: {
+    download: {
       reference: "offer",
       impacts: ["may-activate-on-next-start"],
       binding: "provider-current",
     },
-    startImmediateUpdate: {
+    update: {
       reference: "offer",
       impacts: ["native-update-flow", "javascript-restart"],
       binding: "provider-current",
     },
-    completeUpdate: {
+    restart: {
       reference: "prepared",
       impacts: ["javascript-restart"],
       binding: "provider-current",
@@ -370,8 +362,8 @@ test("the route declares each flow's own impacts, so a participant is asked only
 test("PLAY-04 the same start called twice at once is one flow, joined by the second call", async () => {
   const context = create();
   const offer = await checkOffer(context);
-  const first = context.binary.startFlexibleUpdate({ offer: offer.ref });
-  const second = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const first = context.binary.download({ offer: offer.ref });
+  const second = context.binary.download({ offer: offer.ref });
 
   await settle();
   context.install(installEvent("downloaded"));
@@ -391,7 +383,7 @@ test("PLAY-05 a start with no Activity to launch from fails, and is never a succ
   };
 
   await expect(
-    context.binary.startImmediateUpdate({ offer: offer.ref }),
+    context.binary.update({ offer: offer.ref }),
   ).resolves.toMatchObject({
     status: "failed",
     error: { code: "COMMAND_FAILED" },
@@ -402,7 +394,7 @@ test("PLAY-05 a start with no Activity to launch from fails, and is never a succ
 test("PLAY-09 a completion with a prepared reference a later download replaced is refused before the native call", async () => {
   const context = create();
   const first = await checkOffer(context);
-  const starting = context.binary.startFlexibleUpdate({ offer: first.ref });
+  const starting = context.binary.download({ offer: first.ref });
 
   await settle();
   context.install(installEvent("downloaded"));
@@ -419,7 +411,7 @@ test("PLAY-09 a completion with a prepared reference a later download replaced i
     throw new Error("The route is not where the test expects.");
   }
 
-  const again = context.binary.startFlexibleUpdate({
+  const again = context.binary.download({
     offer: observation.offer.ref,
   });
 
@@ -428,7 +420,7 @@ test("PLAY-09 a completion with a prepared reference a later download replaced i
   await again;
 
   await expect(
-    context.binary.completeUpdate({ prepared: old.value.ref }),
+    context.binary.restart({ prepared: old.value.ref }),
   ).resolves.toEqual({
     status: "stale",
     reason: "replaced",
@@ -439,7 +431,7 @@ test("PLAY-09 a completion with a prepared reference a later download replaced i
 test("PLAY-15 Play reporting an install without a new boot leaves the running facts and the prepared target as they were", async () => {
   const context = create();
   const offer = await checkOffer(context);
-  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const starting = context.binary.download({ offer: offer.ref });
 
   await settle();
   context.install(installEvent("downloaded"));
@@ -475,7 +467,7 @@ test("PLAY-03 every start asks Play again first, so the info of an earlier start
   for (const starts of [1, 2]) {
     const queries = context.calls.queries;
 
-    await context.binary.startFlexibleUpdate({ offer: offer.ref });
+    await context.binary.download({ offer: offer.ref });
 
     expect(context.calls.queries).toBe(queries + 1);
     expect(context.calls.flexible).toBe(starts);
@@ -486,13 +478,13 @@ test("PLAY-07 a consent the user accepted is a flow under way, not a download, a
   const context = create();
   const offer = await checkOffer(context);
 
-  context.binary.startFlexibleUpdate({ offer: offer.ref });
+  context.binary.download({ offer: offer.ref });
   await settle();
 
   expect(context.calls.flexible).toBe(1);
   expect(context.binary.state.get().operation).toMatchObject({
     state: "running",
-    command: "startFlexibleUpdate",
+    command: "download",
   });
   expect(context.binary.state.get().prepared).toEqual({ status: "unknown" });
   expect(context.beacon.running.get().native).toEqual({
@@ -540,7 +532,7 @@ test("SEC-10 a session that ends while Play is asked again starts no flow", asyn
 
   context.holdQueries();
 
-  const flexible = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const flexible = context.binary.download({ offer: offer.ref });
 
   await settle();
   context.beacon.stop();
@@ -560,7 +552,7 @@ test("SEC-10 a session that ends while Play is asked again starts no flow", asyn
 
   context.holdQueries();
 
-  const immediate = context.binary.startImmediateUpdate({
+  const immediate = context.binary.update({
     offer: observation.offer.ref,
   });
 
@@ -575,7 +567,7 @@ test("SEC-10 a session that ends while Play is asked again starts no flow", asyn
 test("PLAY-11 a download the user or the system cancels is cancelled, not a failure", async () => {
   const context = create();
   const offer = await checkOffer(context);
-  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const starting = context.binary.download({ offer: offer.ref });
 
   await settle();
   context.install(installEvent("canceled"));
@@ -590,7 +582,7 @@ test("PLAY-01 a flow Play no longer allows when it is asked again is unsupported
   context.setInfo(availableInfo(412, { flexible: false }));
 
   await expect(
-    context.binary.startFlexibleUpdate({ offer: offer.ref }),
+    context.binary.download({ offer: offer.ref }),
   ).resolves.toMatchObject({ status: "unsupported" });
   expect(context.calls.flexible).toBe(0);
 });

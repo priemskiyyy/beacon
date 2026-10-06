@@ -586,10 +586,10 @@ const MUTANTS = [
   },
   {
     file: `${http}/utils/readTimestamp.ts`,
-    find: "new Date(milliseconds).toISOString().slice(0, SECONDS_LENGTH) !== seconds",
-    replace: "false",
+    find: "if (milliseconds === undefined) {",
+    replace: "if (false) {",
     project: "http",
-    describes: "a date that does not exist rolled over",
+    describes: "a manifest time the core cannot read passed on as one",
   },
   {
     file: `${http}/utils/readRelease.ts`,
@@ -653,6 +653,13 @@ const MUTANTS = [
     replace: "if (false) {",
     project: "app-store",
     describes: "a TestFlight build offered an App Store route",
+  },
+  {
+    file: "packages/adapters/app-store/src/utils/readLookupDocument.ts",
+    find: "if (releasedAt === undefined) {",
+    replace: "if (false) {",
+    project: "app-store",
+    describes: "a release date the core cannot read passed on as one",
   },
   {
     file: "packages/adapters/service-worker/src/utils/readWorkers.ts",
@@ -745,20 +752,28 @@ const MUTANTS = [
     describes: "a clock that needs Web Crypto, which Hermes does not have",
   },
   {
-    file: "packages/adapters/app-store/src/utils/readReleaseDate.ts",
+    file: `${core}/parseUtcTimestamp.ts`,
     find: "const SECONDS_LENGTH = 19;",
     replace: "const SECONDS_LENGTH = 10;",
-    project: "app-store-hermes",
+    project: "core-hermes",
     describes:
-      "a release date whose time of day Hermes rolled over, such as minute 60, taken for one that exists",
+      "a UTC timestamp whose time of day Hermes rolled over, such as minute 60, taken for one that exists",
   },
   {
     file: `${http}/utils/readTimestamp.ts`,
-    find: "const SECONDS_LENGTH = 19;",
-    replace: "const SECONDS_LENGTH = 10;",
+    find: "parseUtcTimestamp(value)",
+    replace: "Date.parse(value)",
     project: "http-hermes",
     describes:
-      "a manifest time whose time of day Hermes rolled over, such as minute 60, taken for one that exists",
+      "a manifest time read by the engine's own parser, which Hermes rolls over at minute 60",
+  },
+  {
+    file: "packages/adapters/app-store/src/utils/readLookupDocument.ts",
+    find: "parseUtcTimestamp(entry.currentVersionReleaseDate)",
+    replace: "Date.parse(entry.currentVersionReleaseDate)",
+    project: "app-store-hermes",
+    describes:
+      "a release date read by the engine's own parser, which Hermes rolls over at minute 60",
   },
   {
     file: "packages/react/src/context/BeaconProvider.tsx",

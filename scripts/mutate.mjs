@@ -73,7 +73,7 @@ const MUTANTS = [
     describes: "a native manager never given back",
   },
   {
-    file: `${core}/internal/routes/RouteRegistry.ts`,
+    file: `${core}/internal/routes/DriverRoutes.ts`,
     find: "const release = claimExclusive(driver.exclusive);",
     replace: "const release = () => {};",
     project: "core",
@@ -92,6 +92,20 @@ const MUTANTS = [
     replace: "",
     project: "core",
     describes: "a blocked command leaving reservations held",
+  },
+  {
+    file: `${core}/internal/commands/CommandCoordinator.ts`,
+    find: "if (this.#options.disruptions.getRevision() !== lease.revision) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "a dispatch after the participants changed what is safe",
+  },
+  {
+    file: "packages/react/src/hooks/internal/useSelectedValue.ts",
+    find: "createSelection(value.getInitial, selector, isEqual)",
+    replace: "createSelection(value.get, selector, isEqual)",
+    project: "react",
+    describes: "a server render that reads a session that has not started",
   },
   {
     file: `${http}/http.ts`,

@@ -29,6 +29,7 @@ import { Journal } from "src/utils/internal/journal/Journal";
 import { DisruptionRegistry } from "src/utils/internal/disruptions/DisruptionRegistry";
 import { createSystemClock } from "src/utils/internal/clock/createSystemClock";
 import { Diagnostics } from "src/utils/internal/diagnostics/Diagnostics";
+import { untilAborted } from "src/utils/internal/common/untilAborted";
 import { isSameData } from "src/utils/internal/common/isSameData";
 import { createDisposedError } from "src/utils/internal/errors/createDisposedError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
@@ -523,7 +524,14 @@ export class Beacon<
       ...(options.reason === undefined ? {} : { reason: options.reason }),
     });
 
-    await this.#awaitRunning(this.#getSubjects(name));
+    const running = await this.#awaitRunning(
+      this.#getSubjects(name),
+      options.signal,
+    );
+
+    if (running === "aborted") {
+      return { status: "cancelled" };
+    }
 
     if (!this.#isCurrent(session)) {
       return { status: "superseded" };
@@ -535,9 +543,25 @@ export class Beacon<
     });
   }
 
-  // A check waits only for the running subjects it depends on, not for every unrelated reader.
-  async #awaitRunning(subjects: RunningSubject[]) {
-    await Promise.all(subjects.map((subject) => this.#initialReads[subject]));
+  // A check waits only for the running subjects it depends on, not for every unrelated reader, and only as long as its caller does.
+  async #awaitRunning(subjects: RunningSubject[], signal?: AbortSignal) {
+    const ready = Promise.all(
+      subjects.map((subject) => this.#initialReads[subject]),
+    );
+
+    if (signal === undefined) {
+      await ready;
+
+      return "ready";
+    }
+
+    const raced = await untilAborted(ready, signal);
+
+    if (raced.status === "aborted") {
+      return "aborted";
+    }
+
+    return "ready";
   }
 
   #getSubjects(name: string) {

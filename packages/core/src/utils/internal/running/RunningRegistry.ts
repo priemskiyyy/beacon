@@ -97,7 +97,12 @@ export class RunningRegistry {
 
     this.#reads.set(subject, read);
 
-    const fact = await this.#run(reader, session);
+    const fact = await this.#run(subject, reader, session);
+
+    // The session ended its read; an answer that still comes is counted where it arrives.
+    if (fact === null) {
+      return;
+    }
 
     if (!session.scope.isActive() || this.#reads.get(subject) !== read) {
       this.#record("late-callback", { reason: `running-${subject}` });
@@ -108,8 +113,12 @@ export class RunningRegistry {
     this.#install(subject, fact);
   }
 
-  // Never rejects: a throw, a rejection and a missed deadline are all a failed fact.
-  async #run(reader: RunningReader, session: Session): Promise<RunningFact> {
+  // Never rejects: a throw, a rejection and a missed deadline are all a failed fact, and the end of the session is no fact at all.
+  async #run(
+    subject: RunningSubject,
+    reader: RunningReader,
+    session: Session,
+  ): Promise<RunningFact | null> {
     let cancel = () => {};
 
     const expired = new Promise<never>((_resolve, reject) => {
@@ -123,17 +132,32 @@ export class RunningRegistry {
       }, this.#timeout);
     });
 
-    const release = session.scope.add(cancel);
+    let release = () => {};
+
+    const ended = new Promise<null>((resolve) => {
+      release = session.scope.add(() => {
+        cancel();
+        resolve(null);
+      });
+    });
+
+    const reading = new Promise<RunningRelease>((resolve) => resolve(reader()));
 
     try {
-      const release = await Promise.race([
-        new Promise<RunningRelease>((resolve) => resolve(reader())),
-        expired,
-      ]);
+      const read = await Promise.race([reading, expired, ended]);
+
+      if (read === null) {
+        const late = () =>
+          this.#record("late-callback", { reason: `running-${subject}` });
+
+        reading.then(late, late);
+
+        return null;
+      }
 
       return Object.freeze({
         state: "known",
-        release: copyRunningRelease(release),
+        release: copyRunningRelease(read),
         readAt: this.#clock.now(),
       });
     } catch (cause) {

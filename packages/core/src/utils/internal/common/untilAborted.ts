@@ -11,6 +11,8 @@ export const untilAborted = <TValue>(
 ): Promise<Raced<TValue>> =>
   new Promise((resolve, reject) => {
     if (signal.aborted) {
+      // The work goes on unwatched, so its failure is nobody's to await.
+      work.catch(() => {});
       resolve({ status: "aborted" });
 
       return;

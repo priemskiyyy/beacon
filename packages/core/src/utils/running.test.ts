@@ -1,11 +1,18 @@
 import { expect, test, vi } from "vitest";
 
+import type { JournalOptions } from "src/types/JournalOptions";
 import type { RunningRelease } from "src/types/RunningRelease";
+import { createMockSource } from "src/mock/createMockSource";
 import {
   buildWebRelease,
   createBeacon,
+  createRoutedBeacon,
   settle,
 } from "src/utils/Beacon.fixture";
+import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
+import { createMemoryStorage } from "src/utils/journal.fixture";
+import { targetRoute } from "src/utils/targetRoute";
+import type { Manifest } from "src/utils/routes.fixture";
 import { createDeferred } from "src/utils/internal/common/createDeferred";
 
 test("a synchronous reader makes its subject known with a frozen copy", async () => {
@@ -190,4 +197,72 @@ test("SEC-05 a failed fact keeps its code and message and never the cause", asyn
   await settle();
 
   expect(JSON.stringify(beacon.running.get())).not.toContain("secret");
+});
+
+const createHungBeacon = (journal?: JournalOptions) => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+
+  const web = targetRoute({
+    subject: "web",
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism: createUpdateMechanism({
+      name: "inert",
+      open: () => ({ native: {} }),
+      commands: {},
+    }),
+  });
+
+  return createRoutedBeacon(
+    { web },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => new Promise<RunningRelease>(() => {}),
+      },
+      ...(journal === undefined ? {} : { journal }),
+    },
+  );
+};
+
+test("LIFE-01 a check that waits for a reader that never answers ends with the session, not with the reader", async () => {
+  const { beacon } = createHungBeacon();
+
+  beacon.start();
+
+  const checking = beacon.route("web").check();
+
+  beacon.stop();
+
+  await expect(checking).resolves.toEqual({ status: "superseded" });
+});
+
+test("a caller that aborts while a reader has not answered stops waiting at once", async () => {
+  const { beacon } = createHungBeacon();
+  const controller = new AbortController();
+
+  beacon.start();
+
+  const checking = beacon.route("web").check({ signal: controller.signal });
+
+  await settle();
+  controller.abort();
+
+  await expect(checking).resolves.toEqual({ status: "cancelled" });
+});
+
+test("JOURNAL-04 a reader that never answered in an ended session does not hold the journal of the next", async () => {
+  const memory = createMemoryStorage();
+
+  const { beacon, clock } = createHungBeacon({
+    mode: "best-effort",
+    storage: memory.storage,
+  });
+
+  beacon.start();
+  beacon.stop();
+  beacon.start();
+  clock.advance(20_000);
+  await settle();
+
+  expect(beacon.transitions.get().journal).toBe("ready");
 });

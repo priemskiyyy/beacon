@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { settle } from "src/utils/Beacon.fixture";
+import { SCOPE, settle } from "src/utils/Beacon.fixture";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,
@@ -16,7 +16,9 @@ import {
   KEY,
   seed,
 } from "src/utils/journal.fixture";
+import { createJournalKey } from "src/utils/internal/journal/createJournalKey";
 import { parseJournal } from "src/utils/internal/journal/parseJournal";
+import { serializeJournal } from "src/utils/internal/journal/serializeJournal";
 
 type Mode = "best-effort" | "required";
 
@@ -214,43 +216,42 @@ test("WEB-04 a reload after which the same build is served is read back as not r
   });
 });
 
-test("JOURNAL-05 an identity that is unknown or incomparable makes the reconciliation inconclusive", async () => {
+test("JOURNAL-05 an intent still queued when the scope is replaced is never written under the next scope's key", async () => {
   const memory = createMemoryStorage();
+  const context = createJournaled(memory, "best-effort");
+  const controller = new AbortController();
+  const staging = { ...SCOPE, environment: "staging" };
 
-  seed(memory, [buildStored(buildIntent())]);
+  // The record is still being read when the command asks for its intent to be written.
+  memory.holdReads();
 
-  const next = createJournaled(memory, "required", {
-    boot: "boot-2",
-    build: null,
-  });
+  const offer = await startWithOffer(context);
 
-  next.beacon.start();
+  const pending = context.beacon
+    .route("web")
+    .requestReload({ offer, signal: controller.signal });
+
+  await settle();
+  controller.abort();
+  await expect(pending).resolves.toMatchObject({ status: "cancelled" });
+
+  memory.data.set(
+    createJournalKey(staging),
+    serializeJournal([buildStored(buildIntent({ boot: { id: "boot-7" } }))]),
+  );
+
+  expect(context.beacon.replaceScope(staging)).toEqual({ status: "replaced" });
+  memory.releaseReads();
+  await settle();
   await settle();
 
-  expect(next.beacon.transitions.get().latest).toMatchObject({
-    outcome: "inconclusive",
-  });
-});
-
-test("WEB-05 a next boot that runs something else than it aimed at keeps what actually runs", async () => {
-  const memory = createMemoryStorage();
-
-  seed(memory, [buildStored(buildIntent())]);
-
-  const next = createJournaled(memory, "required", {
-    boot: "boot-2",
-    build: "web-build-z",
-  });
-
-  next.beacon.start();
-  await settle();
-
-  expect(next.beacon.transitions.get().latest).toMatchObject({
-    outcome: "different-target",
-  });
-  expect(next.beacon.running.get().web).toMatchObject({
-    state: "known",
-    release: { identity: { value: "web-build-z" } },
+  expect(
+    parseJournal(memory.data.get(createJournalKey(staging)) ?? "")?.map(
+      ({ intent }) => intent.boot.id,
+    ),
+  ).toEqual(["boot-7"]);
+  expect(context.beacon.transitions.get().latest).toMatchObject({
+    intent: { boot: { id: "boot-7" } },
   });
 });
 
@@ -569,4 +570,112 @@ test("a caller that aborts while the intent is written cancels, and asks no prov
   expect(context.runs).toHaveLength(0);
 
   memory.releaseWrites();
+});
+
+test("JOURNAL-05 an intent still queued when the scope is replaced is never written under the next scope's key", async () => {
+  const memory = createMemoryStorage();
+  const context = createJournaled(memory, "best-effort");
+  const offer = await startWithOffer(context);
+  const controller = new AbortController();
+  const staging = { ...SCOPE, environment: "staging" };
+
+  memory.holdWrites();
+
+  const pending = context.beacon
+    .route("web")
+    .requestReload({ offer, signal: controller.signal });
+
+  await settle();
+  controller.abort();
+  await expect(pending).resolves.toMatchObject({ status: "cancelled" });
+
+  memory.data.set(
+    createJournalKey(staging),
+    serializeJournal([buildStored(buildIntent({ boot: { id: "boot-7" } }))]),
+  );
+
+  expect(context.beacon.replaceScope(staging)).toEqual({ status: "replaced" });
+  memory.releaseWrites();
+  await settle();
+
+  expect(
+    parseJournal(memory.data.get(createJournalKey(staging)) ?? "")?.map(
+      ({ intent }) => intent.boot.id,
+    ),
+  ).toEqual(["boot-7"]);
+  expect(context.beacon.transitions.get().latest).toMatchObject({
+    intent: { boot: { id: "boot-7" } },
+  });
+});
+
+test("JOURNAL-06 boots in a row are counted, not the intents of one boot", async () => {
+  const memory = createMemoryStorage();
+
+  seed(memory, [
+    buildStored(buildIntent({ boot: { id: "boot-0" }, operation: { id: 1 } })),
+    buildStored(buildIntent({ boot: { id: "boot-0" }, operation: { id: 2 } })),
+    buildStored(buildIntent({ boot: { id: "boot-0" }, operation: { id: 3 } })),
+  ]);
+
+  const context = createJournaled(memory, "best-effort", { boot: "boot-1" });
+
+  context.beacon.start();
+  await settle();
+
+  expect(context.beacon.transitions.get().latest).toMatchObject({
+    outcome: "target-not-running",
+    attempts: 1,
+    exhausted: false,
+  });
+});
+
+test("JOURNAL-07 a retention or budget that cannot work is refused when the Beacon is made", () => {
+  const memory = createMemoryStorage();
+
+  for (const journal of [
+    { retention: Number.POSITIVE_INFINITY },
+    { retention: 0 },
+    { budget: 0 },
+    { budget: 1.5 },
+  ]) {
+    expect(() =>
+      createWebCommandBeacon({
+        journal: { mode: "best-effort", storage: memory.storage, ...journal },
+      }),
+    ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
+  }
+});
+
+test("JOURNAL-08 a record that could not be read is not replaced by an intent that knows nothing of it", async () => {
+  const memory = createMemoryStorage();
+
+  seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
+  memory.failReads(new Error("storage offline"));
+
+  const context = createJournaled(memory, "best-effort", { boot: "boot-2" });
+  const offer = await startWithOffer(context);
+  const before = memory.data.get(KEY);
+
+  memory.failReads(null);
+
+  await reload(context, offer);
+
+  expect(memory.data.get(KEY)).toBe(before);
+  expect(context.beacon.transitions.get().journal).toBe("degraded");
+});
+
+test("JOURNAL-09 intents lost to the capacity of a journal that cannot be written are counted", async () => {
+  const memory = createMemoryStorage();
+  const context = createJournaled(memory, "best-effort");
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+
+  memory.failWrites(new Error("quota exceeded"));
+
+  for (let index = 0; index < 9; index += 1) {
+    await reload(context, offer);
+    web.acknowledge();
+  }
+
+  expect(context.beacon.transitions.get().dropped).toBe(1);
 });

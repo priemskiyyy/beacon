@@ -23,18 +23,23 @@ const isSameAttempt = (left: TransitionIntent, right: TransitionIntent) => {
 };
 
 /**
- * How many boots in a row, before this one, have left this target unreached.
- * Only an unreached target counts, and any other outcome, or another target,
- * starts the count again, so a legitimate new decision is never charged for
- * an old one.
+ * How many boots in a row, before the intent's own, have left this target
+ * unreached. Only an unreached target counts, and any other outcome, or
+ * another target, starts the count again, so a legitimate new decision is
+ * never charged for an old one. Several intents of one boot are one boot, and
+ * an intent of the boot being judged is not an earlier one.
  */
 export const countAttempts = (
   intent: TransitionIntent,
   history: StoredTransition[],
 ) => {
-  let attempts = 0;
+  const boots = new Set<string>();
 
   for (const earlier of [...history].reverse()) {
+    if (earlier.intent.boot.id === intent.boot.id) {
+      continue;
+    }
+
     if (earlier.outcome !== "target-not-running") {
       break;
     }
@@ -43,8 +48,8 @@ export const countAttempts = (
       break;
     }
 
-    attempts += 1;
+    boots.add(earlier.intent.boot.id);
   }
 
-  return attempts;
+  return boots.size;
 };

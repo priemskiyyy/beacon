@@ -35,6 +35,7 @@ import { createDisposedError } from "src/utils/internal/errors/createDisposedErr
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import { Listeners } from "src/utils/internal/observable/Listeners";
 import { resolveDuration } from "src/utils/internal/options/resolveDuration";
+import { resolveJournalOptions } from "src/utils/internal/options/resolveJournalOptions";
 import { reportUnhandledError } from "src/utils/internal/reporting/reportUnhandledError";
 import { RUNNING_SUBJECTS } from "src/utils/constants/subjects";
 import { getSubjects } from "src/utils/internal/routes/getSubjects";
@@ -231,7 +232,7 @@ export class Beacon<
     });
 
     this.#journal = new Journal({
-      options: journal,
+      options: resolveJournalOptions(journal),
       getScope: () => this.#scope,
       clock,
       listeners: createListeners(),

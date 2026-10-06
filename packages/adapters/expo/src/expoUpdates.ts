@@ -55,7 +55,9 @@ const commands = {
  * and a rejection or disabled updates are never reported as no update.
  * `download` asks the provider for its current selection, which may differ
  * from the offer, and says how; it may also be selected on a later start, so
- * it declares that before the user agrees. `requestReload` restarts the
+ * it declares that before the user agrees. The module belongs to one open
+ * session at a time: a second Beacon that opens a route on it fails to open
+ * it, as `DRIVER_FAILED`. `requestReload` restarts the
  * JavaScript runtime and guarantees no code after it. Autonomous native
  * startup checks are not observed, and no configuration is ever changed.
  *
@@ -71,6 +73,7 @@ export const expoUpdates = ({ updates }: ExpoOptions) =>
     name: "expo-updates",
     subject: "bundle",
     prepares: true,
+    exclusive: updates,
     open: ({ emit }) => {
       const native: ExpoNative = { updates };
 

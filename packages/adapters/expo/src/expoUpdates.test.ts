@@ -450,3 +450,36 @@ test("EXPO-16 the runtime version is a fact of the running bundle and compares n
   });
   expect(offer.release).not.toHaveProperty("compatibility");
 });
+
+test("LIFE-11 a second Beacon on the same module cannot open the route, and says so", async () => {
+  const fake = fakeUpdates();
+
+  const open = () =>
+    new Beacon({
+      scope: SCOPE,
+      running: { boot: { id: "boot-1" }, bundle: expoBundle(fake.updates) },
+      routes: { ota: expoUpdates({ updates: fake.updates }) },
+      clock: createTestClock({ now: 1_000 }),
+    });
+
+  const first = open();
+  const second = open();
+
+  const stop = first.start();
+
+  second.start();
+
+  expect(first.route("ota").native.get()).not.toBeNull();
+  expect(second.route("ota").native.get()).toBeNull();
+
+  await expect(second.route("ota").check()).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "DRIVER_FAILED" },
+  });
+
+  stop();
+  second.stop();
+  second.start();
+
+  expect(second.route("ota").native.get()).not.toBeNull();
+});

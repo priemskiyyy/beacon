@@ -115,7 +115,9 @@ const commands = {
  * disruptive from the moment the flow starts, and resumes one Play still
  * holds. Every command reconfirms the offer against Play first. Nothing here
  * is proof of an installation: only a later boot shows the running build, and
- * only a real device with a real Play distribution validates the flow.
+ * only a real device with a real Play distribution validates the flow. A
+ * bridge belongs to one open session at a time: a second Beacon that opens a
+ * route on the same bridge fails to open it, as `DRIVER_FAILED`.
  *
  * @example
  * ```ts
@@ -127,6 +129,7 @@ export const googlePlay = ({ bridge }: PlayOptions) =>
     name: "google-play",
     subject: "native",
     prepares: true,
+    exclusive: bridge,
     open: ({ scope, emit }) => {
       const native: PlayNative = { bridge };
 

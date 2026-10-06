@@ -499,3 +499,37 @@ test("PLAY-07 a consent the user accepted is a flow under way, not a download, a
     state: "unconfigured",
   });
 });
+
+test("LIFE-11 a second Beacon on the same bridge cannot open the route, and says so", async () => {
+  const fake = fakeBridge(availableInfo(412));
+
+  const open = () =>
+    new Beacon({
+      scope: SCOPE,
+      running: { boot: { id: "boot-1" } },
+      routes: { binary: googlePlay({ bridge: fake.bridge }) },
+      clock: createTestClock({ now: 1_000 }),
+    });
+
+  const first = open();
+  const second = open();
+
+  const stop = first.start();
+
+  second.start();
+
+  expect(first.route("binary").native.get()).not.toBeNull();
+  expect(second.route("binary").native.get()).toBeNull();
+  expect(fake.listeners()).toBe(1);
+
+  await expect(second.route("binary").check()).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "DRIVER_FAILED" },
+  });
+
+  stop();
+  second.stop();
+  second.start();
+
+  expect(second.route("binary").native.get()).not.toBeNull();
+});

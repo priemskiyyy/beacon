@@ -34,6 +34,11 @@
       "types": "./dist/versions.d.ts",
       "import": "./dist/versions.js",
       "default": "./dist/versions.js"
+    },
+    "./mock": {
+      "types": "./dist/mock.d.ts",
+      "import": "./dist/mock.js",
+      "default": "./dist/mock.js"
     }
   },
   "scripts": {

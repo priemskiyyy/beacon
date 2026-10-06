@@ -1,19 +1,19 @@
 import { keyValueJournalStorage } from "@priemskiyyy/beacon";
+import { expoApplication } from "@priemskiyyy/beacon-native";
 import * as Application from "expo-application";
 import keyValueStore from "expo-sqlite/kv-store";
 import { AppState } from "react-native";
 
 import { checkOnForeground } from "src/lab/checkOnForeground";
-import { readNativeBuild } from "src/lab/readNativeBuild";
 
 // The real modules of Expo SDK 57 and React Native 0.86 fit what the recipes ask of them, as the application passes them in.
 export const storage = keyValueJournalStorage(keyValueStore);
 
-export const reader = readNativeBuild(
-  Application,
-  "android",
-  "dev.beacon.example",
-);
+export const reader = expoApplication({
+  application: Application,
+  platform: "android",
+  authority: "dev.beacon.example",
+});
 
 export const stop = checkOnForeground({ check: async () => {} }, AppState);
 

@@ -7,10 +7,10 @@ import type {
 import { createMockSource } from "@priemskiyyy/beacon/mock";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import type { UpdatesLike } from "@priemskiyyy/beacon-expo";
+import { expoApplication } from "@priemskiyyy/beacon-native";
+import type { ApplicationLike } from "@priemskiyyy/beacon-native";
 
 import { evaluateNativeSupport } from "src/lab/evaluateNativeSupport";
-import { readNativeBuild } from "src/lab/readNativeBuild";
-import type { ApplicationLike } from "src/lab/readNativeBuild";
 import type { NativeManifest } from "src/lab/types/NativeManifest";
 
 /** The application id of the binary, which `app.json` gives both stores. */
@@ -45,7 +45,11 @@ const readRunning = ({
 
   return {
     ...running,
-    native: readNativeBuild(application, platform, NATIVE_APPLICATION),
+    native: expoApplication({
+      application,
+      platform,
+      authority: NATIVE_APPLICATION,
+    }),
   };
 };
 

@@ -269,7 +269,7 @@ const allowed = [
   ['import { expect } from "vitest";\n\nexpect(1).toBe(1);', SUITE],
   [
     'import * as Updates from "expo-updates";\n\nexport const sdk = Updates;',
-    "packages/adapters/expo/src/expo.contracts.ts",
+    "packages/adapters/expo/src/expoUpdates.contracts.ts",
   ],
   [
     'import { useState } from "react";\n\nexport const useValue = () => useState(0);',

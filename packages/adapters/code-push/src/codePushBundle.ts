@@ -1,6 +1,6 @@
 import type { RunningRelease } from "@priemskiyyy/beacon";
 
-import type { CodePushLike } from "src/types/CodePushLike";
+import type { CodePushOptions } from "src/types/CodePushOptions";
 import { EMBEDDED_IDENTITY } from "src/utils/constants/identities";
 import { createPackageIdentity } from "src/utils/createPackageIdentity";
 import { readLabel } from "src/utils/readLabel";
@@ -20,13 +20,14 @@ import { readLabel } from "src/utils/readLabel";
  *
  * new Beacon({
  *   scope,
- *   running: { boot: { id: BOOT_ID }, bundle: codePushBundle(CodePush) },
+ *   running: { boot: { id: createBootId() }, bundle: codePushBundle({ codePush: CodePush }) },
  *   routes: { update: codePushUpdates({ codePush: CodePush }) },
  * });
  * ```
  */
 export const codePushBundle =
-  (codePush: CodePushLike) => async (): Promise<RunningRelease> => {
+  ({ codePush }: CodePushOptions) =>
+  async (): Promise<RunningRelease> => {
     const running = await codePush.getUpdateMetadata(
       codePush.UpdateState.RUNNING,
     );

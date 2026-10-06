@@ -1,5 +1,5 @@
 import { Beacon } from "@priemskiyyy/beacon";
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 
 import { codePushBundle } from "src/codePushBundle";
@@ -16,7 +16,7 @@ test("the running bundle is the package CodePush says runs, named by its hash", 
     running: localPackage(HASH_A, { label: "v3" }),
   });
 
-  await expect(codePushBundle(codePush)()).resolves.toEqual({
+  await expect(codePushBundle({ codePush })()).resolves.toEqual({
     identity: {
       status: "known",
       authority: "code-push",
@@ -31,7 +31,7 @@ test("the running bundle is the package CodePush says runs, named by its hash", 
 test("the bundle inside the binary has no identity: CodePush reports no package for it", async () => {
   const { codePush } = fakeCodePush();
 
-  await expect(codePushBundle(codePush)()).resolves.toEqual({
+  await expect(codePushBundle({ codePush })()).resolves.toEqual({
     identity: { status: "unknown", reason: "embedded-bundle" },
     label: null,
     raw: { label: null, embedded: true },
@@ -43,7 +43,7 @@ test("a package that sits on disk while the binary's own bundle runs is not the 
     running: { ...localPackage(HASH_A), _isDebugOnly: true },
   });
 
-  await expect(codePushBundle(codePush)()).resolves.toMatchObject({
+  await expect(codePushBundle({ codePush })()).resolves.toMatchObject({
     identity: { status: "unknown", reason: "embedded-bundle" },
     raw: { embedded: true },
   });
@@ -52,7 +52,7 @@ test("a package that sits on disk while the binary's own bundle runs is not the 
 test("a running package with no hash has no identity, and is never the text undefined", async () => {
   const { codePush } = fakeCodePush({ running: localPackage(" ") });
 
-  await expect(codePushBundle(codePush)()).resolves.toMatchObject({
+  await expect(codePushBundle({ codePush })()).resolves.toMatchObject({
     identity: { status: "unknown", reason: "package-hash-missing" },
   });
 });
@@ -62,7 +62,9 @@ test("the reader asks for what runs, and never for what is pending", async () =>
 
   fake.setPending(localPackage(HASH_B));
 
-  await expect(codePushBundle(fake.codePush)()).resolves.toMatchObject({
+  await expect(
+    codePushBundle({ codePush: fake.codePush })(),
+  ).resolves.toMatchObject({
     identity: { value: HASH_A },
   });
   expect(fake.metadata).toEqual([fake.updateState.RUNNING]);
@@ -70,7 +72,7 @@ test("the reader asks for what runs, and never for what is pending", async () =>
 
 test("the reader looks at CodePush when it is read, not when it is created", async () => {
   const fake = fakeCodePush({ running: localPackage(HASH_A) });
-  const read = codePushBundle(fake.codePush);
+  const read = codePushBundle({ codePush: fake.codePush });
 
   expect(fake.metadata).toEqual([]);
 
@@ -90,7 +92,7 @@ test("a reader whose CodePush fails passes the failure on, and the route's runni
     scope: SCOPE,
     running: {
       boot: { id: "boot-1" },
-      bundle: codePushBundle(fake.codePush),
+      bundle: codePushBundle({ codePush: fake.codePush }),
     },
     routes: {},
     clock: createTestClock({ now: 1_000 }),
@@ -98,12 +100,10 @@ test("a reader whose CodePush fails passes the failure on, and the route's runni
 
   beacon.start();
 
-  await expect(codePushBundle(fake.codePush)()).rejects.toThrow(
+  await expect(codePushBundle({ codePush: fake.codePush })()).rejects.toThrow(
     "no native module",
   );
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
+  await settle();
 
   expect(beacon.running.get().bundle).toMatchObject({ state: "failed" });
 });

@@ -15,7 +15,7 @@ const SCOPE: ReleaseScope = {
   application: "com.example.notes",
   environment: "production",
   platform: "android",
-  distribution: "play-store",
+  distribution: "google-play",
 };
 
 const create = (info = availableInfo(412)) => {

@@ -1,3 +1,4 @@
+import { ANDROID_VERSION_CODE_DOMAIN } from "@priemskiyyy/beacon";
 import type { PreparedDraft } from "@priemskiyyy/beacon";
 
 import type { PlayReading } from "src/types/internal/PlayReading";
@@ -5,7 +6,6 @@ import type { PlayInstallStatus } from "src/types/PlayInstallStatus";
 import type { PlayOffer } from "src/types/PlayOffer";
 import type { PlayPrepared } from "src/types/PlayPrepared";
 import type { PlayUpdateInfo } from "src/types/PlayUpdateInfo";
-import { VERSION_CODE_DOMAIN } from "src/utils/constants/authority";
 import { IN_PROGRESS_IDENTITY } from "src/utils/constants/identities";
 
 const readFlows = (info: { flexible: boolean; immediate: boolean }) => {
@@ -87,7 +87,7 @@ export const readUpdateInfo = (
       identity: {
         status: "known",
         authority: application,
-        domain: VERSION_CODE_DOMAIN,
+        domain: ANDROID_VERSION_CODE_DOMAIN,
         value: String(info.versionCode),
       },
     };

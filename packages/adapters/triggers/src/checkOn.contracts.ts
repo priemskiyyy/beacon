@@ -119,8 +119,11 @@ interval({ every: "60000" });
 checkOn(beacon, {});
 
 export const custom: BeaconTrigger = (target) => {
-  // @ts-expect-error -- the reasons are the core's: there is no `expiry` or `retry` label.
+  target.signal("retry");
   target.signal("expiry");
+
+  // @ts-expect-error -- the reasons are the core's: a label of a trigger's own is not one of them.
+  target.signal("polling");
 
   return () => {};
 };

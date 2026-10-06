@@ -141,7 +141,7 @@ export const openGate = <TRoutes extends Record<string, RouteDefinition>>(
       backingOff = null;
 
       if (failures <= attempts) {
-        wait("interval");
+        wait("retry");
       }
 
       release();
@@ -244,7 +244,7 @@ export const openGate = <TRoutes extends Record<string, RouteDefinition>>(
   }
 
   if (onExpiry) {
-    cleanups.push(watchExpiry(beacon, () => signal("interval")));
+    cleanups.push(watchExpiry(beacon, () => signal("expiry")));
   }
 
   return () => {

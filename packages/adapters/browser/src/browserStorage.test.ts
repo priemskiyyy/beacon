@@ -210,7 +210,6 @@ const createBoot = (
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: mock.source.select((manifest) => manifest.web),
         mechanism: browserReload({ target: page }),
       }),

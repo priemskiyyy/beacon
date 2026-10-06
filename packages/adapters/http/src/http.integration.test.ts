@@ -15,10 +15,10 @@ const createWebBeacon = () => {
   const manifest = http({ name: "manifest", fetch: backend.fetch });
 
   const web = targetRoute({
-    subject: "web",
     source: manifest.select((document) => document.web),
     mechanism: createUpdateMechanism({
       name: "inert",
+      subject: "web",
       open: () => ({ native: {} }),
       commands: {},
     }),

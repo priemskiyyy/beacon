@@ -22,6 +22,14 @@ import { readStandardManifest } from "src/readStandardManifest";
 
 const inert = createUpdateMechanism({
   name: "inert",
+  subject: "web",
+  open: () => ({ native: {} }),
+  commands: {},
+});
+
+const store = createUpdateMechanism({
+  name: "store",
+  subject: "native",
   open: () => ({ native: {} }),
   commands: {},
 });
@@ -57,17 +65,15 @@ const create = () => {
   });
 
   const web = targetRoute({
-    subject: "web",
     source: manifest.select((document) => document.routes.web),
     mechanism: inert,
   });
 
   const binary = newerRoute({
-    subject: "native",
     source: manifest.select((document) => document.routes.binary),
     version: semver(),
     current: (release) => release?.label ?? null,
-    mechanism: inert,
+    mechanism: store,
   });
 
   const policy = supportPolicy({

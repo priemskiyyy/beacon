@@ -38,10 +38,10 @@
   },
   "peerDependencies": {
     "@priemskiyyy/beacon": ">=0.1.0 <0.2",
-    "@appzung/react-native-code-push": ">=11.0.0 <12",
-    "@bravemobile/react-native-code-push": ">=13.3.0 <14",
-    "@revopush/react-native-code-push": ">=2.6.0 <3",
-    "react-native-code-push": ">=9.0.0 <10"
+    "@appzung/react-native-code-push": ">=10.0.0",
+    "@bravemobile/react-native-code-push": ">=8.2.3",
+    "@revopush/react-native-code-push": ">=1.0.0",
+    "react-native-code-push": ">=5.5.0"
   },
   "devDependencies": {
     "@priemskiyyy/beacon": "workspace:*"

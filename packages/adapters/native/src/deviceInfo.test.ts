@@ -12,7 +12,9 @@ const read = (
 ) => {
   const { deviceInfo: sdk } = fakeDeviceInfo(answers);
 
-  return deviceInfo({ deviceInfo: sdk, platform: "android", ...options })();
+  return deviceInfo({ deviceInfo: sdk, platform: "android", ...options })({
+    scope: SCOPE,
+  });
 };
 
 test("an Android build is named by its version code, and an iOS build by its build number, under the bundle id", async () => {
@@ -118,10 +120,12 @@ test("creating the reader asks the library for nothing, and it is asked each tim
 
   expect(reads()).toBe(0);
 
-  await reader();
+  await reader({ scope: SCOPE });
   answers.build = "109";
 
-  await expect(reader()).resolves.toMatchObject({ identity: { value: "109" } });
+  await expect(reader({ scope: SCOPE })).resolves.toMatchObject({
+    identity: { value: "109" },
+  });
   expect(reads()).toBe(6);
 });
 
@@ -131,7 +135,7 @@ test("a call that throws rejects the read, which is not a build and not an old o
   fail();
 
   await expect(
-    deviceInfo({ deviceInfo: sdk, platform: "ios" })(),
+    deviceInfo({ deviceInfo: sdk, platform: "ios" })({ scope: SCOPE }),
   ).rejects.toThrowError("The native module refused the call.");
 });
 

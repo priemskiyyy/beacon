@@ -1,4 +1,5 @@
 import type { ReleaseScope } from "@priemskiyyy/beacon";
+import { createGate } from "@priemskiyyy/beacon/mock";
 
 import type { CodePushLike } from "src/types/CodePushLike";
 import type { DownloadProgressLike } from "src/types/DownloadProgressLike";
@@ -34,34 +35,6 @@ export type RestartOutcome =
   | { kind: "rejects"; error: Error }
   | { kind: "throws"; error: Error }
   | { kind: "never settles" };
-
-// A call that waits until a test lets it go.
-const createGate = () => {
-  const gate = { holding: false };
-  const waiting: Array<() => void> = [];
-
-  return {
-    hold: () => {
-      gate.holding = true;
-    },
-    release: () => {
-      gate.holding = false;
-
-      for (const resume of waiting.splice(0)) {
-        resume();
-      }
-    },
-    wait: async () => {
-      if (!gate.holding) {
-        return;
-      }
-
-      await new Promise<void>((resolve) => {
-        waiting.push(resolve);
-      });
-    },
-  };
-};
 
 // A package CodePush has on the device, as `getUpdateMetadata` answers it.
 export const localPackage = (

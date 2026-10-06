@@ -10,7 +10,7 @@ import { SHORT_VERSION_KEY } from "src/utils/constants/lookup";
  *
  * @example
  * ```ts
- * newerRoute({ subject: "native", source, version: appleVersion(), current: appleMarketingVersion, mechanism });
+ * newerRoute({ source, version: appleVersion(), current: appleMarketingVersion, mechanism });
  * ```
  */
 export const appleMarketingVersion = (release: RunningRelease | null) => {

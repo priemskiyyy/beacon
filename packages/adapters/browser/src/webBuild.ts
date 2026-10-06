@@ -1,8 +1,8 @@
+import { WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon";
 import type { RunningReader } from "@priemskiyyy/beacon";
 
 import type { WebBuildOptions } from "src/types/WebBuildOptions";
 import { assertIdentityText } from "src/utils/assertIdentityText";
-import { WEB_ARTIFACT_DOMAIN } from "src/utils/constants/authority";
 import { BUILD_ID_NOT_INJECTED_IDENTITY } from "src/utils/constants/identities";
 import { readBuildText } from "src/utils/readBuildText";
 

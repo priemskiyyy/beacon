@@ -29,7 +29,10 @@ const create = (options: Parameters<typeof fakeUpdates>[0] = {}) => {
 
   const beacon = new Beacon({
     scope: SCOPE,
-    running: { boot: { id: "boot-1" }, bundle: expoBundle(fake.updates) },
+    running: {
+      boot: { id: "boot-1" },
+      bundle: expoBundle({ updates: fake.updates }),
+    },
     routes: { ota: expoUpdates({ updates: fake.updates }) },
     clock: createTestClock({ now: 1_000 }),
   });
@@ -495,7 +498,10 @@ test("LIFE-11 a second Beacon on the same module cannot open the route, and says
   const open = () =>
     new Beacon({
       scope: SCOPE,
-      running: { boot: { id: "boot-1" }, bundle: expoBundle(fake.updates) },
+      running: {
+        boot: { id: "boot-1" },
+        bundle: expoBundle({ updates: fake.updates }),
+      },
       routes: { ota: expoUpdates({ updates: fake.updates }) },
       clock: createTestClock({ now: 1_000 }),
     });

@@ -49,10 +49,10 @@ export const createTestBeacon = ({
     },
     routes: {
       bundle: targetRoute({
-        subject: "bundle",
         source: mock.source.select((manifest) => manifest.bundle),
         mechanism: createUpdateMechanism({
           name: "restart",
+          subject: "bundle",
           open: () => ({ native: {} }),
           commands: {
             restart: {

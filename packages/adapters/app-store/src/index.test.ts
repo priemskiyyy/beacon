@@ -4,6 +4,8 @@ import * as api from "src/index";
 
 test("the package root exports exactly its supported runtime names", () => {
   expect(Object.keys(api).sort()).toEqual([
+    "APP_STORE_DISTRIBUTION",
+    "appStore",
     "appStoreHandoff",
     "appStoreLookup",
     "appleMarketingVersion",

@@ -9,7 +9,7 @@ test("EXPO-01 an id a server wrote in capitals is the update the SDK reports run
   const { updates } = fakeUpdates({ updateId: UPDATE_A });
   const offered = createUpdateIdentity(UPDATE_A.toUpperCase());
 
-  expect(compareIdentities(offered, expoBundle(updates)().identity)).toBe(
+  expect(compareIdentities(offered, expoBundle({ updates })().identity)).toBe(
     "same",
   );
   expect(compareIdentities(offered, createUpdateIdentity(UPDATE_B))).toBe(

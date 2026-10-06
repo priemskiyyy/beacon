@@ -5,12 +5,17 @@ import type {
   PreparedReference,
   RouteHandle,
 } from "@priemskiyyy/beacon";
+import type { Linking } from "react-native";
 import { expectTypeOf } from "vitest";
 
 import { googlePlay } from "src/googlePlay";
+import { playStore } from "src/playStore";
+import type { LinkingLike } from "src/types/LinkingLike";
 import type { PlayBridge } from "src/types/PlayBridge";
 import type { PlayNative } from "src/types/PlayNative";
 import type { PlayReceipt } from "src/types/PlayReceipt";
+import type { PlayStoreNative } from "src/types/PlayStoreNative";
+import { GOOGLE_PLAY_DISTRIBUTION } from "src/utils/constants/distribution";
 
 declare const bridge: PlayBridge;
 
@@ -85,3 +90,43 @@ export const receipt = async () => {
 
   return null;
 };
+
+declare const linking: typeof Linking;
+
+// A module whose types did not resolve would be `any` and satisfy everything.
+expectTypeOf(linking.openURL).parameter(0).toEqualTypeOf<string>();
+expectTypeOf(linking).toExtend<LinkingLike>();
+
+export const store = playStore({
+  applicationId: "com.example.notes",
+  linking,
+});
+
+declare const storeHandle: RouteHandle<"store", typeof store>;
+
+declare const storeOffer: OfferReference<"store">;
+
+// The store route opens the page with an offer or without one, as the App Store's does.
+export const openWithOffer = storeHandle.openStore({ offer: storeOffer });
+
+export const openWithout = storeHandle.openStore();
+
+expectTypeOf(storeHandle.native.get()).toEqualTypeOf<PlayStoreNative | null>();
+
+// @ts-expect-error -- a store route has no flow to download, and no bridge to start one.
+storeHandle.download({ offer: storeOffer });
+
+// @ts-expect-error -- the link opener is required: this adapter has no native code of its own.
+playStore({ applicationId: "com.example.notes" });
+
+// @ts-expect-error -- the application id is required, since the page is built from it alone.
+playStore({ linking });
+
+// @ts-expect-error -- opening the store takes no parameters of its own.
+storeHandle.openStore({ country: "de" });
+
+// The distribution this adapter speaks for is one word, exported so a scope says it by name.
+export const distribution: "google-play" = GOOGLE_PLAY_DISTRIBUTION;
+
+// @ts-expect-error -- it is one word, not any text.
+export const other: typeof GOOGLE_PLAY_DISTRIBUTION = "app-store";

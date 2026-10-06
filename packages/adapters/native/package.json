@@ -38,8 +38,8 @@
   },
   "peerDependencies": {
     "@priemskiyyy/beacon": ">=0.1.0 <0.2",
-    "expo-application": ">=57.0.0 <58",
-    "react-native-device-info": ">=15.0.0 <16"
+    "expo-application": ">=1.0.0",
+    "react-native-device-info": ">=4.0.1"
   },
   "devDependencies": {
     "@priemskiyyy/beacon": "workspace:*",

@@ -28,6 +28,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./mock": {
+      "types": "./dist/mock.d.ts",
+      "import": "./dist/mock.js",
+      "default": "./dist/mock.js"
     }
   },
   "scripts": {
@@ -38,7 +43,7 @@
   },
   "peerDependencies": {
     "@priemskiyyy/beacon": ">=0.1.0 <0.2",
-    "expo-updates": ">=57.0.0 <58"
+    "expo-updates": ">=0.24.0"
   },
   "devDependencies": {
     "@priemskiyyy/beacon": "workspace:*"

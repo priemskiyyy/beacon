@@ -9,7 +9,7 @@ export const BACKOFF_JITTER = 0.2;
 /** The retries the gate starts by itself after a failure. */
 export const BACKOFF_ATTEMPTS = 3;
 
-/** The reasons a fresh answer makes unnecessary: a return and a timer ask again without knowing anything changed. A startup, a reconnect and an invalidation say something did. */
+/** The reasons a fresh answer makes unnecessary: a return and a timer ask again without knowing anything changed. A startup, a reconnect and an invalidation say something did, and a retry follows a check that failed to renew the answer. */
 export const SKIPPED_WHILE_FRESH = new Set<CheckReason>([
   "foreground",
   "interval",

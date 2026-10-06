@@ -30,6 +30,14 @@ const routes = {
 
 const inert = createUpdateMechanism({
   name: "inert",
+  subject: "web",
+  open: () => ({ native: {} }),
+  commands: {},
+});
+
+const store = createUpdateMechanism({
+  name: "store",
+  subject: "native",
   open: () => ({ native: {} }),
   commands: {},
 });
@@ -39,25 +47,22 @@ export const manifest = http({
 });
 
 export const web = targetRoute({
-  subject: "web",
   source: manifest.select((document) => document.routes.web),
   mechanism: inert,
 });
 
 export const binary = newerRoute({
-  subject: "native",
   source: manifest.select((document) => document.routes.binary),
   version: semver(),
   current: (release) => release?.label ?? null,
-  mechanism: inert,
+  mechanism: store,
 });
 
 export const build = newerRoute({
-  subject: "native",
   source: manifest.select((document) => document.routes.build),
   version: integer(),
   current: () => 0,
-  mechanism: inert,
+  mechanism: store,
 });
 
 // The response of any `fetch` is what a manifest is read from.
@@ -87,28 +92,25 @@ expectTypeOf(read.document.support).toEqualTypeOf<{
 } | null>();
 
 targetRoute({
-  subject: "native",
   // @ts-expect-error -- a candidate route is not a target route.
   source: manifest.select((document) => document.routes.binary),
   mechanism: inert,
 });
 
 newerRoute({
-  subject: "web",
   // @ts-expect-error -- a target route is not a candidate route.
   source: manifest.select((document) => document.routes.web),
   version: semver(),
   current: () => "1.0.0",
-  mechanism: inert,
+  mechanism: store,
 });
 
 newerRoute({
-  subject: "native",
   // @ts-expect-error -- an integer order does not feed a semantic version strategy.
   source: manifest.select((document) => document.routes.build),
   version: semver(),
   current: () => "1.0.0",
-  mechanism: inert,
+  mechanism: store,
 });
 
 // @ts-expect-error -- a route the application did not declare is not in the document.

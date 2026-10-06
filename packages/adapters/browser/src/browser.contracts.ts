@@ -40,7 +40,6 @@ const manifest = createReleaseSource<{ web: TargetDecision | NoneDecision }>({
 
 export const routes = {
   web: targetRoute({
-    subject: "web",
     source: manifest.select((document) => document.web),
     mechanism,
   }),

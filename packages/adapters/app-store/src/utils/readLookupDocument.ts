@@ -1,14 +1,12 @@
-import { BeaconError, parseUtcTimestamp } from "@priemskiyyy/beacon";
+import { parseUtcTimestamp } from "@priemskiyyy/beacon";
 
 import type { AppStoreDocument } from "src/types/AppStoreDocument";
 import type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";
 import { MARKETING_VERSION_DOMAIN } from "src/utils/constants/lookup";
 import { NO_MATCH } from "src/utils/constants/reasons";
+import { invalidLookup } from "src/utils/invalidLookup";
 
 type Expected = { appId: string; bundleId: string | undefined };
-
-const invalidLookup = (message: string) =>
-  new BeaconError({ code: "INVALID_DOCUMENT", message });
 
 /**
  * The decision one lookup stands for. No entry means nothing matched in that

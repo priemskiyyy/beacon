@@ -1,12 +1,9 @@
-import { Beacon, newerRoute } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { createTestClock } from "@priemskiyyy/beacon/mock";
 import type { RunningRelease } from "@priemskiyyy/beacon";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
-import { appleMarketingVersion } from "src/appleMarketingVersion";
-import { appleVersion } from "src/appleVersion";
-import { appStoreHandoff } from "src/appStoreHandoff";
-import { appStoreLookup } from "src/appStoreLookup";
+import { appStore } from "src/appStore";
 import {
   APP_ID,
   BUNDLE_ID,
@@ -37,19 +34,12 @@ const create = (
   const store = fakeStore();
   const link = fakeLinking();
 
-  const lookup = appStoreLookup({
+  const binary = appStore({
     appId: APP_ID,
     country: "de",
     bundleId: BUNDLE_ID,
+    linking: link.linking,
     fetch: store.fetch,
-  });
-
-  const binary = newerRoute({
-    subject: "native",
-    source: lookup.select((document) => document.decision),
-    version: appleVersion(),
-    current: appleMarketingVersion,
-    mechanism: appStoreHandoff({ appId: APP_ID, linking: link.linking }),
   });
 
   const beacon = new Beacon({
@@ -228,4 +218,117 @@ test("STORE-06 a handoff that ends without an installation changes nothing about
   expect(binary.state.get().observation).toEqual(observation);
   expect(binary.state.get().prepared).toEqual({ status: "not-applicable" });
   expect(beacon.support.get().status).toBe("unknown");
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+test("STORE-09 opening the store in a build outside it is unsupported with no offer and no request, and opens nothing", async () => {
+  const { beacon, binary, link, store } = create("3.2.0", "testflight");
+
+  beacon.start();
+  await binary.check();
+
+  await expect(binary.openStore()).resolves.toEqual({
+    status: "unsupported",
+    reason: "other-distribution",
+  });
+  expect(link.opened).toEqual([]);
+  expect(store.fetches).toEqual([]);
+});
+
+test("without a client of its own the route asks Apple's lookup through the global fetch, and offers what it answers", async () => {
+  const asked: string[] = [];
+  const link = fakeLinking();
+
+  vi.stubGlobal("fetch", async (url: string) => {
+    asked.push(url);
+
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        resultCount: 1,
+        results: [{ ...entry({ version: "3.4.0" }), artistName: "Example" }],
+      }),
+    };
+  });
+
+  const beacon = new Beacon({
+    scope: SCOPE,
+    running: { boot: { id: "boot-1" }, native: () => nativeRelease("3.2.0") },
+    routes: {
+      binary: appStore({
+        appId: APP_ID,
+        country: "de",
+        bundleId: BUNDLE_ID,
+        linking: link.linking,
+      }),
+    },
+    clock: createTestClock({ now: 1_000 }),
+  });
+
+  beacon.start();
+  await beacon.route("binary").check();
+
+  expect(asked).toEqual([
+    `https://itunes.apple.com/lookup?id=${APP_ID}&country=de`,
+  ]);
+  expect(beacon.route("binary").state.get().observation).toMatchObject({
+    status: "available",
+    offer: { release: { label: "3.4.0" } },
+  });
+});
+
+test("a failing status of the default client fails the check and keeps the last observation", async () => {
+  const link = fakeLinking();
+
+  vi.stubGlobal("fetch", async () => ({
+    ok: false,
+    status: 429,
+    json: async () => ({}),
+  }));
+
+  const beacon = new Beacon({
+    scope: SCOPE,
+    running: { boot: { id: "boot-1" }, native: () => nativeRelease("3.2.0") },
+    routes: {
+      binary: appStore({
+        appId: APP_ID,
+        country: "de",
+        linking: link.linking,
+      }),
+    },
+    clock: createTestClock({ now: 1_000 }),
+  });
+
+  beacon.start();
+
+  await expect(beacon.route("binary").check()).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "SOURCE_FAILED" },
+  });
+  expect(beacon.route("binary").state.get().observation).toMatchObject({
+    status: "unknown",
+  });
+});
+
+test("an id that is not a number, or a storefront that is not a country, is refused when the route is made", () => {
+  const { linking } = fakeLinking();
+
+  expect(() => appStore({ appId: "12a", country: "de", linking })).toThrow(
+    expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
+  );
+  expect(() =>
+    appStore({ appId: APP_ID, country: "Germany", linking }),
+  ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
+});
+
+test("making the route and the beacon asks nothing and opens nothing", () => {
+  const { binary, store, link } = create();
+
+  expect(binary.state.get().observation).toMatchObject({ status: "unknown" });
+  expect(store.fetches).toEqual([]);
+  expect(link.opened).toEqual([]);
 });

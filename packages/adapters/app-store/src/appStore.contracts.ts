@@ -8,10 +8,13 @@ import { expectTypeOf } from "vitest";
 
 import { appleMarketingVersion } from "src/appleMarketingVersion";
 import { appleVersion } from "src/appleVersion";
+import { appStore } from "src/appStore";
 import { appStoreHandoff } from "src/appStoreHandoff";
 import { appStoreLookup } from "src/appStoreLookup";
 import type { AppStoreDocument } from "src/types/AppStoreDocument";
+import type { AppStoreNative } from "src/types/AppStoreNative";
 import type { LinkingLike } from "src/types/LinkingLike";
+import { APP_STORE_DISTRIBUTION } from "src/utils/constants/lookup";
 
 declare const linking: typeof Linking;
 
@@ -46,7 +49,6 @@ appStoreLookup({
 export const mechanism = appStoreHandoff({ appId: "284882215", linking });
 
 export const binary = newerRoute({
-  subject: "native",
   source: store.select((document) => document.decision),
   version: appleVersion(),
   current: appleMarketingVersion,
@@ -54,7 +56,6 @@ export const binary = newerRoute({
 });
 
 newerRoute({
-  subject: "native",
   // @ts-expect-error -- a store that answers marketing versions is not a number domain.
   source: store.select((document) => document.decision),
   version: {
@@ -93,3 +94,44 @@ export const receipt = async () => {
 
   return null;
 };
+
+// The distribution this adapter speaks for is one word, exported so a scope says it by name.
+export const distribution: "app-store" = APP_STORE_DISTRIBUTION;
+
+// @ts-expect-error -- it is one word, not any text.
+export const other: typeof APP_STORE_DISTRIBUTION = "google-play";
+
+// The ready-made route is the composition above, and has the same commands.
+export const ready = appStore({
+  appId: "284882215",
+  country: "de",
+  bundleId: "com.example.notes",
+  linking,
+});
+
+declare const readyHandle: RouteHandle<"store", typeof ready>;
+
+declare const readyOffer: OfferReference<"store">;
+
+export const readyWithOffer = readyHandle.openStore({ offer: readyOffer });
+
+export const readyWithout = readyHandle.openStore();
+
+expectTypeOf(readyHandle.native.get()).toEqualTypeOf<AppStoreNative | null>();
+
+// @ts-expect-error -- a store route cannot download, composed or not.
+readyHandle.download({ offer: readyOffer });
+
+// @ts-expect-error -- the link opener is required: this adapter imports nothing itself.
+appStore({ appId: "284882215", country: "de" });
+
+// @ts-expect-error -- the lookup client is optional, but when it is given it resolves entries.
+appStore({ appId: "1", country: "de", linking, fetch: async () => ({}) });
+
+// A client of your own still fits.
+export const withClient = appStore({
+  appId: "1",
+  country: "de",
+  linking,
+  fetch: async () => ({ results: [] }),
+});

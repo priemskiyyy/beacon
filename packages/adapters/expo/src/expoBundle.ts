@@ -1,5 +1,6 @@
 import type { ReleaseIdentity, RunningRelease } from "@priemskiyyy/beacon";
 
+import type { ExpoOptions } from "src/types/ExpoOptions";
 import type { UpdatesLike } from "src/types/UpdatesLike";
 import { UPDATES_DISABLED } from "src/utils/constants/reasons";
 import { createUpdateIdentity } from "src/utils/createUpdateIdentity";
@@ -23,18 +24,20 @@ const readIdentity = ({ updateId }: UpdatesLike): ReleaseIdentity => {
  * ```ts
  * new Beacon({
  *   scope,
- *   running: { boot: { id: createBootId() }, bundle: expoBundle(Updates) },
+ *   running: { boot: { id: createBootId() }, bundle: expoBundle({ updates: Updates }) },
  *   routes: { ota: expoUpdates({ updates: Updates }) },
  * });
  * ```
  */
-export const expoBundle = (updates: UpdatesLike) => (): RunningRelease => ({
-  identity: readIdentity(updates),
-  label: null,
-  raw: {
-    channel: updates.channel,
-    runtimeVersion: updates.runtimeVersion,
-    embedded: updates.isEmbeddedLaunch,
-    emergency: updates.isEmergencyLaunch,
-  },
-});
+export const expoBundle =
+  ({ updates }: ExpoOptions) =>
+  (): RunningRelease => ({
+    identity: readIdentity(updates),
+    label: null,
+    raw: {
+      channel: updates.channel,
+      runtimeVersion: updates.runtimeVersion,
+      embedded: updates.isEmbeddedLaunch,
+      emergency: updates.isEmergencyLaunch,
+    },
+  });

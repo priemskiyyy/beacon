@@ -6,7 +6,7 @@ import { fakeUpdates, UPDATE_A } from "src/fakeUpdates.fixture";
 test("the running bundle is the update that launched, with where it came from", () => {
   const { updates } = fakeUpdates({ updateId: UPDATE_A });
 
-  expect(expoBundle(updates)()).toEqual({
+  expect(expoBundle({ updates })()).toEqual({
     identity: {
       status: "known",
       authority: "expo-updates",
@@ -26,7 +26,7 @@ test("the running bundle is the update that launched, with where it came from", 
 test("where updates are disabled the running bundle has no identity", () => {
   const { updates } = fakeUpdates({ updateId: null, isEnabled: false });
 
-  expect(expoBundle(updates)().identity).toEqual({
+  expect(expoBundle({ updates })().identity).toEqual({
     status: "unknown",
     reason: "updates-disabled",
   });
@@ -34,7 +34,7 @@ test("where updates are disabled the running bundle has no identity", () => {
 
 test("the reader looks at the constants when it is read, not when it is created", () => {
   const { updates } = fakeUpdates({ updateId: UPDATE_A });
-  const read = expoBundle(updates);
+  const read = expoBundle({ updates });
 
   updates.updateId = null;
 
@@ -48,7 +48,7 @@ test("EXPO-17 an emergency launch is a fact of the running bundle, read as the S
     isEmergencyLaunch: true,
   });
 
-  expect(expoBundle(updates)().raw).toMatchObject({
+  expect(expoBundle({ updates })().raw).toMatchObject({
     embedded: true,
     emergency: true,
   });

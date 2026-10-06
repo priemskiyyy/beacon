@@ -15,7 +15,9 @@ const read = async (
 ) => {
   const { application } = fakeApplication(facts);
 
-  return expoApplication({ application, platform: "android", ...options })();
+  return expoApplication({ application, platform: "android", ...options })({
+    scope: SCOPE,
+  });
 };
 
 test("an Android build is named by its version code, under its application id, in the words the Play adapter offers in", async () => {
@@ -179,7 +181,9 @@ test("creating the reader reads nothing, and the constants are read when the rea
 
   facts.build = "109";
 
-  await expect(Promise.resolve(reader())).resolves.toMatchObject({
+  await expect(
+    Promise.resolve(reader({ scope: SCOPE })),
+  ).resolves.toMatchObject({
     identity: { value: "109" },
   });
   expect(reads()).toBeGreaterThan(0);

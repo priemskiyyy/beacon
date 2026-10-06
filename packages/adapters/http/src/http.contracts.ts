@@ -28,12 +28,12 @@ expectTypeOf(manifest).toEqualTypeOf<ReleaseSource<ApiManifest>>();
 
 const mechanism = createUpdateMechanism({
   name: "inert",
+  subject: "web",
   open: () => ({ native: {} }),
   commands: {},
 });
 
 export const web = targetRoute({
-  subject: "web",
   source: manifest.select((document) => document.web),
   mechanism,
 });

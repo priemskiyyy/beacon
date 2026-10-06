@@ -5,7 +5,9 @@ import {
   fakeBridge,
   installEvent,
 } from "src/fakeBridge.fixture";
+import { fakeLinking } from "src/fakeLinking.fixture";
 import { googlePlay } from "src/googlePlay";
+import { playStore } from "src/playStore";
 
 testReleaseDriver({
   name: "google-play",
@@ -20,4 +22,14 @@ testReleaseDriver({
       },
     };
   },
+});
+
+testReleaseDriver({
+  name: "play-store",
+  create: () => ({
+    route: playStore({
+      applicationId: "com.example.notes",
+      linking: fakeLinking().linking,
+    }),
+  }),
 });

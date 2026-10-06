@@ -6,6 +6,7 @@ import {
 import { expoBundle } from "src/expoBundle";
 import { expoUpdates } from "src/expoUpdates";
 import { EMBEDDED, fakeUpdates, UPDATE_A } from "src/fakeUpdates.fixture";
+import { createFakeUpdates } from "src/mock/createFakeUpdates";
 
 testReleaseDriver({
   name: "expo-updates",
@@ -18,6 +19,13 @@ testReleaseDriver({
     route: expoUpdates({
       updates: fakeUpdates({ isEnabled: false, updateId: null }).updates,
     }),
+  }),
+});
+
+testReleaseDriver({
+  name: "expo-updates over the fake of the mock entry",
+  create: () => ({
+    route: expoUpdates({ updates: createFakeUpdates({ available: true }) }),
   }),
 });
 
@@ -34,7 +42,7 @@ const createHost = (options: Parameters<typeof fakeUpdates>[0]) => {
     },
   });
 
-  return { reader: expoBundle(counted), reads: () => host.asked };
+  return { reader: expoBundle({ updates: counted }), reads: () => host.asked };
 };
 
 testRunningReader({

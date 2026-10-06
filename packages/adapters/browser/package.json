@@ -1,7 +1,7 @@
 {
   "name": "@priemskiyyy/beacon-browser",
   "version": "0.1.0",
-  "description": "Reloading the browser document as a Beacon update mechanism: a request to navigate, never a claim that a new build is running.",
+  "description": "Reloading the browser document as a Beacon update mechanism, with the reader of the running web build and the journal storage of the tab: a reload is a request to navigate, never a claim that a new build is running.",
   "type": "module",
   "license": "MIT",
   "repository": {

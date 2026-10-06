@@ -37,7 +37,6 @@ const createWebBeacon = (
   });
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: browserReload({ target: window }),
   });
@@ -167,7 +166,6 @@ test("without a window a reload is unsupported, and nothing is claimed", async (
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: mock.source.select((manifest) => manifest.web),
         mechanism: browserReload(),
       }),

@@ -7,18 +7,17 @@ import { NO_DOCUMENT } from "src/utils/constants/reasons";
 import { getWindow } from "src/utils/getWindow";
 
 /**
- * Reloading the browser document as a Beacon update mechanism. Its one
- * command, `reload`, needs the offer the user was shown, replaces the
- * document, and is bound to nothing: the next navigation receives whatever is
- * deployed, which may be another build than the offer. Accepting means the
- * reload was requested; only the next boot can show what runs. Without a
- * window, such as in a server render, opening does nothing, `native.window` is
- * `null` and the command is unsupported.
+ * Reloading the browser document as a Beacon update mechanism, for the `web`
+ * subject. Its one command, `reload`, needs the offer the user was shown,
+ * replaces the document, and is bound to nothing: the next navigation receives
+ * whatever is deployed, which may be another build than the offer. Accepting
+ * means the reload was requested; only the next boot can show what runs.
+ * Without a window, such as in a server render, opening does nothing,
+ * `native.window` is `null` and the command is unsupported.
  *
  * @example
  * ```ts
  * const web = targetRoute({
- *   subject: "web",
  *   source: manifest.select((document) => document.web),
  *   mechanism: browserReload(),
  * });
@@ -27,6 +26,7 @@ import { getWindow } from "src/utils/getWindow";
 export const browserReload = ({ target }: BrowserReloadOptions = {}) =>
   createUpdateMechanism({
     name: "browser-reload",
+    subject: "web",
     open: () => ({ native: { window: target ?? getWindow() } }),
     commands: {
       reload: {

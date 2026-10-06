@@ -13,7 +13,9 @@ import { APPLICATION, fakeWindow, SCOPE } from "src/fakeWindow.fixture";
 import { webBuild } from "src/webBuild";
 
 test("an id the bundler injected is the running build, under the application's authority and the word the standard manifest uses", async () => {
-  expect(await webBuild({ authority: APPLICATION, id: "a91b44e" })()).toEqual({
+  expect(
+    await webBuild({ authority: APPLICATION, id: "a91b44e" })({ scope: SCOPE }),
+  ).toEqual({
     identity: {
       status: "known",
       authority: APPLICATION,
@@ -31,7 +33,7 @@ test("the label is the application's to name, and the domain too", async () => {
     id: "a91b44e",
     label: "September release",
     domain: "notes-web",
-  })();
+  })({ scope: SCOPE });
 
   expect(release).toMatchObject({
     identity: { domain: "notes-web", value: "a91b44e" },
@@ -43,7 +45,7 @@ test("an id is text with no space around it, so a padded build is the same build
   const release = await webBuild({
     authority: APPLICATION,
     id: " a91b44e\n",
-  })();
+  })({ scope: SCOPE });
 
   expect(release.identity).toMatchObject({ status: "known", value: "a91b44e" });
 });
@@ -51,7 +53,9 @@ test("an id is text with no space around it, so a padded build is the same build
 // Vite 8.3 writes `void 0` for an `import.meta.env` name nobody defined and an empty string for an empty define, and a constant written into text gives the text of what it was.
 test("an id nobody defined is unknown, never a build named undefined", async () => {
   for (const id of [undefined, null, "", "   ", "undefined", "null"]) {
-    const release = await webBuild({ authority: APPLICATION, id })();
+    const release = await webBuild({ authority: APPLICATION, id })({
+      scope: SCOPE,
+    });
 
     expect(release).toEqual({
       identity: { status: "unknown", reason: "build-id-not-injected" },
@@ -64,7 +68,9 @@ test("an id nobody defined is unknown, never a build named undefined", async () 
 test("a label nobody defined either is no label, and a real id stands for itself", async () => {
   for (const label of [undefined, null, "", "undefined"]) {
     expect(
-      await webBuild({ authority: APPLICATION, id: "a91b44e", label })(),
+      await webBuild({ authority: APPLICATION, id: "a91b44e", label })({
+        scope: SCOPE,
+      }),
     ).toMatchObject({ label: "a91b44e" });
   }
 });
@@ -74,7 +80,7 @@ test("the label survives an id nobody defined, since it says what the page repor
     authority: APPLICATION,
     id: undefined,
     label: "Local build",
-  })();
+  })({ scope: SCOPE });
 
   expect(release).toMatchObject({
     identity: { status: "unknown" },
@@ -132,7 +138,6 @@ const createBoot = (
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: mock.source.select((manifest) => manifest.web),
         mechanism: browserReload({ target }),
       }),
@@ -202,7 +207,9 @@ test("a boot whose id nobody injected leaves the journal unable to say, never a 
 });
 
 test("a build nobody named equals nothing, not even another build nobody named", async () => {
-  const unknown = await webBuild({ authority: APPLICATION, id: undefined })();
+  const unknown = await webBuild({ authority: APPLICATION, id: undefined })({
+    scope: SCOPE,
+  });
 
   expect(compareIdentities(unknown.identity, unknown.identity)).toBe(
     "incomparable",

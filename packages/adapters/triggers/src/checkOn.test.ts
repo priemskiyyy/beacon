@@ -432,7 +432,7 @@ test("TRIG-12 a failed check backs off, retries by itself as often as attempts a
   await settle();
 
   expect(mock.stats().reads).toBe(5);
-  expect(reasons().slice(-2)).toEqual(["foreground", "interval"]);
+  expect(reasons().slice(-2)).toEqual(["foreground", "retry"]);
 });
 
 test("TRIG-13 a wait after a failure doubles with each one, with the default jitter and three retries", async () => {
@@ -685,6 +685,40 @@ test("TRIG-16 while every route holds fresh evidence that can expire, a return i
   expect(reasons().at(-1)).toBe("foreground");
 });
 
+test("TRIG-16 the retry of a failed check is not skipped while the evidence it failed to renew is still fresh", async () => {
+  const { beacon, mock, clock, network, reasons } = create();
+
+  checkOn(beacon, {
+    triggers: [startup(), reconnect({ netInfo: network.netInfo })],
+    whileFresh: "skip",
+    backoff: { first: 10_000, max: 10_000, jitter: 0 },
+    minInterval: 1,
+  });
+  beacon.start();
+  await settle();
+  mock.resolve({
+    document: deploy("update-2"),
+    expiresAt: clock.now() + 600_000,
+  });
+  await settle();
+  clock.advance(1);
+  network.emit(false);
+  network.emit(true);
+  await settle();
+  mock.reject(new Error("503"));
+  await settle();
+
+  expect(beacon.route("bundle").state.get().observation).toMatchObject({
+    evidence: { freshness: "fresh" },
+  });
+
+  clock.advance(10_000);
+  await settle();
+
+  expect(mock.stats().reads).toBe(3);
+  expect(reasons()).toEqual(["startup", "reconnect", "retry"]);
+});
+
 test("TRIG-16 evidence that never expires is not fresh enough to skip a return", async () => {
   const { beacon, mock, clock, app } = create();
 
@@ -749,7 +783,7 @@ test("TRIG-18 a check starts when the authority's own expiresAt passes, without 
   await settle();
 
   expect(mock.stats().reads).toBe(2);
-  expect(reasons()).toEqual(["startup", "interval"]);
+  expect(reasons()).toEqual(["startup", "expiry"]);
 });
 
 test("TRIG-18 an expiry that nothing renewed does not start a check for every change after it", async () => {
@@ -766,7 +800,7 @@ test("TRIG-18 an expiry that nothing renewed does not start a check for every ch
   clock.advance(600_000);
   await settle();
 
-  expect(reasons()).toEqual(["startup", "interval"]);
+  expect(reasons()).toEqual(["startup", "expiry"]);
 
   // The check that the expiry started fails, and the evidence is still the expired one.
   mock.reject(new Error("503"));
@@ -780,7 +814,7 @@ test("TRIG-18 an expiry that nothing renewed does not start a check for every ch
   mock.reject(new Error("503"));
   await manual;
 
-  expect(reasons()).toEqual(["startup", "interval", "manual"]);
+  expect(reasons()).toEqual(["startup", "expiry", "manual"]);
 });
 
 test("TRIG-18 stopping takes the expiry listener back with the rest", async () => {

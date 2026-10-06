@@ -1,4 +1,5 @@
 import type { ReleaseScope } from "@priemskiyyy/beacon";
+import { createGate } from "@priemskiyyy/beacon/mock";
 
 import type { RemoteConfigModuleLike } from "src/types/RemoteConfigModuleLike";
 import type { RemoteValueLike } from "src/types/RemoteValueLike";
@@ -40,16 +41,6 @@ export type FakeOptions = {
   defaults?: Record<string, string>;
 };
 
-const createHold = () => {
-  const hold = { release: () => {}, promise: Promise.resolve() };
-
-  hold.promise = new Promise<void>((resolve) => {
-    hold.release = resolve;
-  });
-
-  return hold;
-};
-
 // A Remote Config SDK that keeps what the real web SDK does (firebase 12.19.0, read and run): a fetch inside the minimum interval is answered from its cache with no request and no new time, a fetch that reaches the server moves the time, an activated value is `remote`, an application default is `default` and any other key is `static`. As on a device, neither the time nor an activated value is there before the SDK is initialized.
 export const fakeRemoteConfig = ({
   now,
@@ -60,6 +51,7 @@ export const fakeRemoteConfig = ({
 }: FakeOptions) => {
   const calls = { ensureInitialized: 0, fetchAndActivate: 0, network: 0 };
   const log: string[] = [];
+  const gate = createGate();
 
   const state: {
     initialized: boolean;
@@ -69,7 +61,6 @@ export const fakeRemoteConfig = ({
     failure: Error | null;
     initFailure: Error | null;
     forced: Record<string, string>;
-    held: ReturnType<typeof createHold> | null;
   } = {
     initialized: false,
     fetchTime: stored === undefined ? never : stored.at,
@@ -78,7 +69,6 @@ export const fakeRemoteConfig = ({
     failure: null,
     initFailure: null,
     forced: {},
-    held: null,
   };
 
   const remoteConfig: FakeInstance = {
@@ -127,11 +117,7 @@ export const fakeRemoteConfig = ({
       calls.fetchAndActivate += 1;
       log.push("fetchAndActivate");
 
-      const { held } = state;
-
-      if (held !== null) {
-        await held.promise;
-      }
+      await gate.wait();
 
       const age = now() - state.fetchTime;
 
@@ -182,12 +168,7 @@ export const fakeRemoteConfig = ({
       state.forced[key] = source;
     },
     /** Holds the next fetch until `release`, as a slow network does. */
-    hold: () => {
-      state.held = createHold();
-    },
-    release: () => {
-      state.held?.release();
-      state.held = null;
-    },
+    hold: gate.hold,
+    release: gate.release,
   };
 };

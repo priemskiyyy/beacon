@@ -1,6 +1,9 @@
 import { Beacon, compareIdentities } from "@priemskiyyy/beacon";
-import type { JournalStorage } from "@priemskiyyy/beacon";
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import {
+  createMockJournalStorage,
+  createTestClock,
+  settle,
+} from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 
 import { codePushBundle } from "src/codePushBundle";
@@ -12,12 +15,6 @@ import {
   localPackage,
   SCOPE,
 } from "src/fakeCodePush.fixture";
-
-// Lets every queued promise continuation run before the test goes on.
-const settle = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
 
 type Options = {
   // The running bundle is read from CodePush too, so a test that watches the route's own reads leaves it out.
@@ -32,7 +29,9 @@ const create = ({ bundle = true }: Options = {}) => {
     scope: SCOPE,
     running: {
       boot: { id: "boot-1" },
-      ...(bundle ? { bundle: codePushBundle(fake.codePush) } : {}),
+      ...(bundle
+        ? { bundle: codePushBundle({ codePush: fake.codePush }) }
+        : {}),
     },
     routes: { update: codePushUpdates({ codePush: fake.codePush }) },
     clock,
@@ -1025,7 +1024,7 @@ test("the package a download prepared is named the way the bundle reader names i
 
   context.launchAgain();
 
-  const running = await codePushBundle(context.codePush)();
+  const running = await codePushBundle({ codePush: context.codePush })();
 
   expect(compareIdentities(prepared.release.identity, running.identity)).toBe(
     "same",
@@ -1034,22 +1033,15 @@ test("the package a download prepared is named the way the bundle reader names i
 
 test("the journal reads a reload back as reached when the next launch runs the staged package", async () => {
   const fake = fakeCodePush();
-  const records = new Map<string, string>();
-
-  const storage: JournalStorage = {
-    read: async (key) => records.get(key) ?? null,
-    write: async (key, value) => {
-      records.set(key, value);
-    },
-    remove: async (key) => {
-      records.delete(key);
-    },
-  };
+  const storage = createMockJournalStorage();
 
   const open = (boot: string) =>
     new Beacon({
       scope: SCOPE,
-      running: { boot: { id: boot }, bundle: codePushBundle(fake.codePush) },
+      running: {
+        boot: { id: boot },
+        bundle: codePushBundle({ codePush: fake.codePush }),
+      },
       routes: { update: codePushUpdates({ codePush: fake.codePush }) },
       journal: { mode: "required", storage },
       clock: createTestClock({ now: 1_000 }),
@@ -1110,7 +1102,7 @@ test("the route calls only the members its type lists, and checks with no argume
 
   const beacon = new Beacon({
     scope: SCOPE,
-    running: { boot: { id: "boot-1" }, bundle: codePushBundle(codePush) },
+    running: { boot: { id: "boot-1" }, bundle: codePushBundle({ codePush }) },
     routes: { update: codePushUpdates({ codePush }) },
     clock: createTestClock({ now: 1_000 }),
   });

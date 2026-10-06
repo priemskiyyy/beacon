@@ -132,7 +132,7 @@ test("the marketing version an iOS binary reports is the fact the App Store adap
     application,
     platform: "ios",
     authority: SCOPE.application,
-  })();
+  })({ scope: SCOPE });
 
   expect(appleMarketingVersion(release)).toBe("2.5.0");
 });
@@ -140,7 +140,9 @@ test("the marketing version an iOS binary reports is the fact the App Store adap
 test("a binary that gave no marketing version has no order for the App Store adapter", async () => {
   const { application } = fakeApplication({ version: null });
 
-  const release = await expoApplication({ application, platform: "ios" })();
+  const release = await expoApplication({ application, platform: "ios" })({
+    scope: SCOPE,
+  });
 
   expect(appleMarketingVersion(release)).toBeNull();
 });

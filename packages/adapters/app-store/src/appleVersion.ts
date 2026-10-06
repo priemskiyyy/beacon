@@ -12,7 +12,7 @@ import { parseAppleVersion } from "src/utils/parseAppleVersion";
  *
  * @example
  * ```ts
- * newerRoute({ subject: "native", source, version: appleVersion(), current: appleMarketingVersion, mechanism });
+ * newerRoute({ source, version: appleVersion(), current: appleMarketingVersion, mechanism });
  * ```
  */
 export const appleVersion = () =>

@@ -51,7 +51,9 @@ expectTypeOf(appzung).toExtend<CodePushLike>();
 
 export const update = codePushUpdates({ codePush: microsoft });
 
-export const bundle: RunningReaders["bundle"] = codePushBundle(microsoft);
+export const bundle: RunningReaders["bundle"] = codePushBundle({
+  codePush: microsoft,
+});
 
 export const forks = [
   codePushUpdates({ codePush: revopush }),
@@ -69,6 +71,12 @@ codePushUpdates({ codePush: {} });
 
 // @ts-expect-error -- the SDK is required: this adapter imports nothing itself.
 codePushUpdates({});
+
+// @ts-expect-error -- the reader takes the module in an object, as the route does.
+codePushBundle(microsoft);
+
+// @ts-expect-error -- the module is the SDK's, not a random object.
+codePushBundle({ codePush: {} });
 
 declare const like: CodePushLike;
 

@@ -2,7 +2,7 @@ import type { ParseStandardManifestOptions } from "src/types/ParseStandardManife
 import type { RouteDeclarations } from "src/types/RouteDeclarations";
 import type { StandardRead } from "src/types/StandardRead";
 import { assertScope } from "src/utils/assertScope";
-import { DEFAULT_LIMITS, SCHEMA_VERSION } from "src/utils/constants/limits";
+import { SCHEMA_VERSION } from "src/utils/constants/limits";
 import { fingerprint } from "src/utils/fingerprint";
 import { invalidManifest } from "src/utils/invalidManifest";
 import { measureBytes } from "src/utils/measureBytes";
@@ -12,6 +12,7 @@ import { readRecord } from "src/utils/readRecord";
 import { readRevision } from "src/utils/readRevision";
 import { readRoutes } from "src/utils/readRoutes";
 import { readSupport } from "src/utils/readSupport";
+import { resolveLimits } from "src/utils/resolveLimits";
 
 const parseJson = (text: string): unknown => {
   try {
@@ -48,7 +49,7 @@ export const parseStandardManifest = <TDeclarations extends RouteDeclarations>({
   now,
   limits,
 }: ParseStandardManifestOptions<TDeclarations>): StandardRead<TDeclarations> => {
-  const bounds = { ...DEFAULT_LIMITS, ...limits };
+  const bounds = resolveLimits(limits);
 
   if (measureBytes(text) > bounds.bytes) {
     throw invalidManifest(`The manifest is larger than ${bounds.bytes} bytes.`);

@@ -24,3 +24,12 @@ test("anything else breaks the grammar and is refused, not guessed", () => {
     );
   }
 });
+
+test("the message of a refusal names a long value by its beginning, since the value comes from a response and the message is published", () => {
+  expect(() => parseAppleVersion("9".repeat(100_000))).toThrow(
+    expect.objectContaining({
+      code: "INVALID_VERSION",
+      message: expect.stringMatching(/^.{0,120}$/),
+    }),
+  );
+});

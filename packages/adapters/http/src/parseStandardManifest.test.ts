@@ -524,6 +524,37 @@ describe("a manifest beyond its bounds is refused", () => {
     expect(parseWithin(VALID, VALID.length).document).toBeDefined();
   });
 
+  test("a limit given as undefined is its default, so an unset variable never turns a limit off", () => {
+    // A consumer without exactOptionalPropertyTypes can write `{ bytes: undefined }`, and the spread would let it replace the default.
+    const limits = {};
+
+    Reflect.set(limits, "bytes", undefined);
+    Reflect.set(limits, "lifetime", undefined);
+    Reflect.set(limits, "skew", undefined);
+
+    const parseWith = (text: string) =>
+      parseStandardManifest({
+        text,
+        scope: SCOPE,
+        routes: ROUTES,
+        now: NOW,
+        limits,
+      });
+
+    const large = manifestWith((manifest) => {
+      manifest["note"] = "x".repeat(300_000);
+    });
+
+    expect(() => parseWith(large)).toThrow(/larger than 262144 bytes/);
+    expect(() =>
+      parseWith(withTimes("2026-09-28T10:00:00Z", "2026-09-28T10:10:00Z")),
+    ).toThrow(/issued more than 300000 milliseconds ahead/);
+    expect(
+      parseWith(manifestWith((manifest) => delete manifest["expiresAt"]))
+        .expiresAt,
+    ).toBe(NOW + 86_400_000);
+  });
+
   test("HTTP-12 counted in bytes, not characters", () => {
     const text = manifestWith((manifest) => {
       manifest["note"] = "é".repeat(100);

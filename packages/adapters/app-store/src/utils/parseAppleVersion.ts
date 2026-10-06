@@ -9,9 +9,10 @@ export const parseAppleVersion = (input: string): AppleVersion => {
   const match = GRAMMAR.exec(input);
 
   if (match === null) {
+    // The value comes from a response and the message is published, so a long one is named by its beginning, as the core's strategies do.
     throw new BeaconError({
       code: "INVALID_VERSION",
-      message: `The value "${input}" is not a valid Apple marketing version.`,
+      message: `The value "${input.slice(0, 32)}" is not a valid Apple marketing version.`,
     });
   }
 

@@ -4,9 +4,9 @@ import type { HttpAnswer } from "src/types/HttpAnswer";
 import type { ReadStandardManifestOptions } from "src/types/ReadStandardManifestOptions";
 import type { RouteDeclarations } from "src/types/RouteDeclarations";
 import type { StandardManifest } from "src/types/StandardManifest";
-import { DEFAULT_LIMITS } from "src/utils/constants/limits";
 import { REFUSED_STATUSES } from "src/utils/constants/statuses";
 import { invalidManifest } from "src/utils/invalidManifest";
+import { resolveLimits } from "src/utils/resolveLimits";
 import { parseStandardManifest } from "src/parseStandardManifest";
 
 const isJson = (contentType: string | null) => {
@@ -71,7 +71,7 @@ export const readStandardManifest = async <
     throw invalidManifest("The manifest is not a JSON response.");
   }
 
-  const bounds = { ...DEFAULT_LIMITS, ...limits };
+  const bounds = resolveLimits(limits);
 
   // A declared length over the limit is refused without reading the body. With none declared the text is read whole and its size is checked as it is parsed.
   if (Number(response.headers.get("content-length")) > bounds.bytes) {

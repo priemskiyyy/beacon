@@ -56,7 +56,7 @@ const web = targetRoute({
 | `changed`      | the validated `document`, its `validator` for the next read, and the evidence Beacon judges it by: `revision`, `digest`, `issuer`, `expiresAt` |
 | `not-modified` | the document this source holds is still the authority's answer. It renews that document; with a new `expiresAt` it also moves the expiry       |
 
-A `not-modified` without an `expiresAt` keeps the old expiry, so an answer is never fresher than the backend said. A `not-modified` when this source holds nothing to renew, such as after the scope changed, fails the read: it never invents a document.
+A `not-modified` without an `expiresAt` keeps the old expiry, so an answer is never fresher than the backend said. A `not-modified` when this source holds nothing to renew, such as after the scope changed, fails the read: it never invents a document. An answer of any other status, which a client without types can still give, fails the read too and renews nothing.
 
 ## Partitions
 
@@ -131,6 +131,19 @@ const web = targetRoute({
         },
         "label": "September recovery release",
         "metadata": { "releaseNotesKey": "recovery-208" }
+      }
+    },
+    "binary": {
+      "kind": "candidate",
+      "release": {
+        "identity": {
+          "status": "known",
+          "authority": "com.example.notes",
+          "domain": "native-ios-build",
+          "value": "ios-build-9"
+        },
+        "label": "2.5.0",
+        "order": "2.5.0"
       }
     }
   },

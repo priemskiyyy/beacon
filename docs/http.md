@@ -56,7 +56,7 @@ export const manifest = http({
 | `changed`      | the validated `document`, its `validator` for the next read, and the evidence Beacon judges it by: `revision`, `digest`, `issuer`, `expiresAt` |
 | `not-modified` | the document this source holds is still the authority's answer. It renews that document; with a new `expiresAt` it also moves the expiry       |
 
-A `not-modified` without an `expiresAt` keeps the old expiry, so an answer is never fresher than the backend said. A `not-modified` when the source holds nothing to renew, such as after the scope changed, fails the read with `SOURCE_FAILED`. It never invents a document.
+A `not-modified` without an `expiresAt` keeps the old expiry, so an answer is never fresher than the backend said. A `not-modified` when the source holds nothing to renew, such as after the scope changed, fails the read with `SOURCE_FAILED`. It never invents a document. An answer of any other status, which a client without types can still give, fails the read the same way and renews nothing.
 
 The source remembers the last answer it accepted, only for the scope it was read for. The `validator` you receive is the one of that scope, so a validator or a document never crosses from one account to another. See [scopes](scopes.md#partitions).
 

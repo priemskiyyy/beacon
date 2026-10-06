@@ -39,7 +39,7 @@ export const web = targetRoute({
 });
 
 http({
-  // @ts-expect-error -- an answer is changed or not modified.
+  // @ts-expect-error -- an answer is changed or not modified (a client without types is still refused at run time).
   fetch: () => ({ status: "unchanged" }),
 });
 

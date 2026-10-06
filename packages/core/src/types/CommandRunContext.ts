@@ -1,3 +1,5 @@
+import type { CommandParameters } from "src/types/CommandParameters";
+
 /**
  * What every command receives besides its references: the provider's native
  * handle, a signal that aborts the wait for it, and the parameters its caller
@@ -10,7 +12,10 @@
  * };
  * ```
  */
-export type CommandRunContext<TNative, TParameters extends object> = {
+export type CommandRunContext<
+  TNative,
+  TParameters extends CommandParameters,
+> = {
   native: TNative;
   signal: AbortSignal;
   parameters: TParameters;

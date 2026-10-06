@@ -1,3 +1,4 @@
+import type { CommandParameters } from "src/types/CommandParameters";
 import type { CommandRunContext } from "src/types/CommandRunContext";
 import type { Impact } from "src/types/Impact";
 import type { ProviderResult } from "src/types/ProviderResult";
@@ -35,7 +36,7 @@ export type CommandDescriptor<
   TNative,
   TOffer extends RouteBody,
   TPrepared extends RouteBody,
-  TParameters extends object,
+  TParameters extends CommandParameters,
   TReceipt extends { kind: string },
 > =
   | (CommandDeclaration & {

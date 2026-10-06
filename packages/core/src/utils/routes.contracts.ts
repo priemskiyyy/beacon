@@ -216,6 +216,7 @@ declare const playOffer: OfferReference<"binary">;
 export const started = playHandle.startUpdate({
   offer: playOffer,
   flow: "flexible",
+  signal: new AbortController().signal,
 });
 
 // @ts-expect-error The flow is a required parameter of the command.
@@ -228,4 +229,26 @@ export const orderStrategy = custom({
   name: "trains",
   parse: (input: string) => input,
   compare: () => "equal",
+});
+
+createUpdateMechanism({
+  name: "reserved",
+  open: () => ({ native: browser }),
+  commands: {
+    hijack: {
+      reference: "none",
+      impacts: [],
+      binding: "provider-current",
+      run: async ({
+        parameters,
+        // @ts-expect-error A command cannot declare a parameter named after a Beacon key.
+      }: CommandRunContext<Browser, { signal: string }>): Promise<
+        ProviderResult<ReloadReceipt>
+      > => {
+        parameters.signal.trim();
+
+        return { status: "accepted", receipt: { kind: "reload-requested" } };
+      },
+    },
+  },
 });

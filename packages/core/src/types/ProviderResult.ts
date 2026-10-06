@@ -17,7 +17,7 @@ import type { BeaconErrorInfo } from "src/types/BeaconErrorInfo";
  */
 export type ProviderResult<TReceipt extends { kind: string }> =
   | { status: "accepted"; receipt: TReceipt }
-  | { status: "stale"; reason: string }
+  | { status: "stale" }
   | { status: "unsupported"; reason: string }
   | { status: "cancelled"; stage: string }
   | { status: "failed"; error: BeaconErrorInfo }

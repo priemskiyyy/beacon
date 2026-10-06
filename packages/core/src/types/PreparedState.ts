@@ -1,5 +1,5 @@
 import type { Prepared } from "src/types/Prepared";
-import type { Release } from "src/types/Release";
+import type { RouteBody } from "src/types/RouteBody";
 
 /**
  * Whether the provider reports something ready. It is kept apart from the
@@ -12,10 +12,7 @@ import type { Release } from "src/types/Release";
  * const { prepared } = beacon.route("ota").state.get();
  * ```
  */
-export type PreparedState<
-  TRoute extends string,
-  TBody extends { release: Release<object | null> },
-> =
+export type PreparedState<TRoute extends string, TBody extends RouteBody> =
   | { status: "not-applicable" }
   | { status: "unknown" }
   | { status: "none"; observedAt: number }

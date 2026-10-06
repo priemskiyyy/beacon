@@ -1,16 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import type { VersionStrategy } from "src/types/VersionStrategy";
-
-/** What a strategy's conformance suite is run over. */
-export type VersionStrategyConformanceOptions<TParsed, TInput> = {
-  name: string;
-  create: () => VersionStrategy<TParsed, TInput>;
-  /** Inputs the strategy must accept, from oldest to newest, at least two. */
-  ascending: TInput[];
-  /** Inputs the strategy must reject by throwing. */
-  invalid: TInput[];
-};
+import type { VersionStrategyConformanceOptions } from "src/testing/types/VersionStrategyConformanceOptions";
 
 /**
  * Registers the contract every version strategy keeps: the same input

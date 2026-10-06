@@ -9,7 +9,7 @@ import type { SourceReadContext } from "src/types/SourceReadContext";
  *
  * @example
  * ```ts
- * const manifest = createReleaseSource({ name: "release-manifest", read });
+ * const manifest = createReleaseSource<Manifest>({ name: "release-manifest", read });
  * const web = manifest.select((document) => document.routes.web);
  * ```
  */

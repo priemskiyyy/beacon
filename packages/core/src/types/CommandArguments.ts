@@ -20,16 +20,16 @@ type CommandControl = {
  */
 export type CommandArguments<
   TRoute extends string,
-  TRequirement,
+  TReference,
   TParameters extends CommandParameters,
-> = TRequirement extends "offer"
+> = TReference extends "offer"
   ? [input: { offer: OfferReference<TRoute> } & CommandControl & TParameters]
-  : TRequirement extends "prepared"
+  : TReference extends "prepared"
     ? [
         input: { prepared: PreparedReference<TRoute> } & CommandControl &
           TParameters,
       ]
-    : TRequirement extends "optional-offer"
+    : TReference extends "optional-offer"
       ? [
           input?: { offer?: OfferReference<TRoute> } & CommandControl &
             TParameters,

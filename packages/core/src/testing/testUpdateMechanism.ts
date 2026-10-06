@@ -1,37 +1,15 @@
 import { describe, expect, test } from "vitest";
 
+import type { UpdateMechanismConformanceOptions } from "src/testing/types/UpdateMechanismConformanceOptions";
 import type { CommandMap } from "src/types/CommandMap";
 import type { RouteBody } from "src/types/RouteBody";
-import type { UpdateMechanism } from "src/types/UpdateMechanism";
-import { expectValidCommands } from "src/testing/expectValidCommands";
-
-/** A mechanism under test, over a fake platform created for this test alone. */
-export type UpdateMechanismFixture<
-  TNative extends object,
-  TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
-> = {
-  mechanism: UpdateMechanism<TNative, TCommands>;
-  /** How many times the mechanism has opened its platform. */
-  opens: () => number;
-  /** What the mechanism holds on the platform right now, such as listeners; leave it out when it holds nothing. */
-  held?: () => number;
-};
-
-/** What a mechanism's conformance suite is run over. */
-export type UpdateMechanismConformanceOptions<
-  TNative extends object,
-  TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
-> = {
-  name: string;
-  create: () => UpdateMechanismFixture<TNative, TCommands>;
-};
 
 /**
  * Registers the contract every update mechanism keeps: it touches its
- * platform only when a session opens, every command declares a known
- * reference, binding and set of impacts, a session can be opened again after
- * it ended, and ending it releases what it held. Call it at the top level of
- * `src/conformance.test.ts`, over a fake platform.
+ * platform only when a session opens, a session can be opened again after it
+ * ended, and ending it releases what it held. Call it at the top level of
+ * `src/conformance.test.ts`, over a fake platform. What its commands declare
+ * is the types' to check, not this suite's.
  *
  * It cannot check what a command really does to the platform, or that its
  * receipt claims no more than was observed: keep those in the adapter's own
@@ -40,11 +18,17 @@ export type UpdateMechanismConformanceOptions<
  * @example
  * ```ts
  * testUpdateMechanism({
- *   name: "browser-reload",
+ *   name: "relaunch",
  *   create: () => {
- *     const location = fakeLocation();
+ *     let opened = 0;
  *
- *     return { mechanism: browserReload({ location }), opens: location.reads };
+ *     const mechanism = relaunch(() => {
+ *       opened += 1;
+ *
+ *       return { relaunch: () => {} };
+ *     });
+ *
+ *     return { mechanism, opens: () => opened };
  *   },
  * });
  * ```
@@ -69,11 +53,7 @@ export const testUpdateMechanism = <
       expect(opens()).toBe(0);
     });
 
-    test("every command declares a known reference, binding and impacts", () => {
-      expectValidCommands(create().mechanism.commands);
-    });
-
-    test("opening gives a native handle, and it can be opened again after it ended", () => {
+    test("it can be opened again after it ended", () => {
       const { mechanism, opens } = create();
 
       const first = mechanism.open();

@@ -4,7 +4,10 @@
  *
  * @example
  * ```ts
- * const relation: IdentityRelation = compareIdentities(running, target);
+ * const relation: IdentityRelation = compareIdentities(
+ *   BUILD_IDENTITY,
+ *   observation.offer.release.identity,
+ * );
  * ```
  */
 export type IdentityRelation = "same" | "different" | "incomparable";

@@ -11,6 +11,15 @@ const assertForward = (milliseconds: number) => {
   throw new Error("A test clock moves forward by zero or more milliseconds.");
 };
 
+// A platform timer treats a delay that is not positive, such as NaN, as none.
+const toDelay = (milliseconds: number) => {
+  if (milliseconds > 0) {
+    return milliseconds;
+  }
+
+  return 0;
+};
+
 /**
  * A manual clock that starts at the given epoch and monotonic times, zero by
  * default, and runs its timers only when a test advances it.
@@ -68,7 +77,7 @@ export const createTestClock = ({
 
       const id = nextId;
 
-      timers.set(id, { id, at: monotonic + Math.max(delay, 0), callback });
+      timers.set(id, { id, at: monotonic + toDelay(delay), callback });
 
       return () => {
         timers.delete(id);

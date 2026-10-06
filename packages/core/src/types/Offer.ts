@@ -1,5 +1,5 @@
 import type { OfferReference } from "src/types/OfferReference";
-import type { Release } from "src/types/Release";
+import type { RouteBody } from "src/types/RouteBody";
 
 /**
  * The route's current actionable or informational interpretation of what an
@@ -16,7 +16,6 @@ import type { Release } from "src/types/Release";
  * }
  * ```
  */
-export type Offer<
-  TRoute extends string,
-  TBody extends { release: Release<object | null> },
-> = { ref: OfferReference<TRoute> } & TBody;
+export type Offer<TRoute extends string, TBody extends RouteBody> = {
+  ref: OfferReference<TRoute>;
+} & TBody;

@@ -1,5 +1,4 @@
-import type { SourceRead } from "src/types/SourceRead";
-import type { SourceReadContext } from "src/types/SourceReadContext";
+import type { ReleaseSource } from "src/types/ReleaseSource";
 
 /**
  * A custom backend as a source: a name for diagnostics and a `read` that
@@ -16,7 +15,7 @@ import type { SourceReadContext } from "src/types/SourceReadContext";
  * };
  * ```
  */
-export type ReleaseSourceOptions<TDocument> = {
-  name: string;
-  read: (context: SourceReadContext) => Promise<SourceRead<TDocument>>;
-};
+export type ReleaseSourceOptions<TDocument> = Omit<
+  ReleaseSource<TDocument>,
+  "select"
+>;

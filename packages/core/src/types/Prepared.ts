@@ -1,5 +1,5 @@
 import type { PreparedReference } from "src/types/PreparedReference";
-import type { Release } from "src/types/Release";
+import type { RouteBody } from "src/types/RouteBody";
 
 /**
  * Something the provider reports as ready for a later step, such as a
@@ -15,7 +15,6 @@ import type { Release } from "src/types/Release";
  * }
  * ```
  */
-export type Prepared<
-  TRoute extends string,
-  TBody extends { release: Release<object | null> },
-> = { ref: PreparedReference<TRoute> } & TBody;
+export type Prepared<TRoute extends string, TBody extends RouteBody> = {
+  ref: PreparedReference<TRoute>;
+} & TBody;

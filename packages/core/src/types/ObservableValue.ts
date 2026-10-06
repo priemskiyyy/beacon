@@ -7,10 +7,10 @@
  *
  * @example
  * ```ts
- * const stop = beacon.state.subscribe(() => {
- *   console.info(beacon.state.get().revision);
+ * const stop = beacon.running.subscribe(() => {
+ *   console.info(beacon.running.get().revision);
  * });
- * const beforeAnySession = beacon.state.getInitial();
+ * const beforeAnySession = beacon.running.getInitial();
  * ```
  */
 export type ObservableValue<TValue> = {

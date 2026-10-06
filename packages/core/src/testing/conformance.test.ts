@@ -3,9 +3,12 @@ import { testReleaseDriver } from "src/testing/testReleaseDriver";
 import { testReleaseSource } from "src/testing/testReleaseSource";
 import { testUpdateMechanism } from "src/testing/testUpdateMechanism";
 import { testVersionStrategy } from "src/testing/testVersionStrategy";
+import type { Release } from "src/types/Release";
+import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import { createHeldMechanism } from "src/utils/commands.fixture";
 import { createReleaseDriver } from "src/utils/createReleaseDriver";
 import { createReleaseSource } from "src/utils/createReleaseSource";
+import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
 import { integer } from "src/utils/versions/integer";
 import { semver } from "src/utils/versions/semver";
 
@@ -68,6 +71,27 @@ testVersionStrategy({
   invalid: [-1, 1.5],
 });
 
+// A platform that reports its changes to whoever listens, and counts them.
+const createFakePlatform = () => {
+  const listeners = new Set<() => void>();
+
+  return {
+    listeners: () => listeners.size,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    update: () => {
+      for (const listener of [...listeners]) {
+        listener();
+      }
+    },
+  };
+};
+
 testUpdateMechanism({
   name: "held",
   create: () => {
@@ -88,31 +112,30 @@ testUpdateMechanism({
   },
 });
 
-// A provider SDK that reports its changes to whoever listens.
-const createFakeProvider = () => {
-  const listeners = new Set<() => void>();
+testUpdateMechanism({
+  name: "one that listens while a session is open",
+  create: () => {
+    const platform = createFakePlatform();
+    const opened = { count: 0 };
 
-  return {
-    listeners: () => listeners.size,
-    subscribe: (listener: () => void) => {
-      listeners.add(listener);
+    const mechanism = createUpdateMechanism({
+      name: "listening",
+      open: () => {
+        opened.count += 1;
 
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-    update: () => {
-      for (const listener of [...listeners]) {
-        listener();
-      }
-    },
-  };
-};
+        return { native: platform, dispose: platform.subscribe(() => {}) };
+      },
+      commands: {},
+    });
+
+    return { mechanism, opens: () => opened.count, held: platform.listeners };
+  },
+});
 
 testReleaseDriver({
   name: "fake provider",
   create: () => {
-    const provider = createFakeProvider();
+    const provider = createFakePlatform();
 
     const route = createReleaseDriver({
       name: "fake-provider",
@@ -142,4 +165,48 @@ testReleaseDriver({
 
     return { route, provider };
   },
+});
+
+// A provider that has a release to offer, and prepares it and reports progress when it changes.
+const createPreparingDriver = (identity: ReleaseIdentity) => {
+  const provider = createFakePlatform();
+  const release: Release = { identity };
+
+  const route = createReleaseDriver({
+    name: "preparing-provider",
+    subject: "bundle",
+    prepares: true,
+    open: ({ emit }) => {
+      const unsubscribe = provider.subscribe(() => {
+        emit.progress(0.5);
+        emit.prepared({ status: "ready", value: { release } });
+      });
+
+      return {
+        native: provider,
+        check: async () => ({ status: "available", offer: { release } }),
+        dispose: unsubscribe,
+      };
+    },
+    commands: {},
+  });
+
+  return { route, provider };
+};
+
+testReleaseDriver({
+  name: "fake provider that prepares",
+  create: () =>
+    createPreparingDriver({
+      status: "known",
+      authority: "com.example.conformance",
+      domain: "bundle",
+      value: "bundle-2",
+    }),
+});
+
+testReleaseDriver({
+  name: "fake provider that cannot name its release",
+  create: () =>
+    createPreparingDriver({ status: "unknown", reason: "not-reported" }),
 });

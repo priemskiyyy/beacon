@@ -2,7 +2,7 @@ import type { CheckState } from "src/types/CheckState";
 import type { Observation } from "src/types/Observation";
 import type { OperationState } from "src/types/OperationState";
 import type { PreparedState } from "src/types/PreparedState";
-import type { Release } from "src/types/Release";
+import type { RouteBody } from "src/types/RouteBody";
 
 /**
  * Everything published about one route, in dimensions that never rewrite each
@@ -17,8 +17,8 @@ import type { Release } from "src/types/Release";
  */
 export type RouteSnapshot<
   TRoute extends string,
-  TOffer extends { release: Release<object | null> },
-  TPrepared extends { release: Release<object | null> },
+  TOffer extends RouteBody,
+  TPrepared extends RouteBody,
 > = {
   /** Grows with every meaningful change of this snapshot. */
   revision: number;

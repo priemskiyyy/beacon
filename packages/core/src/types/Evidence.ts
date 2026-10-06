@@ -9,7 +9,11 @@ import type { EvidenceOrigin } from "src/types/EvidenceOrigin";
  *
  * @example
  * ```ts
- * const { evidence } = beacon.route("web").state.get().observation;
+ * const { observation } = beacon.route("web").state.get();
+ *
+ * if (observation.status !== "unknown") {
+ *   console.info(observation.evidence.freshness);
+ * }
  * ```
  */
 export type Evidence = {

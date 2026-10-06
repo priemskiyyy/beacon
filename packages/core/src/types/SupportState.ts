@@ -6,8 +6,10 @@ import type { SupportUnknownReason } from "src/types/SupportUnknownReason";
 /**
  * Everything published about support, in dimensions that never rewrite each
  * other. `status` is what is in force: the last evaluation's, unless its
- * policy lapsed or failed to evaluate, which makes it unknown and keeps that
- * evaluation beside it. A failing check, or a failing evaluation, never turns
+ * policy lapsed, which makes it unknown and keeps that evaluation beside it.
+ * A policy that fails to evaluate leaves the last valid evaluation in force and
+ * reports the failure in `error`; with none to keep, support is unknown for
+ * `evaluation-failed`. A failing check, or a failing evaluation, never turns
  * `supported` into `unsupported`, and a dismissal never changes it at all.
  *
  * @example

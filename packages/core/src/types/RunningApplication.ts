@@ -1,9 +1,10 @@
 import type { RunningFact } from "src/types/RunningFact";
+import type { RunningSubject } from "src/types/RunningSubject";
 
 /**
- * The composite of what is executing. It grows a `revision` with every change
- * of a fact, and only a local reader changes one: an offer, a download or a
- * reload request never does.
+ * The composite of what is executing: a fact for each subject. It grows a
+ * `revision` with every change of a fact, and only a local reader changes one:
+ * an offer, a download or a reload request never does.
  *
  * @example
  * ```ts
@@ -13,8 +14,4 @@ import type { RunningFact } from "src/types/RunningFact";
 export type RunningApplication = {
   boot: { id: string };
   revision: number;
-  native: RunningFact;
-  bundle: RunningFact;
-  web: RunningFact;
-  worker: RunningFact;
-};
+} & Record<RunningSubject, RunningFact>;

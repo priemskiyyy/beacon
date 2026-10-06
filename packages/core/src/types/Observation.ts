@@ -2,7 +2,7 @@ import type { Evidence } from "src/types/Evidence";
 import type { InconclusiveReason } from "src/types/InconclusiveReason";
 import type { NoOfferReason } from "src/types/NoOfferReason";
 import type { Offer } from "src/types/Offer";
-import type { Release } from "src/types/Release";
+import type { RouteBody } from "src/types/RouteBody";
 import type { UnknownReason } from "src/types/UnknownReason";
 
 /**
@@ -20,10 +20,7 @@ import type { UnknownReason } from "src/types/UnknownReason";
  * }
  * ```
  */
-export type Observation<
-  TRoute extends string,
-  TBody extends { release: Release<object | null> },
-> =
+export type Observation<TRoute extends string, TBody extends RouteBody> =
   | { status: "unknown"; reason: UnknownReason }
   | {
       status: "none";

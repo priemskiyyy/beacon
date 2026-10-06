@@ -28,19 +28,11 @@ export const createMockSource = <TDocument>({
   const held: Array<HeldRead<TDocument>> = [];
 
   let answer: SourceRead<TDocument> | null = null;
-  let aborted = 0;
 
   const source = createReleaseSource<TDocument>({
     name,
     read: (context) => {
       contexts.push(context);
-      context.signal.addEventListener(
-        "abort",
-        () => {
-          aborted += 1;
-        },
-        { once: true },
-      );
 
       if (answer !== null) {
         return Promise.resolve(answer);
@@ -77,7 +69,7 @@ export const createMockSource = <TDocument>({
     stats: (): MockSourceStats => ({
       reads: contexts.length,
       held: held.length,
-      aborted,
+      aborted: contexts.filter(({ signal }) => signal.aborted).length,
     }),
   });
 };

@@ -1,24 +1,10 @@
 import { describe, expect, test } from "vitest";
 
+import type { ReleaseSourceConformanceOptions } from "src/testing/types/ReleaseSourceConformanceOptions";
+import type { ReleaseSourceFixture } from "src/testing/types/ReleaseSourceFixture";
 import type { DecisionRevision } from "src/types/DecisionRevision";
 import type { ReleaseScope } from "src/types/ReleaseScope";
-import type { ReleaseSource } from "src/types/ReleaseSource";
 import type { SourceRead } from "src/types/SourceRead";
-
-/** A source under test, over a fake backend created for this test alone. */
-export type ReleaseSourceFixture<TDocument> = {
-  source: ReleaseSource<TDocument>;
-  /** How many requests the source has made of its backend. */
-  reads: () => number;
-};
-
-/** What a source's conformance suite is run over. */
-export type ReleaseSourceConformanceOptions<TDocument> = {
-  name: string;
-  create: () => ReleaseSourceFixture<TDocument>;
-  /** The scope the source is read for, when it speaks for one distribution only. */
-  scope?: ReleaseScope;
-};
 
 const DEFAULT_SCOPE: ReleaseScope = {
   application: "com.example.conformance",

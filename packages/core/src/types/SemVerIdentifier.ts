@@ -7,5 +7,4 @@
  * const identifier: SemVerIdentifier = { kind: "numeric", value: "12" };
  * ```
  */
-export type SemVerIdentifier =
-  { kind: "numeric"; value: string } | { kind: "text"; value: string };
+export type SemVerIdentifier = { kind: "numeric" | "text"; value: string };

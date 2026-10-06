@@ -1,4 +1,5 @@
 import type { RunningReader } from "src/types/RunningReader";
+import type { RunningSubject } from "src/types/RunningSubject";
 
 /**
  * Where the running facts come from. `boot.id` names this executing document
@@ -10,10 +11,6 @@ import type { RunningReader } from "src/types/RunningReader";
  * const running: RunningReaders = { boot: { id: BOOT_ID }, web: readWebRelease };
  * ```
  */
-export type RunningReaders = {
-  boot: { id: string };
-  native?: RunningReader;
-  bundle?: RunningReader;
-  web?: RunningReader;
-  worker?: RunningReader;
-};
+export type RunningReaders = { boot: { id: string } } & Partial<
+  Record<RunningSubject, RunningReader>
+>;

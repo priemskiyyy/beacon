@@ -1,7 +1,7 @@
 import type { Reconciliation } from "src/types/Reconciliation";
 
 /**
- * What the journal knows. `journal` says whether it is `off`, being `read`,
+ * What the journal knows. `journal` says whether it is `off`, `reading`,
  * `ready`, or `degraded` because a read or a write failed, which narrows what
  * can be correlated across boots. `latest` is the most recent intent and what
  * the running facts say about it, `dropped` counts the older intents the

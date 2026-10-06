@@ -5,7 +5,11 @@
  *
  * @example
  * ```ts
- * const reference: PreparedReference<"ota"> = prepared.prepared.ref;
+ * const { prepared } = beacon.route("ota").state.get();
+ *
+ * if (prepared.status === "ready") {
+ *   const reference: PreparedReference<"ota"> = prepared.value.ref;
+ * }
  * ```
  */
 export type PreparedReference<TRoute extends string> = {

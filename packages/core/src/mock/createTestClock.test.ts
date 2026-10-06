@@ -78,6 +78,17 @@ test("an overdue timer runs at the time it runs, never back at its due time", ()
   expect(seen).toEqual([1_000]);
 });
 
+test("a timer armed with a delay that is not a number of milliseconds runs at once, as a platform timer does", () => {
+  const clock = createTestClock();
+  const log: string[] = [];
+
+  clock.setTimer(() => log.push("ran"), Number.NaN);
+  clock.advance(0);
+
+  expect(log).toEqual(["ran"]);
+  expect(clock.monotonic()).toBe(0);
+});
+
 test("time never moves backwards or by a duration that is not a number of milliseconds", () => {
   const clock = createTestClock();
 

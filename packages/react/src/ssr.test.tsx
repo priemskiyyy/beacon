@@ -36,7 +36,7 @@ test("the server renders the route as not checked and what runs as pending, and 
   expect(mock.stats().reads).toBe(0);
 });
 
-test("hydrating the server markup does not mismatch, and the session starts after hydration", async () => {
+test("BIND-08 hydrating the server markup does not mismatch, and the session starts after hydration", async () => {
   const { beacon, view } = create();
   const markup = renderToString(view);
   const container = document.createElement("div");
@@ -51,4 +51,16 @@ test("hydrating the server markup does not mismatch, and the session starts afte
 
   expect(errors).not.toHaveBeenCalled();
   expect(beacon.status.get()).toMatchObject({ state: "running" });
+});
+
+test("BIND-09 two server requests for different accounts share no session and no state", () => {
+  const first = create();
+  const second = create();
+
+  first.beacon.start();
+
+  expect(renderToString(second.view)).toContain("unknown/pending");
+  expect(second.beacon.status.get()).toEqual({ state: "idle" });
+  expect(first.beacon.status.get()).toMatchObject({ state: "running" });
+  expect(second.mock.stats().reads).toBe(0);
 });

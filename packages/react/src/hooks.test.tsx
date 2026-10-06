@@ -56,7 +56,7 @@ test("useRoute renders the offer once a check is accepted", async () => {
   });
 });
 
-test("useRoute with a selector renders again only when the selection changes", async () => {
+test("BIND-06 useRoute with a selector renders again only when the selection changes", async () => {
   const context = createWebBeacon();
   const web = context.beacon.route("web");
   const renders = { count: 0 };
@@ -159,8 +159,8 @@ test("the provider without start leaves the Beacon idle", () => {
   expect(beacon.status.get()).toEqual({ state: "idle" });
 });
 
-test("strict mode starts, stops and starts again, and leaves one session running", () => {
-  const { beacon } = createWebBeacon();
+test("BIND-07 strict mode starts, stops and starts again, and leaves one session running with no check or command", () => {
+  const { beacon, mock } = createWebBeacon();
 
   render(
     <StrictMode>
@@ -171,6 +171,7 @@ test("strict mode starts, stops and starts again, and leaves one session running
   );
 
   expect(beacon.status.get()).toMatchObject({ state: "running" });
+  expect(mock.stats().reads).toBe(0);
 });
 
 const draftEditor = (
@@ -299,4 +300,44 @@ test("useTransitions renders again when a checkpoint is reported", () => {
   });
 
   expect(result.current).toEqual(["primary-screen"]);
+});
+
+test("SAFE-14 a reservation a component held is released when the command ends, not when the component unmounts", async () => {
+  const { beacon } = createWebBeacon();
+  const released = { count: 0 };
+  const settling: { finish: () => void } = { finish: () => {} };
+
+  const { unmount } = renderHook(() =>
+    useDisruption(
+      {
+        name: "draft-editor",
+        impacts: ["document-replacement"],
+        reserve: () => ({
+          status: "reserved",
+          settle: () =>
+            new Promise((resolve) => {
+              settling.finish = () => resolve({ status: "ready" });
+            }),
+          release: () => {
+            released.count += 1;
+          },
+        }),
+      },
+      beacon,
+    ),
+  );
+
+  beacon.start();
+
+  const command = beacon.route("web").prefetch();
+
+  await flush();
+  unmount();
+
+  expect(released.count).toBe(0);
+
+  settling.finish();
+
+  await expect(command).resolves.toMatchObject({ status: "blocked" });
+  expect(released.count).toBe(1);
 });

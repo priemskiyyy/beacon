@@ -51,6 +51,13 @@ export const readStandardManifest = async <
 }: ReadStandardManifestOptions<TDeclarations>): Promise<
   HttpAnswer<StandardManifest<TDeclarations>>
 > => {
+  if (response.redirected === true) {
+    throw new BeaconError({
+      code: "SOURCE_FAILED",
+      message: "The manifest endpoint redirected, which this reader refuses.",
+    });
+  }
+
   if (response.status === 304) {
     return { status: "not-modified" };
   }
@@ -59,13 +66,6 @@ export const readStandardManifest = async <
     throw new BeaconError({
       code: "SOURCE_FAILED",
       message: `The manifest endpoint ${REFUSED_STATUSES.get(response.status) ?? `answered ${response.status}`}.`,
-    });
-  }
-
-  if (response.redirected === true) {
-    throw new BeaconError({
-      code: "SOURCE_FAILED",
-      message: "The manifest endpoint redirected, which this reader refuses.",
     });
   }
 

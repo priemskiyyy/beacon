@@ -138,6 +138,23 @@ describe("a redirected response is refused", () => {
 
     expect(response.reads).toBe(0);
   });
+
+  test("SEC-12 not even a not modified one, which would renew a document another URL vouched for", async () => {
+    const response = fakeResponse({ status: 304, redirected: true, text: "" });
+
+    await expect(read(response)).rejects.toMatchObject({
+      code: "SOURCE_FAILED",
+      message: "The manifest endpoint redirected, which this reader refuses.",
+    });
+  });
+
+  test("a redirect is named as one, not by the status it ended with", async () => {
+    const response = fakeResponse({ status: 404, redirected: true });
+
+    await expect(read(response)).rejects.toMatchObject({
+      message: "The manifest endpoint redirected, which this reader refuses.",
+    });
+  });
 });
 
 describe("a response over the size limit is not read", () => {

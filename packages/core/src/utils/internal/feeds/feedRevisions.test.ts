@@ -91,7 +91,7 @@ test("VER-15 the same decision again renews its evidence without a new revision"
     expiresAt: 3_000,
   });
 
-  expect(context.records).toContain("source-read-renewed");
+  expect(context.records).toContain("read-renewed");
   expect(context.feed.getAccepted()?.evidence).toMatchObject({
     receivedAt: 1_500,
     expiresAt: 3_000,

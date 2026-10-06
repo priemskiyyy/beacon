@@ -35,6 +35,10 @@ import { getSubject } from "src/utils/internal/routes/getSubject";
 
 type Admitted = Extract<CommandAdmission, { status: "admitted" }>;
 
+type Stopped = { status: "stopped"; outcome: CommandResult };
+
+type Prepared = { status: "prepared"; lease: Lease };
+
 /** Why the call stopped before the provider was asked, or what to dispatch. */
 type Verdict =
   | {
@@ -42,7 +46,12 @@ type Verdict =
       resolution: Extract<CommandResolution, { status: "resolved" }>;
       native: object;
     }
-  | { status: "stopped"; outcome: CommandResult };
+  | Stopped;
+
+const stopWith = (outcome: CommandResult): Stopped => ({
+  status: "stopped",
+  outcome,
+});
 
 /**
  * Carries out the commands of every route, one at a time per route and one
@@ -283,7 +292,7 @@ export class CommandCoordinator {
     input: CommandInput,
     controller: AbortController,
   ): Promise<CommandResult> {
-    const { entry, name, command } = target;
+    const { entry, name } = target;
 
     this.#publish(entry, {
       state: "running",
@@ -297,14 +306,41 @@ export class CommandCoordinator {
       operation: operation.id,
     });
 
+    const prepared = await this.#prepare(target, operation, input, controller);
+
+    if (prepared.status === "stopped") {
+      this.#release(operation);
+
+      return prepared.outcome;
+    }
+
+    // The last look and the dispatch share one turn: nothing can interleave between them.
+    const verdict = this.#revalidate(target, prepared.lease, input, controller);
+
+    if (verdict.status === "stopped") {
+      this.#release(operation);
+
+      return verdict.outcome;
+    }
+
+    return this.#dispatch(operation, verdict, controller);
+  }
+
+  // Everything up to the last look: room is made, and the intent is written.
+  async #prepare(
+    target: CommandTarget,
+    operation: CommandOperation,
+    input: CommandInput,
+    controller: AbortController,
+  ): Promise<Stopped | Prepared> {
     // Nobody is asked to make room for a command that cannot run.
     const opened = this.#open(target, controller);
 
     if (opened.status === "stopped") {
-      this.#release(operation);
-
-      return opened.outcome;
+      return opened;
     }
+
+    const { entry, name, command } = target;
 
     const reservation = this.#options.disruptions.reserve({
       route: entry.name,
@@ -313,9 +349,7 @@ export class CommandCoordinator {
     });
 
     if (reservation.status === "blocked") {
-      this.#release(operation);
-
-      return { status: "blocked", reasons: reservation.reasons };
+      return stopWith({ status: "blocked", reasons: reservation.reasons });
     }
 
     const { lease } = reservation;
@@ -328,15 +362,11 @@ export class CommandCoordinator {
     );
 
     if (settling.status === "aborted") {
-      this.#release(operation);
-
-      return { status: "cancelled", stage: "settling" };
+      return stopWith({ status: "cancelled", stage: "settling" });
     }
 
     if (settling.value.length > 0) {
-      this.#release(operation);
-
-      return { status: "blocked", reasons: settling.value };
+      return stopWith({ status: "blocked", reasons: settling.value });
     }
 
     const staged = await this.#stage(
@@ -348,21 +378,10 @@ export class CommandCoordinator {
     );
 
     if (staged !== null) {
-      this.#release(operation);
-
       return staged;
     }
 
-    // The last look and the dispatch share one turn: nothing can interleave between them.
-    const verdict = this.#revalidate(target, lease, input, controller);
-
-    if (verdict.status === "stopped") {
-      this.#release(operation);
-
-      return verdict.outcome;
-    }
-
-    return this.#dispatch(operation, verdict, controller);
+    return { status: "prepared", lease };
   }
 
   // A command that replaces the realm first looks again, then writes its intent, which takes time.
@@ -372,7 +391,7 @@ export class CommandCoordinator {
     lease: Lease,
     input: CommandInput,
     controller: AbortController,
-  ): Promise<CommandResult | null> {
+  ): Promise<Stopped | null> {
     if (!operation.replacesRealm) {
       return null;
     }
@@ -380,7 +399,7 @@ export class CommandCoordinator {
     const first = this.#revalidate(target, lease, input, controller);
 
     if (first.status === "stopped") {
-      return first.outcome;
+      return first;
     }
 
     return this.#persist(
@@ -397,7 +416,7 @@ export class CommandCoordinator {
     operation: CommandOperation,
     target: ReleaseIdentity | null,
     controller: AbortController,
-  ): Promise<CommandResult | null> {
+  ): Promise<Stopped | null> {
     const running = this.#options.getRunning();
     const subject = getSubject(entry.definition);
     const fact = running[subject];
@@ -417,45 +436,40 @@ export class CommandCoordinator {
     );
 
     if (written.status === "aborted") {
-      return { status: "cancelled", stage: "journaling" };
+      return stopWith({ status: "cancelled", stage: "journaling" });
     }
 
     if (written.value.status !== "failed") {
       return null;
     }
 
-    return { status: "failed", error: toErrorInfo(written.value.error) };
+    return stopWith({
+      status: "failed",
+      error: toErrorInfo(written.value.error),
+    });
   }
 
   // What has to hold for any command to run: the caller still waits, and the provider is open.
   #open(
     { entry }: CommandTarget,
     controller: AbortController,
-  ):
-    | Extract<Verdict, { status: "stopped" }>
-    | { status: "open"; native: object } {
+  ): Stopped | { status: "open"; native: object } {
     if (controller.signal.aborted) {
-      return {
-        status: "stopped",
-        outcome: { status: "cancelled", stage: "before-dispatch" },
-      };
+      return stopWith({ status: "cancelled", stage: "before-dispatch" });
     }
 
     const native = entry.record.native.get();
 
     if (native === null) {
-      return {
-        status: "stopped",
-        outcome: {
-          status: "failed",
-          error: toErrorInfo(
-            new BeaconError({
-              code: "DRIVER_FAILED",
-              message: "The provider is not open.",
-            }),
-          ),
-        },
-      };
+      return stopWith({
+        status: "failed",
+        error: toErrorInfo(
+          new BeaconError({
+            code: "DRIVER_FAILED",
+            message: "The provider is not open.",
+          }),
+        ),
+      });
     }
 
     return { status: "open", native };
@@ -482,17 +496,14 @@ export class CommandCoordinator {
     );
 
     if (resolution.status === "stale") {
-      return { status: "stopped", outcome: resolution };
+      return stopWith(resolution);
     }
 
     if (this.#options.disruptions.getRevision() !== lease.revision) {
-      return {
-        status: "stopped",
-        outcome: {
-          status: "blocked",
-          reasons: [{ code: SAFETY_CHANGED, participant: null }],
-        },
-      };
+      return stopWith({
+        status: "blocked",
+        reasons: [{ code: SAFETY_CHANGED, participant: null }],
+      });
     }
 
     return { status: "ready", resolution, native: opened.native };

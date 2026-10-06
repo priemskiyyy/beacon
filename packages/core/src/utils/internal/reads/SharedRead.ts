@@ -157,7 +157,16 @@ export class SharedRead<TAnswer, TAccepted> {
     }
 
     this.#finish(flight);
-    hooks.accepted(flight.attempt, accepted, flight.session);
+
+    // A hook that throws leaves nobody waiting forever: the read fails, and the next one still runs.
+    try {
+      hooks.accepted(flight.attempt, accepted, flight.session);
+    } catch (cause) {
+      this.#settleFailure(flight, toBeaconError(cause, errors.invalid));
+
+      return;
+    }
+
     this.#settle(flight.group, { status: "accepted", attempt: flight.attempt });
     this.#startTrailing(flight.session);
   }
@@ -172,6 +181,12 @@ export class SharedRead<TAnswer, TAccepted> {
     }
 
     this.#finish(flight);
+    this.#settleFailure(flight, error);
+  }
+
+  #settleFailure(flight: ReadFlight, error: BeaconError) {
+    const { hooks } = this.#options;
+
     hooks.record("read-failed", {
       attempt: flight.attempt,
       reason: error.code,

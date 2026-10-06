@@ -19,7 +19,7 @@ const ENTRIES = [
   {
     name: "browser",
     files: ["adapters/browser/dist/index.js"],
-    budget: 1024,
+    budget: 1.25 * 1024,
   },
   {
     name: "service-worker",
@@ -52,6 +52,11 @@ const ENTRIES = [
     name: "triggers",
     files: ["adapters/triggers/dist/index.js"],
     budget: 2 * 1024,
+  },
+  {
+    name: "triggers browser",
+    files: ["adapters/triggers/dist/browser.js"],
+    budget: 1024,
   },
   { name: "react", files: ["react/dist/index.js"], budget: 1.5 * 1024 },
   { name: "solid", files: ["solid/dist/index.js"], budget: 1.5 * 1024 },

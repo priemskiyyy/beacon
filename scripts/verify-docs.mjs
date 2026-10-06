@@ -157,6 +157,7 @@ const entries = [
   "packages/svelte/src/index.ts",
   "packages/devtools/src/index.ts",
   "packages/devtools/src/react.ts",
+  "packages/adapters/triggers/src/browser.ts",
   ...listAdapterEntries(),
 ];
 

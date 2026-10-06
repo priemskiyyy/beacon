@@ -432,15 +432,14 @@ See [Triggers](triggers.md).
 
 | Export                 | Kind     | What it is                                                                                         |
 | ---------------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `checkOn`              | function | checks the Beacon on the moments its triggers name, and answers its stop                           |
-| `startup`              | function | a trigger that checks once each time a session opens                                               |
+| `checkOn`              | function | checks the Beacon at startup and on the moments its triggers name, and answers its stop            |
 | `foreground`           | function | a trigger that checks when React Native's `AppState` comes back from the background                |
 | `pulseForeground`      | function | a trigger that checks when a Pulse says the app returned                                           |
 | `reconnect`            | function | a trigger that checks when NetInfo goes from not connected to connected                            |
 | `reachReconnect`       | function | a trigger that checks when a Reach condition goes from unmet to met                                |
 | `interval`             | function | a trigger that checks every delay after the last check that settled, paused in the background      |
 | `invalidation`         | function | a trigger that checks when a source says "look again", and never reads what it sends               |
-| `CheckOnOptions`       | type     | the triggers, the minimum interval, the backoff, the freshness rule, the expiry and the random     |
+| `CheckOnOptions`       | type     | the triggers, the startup check, the minimum interval, the backoff and the advanced options        |
 | `BeaconTrigger`        | type     | a moment to check on: installed with a target when a session opens, it answers how to take it back |
 | `TriggerTarget`        | type     | what a trigger is given: `signal`, the clock, the random source, and where the app is              |
 | `AppStateLike`         | type     | the part of React Native's `AppState` the `foreground` trigger uses                                |
@@ -448,6 +447,17 @@ See [Triggers](triggers.md).
 | `ForegroundSourceLike` | type     | what `pulseForeground` listens to: a Pulse satisfies it                                            |
 | `ConditionLike`        | type     | what `reachReconnect` listens to: a Reach condition satisfies it                                   |
 | `Subscribable`         | type     | anything that only says "look again", for `invalidation`                                           |
+
+## @priemskiyyy/beacon-triggers/browser
+
+See [Triggers](triggers.md#on-the-web).
+
+| Export                 | Kind     | What it is                                                                                 |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `foreground`           | function | a trigger that checks when the page is shown again or restored from the back-forward cache |
+| `reconnect`            | function | a trigger that checks when the browser fires `online`, and never at startup                |
+| `ForegroundWindowLike` | type     | the part of a window `foreground` uses: its document's visibility and the `pageshow` event |
+| `ReconnectWindowLike`  | type     | the part of a window `reconnect` uses: the `online` event                                  |
 
 ## @priemskiyyy/beacon-react
 

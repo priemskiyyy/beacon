@@ -136,6 +136,7 @@ const clockReads = toRestrictions([
 const entryPoints = [
   "packages/*/src/index.ts",
   "packages/adapters/*/src/index.ts",
+  "packages/adapters/triggers/src/browser.ts",
   "packages/core/src/mock.ts",
   "packages/core/src/testing.ts",
   "packages/core/src/versions.ts",
@@ -515,17 +516,23 @@ export default tseslint.config(
       files: [
         "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config,code-push,native,triggers}/src/**/*.ts",
       ],
+      // The browser triggers of the triggers package are the one part of it that reads a window.
+      ignores: ["packages/adapters/triggers/src/browser/**"],
       globals: [...hostGlobals, ...reactNativeGlobals],
       syntax: reactNativeSyntax,
     },
     {
-      files: ["packages/adapters/{browser,service-worker}/src/**/*.ts"],
+      files: [
+        "packages/adapters/{browser,service-worker}/src/**/*.ts",
+        "packages/adapters/triggers/src/browser/**/*.ts",
+      ],
+      ignores: [],
       globals: [],
       syntax: [],
     },
-  ].map(({ files, globals, syntax }) => ({
+  ].map(({ files, ignores, globals, syntax }) => ({
     files,
-    ignores: [...tests, ...entryPoints],
+    ignores: [...tests, ...entryPoints, ...ignores],
     rules: {
       ...restrictImports([...frameworks, sdks, testRunners]),
       "no-restricted-globals": [

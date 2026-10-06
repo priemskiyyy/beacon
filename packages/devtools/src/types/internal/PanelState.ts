@@ -1,3 +1,3 @@
 export type PanelState =
-  | { status: "OPEN"; autoFocus: boolean }
-  | { status: "CLOSED"; autoFocus: boolean; closedAfter: number };
+  | { status: "open"; autoFocus: boolean }
+  | { status: "closed"; autoFocus: boolean; closedAfter: number };

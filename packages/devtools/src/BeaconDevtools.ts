@@ -9,6 +9,24 @@ import type { ObservedBeacon } from "src/types/internal/ObservedBeacon";
 import { DEFAULT_MAX_EVENTS } from "src/utils/constants/defaults";
 import { EventLog } from "src/utils/EventLog";
 
+// The DOM refuses an element that cannot host a shadow root, such as an input, or one that already hosts a closed one.
+const openRoot = (element: HTMLElement) => {
+  if (element.shadowRoot !== null) {
+    return element.shadowRoot;
+  }
+
+  try {
+    return element.attachShadow({ mode: "open" });
+  } catch (cause) {
+    throw new BeaconError({
+      code: "INVALID_CONFIGURATION",
+      message:
+        "Beacon devtools cannot mount into an element that cannot host a shadow root.",
+      cause,
+    });
+  }
+};
+
 /**
  * A framework-independent inspector for one Beacon, rendered in a shadow root
  * so host styles never leak in or out. It reads the Beacon's snapshots and
@@ -27,8 +45,6 @@ import { EventLog } from "src/utils/EventLog";
 export class BeaconDevtools {
   #beacon: Accessor<ObservedBeacon>;
   #setBeacon: Setter<ObservedBeacon>;
-  #maxEvents: Accessor<number>;
-  #setMaxEvents: Setter<number>;
   #initialIsOpen: boolean;
   #log: EventLog;
   #dispose: (() => void) | null = null;
@@ -39,12 +55,9 @@ export class BeaconDevtools {
     maxEvents = DEFAULT_MAX_EVENTS,
   }: BeaconDevtoolsOptions) {
     const [currentBeacon, setBeacon] = createSignal(beacon);
-    const [currentMaxEvents, setMaxEvents] = createSignal(maxEvents);
 
     this.#beacon = currentBeacon;
     this.#setBeacon = setBeacon;
-    this.#maxEvents = currentMaxEvents;
-    this.#setMaxEvents = setMaxEvents;
     this.#initialIsOpen = initialIsOpen;
     this.#log = new EventLog(maxEvents);
   }
@@ -52,7 +65,8 @@ export class BeaconDevtools {
   /**
    * Renders the panel into a shadow root of `element`, which must be an
    * element that can host one, such as a `div`, and starts recording. Mounting
-   * again before `unmount()` throws a `BeaconError`.
+   * again before `unmount()`, or into an element that cannot host a shadow
+   * root, throws a `BeaconError`.
    *
    * @example
    * ```ts
@@ -67,13 +81,12 @@ export class BeaconDevtools {
       });
     }
 
-    const root = element.shadowRoot ?? element.attachShadow({ mode: "open" });
+    const root = openRoot(element);
 
     this.#dispose = render(
       () =>
         createComponent(Devtools, {
           beacon: this.#beacon,
-          maxEvents: this.#maxEvents,
           initialIsOpen: this.#initialIsOpen,
           log: this.#log,
         }),
@@ -122,6 +135,6 @@ export class BeaconDevtools {
    * ```
    */
   setMaxEvents = (maxEvents: number) => {
-    this.#setMaxEvents(maxEvents);
+    this.#log.setLimit(maxEvents);
   };
 }

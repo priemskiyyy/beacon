@@ -3,6 +3,7 @@ import { afterEach, expect, test } from "vitest";
 
 import { SECRETS, buildDocument, createLabBeacon } from "src/beacon.fixture";
 import { mountDevtools, settle } from "src/mountDevtools.fixture";
+import { spyOnBeacon } from "src/spyOnBeacon.fixture";
 import { stubClipboard } from "src/stubClipboard.fixture";
 import { PREFERENCES_KEY } from "src/utils/constants/defaults";
 
@@ -94,6 +95,20 @@ test("a provider's handle stays hidden until asked for, and secret-named propert
   ).toEqual({});
   expectNoSecrets(mounted);
   devtools.unmount();
+});
+
+test("a provider's handle is not even read while raw values are hidden, and is read once they are shown", async () => {
+  const { beacon } = await startedLab();
+  const spy = spyOnBeacon(beacon);
+  const mounted = mountDevtools({ beacon: spy.beacon, initialIsOpen: true });
+
+  fireEvent.click(mounted.view().getByRole("button", { name: /^ota/ }));
+  fireEvent.click(mounted.view().getByRole("button", { name: /^web/ }));
+  expect(spy.reads.natives).toBe(0);
+
+  fireEvent.click(toggle(mounted));
+  expect(spy.reads.natives).toBeGreaterThan(0);
+  mounted.devtools.unmount();
 });
 
 test("a route has no handle while no session is open", () => {

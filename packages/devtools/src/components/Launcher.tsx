@@ -20,7 +20,13 @@ export const Launcher = (props: LauncherProps) => {
       type="button"
       class="launcher"
       aria-label="Open Beacon devtools"
-      onClick={() => props.onOpen()}
+      // The dot says it in colour alone, so the words go where a hover and a screen reader find them.
+      title={
+        props.hasUnseenFailure
+          ? "A failure arrived while the panel was closed"
+          : `Session ${props.status}`
+      }
+      onClick={props.onOpen}
     >
       <BeaconIcon />
       <span>Beacon</span>

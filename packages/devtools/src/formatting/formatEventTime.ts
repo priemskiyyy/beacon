@@ -1,4 +1,4 @@
-import { isValidTime } from "src/utils/isValidTime";
+import { formatMoment } from "src/formatting/formatMoment";
 
 // Local time, like the browser console. The row title carries the UTC value.
 const eventTimeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -10,10 +10,5 @@ const eventTimeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 /** Local time of day with milliseconds. */
-export const formatEventTime = (timestamp: number) => {
-  if (!isValidTime(timestamp)) {
-    return "invalid time";
-  }
-
-  return eventTimeFormatter.format(timestamp);
-};
+export const formatEventTime = (timestamp: number) =>
+  formatMoment(timestamp, eventTimeFormatter.format);

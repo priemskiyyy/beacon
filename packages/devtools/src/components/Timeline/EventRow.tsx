@@ -15,7 +15,7 @@ export const EventRow = (props: EventRowProps) => {
   const [isOpen, setIsOpen] = createSignal(false);
 
   return (
-    <div class="event" data-failure={props.event.failure}>
+    <div class="event" role="listitem" data-failure={props.event.failure}>
       <button
         type="button"
         class="event-summary"

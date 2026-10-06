@@ -1,13 +1,14 @@
 // Typechecked, never run: the inspector takes any Beacon, whatever its routes, and
 // is typed down to what it reads, so it has nothing to start, stop, dispose or run.
 import type { Beacon } from "@priemskiyyy/beacon";
-import type { RouteDefinition } from "@priemskiyyy/beacon";
+import type { RouteDefinition, RunningSubject } from "@priemskiyyy/beacon";
 import { expectTypeOf } from "vitest";
 
 import type { LabBeacon } from "src/beacon.fixture";
 import { BeaconDevtools } from "src/BeaconDevtools";
 import type { ObservedBeacon } from "src/types/internal/ObservedBeacon";
 import type { ObservedRoute } from "src/types/internal/ObservedRoute";
+import type { RUNNING_SUBJECTS } from "src/utils/constants/subjects";
 
 declare const lab: LabBeacon;
 declare const empty: Beacon;
@@ -30,6 +31,11 @@ export const swapped = () => {
   forABeaconOfItsOwnRoutes.mount(element);
   forABeaconOfItsOwnRoutes.unmount();
 };
+
+// The overview lists every kind of running code the Beacon reads, so a new one does not compile until it is listed.
+expectTypeOf<
+  Exclude<RunningSubject, (typeof RUNNING_SUBJECTS)[number]>
+>().toBeNever();
 
 // A route handle keeps the commands the inspector must not call out of reach.
 expectTypeOf<ObservedRoute>().toHaveProperty("state");

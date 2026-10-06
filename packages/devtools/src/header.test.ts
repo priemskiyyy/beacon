@@ -99,6 +99,8 @@ test("Check now asks once with the reason manual, needs a running session, never
 
   // Held: one check is in flight, and a second press cannot add another.
   expect(button()).toHaveProperty("disabled", true);
+  fireEvent.click(button());
+  await settle();
   expect(lab.mock.stats()).toMatchObject({ reads: 1, held: 1 });
 
   lab.mock.resolve({ document: quietDocument() });

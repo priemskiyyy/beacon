@@ -12,14 +12,13 @@ import { useEventFilters } from "src/hooks/useEventFilters";
 import { useObservableValue } from "src/hooks/useObservableValue";
 import type { ObservedBeacon } from "src/types/internal/ObservedBeacon";
 import type { PanelPosition } from "src/types/internal/PanelPosition";
-import type { RecordedEvent } from "src/types/internal/RecordedEvent";
 import type { RouteView } from "src/types/internal/RouteView";
-import { findRoute } from "src/utils/findRoute";
+import type { EventLog } from "src/utils/EventLog";
 
 type DevtoolsPanelProps = {
   beacon: ObservedBeacon;
   status: BeaconStatus;
-  events: RecordedEvent[];
+  log: EventLog;
   isPaused: boolean;
   showRaw: boolean;
   /** False when the panel opened from stored preferences, so mounting never steals focus. */
@@ -31,40 +30,33 @@ type DevtoolsPanelProps = {
   onDock: () => void;
   onTogglePause: () => void;
   onShowRawChange: (enabled: boolean) => void;
-  onClear: () => void;
   onClose: () => void;
 };
 
 /** The open panel. Everything it subscribes to lives only while it is open. */
 export const DevtoolsPanel = (props: DevtoolsPanelProps) => {
   const focusOnMount = useAutoFocus(props.autoFocus);
-  const filters = useEventFilters(() => props.events);
+  const events = useObservableValue(() => props.log);
+  const filters = useEventFilters(events);
   const [isChecking, setIsChecking] = createSignal(false);
   const diagnostics = useObservableValue(() => props.beacon.diagnostics);
-  const running = useObservableValue(() => props.beacon.running);
-  const support = useObservableValue(() => props.beacon.support);
-  const transitions = useObservableValue(() => props.beacon.transitions);
 
   const views = createMemo(() =>
-    props.beacon.routeNames.flatMap((name): RouteView[] => {
-      const route = findRoute(props.beacon, name);
-
-      if (route === null) {
-        return [];
-      }
-
-      return [{ name, route }];
-    }),
+    props.beacon.routeNames.map((name): RouteView => ({
+      name,
+      route: props.beacon.route(name),
+    })),
   );
 
   // The selection names a route; the Beacon says whether it still exists.
-  const selected = createMemo(() => {
-    const name = filters.filters().route;
+  const selected = () => {
+    const name = filters.current().route;
 
     return views().find((view) => view.name === name) ?? null;
-  });
+  };
 
-  const handleCheck = () => {
+  // The button is disabled while a check runs, but a click that is dispatched to it anyway must not start another.
+  const checkNow = () => {
     if (isChecking()) {
       return;
     }
@@ -77,7 +69,7 @@ export const DevtoolsPanel = (props: DevtoolsPanelProps) => {
     props.beacon.check({ reason: "manual" }).then(finish, finish);
   };
 
-  const handleKeyDown = (event: KeyboardEvent) => {
+  const closeOnEscape = (event: KeyboardEvent) => {
     if (event.key !== "Escape") {
       return;
     }
@@ -98,12 +90,12 @@ export const DevtoolsPanel = (props: DevtoolsPanelProps) => {
           ? { height: `${props.size}px` }
           : { width: `${props.size}px` }
       }
-      onKeyDown={handleKeyDown}
+      onKeyDown={closeOnEscape}
     >
       <ResizeHandle
         position={props.position}
         size={props.size}
-        onSizeChange={(size) => props.onSizeChange(size)}
+        onSizeChange={props.onSizeChange}
       />
       <PanelHeader
         status={props.status}
@@ -111,27 +103,22 @@ export const DevtoolsPanel = (props: DevtoolsPanelProps) => {
         isChecking={isChecking()}
         showRaw={props.showRaw}
         position={props.position}
-        onCheck={handleCheck}
-        onShowRawChange={(enabled) => props.onShowRawChange(enabled)}
-        onDock={() => props.onDock()}
-        onClose={() => props.onClose()}
+        onCheck={checkNow}
+        onShowRawChange={props.onShowRawChange}
+        onDock={props.onDock}
+        onClose={props.onClose}
       />
       <div class="body">
         <RouteList
           views={views()}
-          selected={filters.filters().route}
+          selected={filters.current().route}
           onSelect={(route) => filters.update({ route })}
         />
         <div class="main">
           <Show
             when={selected()}
             fallback={
-              <Overview
-                running={running()}
-                support={support()}
-                transitions={transitions()}
-                showRaw={props.showRaw}
-              />
+              <Overview beacon={props.beacon} showRaw={props.showRaw} />
             }
           >
             {(view) => (
@@ -143,11 +130,11 @@ export const DevtoolsPanel = (props: DevtoolsPanelProps) => {
             )}
           </Show>
           <Timeline
-            events={props.events}
+            events={events()}
             filters={filters}
             isPaused={props.isPaused}
-            onTogglePause={() => props.onTogglePause()}
-            onClear={() => props.onClear()}
+            onTogglePause={props.onTogglePause}
+            onClear={props.log.clear}
           />
         </div>
       </div>

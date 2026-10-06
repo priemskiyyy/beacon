@@ -1,6 +1,6 @@
-/** A property with such a name is replaced whatever the raw toggle says, however deep it sits. */
+/** A property whose name contains one of these words is replaced whatever the raw toggle says, however deep it sits. */
 export const SECRET_KEY =
-  /token|authorization|password|passwd|secret|cookie|credential|api[-_]?key/i;
+  /token|authorization|password|passwd|pwd|secret|cookie|credential|api[-_]?key|private[-_]?key|bearer|jwt/i;
 
 export const REDACTED = "[Redacted]";
 

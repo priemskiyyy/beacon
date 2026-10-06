@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { Show, createMemo } from "solid-js";
 
 import { CopyButton } from "src/components/shared/CopyButton";
 import { Section } from "src/components/shared/Section";
@@ -15,7 +15,8 @@ type NativeValueProps = { route: ObservedRoute };
 
 const NativeValue = (props: NativeValueProps) => {
   const native = useObservableValue(() => props.route.native);
-  const text = () => formatNative(native());
+  // Once, so the copy button copies the text that is shown and the handle is walked once.
+  const text = createMemo(() => formatNative(native()));
 
   return (
     <div class="context">

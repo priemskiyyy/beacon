@@ -1,7 +1,10 @@
 import type { Preferences } from "src/types/internal/Preferences";
+import { PANEL_SIZE } from "src/utils/constants/defaults";
 
 const isSize = (value: unknown): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value > 0;
+  typeof value === "number" &&
+  Number.isInteger(value) &&
+  value >= PANEL_SIZE.min;
 
 /** Keeps only the fields a stored value spells correctly; anything else is forgotten, never thrown on. */
 export const parsePreferences = (raw: unknown): Preferences => {

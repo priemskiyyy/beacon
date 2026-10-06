@@ -4,9 +4,10 @@ const EVENT_COLUMNS = "84px 150px 52px 96px 96px 52px 36px minmax(0, 1fr) 10px";
 
 const NARROW_EVENT_COLUMNS = "82px 140px 96px minmax(0, 1fr) 10px";
 
-/** Scoped by the shadow root, so selectors stay short and host styles never leak in. */
+/** Scoped by the shadow root, so selectors stay short and host styles never leak in: `all: initial` stops what the host would pass down by inheritance, and it is first so the rest of the rule wins. */
 export const styles = `
 :host {
+  all: initial; display: block; direction: ltr;
   --bg: #0d1218; --raised: #141b24; --hover: #1a232f; --border: #253040; --text: #e6ecf3; --muted: #8794a8;
   --accent: #38bdf8; --accent-text: #8bd8fb; --ok: #3fd99a; --warn: #f0b653; --error: #ff7d8c; --well: #090d12;
   --font: 12px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif; --mono: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -15,15 +16,15 @@ export const styles = `
 @media (prefers-color-scheme: light) {
   :host {
     --bg: #ffffff; --raised: #f5f7fa; --hover: #eceff4; --border: #dde3ec; --text: #1a2230; --muted: #5d6a7e;
-    --accent: #0369a1; --accent-text: #075985; --ok: #15803d; --warn: #b45309; --error: #dc2626; --well: #f3f5f9; color-scheme: light;
+    --accent: #0369a1; --accent-text: #075985; --ok: #15803d; --warn: #b45309; --error: #c81e1e; --well: #f3f5f9; color-scheme: light;
   }
 }
 *, *::before, *::after { box-sizing: border-box; }
-button, input, textarea { font: inherit; color: inherit; letter-spacing: normal; }
+button, input { font: inherit; color: inherit; letter-spacing: normal; }
 button { cursor: pointer; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); padding: 5px 11px; transition: background 120ms, border-color 120ms; }
 button:hover:not(:disabled) { background: var(--hover); }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
-:is(button, input, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+:is(button, input, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 p, h3, dl, dd, ul { margin: 0; padding: 0; }
 code, pre { font: var(--mono); background: none; padding: 0; }
 .muted { color: var(--muted); }
@@ -100,7 +101,6 @@ code, pre { font: var(--mono); background: none; padding: 0; }
 .event-head { display: grid; grid-template-columns: ${EVENT_COLUMNS}; gap: 12px; padding: 5px 14px; position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--border); background: var(--bg); color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
 .event { border-bottom: 1px solid var(--border); }
 .event-summary { display: grid; grid-template-columns: ${EVENT_COLUMNS}; gap: 12px; align-items: center; width: 100%; padding: 7px 14px; border: 0; border-radius: 0; background: transparent; text-align: left; font: var(--mono); }
-.event-summary:hover:not(:disabled) { background: var(--hover); }
 .event-summary > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .event time { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .event-type { color: var(--accent-text); }

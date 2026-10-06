@@ -16,6 +16,11 @@ const secretNames = [
   "apiKey",
   "api_key",
   "api-key",
+  "pwd",
+  "privateKey",
+  "private_key",
+  "Bearer",
+  "idJwt",
 ];
 
 test("a property named like a secret is replaced whatever its value, and the others are kept", () => {
@@ -90,6 +95,33 @@ test("a getter, toJSON and a proxy trap never run while a value is copied", () =
   expect(trap).not.toHaveBeenCalled();
 });
 
+test("a proxied list is measured without running its get trap", () => {
+  const trap = vi.fn();
+  const list = new Proxy([1, 2, 3], { get: trap });
+
+  expect(inspectValue({ list })).toEqual({ list: [1, 2, 3] });
+  expect(trap).not.toHaveBeenCalled();
+});
+
+test("a list that lies about its length is an empty one", () => {
+  const liar = new Proxy([1, 2, 3], {
+    getOwnPropertyDescriptor: (target, key) => {
+      if (key === "length") {
+        return {
+          value: "many",
+          writable: true,
+          enumerable: false,
+          configurable: false,
+        };
+      }
+
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    },
+  });
+
+  expect(inspectValue(liar)).toEqual([]);
+});
+
 test("a value that throws while it is read becomes a placeholder, never an error", () => {
   const hostile = new Proxy(
     {},
@@ -112,7 +144,15 @@ test("an object that is not plain is named by its class and never walked", () =>
     token = "not walked";
   }
 
+  class Hidden {
+    static get name() {
+      throw new Error("a static getter ran");
+    }
+  }
+
   const copy = inspectValue({
+    hidden: new Hidden(),
+    anonymous: new (class {})(),
     registration: new Registration(),
     element: document.body,
     date: new Date(0),
@@ -126,6 +166,8 @@ test("an object that is not plain is named by its class and never walked", () =>
   });
 
   expect(copy).toEqual({
+    hidden: "[object]",
+    anonymous: "[object]",
     registration: "[Registration]",
     element: "[HTMLBodyElement]",
     date: "[Date]",
@@ -201,6 +243,17 @@ test("a text, a list and an object are cut to their limits, and the cut says so"
   expect(Reflect.get(wide, "…")).toBe("[Truncated]");
 });
 
+test("a property name is cut too, after it has been checked whole", () => {
+  const copy = inspectValue({
+    [`${"k".repeat(1_000_000)}`]: 1,
+    [`${"x".repeat(1_000)}token`]: "hunter2",
+  });
+
+  expect(JSON.stringify(copy).length).toBeLessThan(1_000);
+  expect(JSON.stringify(copy)).not.toContain("hunter2");
+  expect(JSON.stringify(copy)).toContain("[Redacted]");
+});
+
 test("a value nested deeper than the limit, or bigger than the budget, is cut", () => {
   let deep: Record<string, unknown> = { leaf: true };
 
@@ -221,6 +274,17 @@ test("a value nested deeper than the limit, or bigger than the budget, is cut", 
 
   expect(JSON.stringify(many)).toContain("[Truncated]");
   expect(JSON.stringify(many).length).toBeLessThan(3_000);
+
+  const records = inspectValue(
+    Array.from({ length: 50 }, () =>
+      Object.fromEntries(
+        Array.from({ length: 50 }, (_, index) => [`k${index}`, index]),
+      ),
+    ),
+  );
+
+  expect(JSON.stringify(records)).toContain("[Truncated]");
+  expect(JSON.stringify(records).length).toBeLessThan(6_000);
 });
 
 test("a property called __proto__ is data, not a prototype", () => {

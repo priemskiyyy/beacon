@@ -28,6 +28,9 @@ export const spyOnBeacon = <TBeacon extends ObservedBeacon>(
     natives: 0,
   };
 
+  // What was read of a provider's handle, which must stay untouched while raw values are hidden.
+  const reads = { natives: 0 };
+
   const subscriptions = () => Object.values(live).reduce((a, b) => a + b, 0);
 
   const count = <TValue>(
@@ -56,7 +59,14 @@ export const spyOnBeacon = <TBeacon extends ObservedBeacon>(
         }
 
         if (key === "native") {
-          return count("natives", target.native);
+          return {
+            ...count("natives", target.native),
+            get: () => {
+              reads.natives += 1;
+
+              return target.native.get();
+            },
+          };
         }
 
         return Reflect.get(target, key);
@@ -111,5 +121,5 @@ export const spyOnBeacon = <TBeacon extends ObservedBeacon>(
     },
   });
 
-  return { beacon: spied, live, subscriptions };
+  return { beacon: spied, live, reads, subscriptions };
 };

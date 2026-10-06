@@ -87,16 +87,19 @@ test("setLimit trims the oldest events at once and clamps like the constructor",
   expect(reasons(log)).toEqual(["d"]);
 });
 
-test("listeners are told once per microtask, a removed one is skipped, and the same function twice is two subscriptions", async () => {
+test("listeners are told once per microtask, and one that was removed, even during the pass, is not told", async () => {
   const log = new EventLog(10);
   const told: string[] = [];
-  const listener = () => told.push("listener");
-  const other = () => told.push("other");
-  const stopFirst = log.subscribe(listener);
 
-  log.subscribe(listener);
+  let stopSecond = () => {};
 
-  const stopOther = log.subscribe(other);
+  log.subscribe(() => {
+    told.push("first");
+    stopSecond();
+  });
+  stopSecond = log.subscribe(() => told.push("second"));
+
+  const stopOther = log.subscribe(() => told.push("other"));
 
   log.add(event("a"));
   log.add(event("b"));
@@ -104,12 +107,12 @@ test("listeners are told once per microtask, a removed one is skipped, and the s
 
   stopOther();
   await Promise.resolve();
-  expect(told).toEqual(["listener", "listener"]);
+  // The first one told and removed the second before the second's turn.
+  expect(told).toEqual(["first"]);
 
-  stopFirst();
   log.add(event("c"));
   await Promise.resolve();
-  expect(told).toEqual(["listener", "listener", "listener"]);
+  expect(told).toEqual(["first", "first"]);
 });
 
 test("ids only grow, the last one survives a clear, and a clear tells the listeners", async () => {
@@ -133,6 +136,23 @@ test("ids only grow, the last one survives a clear, and a clear tells the listen
 
   log.add(event("c"));
   expect(log.get().map((entry) => entry.id)).toEqual([3]);
+});
+
+test("the newest failure is remembered past a clear and past the events that push its record out", () => {
+  const log = new EventLog(1);
+
+  expect(log.getLastFailureId()).toBe(0);
+  log.add({ ...event("a"), type: "route-failed" });
+  log.add(event("b"));
+  log.add(event("c"));
+  expect(log.get().map((entry) => entry.id)).toEqual([3]);
+  expect(log.getLastFailureId()).toBe(1);
+
+  log.clear();
+  expect(log.getLastFailureId()).toBe(1);
+
+  log.add({ ...event("d"), type: "late-callback" });
+  expect(log.getLastFailureId()).toBe(4);
 });
 
 test("what it stores is a bounded copy, so the history retains nothing of the event", () => {

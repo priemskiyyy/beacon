@@ -12,10 +12,10 @@ afterEach(() => {
   localStorage.clear();
 });
 
-const mountClosed = () => {
+const mountClosed = (options: { maxEvents?: number } = {}) => {
   const lab = createLabBeacon();
   const emitting = createEmittingBeacon(lab.beacon);
-  const mounted = mountDevtools({ beacon: emitting.beacon });
+  const mounted = mountDevtools({ beacon: emitting.beacon, ...options });
 
   const launcher = () =>
     mounted.view().getByRole("button", { name: "Open Beacon devtools" });
@@ -54,15 +54,17 @@ const NON_FAILURES: BeaconDiagnosticEventType[] = [
   "read-abandoned",
 ];
 
-test("the launcher says where the session stands", async () => {
-  const { lab, dot, devtools } = mountClosed();
+test("the launcher says where the session stands, in words as well as in colour", async () => {
+  const { lab, dot, devtools, launcher } = mountClosed();
 
   expect(dot()).toBe("idle");
+  expect(launcher().title).toBe("Session idle");
 
   const stop = lab.beacon.start();
 
   await settle();
   expect(dot()).toBe("running");
+  expect(launcher().title).toBe("Session running");
 
   stop();
   await settle();
@@ -74,9 +76,7 @@ test("the launcher says where the session stands", async () => {
   devtools.unmount();
 });
 
-test("each failure event that arrives while the panel is closed turns the launcher red, and opening it and closing it again clears that", async () => {
-  const closed = mountClosed();
-
+test("each failure event that arrives while the panel is closed turns the launcher red", async () => {
   // Every type of Beacon is decided one way or the other.
   expect(Object.keys(EVENT_FAILURES)).toHaveLength(
     FAILURES.length + NON_FAILURES.length,
@@ -92,19 +92,55 @@ test("each failure event that arrives while the panel is closed turns the launch
   ).toEqual(expect.arrayContaining(FAILURES));
 
   for (const type of FAILURES) {
+    const closed = mountClosed();
+
     expect(closed.dot()).toBe("idle");
 
     closed.emit({ type });
     await settle();
     expect(closed.dot(), type).toBe("failure");
+    closed.devtools.unmount();
+  }
+});
 
-    fireEvent.click(closed.launcher());
-    fireEvent.click(
-      closed.view().getByRole("button", { name: "Close devtools" }),
-    );
-    expect(closed.dot(), type).toBe("idle");
+test("a failure stays new until the panel is opened, however many events push it out of the history", async () => {
+  const closed = mountClosed({ maxEvents: 2 });
+
+  closed.emit({ type: "route-failed" });
+  await settle();
+  expect(closed.dot()).toBe("failure");
+
+  const later: BeaconDiagnosticEventType[] = [
+    "check-started",
+    "read-started",
+    "read-accepted",
+  ];
+
+  for (const type of later) {
+    closed.emit({ type });
   }
 
+  await settle();
+  expect(closed.dot()).toBe("failure");
+  closed.devtools.unmount();
+});
+
+test("opening the panel and closing it again clears the red", async () => {
+  const closed = mountClosed();
+
+  closed.emit({ type: "route-failed" });
+  closed.emit({ type: "late-callback" });
+  await settle();
+  expect(closed.dot()).toBe("failure");
+  expect(closed.launcher().title).toBe(
+    "A failure arrived while the panel was closed",
+  );
+
+  fireEvent.click(closed.launcher());
+  fireEvent.click(
+    closed.view().getByRole("button", { name: "Close devtools" }),
+  );
+  expect(closed.dot()).toBe("idle");
   closed.devtools.unmount();
 });
 

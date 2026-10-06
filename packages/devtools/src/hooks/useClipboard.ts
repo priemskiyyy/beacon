@@ -7,8 +7,12 @@ export const useClipboard = () => {
   const [hasCopied, setHasCopied] = createSignal(false);
 
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let isGone = false;
 
-  onCleanup(() => clearTimeout(timer));
+  onCleanup(() => {
+    isGone = true;
+    clearTimeout(timer);
+  });
 
   const copy = (text: string) => {
     const { clipboard } = navigator;
@@ -19,6 +23,11 @@ export const useClipboard = () => {
 
     clipboard.writeText(text).then(
       () => {
+        // The browser may settle a write after the button went, and no timer may outlive it.
+        if (isGone) {
+          return;
+        }
+
         setHasCopied(true);
         clearTimeout(timer);
         timer = setTimeout(() => setHasCopied(false), COPY_FEEDBACK);

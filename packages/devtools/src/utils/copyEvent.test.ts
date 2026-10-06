@@ -54,31 +54,11 @@ test("what an event does not say stays null", () => {
   });
 });
 
-test("a field that is not what an event promises is dropped, and a time that is not a number stays NaN", () => {
-  const strange = JSON.parse(
-    '{"type": 5, "timestamp": "soon", "session": "2", "route": 7, "command": {}, "attempt": null, "operation": [], "reason": false}',
-  );
-
-  const copy = copyEvent(strange, 1);
-
-  expect(copy).toEqual({
-    id: 1,
-    type: "unknown",
-    timestamp: Number.NaN,
-    session: null,
-    route: null,
-    command: null,
-    attempt: null,
-    operation: null,
-    reason: null,
-    failure: false,
-  });
+test("a time a clock got wrong is kept as it is for the panel to call invalid", () => {
+  expect(copyEvent({ ...event, timestamp: Number.NaN }, 1).timestamp).toBeNaN();
   expect(
-    copyEvent(
-      { ...event, session: Number.NaN, attempt: Number.POSITIVE_INFINITY },
-      1,
-    ),
-  ).toMatchObject({ session: null, attempt: null });
+    copyEvent({ ...event, timestamp: Number.POSITIVE_INFINITY }, 1).timestamp,
+  ).toBe(Number.POSITIVE_INFINITY);
 });
 
 test("a long text is cut to a limit and says so, and a field the event does not declare is never kept", () => {

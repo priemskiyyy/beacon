@@ -44,3 +44,11 @@ test("each field is kept or forgotten on its own", () => {
     width: 300,
   });
 });
+
+test("a size the panel could not have been left at is forgotten", () => {
+  expect(parsePreferences({ height: 239, width: 5 })).toEqual({});
+  expect(parsePreferences({ height: 240, width: 4_000 })).toEqual({
+    height: 240,
+    width: 4_000,
+  });
+});

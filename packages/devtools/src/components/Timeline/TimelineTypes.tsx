@@ -2,7 +2,6 @@ import { For, createMemo } from "solid-js";
 
 import type { EventFilterControls } from "src/types/internal/EventFilterControls";
 import type { RecordedEvent } from "src/types/internal/RecordedEvent";
-import { countEventsByType } from "src/utils/countEventsByType";
 import { isFailureEvent } from "src/utils/isFailureEvent";
 
 type TimelineTypesProps = {
@@ -12,8 +11,17 @@ type TimelineTypesProps = {
 
 /** A chip for each event type recorded, with its count; one type at a time narrows the rows. */
 export const TimelineTypes = (props: TimelineTypesProps) => {
-  const counts = createMemo(() => countEventsByType(props.events));
-  const selected = () => props.filters.filters().type;
+  const counts = createMemo(() => {
+    const counted = new Map<string, number>();
+
+    for (const event of props.events) {
+      counted.set(event.type, (counted.get(event.type) ?? 0) + 1);
+    }
+
+    return counted;
+  });
+
+  const selected = () => props.filters.current().type;
 
   // The selected type keeps its chip after a clear, so the filter that hides everything stays visible.
   const types = createMemo(() => {

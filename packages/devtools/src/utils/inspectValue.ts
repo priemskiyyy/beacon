@@ -12,27 +12,34 @@ const isPlain = (value: object) => {
   return prototype === null || prototype === Object.prototype;
 };
 
-// Only the class name, read from a data property, so nothing of the object runs.
+// The value of an own data property, or `undefined`: no getter, and no proxy `get` trap, runs.
+const readData = (holder: object, key: string) => {
+  const descriptor = Object.getOwnPropertyDescriptor(holder, key);
+
+  if (descriptor === undefined || !("value" in descriptor)) {
+    return undefined;
+  }
+
+  return descriptor.value;
+};
+
+// Only the class name, so nothing of the object runs.
 const describeClass = (value: object) => {
-  const owner = Object.getOwnPropertyDescriptor(
-    Object.getPrototypeOf(value),
-    "constructor",
-  )?.value;
+  const constructor = readData(Object.getPrototypeOf(value), "constructor");
 
-  if (typeof owner !== "function") {
+  const name =
+    typeof constructor === "function" ? readData(constructor, "name") : null;
+
+  if (typeof name !== "string" || name === "") {
     return "[object]";
   }
 
-  if (typeof owner.name !== "string" || owner.name === "") {
-    return "[object]";
-  }
-
-  return `[${boundText(owner.name, 60)}]`;
+  return `[${boundText(name, 60)}]`;
 };
 
 /**
  * Copies a value into plain, bounded data for display. It reads own property
- * descriptors, so no getter, `toJSON` or proxy trap of the value runs, and it
+ * descriptors, so no getter, `toJSON` or `get` trap of the value runs, and it
  * descends only into plain objects and arrays: anything else is named by its
  * class and left alone, so a `window` or a provider handle is never walked.
  * A property named like a secret is replaced always, at any depth.
@@ -56,20 +63,19 @@ export const inspectValue = (value: unknown): unknown => {
   };
 
   const inspectList = (list: unknown[], depth: number) => {
+    const length = readData(list, "length");
+    const total = typeof length === "number" ? length : 0;
     const items: unknown[] = [];
-    const length = Math.min(list.length, INSPECTION.entries);
 
-    for (let index = 0; index < length; index += 1) {
-      if (budget.remaining < 0) {
-        items.push(TRUNCATED);
-
-        return items;
-      }
-
+    for (
+      let index = 0;
+      index < Math.min(total, INSPECTION.entries);
+      index += 1
+    ) {
       items.push(readEntry(list, String(index), depth));
     }
 
-    if (list.length > length) {
+    if (total > INSPECTION.entries) {
       items.push(TRUNCATED);
     }
 
@@ -81,13 +87,7 @@ export const inspectValue = (value: unknown): unknown => {
     const copy: Record<string, unknown> = Object.create(null);
 
     for (const key of keys.slice(0, INSPECTION.entries)) {
-      if (budget.remaining < 0) {
-        copy["…"] = TRUNCATED;
-
-        return copy;
-      }
-
-      copy[key] = readEntry(record, key, depth);
+      copy[boundText(key)] = readEntry(record, key, depth);
     }
 
     if (keys.length > INSPECTION.entries) {

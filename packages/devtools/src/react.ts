@@ -39,7 +39,7 @@ export const BeaconDevtools = ({
   }, [devtools, maxEvents]);
 
   // Stable, so a rerender keeps the mounted inspector. React 19 calls the returned cleanup, never this with null.
-  const handleHostRef = useCallback(
+  const mountInHost = useCallback(
     (element: HTMLDivElement) => {
       devtools.mount(element);
 
@@ -49,7 +49,7 @@ export const BeaconDevtools = ({
   );
 
   return createElement("div", {
-    ref: handleHostRef,
+    ref: mountInHost,
     "data-beacon-devtools": "",
   });
 };

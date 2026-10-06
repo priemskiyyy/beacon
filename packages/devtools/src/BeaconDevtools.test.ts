@@ -3,6 +3,7 @@ import { fireEvent, within } from "@testing-library/dom";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { createLabBeacon } from "src/beacon.fixture";
+import { BeaconDevtools } from "src/BeaconDevtools";
 import { createEmittingBeacon } from "src/emittingBeacon.fixture";
 import { mountDevtools, settle } from "src/mountDevtools.fixture";
 import { spyOnBeacon } from "src/spyOnBeacon.fixture";
@@ -95,6 +96,23 @@ test("mounting twice throws a BeaconError, unmounting twice is harmless, and the
   devtools.unmount();
 });
 
+test("an element that cannot host a shadow root is refused with a BeaconError, and a mount after that still works", () => {
+  const { beacon } = createLabBeacon();
+  const devtools = new BeaconDevtools({ beacon });
+  const input = document.body.appendChild(document.createElement("input"));
+
+  expect(() => devtools.mount(input)).toThrow(BeaconError);
+  expect(() => devtools.mount(input)).toThrow(
+    expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
+  );
+
+  const host = document.body.appendChild(document.createElement("div"));
+
+  devtools.mount(host);
+  expect(host.shadowRoot?.childElementCount).toBe(1);
+  devtools.unmount();
+});
+
 test("every subscription lives only while it is needed and none is left behind", () => {
   const { beacon } = createLabBeacon();
   const spy = spyOnBeacon(beacon);
@@ -124,8 +142,11 @@ test("every subscription lives only while it is needed and none is left behind",
     natives: 0,
   });
 
-  // A route's own handle is read only once raw values are asked for.
+  // A route in the detail area takes the overview's place, and its subscriptions with it.
   fireEvent.click(view().getByRole("button", { name: /^ota/ }));
+  expect(spy.live).toMatchObject({ running: 0, support: 0, transitions: 0 });
+
+  // A route's own handle is read only once raw values are asked for.
   expect(spy.live.natives).toBe(0);
   fireEvent.click(view().getByRole("checkbox", { name: "Show raw values" }));
   expect(spy.live.natives).toBe(1);
@@ -136,6 +157,9 @@ test("every subscription lives only while it is needed and none is left behind",
   expect(spy.live.events).toBe(0);
   fireEvent.click(view().getByRole("button", { name: "Resume" }));
   expect(spy.live.events).toBe(1);
+
+  fireEvent.click(view().getByRole("button", { name: /^Overview/ }));
+  expect(spy.live).toMatchObject({ running: 1, support: 1, transitions: 1 });
 
   fireEvent.click(view().getByRole("button", { name: "Close devtools" }));
   expect(spy.live).toMatchObject({ routes: 0, running: 0, diagnostics: 0 });
@@ -261,7 +285,12 @@ test("the launcher opens the panel, the panel resizes and docks, Escape closes i
   const handle = () =>
     first.view().getByRole("separator", { name: "Resize devtools" });
 
-  fireEvent.keyDown(handle(), { key: "ArrowUp" });
+  // Only the arrow keys along the edge are taken; Tab and the others go on to whoever wants them.
+  expect(fireEvent.keyDown(handle(), { key: "Tab" })).toBe(true);
+  expect(fireEvent.keyDown(handle(), { key: "ArrowRight" })).toBe(true);
+  expect(panel.style.height).toBe("420px");
+
+  expect(fireEvent.keyDown(handle(), { key: "ArrowUp" })).toBe(false);
   expect(panel.style.height).toBe("444px");
   fireEvent.keyDown(handle(), { key: "ArrowDown" });
   fireEvent.keyDown(handle(), { key: "ArrowDown" });
@@ -326,6 +355,7 @@ test("preferences that are corrupted, mistyped or out of range are ignored, fiel
     "[1, 2]",
     '"open"',
     JSON.stringify({ isOpen: "yes", position: "top", height: -5, width: 1.5 }),
+    JSON.stringify({ height: 5 }),
   ]) {
     localStorage.setItem(PREFERENCES_KEY, raw);
 
@@ -377,6 +407,37 @@ test("storage that throws leaves the panel working with the defaults", () => {
   expect(
     view().getByRole("button", { name: "Open Beacon devtools" }),
   ).toBeTruthy();
+  devtools.unmount();
+});
+
+test("the resize handle says where its size stands between the smallest and the largest, along either edge", () => {
+  const { beacon } = createLabBeacon();
+  const { devtools, view } = mountDevtools({ beacon, initialIsOpen: true });
+
+  const handle = () =>
+    view().getByRole("separator", { name: "Resize devtools" });
+
+  const range = () => [
+    handle().getAttribute("aria-orientation"),
+    handle().getAttribute("aria-valuemin"),
+    handle().getAttribute("aria-valuenow"),
+    handle().getAttribute("aria-valuemax"),
+  ];
+
+  expect(range()).toEqual([
+    "horizontal",
+    "240",
+    "420",
+    String(window.innerHeight - 24),
+  ]);
+
+  fireEvent.click(view().getByRole("button", { name: "Dock to the right" }));
+  expect(range()).toEqual([
+    "vertical",
+    "240",
+    "520",
+    String(window.innerWidth - 24),
+  ]);
   devtools.unmount();
 });
 

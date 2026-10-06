@@ -10,6 +10,7 @@ export class EventLog {
   #listeners = new Set<() => void>();
   #limit: number;
   #last = 0;
+  #lastFailure = 0;
   #scheduled = false;
 
   constructor(limit: number) {
@@ -20,6 +21,9 @@ export class EventLog {
 
   /** The id of the newest event ever recorded, which survives a clear. */
   getLastId = () => this.#last;
+
+  /** The id of the newest failure ever recorded, or 0, which survives a clear and the events that push its record out. */
+  getLastFailureId = () => this.#lastFailure;
 
   setLimit = (limit: number) => {
     this.#limit = clampLimit(limit);
@@ -33,13 +37,10 @@ export class EventLog {
   };
 
   subscribe = (listener: () => void) => {
-    // Wrapped, so the same function subscribed twice is two subscriptions.
-    const notify = () => listener();
-
-    this.#listeners.add(notify);
+    this.#listeners.add(listener);
 
     return () => {
-      this.#listeners.delete(notify);
+      this.#listeners.delete(listener);
     };
   };
 
@@ -47,6 +48,10 @@ export class EventLog {
     this.#last += 1;
 
     const entry = copyEvent(event, this.#last);
+
+    if (entry.failure) {
+      this.#lastFailure = entry.id;
+    }
 
     this.#events = [entry, ...this.#events].slice(0, this.#limit);
     this.#notify();
@@ -66,11 +71,7 @@ export class EventLog {
     queueMicrotask(() => {
       this.#scheduled = false;
 
-      for (const listener of [...this.#listeners]) {
-        if (!this.#listeners.has(listener)) {
-          continue;
-        }
-
+      for (const listener of this.#listeners) {
         listener();
       }
     });

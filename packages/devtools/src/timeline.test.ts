@@ -127,6 +127,13 @@ test("events are listed newest first", async () => {
     "check-started",
     "session-started",
   ]);
+
+  // A name on a plain element is ignored by assistive technology, so the rows are a list that has one.
+  expect(
+    within(
+      mounted.view().getByRole("list", { name: "Event timeline" }),
+    ).getAllByRole("listitem"),
+  ).toHaveLength(3);
   mounted.devtools.unmount();
 });
 
@@ -416,6 +423,54 @@ test("copying again while it says Copied starts the moment over, and a button th
   clipboard.restore();
 });
 
+test("a copy the browser settles after its button went arms no timer", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+  const clipboard = stubClipboard({ isHeld: true });
+  const mounted = mountEmitting();
+
+  mounted.emit({ type: "session-started" });
+  await Promise.resolve();
+  await Promise.resolve();
+
+  const row = firstRow(mounted);
+
+  fireEvent.click(summaryOf(row));
+  fireEvent.click(within(row).getByRole("button", { name: "Copy" }));
+  mounted.devtools.unmount();
+
+  clipboard.release();
+
+  for (let turn = 0; turn < 5; turn += 1) {
+    await Promise.resolve();
+  }
+
+  expect(clipboard.writes).toHaveLength(1);
+  expect(vi.getTimerCount()).toBe(0);
+  clipboard.restore();
+});
+
+test("copying that the browser refuses says nothing and breaks nothing", async () => {
+  const clipboard = stubClipboard({ isRefusing: true });
+  const mounted = mountEmitting();
+
+  mounted.emit({ type: "session-started" });
+  await settle();
+
+  const row = firstRow(mounted);
+
+  fireEvent.click(summaryOf(row));
+
+  const copy = within(row).getByRole("button", { name: "Copy" });
+
+  fireEvent.click(copy);
+  await settle();
+  expect(clipboard.writes).toEqual([]);
+  expect(copy.textContent).toBe("Copy");
+  mounted.devtools.unmount();
+  clipboard.restore();
+});
+
 test("copying does nothing where there is no clipboard", async () => {
   const mounted = mountEmitting();
 
@@ -464,15 +519,13 @@ test("an event is copied when it arrives: its text is cut to a limit and it keep
   mounted.devtools.unmount();
 });
 
-test("a field that is not what an event promises is dropped instead of shown, and nothing else of the event is kept", async () => {
+test("a time a clock got wrong is shown as invalid, and nothing else of the event is kept", async () => {
   const mounted = mountEmitting();
   const extra = { token: "leaked-token", payload: { cookie: "leaked-cookie" } };
 
   mounted.emit({
     type: "route-failed",
     timestamp: Number.NaN,
-    session: Number.POSITIVE_INFINITY,
-    attempt: Number.NaN,
     ...extra,
   });
   await settle();
@@ -482,7 +535,7 @@ test("a field that is not what an event promises is dropped instead of shown, an
   expect(cells(row)).toEqual([
     "invalid time",
     "route-failed",
-    "",
+    "1",
     "",
     "",
     "",

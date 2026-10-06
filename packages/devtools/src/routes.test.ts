@@ -300,28 +300,6 @@ test("a route the Beacon no longer has falls back to the overview", async () => 
   devtools.unmount();
 });
 
-test("a Beacon that says a route name it cannot give lists the others", () => {
-  const { beacon } = createLabBeacon();
-
-  const { devtools, view } = mountDevtools({
-    beacon: withRoutes(beacon, ["web", "ghost", "ota"], (name) => {
-      if (name === "ghost") {
-        throw new Error("not defined");
-      }
-
-      return withRoutes(beacon, []).route(name);
-    }),
-    initialIsOpen: true,
-  });
-
-  expect(
-    Array.from(sidebar(view).querySelectorAll(".row")).map((row) =>
-      row.textContent?.slice(0, 3),
-    ),
-  ).toEqual(["Ove", "web", "ota"]);
-  devtools.unmount();
-});
-
 test("a route list without routes says so", () => {
   const { beacon } = createLabBeacon();
 

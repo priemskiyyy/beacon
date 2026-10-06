@@ -1,4 +1,4 @@
-import { isValidTime } from "src/utils/isValidTime";
+import { formatMoment } from "src/formatting/formatMoment";
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   hourCycle: "h23",
@@ -11,10 +11,5 @@ const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 /** Local date and time to the second, for evidence and the journal. */
-export const formatDateTime = (timestamp: number) => {
-  if (!isValidTime(timestamp)) {
-    return "invalid time";
-  }
-
-  return dateTimeFormatter.format(timestamp);
-};
+export const formatDateTime = (timestamp: number) =>
+  formatMoment(timestamp, dateTimeFormatter.format);

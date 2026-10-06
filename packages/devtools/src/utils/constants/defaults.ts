@@ -15,5 +15,8 @@ export const DEFAULT_SIZE = { bottom: 420, right: 520 } satisfies Record<
   number
 >;
 
+/** The smallest a docked panel gets, its distance from the far edge of the window at most, and what an arrow key adds or takes. */
+export const PANEL_SIZE = { min: 240, margin: 24, step: 24 };
+
 /** Milliseconds "Copied" stays on a copy button. */
 export const COPY_FEEDBACK = 1_200;

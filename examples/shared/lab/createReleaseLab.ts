@@ -33,15 +33,17 @@ import { createValueStore } from "example-shared/utils/createValueStore";
 export const createReleaseLab = ({
   clock = createTestClock({ now: Date.now() }),
   tick = null,
+  latency = 0,
 }: ReleaseLabOptions = {}): ReleaseLab => {
   const { log, add } = createEventLog<TimelineEntry>(TIMELINE_LENGTH);
   const world = createValueStore(createWorld());
   const draft = createValueStore<LabDraft>({ dirty: false, locked: false });
   const records = new Map<string, string>();
   const storage = createJournalStorage(records);
-  const manifest = createManifestSource({ world, clock });
+  const manifest = createManifestSource({ world, clock, latency });
   let nextId = 1;
   let number = 0;
+
   let stopRecording = () => {};
 
   const record = (body: TimelineBody, at = clock.now()) => {
@@ -145,9 +147,11 @@ export const createReleaseLab = ({
       patchWorld(world, { slow });
       announce({ type: "manifest-slow", slow });
 
-      if (!slow) {
-        controls.answerHeld();
+      if (slow) {
+        return;
       }
+
+      controls.answerHeld();
     },
     answerHeld: () => {
       const reads = manifest.answerHeld();

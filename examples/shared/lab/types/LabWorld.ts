@@ -13,8 +13,8 @@ export type LabWorld = {
   failing: boolean;
   slow: boolean;
   lagging: boolean;
-  /** Reads waiting for the slow service, not counting those nobody waits for anymore. */
-  held: number;
+  /** Reads started and not answered yet, not counting those nobody waits for anymore. */
+  waiting: number;
   /** Epoch milliseconds when the last answer stops holding, or `null` before any. */
   expiresAt: number | null;
 };

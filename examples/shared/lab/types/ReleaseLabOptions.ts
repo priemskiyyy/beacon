@@ -5,4 +5,6 @@ export type ReleaseLabOptions = {
   clock?: TestClock;
   /** Milliseconds between real-time ticks that move the clock, or `null` to leave it to the caller. */
   tick?: number | null;
+  /** Milliseconds the release service takes to answer a read, as a network does; a test leaves it at none. */
+  latency?: number;
 };

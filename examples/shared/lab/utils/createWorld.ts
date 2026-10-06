@@ -11,6 +11,6 @@ export const createWorld = (): LabWorld => ({
   failing: false,
   slow: false,
   lagging: false,
-  held: 0,
+  waiting: 0,
   expiresAt: null,
 });

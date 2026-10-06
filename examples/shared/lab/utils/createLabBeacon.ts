@@ -1,8 +1,4 @@
-import {
-  Beacon,
-  supportPolicy,
-  targetRoute,
-} from "@priemskiyyy/beacon";
+import { Beacon, supportPolicy, targetRoute } from "@priemskiyyy/beacon";
 import type {
   BeaconClock,
   JournalStorage,

@@ -110,14 +110,13 @@ export class BeaconRuntime {
   };
 
   dispose = () => {
-    const phase = this.#phase;
-
-    if (phase.state === "DISPOSED") {
+    if (this.#phase.state === "DISPOSED") {
       return;
     }
 
-    if (phase.state === "RUNNING") {
-      this.#end(phase.session);
+    // A listener of the stopped status may open another session, which ends too.
+    while (this.#phase.state === "RUNNING") {
+      this.#end(this.#phase.session);
     }
 
     this.#phase = { state: "DISPOSED" };
@@ -126,7 +125,7 @@ export class BeaconRuntime {
     this.#onDispose();
   };
 
-  // Published before the session's cleanups run, so a listener never sees a running status over released resources.
+  // The cleanups run before the stop is published, so a listener that starts the next session finds every resource of this one released.
   #end(session: Session) {
     const phase = this.#phase;
 
@@ -139,8 +138,8 @@ export class BeaconRuntime {
     }
 
     this.#phase = { state: "STOPPED" };
-    this.#status.update(STOPPED_STATUS);
     this.#record("session-stopped");
     session.scope.dispose();
+    this.#status.update(STOPPED_STATUS);
   }
 }

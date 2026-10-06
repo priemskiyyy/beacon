@@ -230,3 +230,48 @@ test("LIFE-11 a driver without an exclusive manager is opened by any number of B
 
   expect(first.counts.opens + second.counts.opens).toBe(2);
 });
+
+test("LIFE-02 a session that a status listener starts again opens its routes once and keeps them", async () => {
+  const context = createDriverBeacon();
+
+  context.beacon.status.subscribe(() => {
+    if (context.beacon.status.get().state !== "stopped") {
+      return;
+    }
+
+    context.beacon.start();
+  });
+
+  context.beacon.start();
+  context.beacon.stop();
+
+  expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
+  expect(context.counts.opens).toBe(2);
+  expect(context.counts.disposals).toBe(1);
+  expect(context.ota.native.get()).not.toBeNull();
+  await expect(context.ota.check()).resolves.toMatchObject({
+    status: "succeeded",
+  });
+});
+
+test("LIFE-02 a listener that starts again and is then disposed leaves no session open", () => {
+  const context = createDriverBeacon();
+  let restarted = false;
+
+  context.beacon.status.subscribe(() => {
+    if (context.beacon.status.get().state !== "stopped" || restarted) {
+      return;
+    }
+
+    restarted = true;
+    context.beacon.start();
+    context.beacon.dispose();
+  });
+
+  context.beacon.start();
+  context.beacon.stop();
+
+  expect(context.beacon.status.get()).toEqual({ state: "disposed" });
+  expect(context.counts.opens).toBe(2);
+  expect(context.counts.disposals).toBe(2);
+});

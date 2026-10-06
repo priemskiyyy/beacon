@@ -223,9 +223,6 @@ importers:
       '@priemskiyyy/beacon-solid':
         specifier: workspace:*
         version: link:../../packages/solid
-      class-variance-authority:
-        specifier: 0.7.1
-        version: 0.7.1
       clsx:
         specifier: 2.1.1
         version: 2.1.1
@@ -235,9 +232,6 @@ importers:
       solid-js:
         specifier: 1.9.15
         version: 1.9.15
-      ts-pattern:
-        specifier: 5.9.0
-        version: 5.9.0
     devDependencies:
       '@tailwindcss/vite':
         specifier: 4.3.3
@@ -263,21 +257,12 @@ importers:
       '@priemskiyyy/beacon-svelte':
         specifier: workspace:*
         version: link:../../packages/svelte
-      class-variance-authority:
-        specifier: 0.7.1
-        version: 0.7.1
-      clsx:
-        specifier: 2.1.1
-        version: 2.1.1
       example-shared:
         specifier: workspace:*
         version: link:../shared
       svelte:
         specifier: 5.57.0
         version: 5.57.0(@typescript-eslint/types@8.70.0)
-      ts-pattern:
-        specifier: 5.9.0
-        version: 5.9.0
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: 7.3.0
@@ -306,18 +291,9 @@ importers:
       '@priemskiyyy/beacon-vue':
         specifier: workspace:*
         version: link:../../packages/vue
-      class-variance-authority:
-        specifier: 0.7.1
-        version: 0.7.1
-      clsx:
-        specifier: 2.1.1
-        version: 2.1.1
       example-shared:
         specifier: workspace:*
         version: link:../shared
-      ts-pattern:
-        specifier: 5.9.0
-        version: 5.9.0
       vue:
         specifier: 3.5.42
         version: 3.5.42(typescript@5.8.3)

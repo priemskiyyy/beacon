@@ -78,14 +78,14 @@ export class RouteRegistry {
   open = (session: Session) => {
     for (const { runtime } of this.#entries.values()) {
       // A listener told that a route opened may have ended the session: nothing else is opened for it.
-      if (!session.scope.isActive()) {
+      if (!session.resources.isActive()) {
         return;
       }
 
       runtime.open(session);
     }
 
-    if (!session.scope.isActive()) {
+    if (!session.resources.isActive()) {
       return;
     }
 
@@ -113,7 +113,7 @@ export class RouteRegistry {
   };
 
   /** Selects again from every document held, since what is running decides what is on offer; every route changes in one commit. */
-  handleRunningChange = () => {
+  reselect = () => {
     this.#commit((transaction) => this.#feeds.reselect(transaction));
   };
 
@@ -160,7 +160,13 @@ export class RouteRegistry {
       const record = create(false);
       const runtime = this.#feeds.add({ name, record, definition });
 
-      return { name, definition, record, runtime };
+      return {
+        name,
+        subject: definition.subject,
+        commands: definition.mechanism.commands,
+        record,
+        runtime,
+      };
     }
 
     if (definition.kind === "driver") {
@@ -172,7 +178,13 @@ export class RouteRegistry {
         driver: definition.driver,
       });
 
-      return { name, definition, record, runtime };
+      return {
+        name,
+        subject: definition.driver.subject,
+        commands: definition.driver.commands,
+        record,
+        runtime,
+      };
     }
 
     return assertUnreachable(definition);

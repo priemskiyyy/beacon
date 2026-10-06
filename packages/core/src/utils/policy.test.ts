@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 
 import { createMockSource } from "src/mock/createMockSource";
 import type { RouteDefinition } from "src/types/RouteDefinition";
+import type { RunningRelease } from "src/types/RunningRelease";
 import type { SupportVerdict } from "src/types/SupportVerdict";
 import {
   buildWebRelease,
@@ -9,7 +10,9 @@ import {
   createRoutedBeacon,
   settle,
 } from "src/utils/Beacon.fixture";
+import { DEFAULT_RUNNING_TIMEOUT } from "src/utils/constants/defaults";
 import { createReleaseSource } from "src/utils/createReleaseSource";
+import { createDeferred } from "src/utils/internal/common/createDeferred";
 import { supportPolicy } from "src/utils/supportPolicy";
 import {
   answer,
@@ -345,6 +348,100 @@ test("POL-13 a policy that meets a native build not read yet is told so, not giv
       reasons: [{ code: "native-build-unknown", subject: "native" }],
     },
   });
+});
+
+// A Beacon whose only route reads the web build, and whose policy reads the native one, which nothing else waits for.
+const createNativePolicyBeacon = (native: () => Promise<RunningRelease>) => {
+  const mock = createMockSource<PolicyManifest>({ name: "manifest" });
+  const { web } = createPolicyRoutes(mock.source);
+
+  const context = createRoutedBeacon(
+    { web },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => buildWebRelease("web-build-b"),
+        native,
+      },
+      policy: supportPolicy({
+        source: mock.source.select((manifest) => manifest.support),
+        evaluate: (_support, running): SupportVerdict<"web"> => {
+          if (running.native.state !== "known") {
+            return {
+              status: "unknown",
+              reasons: [{ code: "native-build-unknown", subject: "native" }],
+              remediation: [],
+            };
+          }
+
+          return { status: "supported", reasons: [], remediation: [] };
+        },
+      }),
+    },
+  );
+
+  return { ...context, mock };
+};
+
+test("POL-13 a check that includes the policy starts no read until every running fact the policy may read is in", async () => {
+  const held = createDeferred<RunningRelease>();
+  const context = createNativePolicyBeacon(() => held.promise);
+
+  context.beacon.start();
+
+  const checking = context.beacon.check();
+
+  await settle();
+
+  expect(context.mock.stats().reads).toBe(0);
+
+  held.resolve(buildNativeRelease(100));
+  await settle();
+  answer(context.mock, buildDocument());
+
+  await expect(checking).resolves.toMatchObject({
+    routes: { web: { status: "succeeded" } },
+    support: { status: "succeeded" },
+  });
+  expect(context.beacon.support.get().status).toBe("supported");
+});
+
+test("POL-13 a fact that never answers is a failed one once its time is up, and the check goes on with the policy told so", async () => {
+  const context = createNativePolicyBeacon(() => new Promise(() => {}));
+
+  context.beacon.start();
+
+  const checking = context.beacon.check();
+
+  await settle();
+  context.clock.advance(DEFAULT_RUNNING_TIMEOUT);
+  await settle();
+  answer(context.mock, buildDocument());
+
+  await expect(checking).resolves.toMatchObject({
+    support: { status: "succeeded" },
+  });
+  expect(context.beacon.running.get().native.state).toBe("failed");
+  expect(context.beacon.support.get()).toMatchObject({
+    status: "unknown",
+    evaluation: {
+      reasons: [{ code: "native-build-unknown", subject: "native" }],
+    },
+  });
+});
+
+test("POL-13 a route's own check still waits only for the subject it depends on, however many the policy reads", async () => {
+  const context = createNativePolicyBeacon(() => new Promise(() => {}));
+
+  context.beacon.start();
+
+  const checking = context.beacon.route("web").check();
+
+  await settle();
+  answer(context.mock, buildDocument());
+
+  await expect(checking).resolves.toMatchObject({ status: "succeeded" });
+  expect(context.beacon.running.get().native).toEqual({ state: "pending" });
 });
 
 test("POL-14 a policy that throws keeps the last valid evaluation in force and reports the failure beside it", async () => {

@@ -26,6 +26,28 @@ test("the provider starts the session while mounted and ends it on unmount", () 
   expect(beacon.status.get()).toEqual({ state: "stopped" });
 });
 
+test("the provider's stop ends the session a scope replacement restarted", () => {
+  const { beacon } = createWebBeacon();
+
+  const { unmount } = render(BeaconProvider, {
+    props: { beacon, start: true },
+  });
+
+  flushSync();
+  beacon.replaceScope({
+    application: "com.example.notes",
+    environment: "staging",
+    platform: "web",
+    distribution: "public-web",
+  });
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 2 });
+
+  unmount();
+
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
 test("a child that checks when it mounts finds the session already started", async () => {
   const { beacon } = createWebBeacon();
   const outcomes: string[] = [];

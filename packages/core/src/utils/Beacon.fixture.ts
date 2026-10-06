@@ -1,4 +1,5 @@
 import { createTestClock } from "src/mock/createTestClock";
+import type { TestClock } from "src/mock/types/TestClock";
 import type { BeaconOptions } from "src/types/BeaconOptions";
 import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { RouteDefinition } from "src/types/RouteDefinition";
@@ -51,6 +52,25 @@ export const createRoutedBeacon = <
   });
 
   return { beacon, clock };
+};
+
+// A host clock that cannot arm a timer while `state.broken` holds, as one that ran out of timers or was torn down; its `now` and the timers it did arm still work.
+export const createBrokenClock = () => {
+  const inner = createTestClock({ now: 1_000 });
+  const state = { broken: true };
+
+  const clock: TestClock = {
+    ...inner,
+    setTimer: (callback, delay) => {
+      if (state.broken) {
+        throw new Error("The clock cannot arm a timer.");
+      }
+
+      return inner.setTimer(callback, delay);
+    },
+  };
+
+  return { clock, state };
 };
 
 export const createBeacon = (options: Overrides<Record<never, never>> = {}) =>

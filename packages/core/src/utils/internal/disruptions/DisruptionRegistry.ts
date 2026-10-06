@@ -150,15 +150,19 @@ export class DisruptionRegistry {
 
     const expired = createDeferred<Settlement>();
 
-    const cancel = this.#clock.setTimer(
-      () => expired.resolve({ status: "blocked", code: "settlement-timeout" }),
-      this.#timeout,
-    );
-
-    // A caller that stops waiting has no use for the deadline, and no timer may outlive it.
-    signal.addEventListener("abort", cancel, { once: true });
+    let cancel = () => {};
 
     try {
+      // A clock that refuses the deadline fails the settlement like a participant that throws, and nobody is asked to settle without one.
+      cancel = this.#clock.setTimer(
+        () =>
+          expired.resolve({ status: "blocked", code: "settlement-timeout" }),
+        this.#timeout,
+      );
+
+      // A caller that stops waiting has no use for the deadline, and no timer may outlive it.
+      signal.addEventListener("abort", cancel, { once: true });
+
       // A settlement that throws at once fails like one that rejects, so the call sits inside the try.
       const settlement = await Promise.race([
         settle({ signal }),

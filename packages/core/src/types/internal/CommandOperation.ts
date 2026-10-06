@@ -2,6 +2,7 @@ import type { CommandParameters } from "src/types/CommandParameters";
 import type { CommandResult } from "src/types/internal/CommandResult";
 import type { Lease } from "src/types/internal/Lease";
 import type { RouteEntry } from "src/types/internal/RouteEntry";
+import type { Session } from "src/types/internal/Session";
 
 /**
  * One command holding its route: what it was called with, so an identical
@@ -9,6 +10,8 @@ import type { RouteEntry } from "src/types/internal/RouteEntry";
  */
 export type CommandOperation = {
   id: number;
+  /** The session the call was made in, whose running facts the command is judged against. */
+  session: Session;
   entry: RouteEntry;
   command: string;
   reference: object | null;

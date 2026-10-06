@@ -207,6 +207,46 @@ test("an open session starts again with the next scope, one session after the ot
   expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
 });
 
+test("LIFE-02 the stop that start answered ends the session a scope replacement restarted for it", () => {
+  const context = createWebCommandBeacon();
+  const stop = context.beacon.start();
+
+  context.beacon.replaceScope(STAGING);
+
+  expect(context.beacon.status.get()).toEqual({ state: "running", session: 2 });
+
+  stop();
+
+  expect(context.beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("LIFE-02 a replacement hands the restarted session to the stop of its start, and to no other", () => {
+  const context = createWebCommandBeacon();
+  const older = context.beacon.start();
+
+  older();
+
+  const current = context.beacon.start();
+
+  context.beacon.replaceScope(STAGING);
+  older();
+
+  expect(context.beacon.status.get()).toEqual({ state: "running", session: 3 });
+
+  current();
+
+  expect(context.beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("LIFE-02 starting again after a replacement answers the stop of the start that stands", () => {
+  const context = createWebCommandBeacon();
+  const stop = context.beacon.start();
+
+  context.beacon.replaceScope(STAGING);
+
+  expect(context.beacon.start()).toBe(stop);
+});
+
 test("a disposed Beacon refuses a scope", () => {
   const context = createWebCommandBeacon();
 

@@ -1,6 +1,7 @@
 /**
  * What `reportReady` answers: whether this checkpoint was new in this boot.
- * Reporting it again is harmless.
+ * Reporting it again is harmless. A disposed Beacon records nothing, so it
+ * throws `DISPOSED` and never answers `recorded`.
  *
  * @example
  * ```ts

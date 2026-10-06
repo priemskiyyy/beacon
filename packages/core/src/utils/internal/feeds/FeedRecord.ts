@@ -85,7 +85,7 @@ export class FeedRecord {
       return;
     }
 
-    this.#armExpiry(session, accepted, this.#clock.now());
+    this.#watch(session, accepted);
   };
 
   /** Forgets the document and its revision high-water mark, as another scope's evidence is never compared with this one's. */
@@ -148,15 +148,32 @@ export class FeedRecord {
     { accepted, isRenewal }: Verdict,
     session: Session,
   ) {
-    this.#accepted = accepted;
-    this.#armExpiry(session, accepted, accepted.evidence.receivedAt);
+    const held = this.#armExpiry(
+      session,
+      accepted,
+      accepted.evidence.receivedAt,
+    );
+
+    this.#accepted = held;
     this.#hooks.record(isRenewal ? "read-renewed" : "read-accepted", {
       attempt,
     });
-    this.#hooks.accepted(accepted);
+    this.#hooks.accepted(held);
   }
 
-  // Expires the document if its time has come, or waits for what remains of it; `now` is when the wait is measured from.
+  // Waits for what remains of the document's time, and announces the document expired when that time has come or cannot be waited for.
+  #watch(session: Session, accepted: AcceptedFeed) {
+    const held = this.#armExpiry(session, accepted, this.#clock.now());
+
+    if (held === accepted) {
+      return;
+    }
+
+    this.#accepted = held;
+    this.#hooks.accepted(held);
+  }
+
+  // Answers the document in force: expired when its time has come, or when the host's clock refuses the timer that would say so, since a document whose expiry nobody watches must not stay fresh. `now` is when the wait is measured from.
   #armExpiry(session: Session, accepted: AcceptedFeed, now: number) {
     this.#cancelExpiry();
 
@@ -165,40 +182,41 @@ export class FeedRecord {
     const { expiresAt, freshness } = accepted.evidence;
 
     if (expiresAt === null || freshness === "expired") {
-      return;
+      return accepted;
     }
 
     const remaining = expiresAt - now;
 
     if (remaining <= 0) {
-      this.#expire(accepted);
-
-      return;
+      return this.#expire(accepted);
     }
 
-    // A host timer holds a bounded delay, so a long wait wakes early and waits again.
-    const cancel = this.#clock.setTimer(
-      () => this.#armExpiry(session, accepted, this.#clock.now()),
-      remaining,
-    );
+    try {
+      // A host timer holds a bounded delay, so a long wait wakes early and waits again.
+      const cancel = this.#clock.setTimer(
+        () => this.#watch(session, accepted),
+        remaining,
+      );
 
-    const remove = session.scope.add(cancel);
+      const remove = session.resources.add(cancel);
 
-    this.#cancelExpiry = () => {
-      cancel();
-      remove();
-    };
+      this.#cancelExpiry = () => {
+        cancel();
+        remove();
+      };
+    } catch {
+      return this.#expire(accepted);
+    }
+
+    return accepted;
   }
 
-  #expire(accepted: AcceptedFeed) {
+  #expire(accepted: AcceptedFeed): AcceptedFeed {
     const evidence: Evidence = Object.freeze({
       ...accepted.evidence,
       freshness: "expired",
     });
 
-    const expired: AcceptedFeed = Object.freeze({ ...accepted, evidence });
-
-    this.#accepted = expired;
-    this.#hooks.accepted(expired);
+    return Object.freeze({ ...accepted, evidence });
   }
 }

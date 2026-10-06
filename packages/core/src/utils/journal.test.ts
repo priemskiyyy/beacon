@@ -1,6 +1,8 @@
 import { expect, test } from "vitest";
 
-import { SCOPE, settle } from "src/utils/Beacon.fixture";
+import type { RunningRelease } from "src/types/RunningRelease";
+import { buildWebRelease, SCOPE, settle } from "src/utils/Beacon.fixture";
+import { DEFAULT_RUNNING_TIMEOUT } from "src/utils/constants/defaults";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,
@@ -16,6 +18,7 @@ import {
   KEY,
   seed,
 } from "src/utils/journal.fixture";
+import { createDeferred } from "src/utils/internal/common/createDeferred";
 import { createJournalKey } from "src/utils/internal/journal/createJournalKey";
 import { parseJournal } from "src/utils/internal/journal/parseJournal";
 import { serializeJournal } from "src/utils/internal/journal/serializeJournal";
@@ -171,8 +174,6 @@ test("an intent names what ran as it was known: an unnamed build as unknown, and
   const first = createJournaled(unnamed, "required", { build: null });
 
   first.beacon.start();
-  // A command written before the running facts are read names nothing as running.
-  await settle();
   await first.beacon.route("web").refresh();
 
   expect(readRecord(unnamed)[0]?.intent).toMatchObject({
@@ -184,12 +185,122 @@ test("an intent names what ran as it was known: an unnamed build as unknown, and
   const second = createJournaled(unread, "required", { failRead: true });
 
   second.beacon.start();
-  await settle();
   await second.beacon.route("web").refresh();
 
   expect(readRecord(unread)[0]?.intent).toMatchObject({
     current: null,
     target: null,
+  });
+});
+
+test("an intent names what the reader answered when it answers a macrotask after a command issued in the turn of start", async () => {
+  const memory = createMemoryStorage();
+  const held = createDeferred<RunningRelease>();
+
+  const context = createJournaled(memory, "required", {
+    reader: () => held.promise,
+  });
+
+  context.beacon.start();
+
+  const refreshing = context.beacon.route("web").refresh();
+
+  await settle();
+
+  // The command waits for the reader, and nothing is written about a build nobody has named yet.
+  expect(memory.calls.writes).toBe(0);
+  expect(context.beacon.route("web").state.get().operation).toMatchObject({
+    state: "running",
+  });
+
+  held.resolve(buildWebRelease("web-build-b"));
+  await refreshing;
+
+  expect(readRecord(memory)[0]?.intent).toMatchObject({
+    current: { status: "known", value: "web-build-b" },
+  });
+});
+
+test("a command that waits for the reader waits no longer than the running timeout, and the intent then names nothing as running", async () => {
+  const memory = createMemoryStorage();
+
+  const context = createJournaled(memory, "required", {
+    reader: () => new Promise(() => {}),
+  });
+
+  context.beacon.start();
+
+  const refreshing = context.beacon.route("web").refresh();
+
+  await settle();
+  expect(memory.calls.writes).toBe(0);
+
+  context.clock.advance(DEFAULT_RUNNING_TIMEOUT);
+  await refreshing;
+
+  expect(readRecord(memory)[0]?.intent).toMatchObject({ current: null });
+});
+
+test("a caller that stops waiting while the command waits for the reader cancels it before anything is written or dispatched", async () => {
+  const memory = createMemoryStorage();
+  const controller = new AbortController();
+
+  const context = createJournaled(memory, "required", {
+    reader: () => new Promise(() => {}),
+  });
+
+  context.beacon.start();
+
+  const refreshing = context.beacon
+    .route("web")
+    .refresh({ signal: controller.signal });
+
+  await settle();
+  controller.abort();
+
+  await expect(refreshing).resolves.toEqual({
+    status: "cancelled",
+    stage: "journaling",
+  });
+  expect(memory.calls.writes).toBe(0);
+  expect(context.beacon.route("web").state.get().operation).toMatchObject({
+    state: "idle",
+  });
+});
+
+test("a session that ends while the command waits for the reader cancels it, and the next session can command again", async () => {
+  const memory = createMemoryStorage();
+
+  const context = createJournaled(memory, "required", {
+    reader: () => new Promise(() => {}),
+  });
+
+  context.beacon.start();
+
+  const refreshing = context.beacon.route("web").refresh();
+
+  await settle();
+  context.beacon.stop();
+
+  await expect(refreshing).resolves.toEqual({
+    status: "cancelled",
+    stage: "journaling",
+  });
+  expect(memory.calls.writes).toBe(0);
+  expect(context.beacon.route("web").state.get().operation).toMatchObject({
+    state: "idle",
+  });
+});
+
+test("a command without a journal does not wait for a reader that has not answered", async () => {
+  const context = createWebCommandBeacon({
+    reader: () => new Promise(() => {}),
+  });
+
+  context.beacon.start();
+
+  await expect(context.beacon.route("web").refresh()).resolves.toMatchObject({
+    status: "accepted",
   });
 });
 
@@ -582,6 +693,26 @@ test("JOURNAL-13 a privacy flow clears the record, and nothing stored is replaye
   expect(memory.data.has(KEY)).toBe(false);
   expect(context.beacon.transitions.get().latest).toBeNull();
   expect(context.runs).toHaveLength(0);
+});
+
+test("JOURNAL-13 a privacy flow can still clear the record after the Beacon was disposed, and the last snapshot stays", async () => {
+  const memory = createMemoryStorage();
+
+  seed(memory, [buildStored(buildIntent())]);
+
+  const context = createJournaled(memory, "required", { boot: "boot-2" });
+
+  context.beacon.start();
+  await settle();
+  context.beacon.dispose();
+
+  const held = context.beacon.transitions.get();
+
+  await context.beacon.clearJournal();
+
+  expect(memory.data.has(KEY)).toBe(false);
+  expect(context.beacon.transitions.get()).toBe(held);
+  expect(held.latest).not.toBeNull();
 });
 
 test("JOURNAL-13 clearing a Beacon that has no journal has nothing to remove", async () => {

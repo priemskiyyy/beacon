@@ -167,7 +167,9 @@ test("disposing leaves every last snapshot as it was, whatever the application s
     web.state.get(),
   ];
 
-  context.beacon.reportReady({ checkpoint: "later" });
+  expect(() => context.beacon.reportReady({ checkpoint: "later" })).toThrow(
+    expect.objectContaining({ code: "DISPOSED" }),
+  );
   await context.beacon.clearJournal();
   await web.check();
   web.acknowledge();

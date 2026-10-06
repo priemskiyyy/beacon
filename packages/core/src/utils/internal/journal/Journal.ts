@@ -72,7 +72,10 @@ export class Journal {
       const running = await this.#config.getRunning(session);
 
       // A read that arrives after its session or its scope ended describes nothing that is still true.
-      if (!session.scope.isActive() || claim.generation !== this.#generation) {
+      if (
+        !session.resources.isActive() ||
+        claim.generation !== this.#generation
+      ) {
         return;
       }
 

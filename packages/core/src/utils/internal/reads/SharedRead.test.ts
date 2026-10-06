@@ -4,7 +4,7 @@ import { createTestClock } from "src/mock/createTestClock";
 import type { ReadOptions } from "src/types/internal/ReadOptions";
 import type { SharedReadHooks } from "src/types/internal/SharedReadHooks";
 import type { BeaconError } from "src/utils/BeaconError";
-import { settle } from "src/utils/Beacon.fixture";
+import { createBrokenClock, settle } from "src/utils/Beacon.fixture";
 import { createSession } from "src/utils/internal/feeds/FeedRecord.fixture";
 import { SharedRead } from "src/utils/internal/reads/SharedRead";
 
@@ -187,7 +187,7 @@ test("LIFE-01 a session that ends while the answer is announced supersedes the t
   const session = createSession();
 
   const { read, held, starts, failures } = createHeld({
-    accepted: () => session.scope.dispose(),
+    accepted: () => session.resources.dispose(),
   });
 
   const current = read.read(session, { mode: "join", signal: undefined });
@@ -245,7 +245,7 @@ test("LIFE-01 a read that another cleanup of the same session already finished i
     signal: undefined,
   });
 
-  session.scope.dispose();
+  session.resources.dispose();
 
   await expect(waiting).resolves.toEqual({ status: "cancelled" });
   await expect(other).resolves.toEqual({ status: "superseded" });
@@ -262,7 +262,7 @@ test("LIFE-01 an owner that cannot take the end of a read still lets everyone wh
     signal: undefined,
   });
 
-  session.scope.dispose();
+  session.resources.dispose();
 
   await expect(settledOrHung(waiting)).resolves.toEqual({
     status: "superseded",
@@ -289,7 +289,7 @@ test("HTTP-05 an owner that cannot take a timeout still lets everyone who waited
   });
   expect(held).toHaveLength(2);
 
-  session.scope.dispose();
+  session.resources.dispose();
   await expect(settledOrHung(trailing)).resolves.toEqual({
     status: "superseded",
   });
@@ -327,4 +327,53 @@ test("HTTP-05 what one call asks of an authority is one read, and another call's
     status: "accepted",
     attempt: 3,
   });
+});
+
+test("a clock that refuses the deadline fails the read without asking the source, and the next read is asked again", async () => {
+  const { clock, state } = createBrokenClock();
+  const failures: string[] = [];
+  const asked: number[] = [];
+
+  const read = new SharedRead<string, string>({
+    clock,
+    timeout: 10_000,
+    perform: async ({ attempt }) => {
+      asked.push(attempt);
+
+      return "answer";
+    },
+    accept: (_attempt, answer) => answer,
+    hooks: {
+      started: () => {},
+      accepted: () => {},
+      failed: (_attempt, error) => {
+        failures.push(error.code);
+      },
+      record: () => {},
+    },
+    errors: {
+      failed: { code: "SOURCE_FAILED", message: "The read failed." },
+      invalid: { code: "INVALID_DOCUMENT", message: "The answer is invalid." },
+      timeout: { code: "SOURCE_TIMEOUT", message: "The read timed out." },
+    },
+  });
+
+  const session = createSession();
+  const call: ReadOptions = { mode: "join", signal: undefined };
+
+  await expect(settledOrHung(read.read(session, call))).resolves.toMatchObject({
+    status: "failed",
+    attempt: 1,
+    error: { code: "SOURCE_FAILED" },
+  });
+  expect(failures).toEqual(["SOURCE_FAILED"]);
+  expect(asked).toEqual([]);
+
+  state.broken = false;
+
+  await expect(settledOrHung(read.read(session, call))).resolves.toEqual({
+    status: "accepted",
+    attempt: 2,
+  });
+  expect(asked).toEqual([2]);
 });

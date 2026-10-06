@@ -75,7 +75,7 @@ test("LIFE-02 a stop ends its own session once, and never one that came after it
 test("the cleanups of a session run before its stop is published", () => {
   const { runtime, log } = createRuntime({
     onStart: (session) => {
-      session.scope.add(() => log.push("cleanup"));
+      session.resources.add(() => log.push("cleanup"));
     },
   });
 
@@ -123,7 +123,7 @@ test("a cleanup that starts the next session leaves that session running", () =>
 
   const { runtime, log } = createRuntime({
     onStart: (session) => {
-      session.scope.add(() => {
+      session.resources.add(() => {
         if (restarted) {
           return;
         }
@@ -145,7 +145,7 @@ test("a cleanup that starts the next session leaves that session running", () =>
 test("a cleanup that disposes leaves the Beacon disposed, and disposes it once", () => {
   const { runtime, log } = createRuntime({
     onStart: (session) => {
-      session.scope.add(() => runtime.dispose());
+      session.resources.add(() => runtime.dispose());
     },
   });
 
@@ -207,7 +207,7 @@ test("a disposed runtime refuses to start, and stopping it does nothing", () => 
 test("a cleanup that throws is reported and the session still ends", () => {
   const { runtime, reported } = createRuntime({
     onStart: (session) => {
-      session.scope.add(() => {
+      session.resources.add(() => {
         throw new Error("cleanup");
       });
     },
@@ -218,4 +218,78 @@ test("a cleanup that throws is reported and the session still ends", () => {
 
   expect(reported).toHaveBeenCalledTimes(1);
   expect(runtime.status.get()).toEqual({ state: "stopped" });
+});
+
+test("LIFE-02 a restart ends the session and opens the next for the same start, which the same stop still ends", () => {
+  const { runtime, log } = createRuntime();
+  const stop = runtime.start();
+
+  runtime.restart();
+
+  expect(runtime.status.get()).toEqual({ state: "running", session: 2 });
+  expect(runtime.start()).toBe(stop);
+  expect(log.filter((entry) => entry.startsWith("open"))).toEqual([
+    "open 1",
+    "open 2",
+  ]);
+
+  stop();
+
+  expect(runtime.status.get()).toEqual({ state: "stopped" });
+  expect(runtime.getSession()).toBeNull();
+});
+
+test("a restart without an open session opens nothing", () => {
+  const { runtime, log } = createRuntime();
+
+  runtime.restart();
+  runtime.start()();
+  runtime.restart();
+
+  expect(runtime.status.get()).toEqual({ state: "stopped" });
+  expect(log.filter((entry) => entry.startsWith("open"))).toEqual(["open 1"]);
+});
+
+test("LIFE-02 a restart leaves the session a listener of the stopped status opened, which the stop of the old start no longer ends", () => {
+  const { runtime } = createRuntime();
+  const first = runtime.start();
+
+  let independent = first;
+
+  runtime.status.subscribe(() => {
+    if (runtime.status.get().state !== "stopped" || independent !== first) {
+      return;
+    }
+
+    independent = runtime.start();
+  });
+  runtime.restart();
+
+  expect(runtime.status.get()).toEqual({ state: "running", session: 2 });
+  expect(independent).not.toBe(first);
+
+  first();
+
+  expect(runtime.status.get()).toEqual({ state: "running", session: 2 });
+
+  independent();
+
+  expect(runtime.status.get()).toEqual({ state: "stopped" });
+});
+
+test("a restart leaves the Beacon disposed when a listener of the stopped status disposed it", () => {
+  const { runtime, log } = createRuntime();
+
+  runtime.start();
+  runtime.status.subscribe(() => {
+    if (runtime.status.get().state !== "stopped") {
+      return;
+    }
+
+    runtime.dispose();
+  });
+  runtime.restart();
+
+  expect(runtime.status.get()).toEqual({ state: "disposed" });
+  expect(log.filter((entry) => entry.startsWith("open"))).toEqual(["open 1"]);
 });

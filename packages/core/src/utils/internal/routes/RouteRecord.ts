@@ -231,8 +231,20 @@ export class RouteRecord {
     });
   };
 
+  /** What is published is a snapshot nobody can change, its operation id included. */
   installOperation = (transaction: Transaction, operation: OperationState) => {
-    this.#apply(transaction, { operation });
+    if (operation.state === "idle") {
+      this.#apply(transaction, { operation });
+
+      return;
+    }
+
+    this.#apply(transaction, {
+      operation: Object.freeze({
+        ...operation,
+        operation: Object.freeze({ ...operation.operation }),
+      }),
+    });
   };
 
   /** Moves the progress of the running operation; a report with no operation running is dropped, and one that is no fraction between 0 and 1 says the provider cannot tell. */

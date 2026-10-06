@@ -1,5 +1,9 @@
 import { BeaconError } from "@priemskiyyy/beacon";
-import type { DisruptionParticipant, Impact } from "@priemskiyyy/beacon";
+import type {
+  DisruptionParticipant,
+  Impact,
+  ReleaseScope,
+} from "@priemskiyyy/beacon";
 import { act, cleanup, render, renderHook } from "@testing-library/react";
 import { Activity, StrictMode, useEffect, useLayoutEffect } from "react";
 import type { PropsWithChildren } from "react";
@@ -276,6 +280,45 @@ test("the provider follows start: it holds the session only while start is true"
   rerender(view(true));
 
   expect(beacon.status.get()).toEqual({ state: "running", session: 2 });
+});
+
+test("the provider's stop ends the session a scope replacement restarted, on unmount, when start turns false and when the Beacon is swapped", () => {
+  const replacement = {
+    application: "com.example.notes",
+    environment: "staging",
+    platform: "web",
+    distribution: "public-web",
+  } satisfies ReleaseScope;
+
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+
+  const view = (beacon: WebBeacon, start: boolean) => (
+    <BeaconProvider beacon={beacon} start={start}>
+      <span />
+    </BeaconProvider>
+  );
+
+  const { rerender, unmount } = render(view(first.beacon, true));
+
+  first.beacon.replaceScope(replacement);
+
+  expect(first.beacon.status.get()).toEqual({ state: "running", session: 2 });
+
+  rerender(view(first.beacon, false));
+
+  expect(first.beacon.status.get()).toEqual({ state: "stopped" });
+
+  rerender(view(first.beacon, true));
+  first.beacon.replaceScope({ ...replacement, environment: "canary" });
+  rerender(view(second.beacon, true));
+
+  expect(first.beacon.status.get()).toEqual({ state: "stopped" });
+
+  second.beacon.replaceScope(replacement);
+  unmount();
+
+  expect(second.beacon.status.get()).toEqual({ state: "stopped" });
 });
 
 test("the provider follows a new beacon: the old session ends and a new one starts", () => {

@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 
 import { createTestClock } from "src/mock/createTestClock";
 import type { BeaconClock } from "src/types/BeaconClock";
+import { createBrokenClock } from "src/utils/Beacon.fixture";
 import {
   createFeed,
   createFeedOn,
@@ -74,7 +75,7 @@ test("POL-04 a stopped session arms no expiry, and resuming expires what passed"
   mock.resolve({ document: { name: "a" }, expiresAt: 2_000 });
   await pending;
 
-  first.scope.dispose();
+  first.resources.dispose();
   expect(clock.pendingTimers()).toBe(0);
 
   clock.suspend(5_000);
@@ -92,7 +93,7 @@ test("a resumed document that has not expired arms its expiry again", async () =
 
   mock.resolve({ document: { name: "a" }, expiresAt: 5_000 });
   await pending;
-  first.scope.dispose();
+  first.resources.dispose();
 
   const second = createSession(2);
 
@@ -158,4 +159,72 @@ test("a document that expires a millisecond after it was received is announced f
     "expired",
   ]);
   expect(feed.getAccepted()).toBe(accepted.at(-1));
+});
+
+test("a clock that refuses the timer of an expiry announces the document expired, since nobody would say when it stops holding", async () => {
+  const { clock, state } = createBrokenClock();
+
+  state.broken = false;
+
+  const { feed, mock, accepted } = createFeedOn(clock);
+
+  // The deadline of the read is armed, and the expiry that follows is refused.
+  const pending = feed.read(createSession(), {
+    mode: "join",
+    signal: undefined,
+  });
+
+  state.broken = true;
+  mock.resolve({ document: { name: "a" }, expiresAt: 100_000 });
+  await pending;
+
+  expect(feed.getAccepted()?.evidence.freshness).toBe("expired");
+  expect(accepted.map((entry) => entry.evidence.freshness)).toEqual([
+    "expired",
+  ]);
+});
+
+test("a clock that refuses the timer when a session resumes expires the document, and resuming does not throw", async () => {
+  const { clock, state } = createBrokenClock();
+
+  state.broken = false;
+
+  const { feed, mock, accepted } = createFeedOn(clock);
+  const first = createSession(1);
+  const pending = feed.read(first, { mode: "join", signal: undefined });
+
+  mock.resolve({ document: { name: "a" }, expiresAt: 100_000 });
+  await pending;
+  first.resources.dispose();
+  state.broken = true;
+
+  expect(() => feed.resume(createSession(2))).not.toThrow();
+  expect(feed.getAccepted()?.evidence.freshness).toBe("expired");
+  expect(accepted.map((entry) => entry.evidence.freshness)).toEqual([
+    "fresh",
+    "expired",
+  ]);
+});
+
+test("a clock that refuses the timer of a wait that woke early expires the document, and the wake is no error of the host's timer", async () => {
+  const { clock, state } = createBrokenClock();
+
+  state.broken = false;
+
+  const { feed, mock } = createFeedOn(clock);
+
+  const pending = feed.read(createSession(), {
+    mode: "join",
+    signal: undefined,
+  });
+
+  mock.resolve({ document: { name: "a" }, expiresAt: 100_000 });
+  await pending;
+
+  // The wall clock went back while the timer counted on, so the timer wakes early and must wait again.
+  clock.setNow(0);
+  state.broken = true;
+
+  expect(() => clock.advance(99_000)).not.toThrow();
+  expect(feed.getAccepted()?.evidence.freshness).toBe("expired");
 });

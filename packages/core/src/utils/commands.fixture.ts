@@ -1,4 +1,5 @@
 import { createMockSource } from "src/mock/createMockSource";
+import type { BeaconClock } from "src/types/BeaconClock";
 import type { DisruptionParticipant } from "src/types/DisruptionParticipant";
 import type { JournalOptions } from "src/types/JournalOptions";
 import type { ProviderResult } from "src/types/ProviderResult";
@@ -107,6 +108,10 @@ type WebCommandOptions = {
   /** Makes the mechanism fail to open, so the route has no provider. */
   failOpen?: boolean;
   journal?: JournalOptions;
+  /** The host clock, for a test that does what the test clock never does. */
+  clock?: BeaconClock;
+  /** Reads the web build instead of `build` and `failRead`, for a reader that answers late. */
+  reader?: () => RunningRelease | Promise<RunningRelease>;
 };
 
 const UNNAMED_WEB_RELEASE: RunningRelease = {
@@ -121,6 +126,8 @@ export const createWebCommandBeacon = ({
   failRead = false,
   failOpen = false,
   journal,
+  clock,
+  reader,
 }: WebCommandOptions = {}) => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
   const held = createHeldMechanism({ failOpen });
@@ -136,19 +143,22 @@ export const createWebCommandBeacon = ({
     {
       running: {
         boot: { id: boot },
-        web: () => {
-          if (failRead) {
-            throw new Error("The web build could not be read.");
-          }
+        web:
+          reader ??
+          (() => {
+            if (failRead) {
+              throw new Error("The web build could not be read.");
+            }
 
-          if (build === null) {
-            return UNNAMED_WEB_RELEASE;
-          }
+            if (build === null) {
+              return UNNAMED_WEB_RELEASE;
+            }
 
-          return buildWebRelease(build);
-        },
+            return buildWebRelease(build);
+          }),
       },
       ...(journal === undefined ? {} : { journal }),
+      ...(clock === undefined ? {} : { clock }),
     },
   );
 

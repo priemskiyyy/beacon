@@ -4,6 +4,7 @@ import { createTestClock } from "src/mock/createTestClock";
 import type { DisruptionParticipant } from "src/types/DisruptionParticipant";
 import type { ReserveContext } from "src/types/ReserveContext";
 import type { Settlement } from "src/types/Settlement";
+import { createBrokenClock } from "src/utils/Beacon.fixture";
 import { createDeferred } from "src/utils/internal/common/createDeferred";
 import { DisruptionRegistry } from "src/utils/internal/disruptions/DisruptionRegistry";
 
@@ -268,6 +269,53 @@ test("SAFE-04 a settlement that says blocked, throws or takes too long is not re
     { code: "settlement-timeout", participant: { name: "silent" } },
   ]);
   expect(reportError).toHaveBeenCalledTimes(1);
+});
+
+test("SAFE-04 a clock that refuses the deadline of a settlement makes that participant not ready, without asking it, and reports why", async () => {
+  const { clock, state } = createBrokenClock();
+  const reportError = vi.fn();
+
+  const registry = new DisruptionRegistry({
+    clock,
+    timeout: 1_000,
+    reportError,
+  });
+
+  const log: string[] = [];
+  const asked: string[] = [];
+
+  registry.register(
+    createParticipant("drafts", log, {
+      settle: async () => {
+        asked.push("drafts");
+
+        return { status: "ready" };
+      },
+    }),
+  );
+
+  const outcome = registry.reserve(RELOAD);
+
+  if (outcome.status !== "reserved") {
+    throw new Error("The reservation should have been taken.");
+  }
+
+  await expect(
+    outcome.lease.settle(new AbortController().signal),
+  ).resolves.toEqual([
+    { code: "settlement-failed", participant: { name: "drafts" } },
+  ]);
+  expect(asked).toEqual([]);
+  expect(reportError).toHaveBeenCalledTimes(1);
+  expect(clock.pendingTimers()).toBe(0);
+
+  // The clock recovers, and the same registry settles again.
+  state.broken = false;
+
+  await expect(
+    outcome.lease.settle(new AbortController().signal),
+  ).resolves.toEqual([]);
+  expect(asked).toEqual(["drafts"]);
 });
 
 test("SAFE-10 a caller that stops waiting for a settlement leaves no timer armed", () => {

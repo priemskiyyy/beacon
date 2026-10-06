@@ -537,6 +537,24 @@ test("the provider follows its beacon prop: the old session ends and the new one
   expect(second.beacon.status.get()).toEqual({ state: "stopped" });
 });
 
+test("the provider's stop ends the session a scope replacement restarted", () => {
+  const { beacon } = createWebBeacon();
+  const { unmount } = mount(() => null, { beacon, start: true });
+
+  beacon.replaceScope({
+    application: "com.example.notes",
+    environment: "staging",
+    platform: "web",
+    distribution: "public-web",
+  });
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 2 });
+
+  unmount();
+
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
 test("an effect that sees the provider's new Beacon finds its session started", async () => {
   const first = createWebBeacon();
   const second = createWebBeacon();

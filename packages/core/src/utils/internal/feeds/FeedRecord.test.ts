@@ -198,7 +198,7 @@ test("LIFE-01 a session that ends during a read supersedes its waiters and drops
     signal: undefined,
   });
 
-  session.scope.dispose();
+  session.resources.dispose();
 
   await expect(waiting).resolves.toEqual({ status: "superseded" });
   await expect(trailing).resolves.toEqual({ status: "superseded" });
@@ -215,7 +215,7 @@ test("a read asked of a session that already ended is superseded without reading
   const { feed, mock } = createFeed();
   const session = createSession();
 
-  session.scope.dispose();
+  session.resources.dispose();
 
   await expect(
     feed.read(session, { mode: "join", signal: undefined }),
@@ -237,7 +237,7 @@ test("a caller whose signal already aborted never starts a read", async () => {
 
 test("a listener that ends the session when a read starts supersedes the caller", async () => {
   const session = createSession();
-  const started = createFeedWithStartHook(() => session.scope.dispose());
+  const started = createFeedWithStartHook(() => session.resources.dispose());
 
   await expect(
     started.feed.read(session, { mode: "join", signal: undefined }),

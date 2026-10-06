@@ -21,7 +21,6 @@ import {
 } from "src/utils/constants/commands";
 import { IDLE_OPERATION } from "src/utils/constants/routes";
 import { describeImpacts } from "src/utils/internal/commands/describeImpacts";
-import { freezeOperation } from "src/utils/internal/commands/freezeOperation";
 import { readParameters } from "src/utils/internal/commands/readParameters";
 import { resolveCommand } from "src/utils/internal/commands/resolveCommand";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
@@ -31,7 +30,6 @@ import { untilAborted } from "src/utils/internal/common/untilAborted";
 import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import { commitChange } from "src/utils/internal/observable/commitChange";
-import { getSubject } from "src/utils/internal/routes/getSubject";
 
 type Admitted = Extract<CommandAdmission, { status: "admitted" }>;
 
@@ -78,7 +76,7 @@ export class CommandCoordinator {
       return Promise.resolve(
         this.#answer(target, {
           status: "failed",
-          error: toErrorInfo(this.#options.createInactiveError()),
+          error: this.#options.createInactiveError(),
         }),
       );
     }
@@ -95,7 +93,13 @@ export class CommandCoordinator {
     }
 
     const parameters = readParameters(input);
-    const admission = this.#admit(target, resolution.reference, parameters);
+
+    const admission = this.#admit(
+      session,
+      target,
+      resolution.reference,
+      parameters,
+    );
 
     if (admission.status === "blocked") {
       return Promise.resolve(this.#answer(target, admission));
@@ -134,6 +138,7 @@ export class CommandCoordinator {
   };
 
   #admit(
+    session: Session,
     { entry, name, command }: CommandTarget,
     reference: object | null,
     parameters: CommandParameters,
@@ -169,6 +174,7 @@ export class CommandCoordinator {
 
     const operation: CommandOperation = {
       id: this.#count,
+      session,
       entry,
       command: name,
       reference,
@@ -270,7 +276,7 @@ export class CommandCoordinator {
     const abort = () => controller.abort();
 
     if (signal === undefined) {
-      return session.scope.add(abort);
+      return session.resources.add(abort);
     }
 
     if (signal.aborted) {
@@ -279,7 +285,7 @@ export class CommandCoordinator {
 
     signal.addEventListener("abort", abort, { once: true });
 
-    const leaveSession = session.scope.add(abort);
+    const leaveSession = session.resources.add(abort);
 
     return () => {
       leaveSession();
@@ -397,15 +403,28 @@ export class CommandCoordinator {
       return null;
     }
 
+    const { entry, name, command } = target;
+    const { subject } = entry;
+
+    // The intent names what runs as the reader answered, however late, so a command issued as the session opened waits for it; a journal that is off writes nothing and nothing waits for it.
+    if (this.#options.journal.state.get().journal !== "off") {
+      const read = await untilAborted(
+        this.#options.waitForRunning(operation.session, subject),
+        controller.signal,
+      );
+
+      if (read.status === "aborted") {
+        return stopWith({ status: "cancelled", stage: "journaling" });
+      }
+    }
+
     const first = this.#revalidate(target, lease, input, controller);
 
     if (first.status === "stopped") {
       return first;
     }
 
-    const { entry, name, command } = target;
     const running = this.#options.getRunning();
-    const subject = getSubject(entry.definition);
     const fact = running[subject];
 
     const written = await untilAborted(
@@ -647,7 +666,7 @@ export class CommandCoordinator {
 
   #publish(entry: RouteEntry, operation: OperationState) {
     commitChange((transaction) =>
-      entry.record.installOperation(transaction, freezeOperation(operation)),
+      entry.record.installOperation(transaction, operation),
     );
   }
 
@@ -661,7 +680,7 @@ export class CommandCoordinator {
       route: entry.name,
       command: name,
       reason: outcome.status,
-      ...(operation === undefined ? {} : { operation: operation.id }),
+      operation: operation?.id,
     });
 
     return outcome;

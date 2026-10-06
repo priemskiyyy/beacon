@@ -27,7 +27,7 @@ test("a hydration that fails leaves the queue working for what is queued behind 
     record: () => {},
   });
 
-  const session = { id: 1, scope: new ResourceScope(() => {}) };
+  const session = { id: 1, resources: new ResourceScope(() => {}) };
 
   const hydrating = journal.hydrate(session);
   const writing = journal.write(DRAFT);

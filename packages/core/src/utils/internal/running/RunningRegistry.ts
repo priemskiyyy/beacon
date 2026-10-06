@@ -126,7 +126,7 @@ export class RunningRegistry {
     const reader = this.#readers[subject];
 
     // An earlier reader may have ended this session, and no later one is asked for it.
-    if (reader === undefined || !session.scope.isActive()) {
+    if (reader === undefined || !session.resources.isActive()) {
       return;
     }
 
@@ -137,7 +137,7 @@ export class RunningRegistry {
       return;
     }
 
-    if (!session.scope.isActive()) {
+    if (!session.resources.isActive()) {
       this.#recordLate(subject);
 
       return;
@@ -168,7 +168,7 @@ export class RunningRegistry {
         );
       }, this.#timeout);
 
-      release = session.scope.add(() => {
+      release = session.resources.add(() => {
         cancel();
         resolve(null);
       });

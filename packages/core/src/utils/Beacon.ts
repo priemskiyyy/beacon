@@ -1,4 +1,5 @@
 import type { BeaconDiagnostics } from "src/types/BeaconDiagnostics";
+import type { BeaconErrorInfo } from "src/types/BeaconErrorInfo";
 import type { BeaconOptions } from "src/types/BeaconOptions";
 import type { BeaconStatus } from "src/types/BeaconStatus";
 import type { CheckOptions } from "src/types/CheckOptions";
@@ -41,9 +42,7 @@ import { resolveDuration } from "src/utils/internal/options/resolveDuration";
 import { resolveJournalOptions } from "src/utils/internal/options/resolveJournalOptions";
 import { reportUnhandledError } from "src/utils/internal/reporting/reportUnhandledError";
 import { RUNNING_SUBJECTS } from "src/utils/constants/subjects";
-import { getSubjects } from "src/utils/internal/routes/getSubjects";
 import { mapHandles, mapNames } from "src/utils/internal/routes/mapRoutes";
-import { getCommands } from "src/utils/internal/routes/getCommands";
 import { readCapabilities } from "src/utils/internal/routes/readCapabilities";
 import { RouteRegistry } from "src/utils/internal/routes/RouteRegistry";
 import { BeaconRuntime } from "src/utils/internal/runtime/BeaconRuntime";
@@ -229,7 +228,7 @@ export class Beacon<
       record: this.#diagnostics.record,
     });
 
-    this.#running.state.subscribe(this.#routes.handleRunningChange);
+    this.#running.state.subscribe(this.#routes.reselect);
 
     const disruptions = new DisruptionRegistry({
       clock,
@@ -251,9 +250,11 @@ export class Beacon<
       disruptions,
       journal: this.#journal,
       getRunning: () => this.#running.state.get(),
+      waitForRunning: (session, subject) =>
+        this.#running.read(session)[subject],
       getSession: () => this.#runtime.getSession(),
       now: () => clock.now(),
-      createInactiveError: () => this.#createInactiveError(),
+      createInactiveError: () => this.#describeInactive(),
       record: this.#diagnostics.record,
     });
 
@@ -263,13 +264,13 @@ export class Beacon<
         // Every step calls the application, which may have ended this very session, and nothing is opened for one that ended.
         this.#running.read(session);
 
-        if (!session.scope.isActive()) {
+        if (!session.resources.isActive()) {
           return;
         }
 
         this.#routes.open(session);
 
-        if (!session.scope.isActive()) {
+        if (!session.resources.isActive()) {
           return;
         }
 
@@ -326,8 +327,10 @@ export class Beacon<
   /**
    * Opens the observation session and answers its stop: it reads the running
    * facts and opens each route, and fetches nothing from a release authority.
-   * Starting again while the session is open answers the same stop, and an
-   * old session's stop never ends a newer one.
+   * Starting again while the session is open answers the same stop. That stop
+   * ends the session that stands for its start, including the one
+   * `replaceScope` restarted for it, and never one that a later, independent
+   * start opened.
    *
    * @example
    * ```ts
@@ -341,10 +344,11 @@ export class Beacon<
    * reads is fenced, what it taught is forgotten (the documents, the offers
    * and the references to them, the prepared targets, the support evaluated
    * from them and the journal's intents), and the session, if one is open,
-   * starts again with the next scope. What is running is never rewritten: a
-   * new environment label does not change the build in memory. A route whose
-   * operation is running or unresolved blocks the replacement, since that work
-   * cannot be given to another scope: acknowledge it first.
+   * starts again with the next scope, under the stop its `start()` answered.
+   * What is running is never rewritten: a new environment label does not
+   * change the build in memory. A route whose operation is running or
+   * unresolved blocks the replacement, since that work cannot be given to
+   * another scope: acknowledge it first.
    *
    * @example
    * ```ts
@@ -366,18 +370,11 @@ export class Beacon<
       return { status: "unchanged" };
     }
 
-    const wasOpen = this.#runtime.getSession() !== null;
-
     // Nothing here waits, so no answer of the old scope lands between these steps. The next scope is in force, and everything the last taught is forgotten, before the session ends: whatever a listener starts, checks or replaces meanwhile speaks for the scope that stays, and a check made while the old session is still open is superseded when it ends.
     this.#scope = Object.freeze({ ...next });
     this.#routes.reset();
     this.#journal.reset();
-    this.#runtime.stop();
-
-    // A listener may have disposed the Beacon, which keeps its last snapshots.
-    if (wasOpen && !this.#isDisposed()) {
-      this.#runtime.start();
-    }
+    this.#runtime.restart();
 
     return { status: "replaced" };
   };
@@ -397,9 +394,12 @@ export class Beacon<
 
   /**
    * Asks every route's authority and the support policy's, sharing one read
-   * per authority. Each outcome is its own: a failure of one never hides the
-   * success of another, and none of them means anything is on offer. It never
-   * rejects.
+   * per authority, all started in one turn once the running facts it needs are
+   * in. With a support policy that is every configured running fact, since the
+   * policy reads them all, each one bounded by `timeouts.running`; without one,
+   * only the facts the routes select against, as a route's own `check()` does.
+   * Each outcome is its own: a failure of one never hides the success of
+   * another, and none of them means anything is on offer. It never rejects.
    *
    * @example
    * ```ts
@@ -409,7 +409,11 @@ export class Beacon<
   check = async (
     options: CheckOptions = {},
   ): Promise<CheckReport<keyof TRoutes & string>> => {
-    const ready = await this.#prepareChecks(this.#entries, options);
+    const ready = await this.#prepareChecks(
+      this.#entries,
+      this.#getCheckedSubjects(),
+      options,
+    );
 
     if (ready.status === "stopped") {
       return {
@@ -443,19 +447,28 @@ export class Beacon<
    * its primary screen with the data it needs. It says application code got
    * there, not that nothing will crash later or that stored data is safe in
    * both directions, and nothing reports it for you. Idempotent per
-   * checkpoint.
+   * checkpoint. After `dispose()` nothing can be recorded, so it throws
+   * `DISPOSED` instead of answering that it did.
    *
    * @example
    * ```ts
    * beacon.reportReady({ checkpoint: "primary-screen" });
    * ```
    */
-  reportReady = ({ checkpoint }: { checkpoint?: string } = {}): ReadyReport =>
-    this.#journal.reportReady(checkpoint);
+  reportReady = ({ checkpoint }: { checkpoint?: string } = {}): ReadyReport => {
+    if (this.#isDisposed()) {
+      throw createDisposedError();
+    }
+
+    return this.#journal.reportReady(checkpoint);
+  };
 
   /**
    * Removes the journal's record, for a privacy flow. Nothing in it is
-   * replayed, and no native operation is cancelled or inferred.
+   * replayed, and no native operation is cancelled or inferred. It still
+   * removes the stored record after `dispose()`, since erasing what a finished
+   * Beacon left is the point of the flow, and the last snapshot stays as it
+   * was.
    *
    * @example
    * ```ts
@@ -485,22 +498,20 @@ export class Beacon<
   }
 
   #createHandle(entry: RouteEntry) {
-    const commands = Object.entries(getCommands(entry.definition)).map(
-      ([name, command]) => {
-        const target: CommandTarget = { entry, name, command };
+    const commands = Object.entries(entry.commands).map(([name, command]) => {
+      const target: CommandTarget = { entry, name, command };
 
-        return [
-          name,
-          (input: CommandInput = {}) => this.#commands.run(target, input),
-        ];
-      },
-    );
+      return [
+        name,
+        (input: CommandInput = {}) => this.#commands.run(target, input),
+      ];
+    });
 
     return {
       ...Object.fromEntries(commands),
       state: entry.record.state,
       native: entry.record.native,
-      capabilities: readCapabilities(entry.definition),
+      capabilities: readCapabilities(entry.commands),
       check: (options: CheckOptions = {}) => this.#checkRoute(entry, options),
       acknowledge: () => this.#commands.acknowledge(entry),
     };
@@ -510,7 +521,11 @@ export class Beacon<
     entry: RouteEntry,
     options: CheckOptions,
   ): Promise<CheckOutcome> {
-    const ready = await this.#prepareChecks([entry], options);
+    const ready = await this.#prepareChecks(
+      [entry],
+      entry.runtime.dependsOn,
+      options,
+    );
 
     if (ready.status === "stopped") {
       return ready.outcome();
@@ -519,9 +534,19 @@ export class Beacon<
     return entry.runtime.check(ready.session, ready.read);
   }
 
+  // The support policy reads every running subject, so a check that includes it waits for all of them, and only then starts any read.
+  #getCheckedSubjects() {
+    if (this.#routes.hasPolicy()) {
+      return RUNNING_SUBJECTS;
+    }
+
+    return this.#entries.flatMap(({ runtime }) => runtime.dependsOn);
+  }
+
   // Waits once for the running subjects the checks depend on, or says why none may go on.
   async #prepareChecks(
     entries: RouteEntry[],
+    subjects: RunningSubject[],
     options: CheckOptions,
   ): Promise<PreparedChecks> {
     const session = this.#runtime.getSession();
@@ -540,11 +565,7 @@ export class Beacon<
       });
     }
 
-    const running = await this.#awaitRunning(
-      session,
-      entries.flatMap(({ definition }) => getSubjects(definition)),
-      options.signal,
-    );
+    const running = await this.#awaitRunning(session, subjects, options.signal);
 
     if (running === "aborted") {
       return { status: "stopped", outcome: () => ({ status: "cancelled" }) };
@@ -561,7 +582,7 @@ export class Beacon<
     };
   }
 
-  // A check waits only for the running subjects it depends on, not for every unrelated reader, and only as long as its caller does.
+  // A check waits only for the running subjects it was given, not for every unrelated reader, and only as long as its caller does.
   async #awaitRunning(
     session: Session,
     subjects: RunningSubject[],
@@ -590,22 +611,21 @@ export class Beacon<
   }
 
   #createNotActiveOutcome(): CheckOutcome {
-    return {
-      status: "failed",
-      attempt: 0,
-      error: toErrorInfo(this.#createInactiveError()),
-    };
+    return { status: "failed", attempt: 0, error: this.#describeInactive() };
   }
 
-  #createInactiveError() {
+  // Why a call outside a session cannot run: the Beacon is disposed, or was never started.
+  #describeInactive(): BeaconErrorInfo {
     if (this.#isDisposed()) {
-      return createDisposedError();
+      return toErrorInfo(createDisposedError());
     }
 
-    return new BeaconError({
-      code: "NOT_STARTED",
-      message: "An operation needs a started Beacon.",
-    });
+    return toErrorInfo(
+      new BeaconError({
+        code: "NOT_STARTED",
+        message: "An operation needs a started Beacon.",
+      }),
+    );
   }
 }
 

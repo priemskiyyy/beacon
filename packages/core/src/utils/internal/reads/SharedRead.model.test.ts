@@ -116,7 +116,7 @@ test("HTTP-05 callers that join, leave, wait after the read and outlive their se
         }
 
         if (step.kind === "restart") {
-          session.scope.dispose();
+          session.resources.dispose();
           session = createSession();
         }
 
@@ -124,7 +124,7 @@ test("HTTP-05 callers that join, leave, wait after the read and outlive their se
         expect(flight.most).toBeLessThanOrEqual(1);
       }
 
-      session.scope.dispose();
+      session.resources.dispose();
 
       // What a source answers after its read was ended is ignored.
       for (const late of held) {

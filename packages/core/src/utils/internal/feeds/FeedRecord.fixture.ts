@@ -20,7 +20,7 @@ export const SCOPE: ReleaseScope = {
 
 export const createSession = (id = 1): Session => ({
   id,
-  scope: new ResourceScope(() => {}),
+  resources: new ResourceScope(() => {}),
 });
 
 type FeedOptions = { timeout?: number; source?: ReleaseSource<Manifest> };

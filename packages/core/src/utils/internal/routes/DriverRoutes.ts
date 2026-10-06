@@ -82,6 +82,7 @@ export class DriverRoutes {
     };
 
     return {
+      dependsOn: [],
       open: (session) => this.#open(route, entry, session),
       check: async (session, options) =>
         toCheckOutcome(await entry.read.read(session, options), null),
@@ -141,7 +142,7 @@ export class DriverRoutes {
 
     const controller = new AbortController();
 
-    session.scope.add(() => {
+    session.resources.add(() => {
       controller.abort();
       entry.session = null;
       commit((transaction) => record.installNative(transaction, null));
@@ -209,7 +210,7 @@ export class DriverRoutes {
 
     // A report from a session that ended is counted and dropped, and one Beacon cannot take is a failed route, never a throw into the provider.
     const install = (apply: (transaction: Transaction) => void) => {
-      if (!session.scope.isActive()) {
+      if (!session.resources.isActive()) {
         this.#options.record("late-callback", {
           route: name,
           reason: "driver",

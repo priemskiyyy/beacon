@@ -32,7 +32,7 @@ export class SharedRead<TAnswer, TAccepted> {
     new Promise<ReadResult>((resolve) => {
       const { signal } = options;
 
-      if (!session.scope.isActive()) {
+      if (!session.resources.isActive()) {
         resolve({ status: "superseded" });
 
         return;
@@ -126,19 +126,27 @@ export class SharedRead<TAnswer, TAccepted> {
 
     this.#flight = flight;
 
-    flight.stops.push(
-      clock.setTimer(() => {
-        flight.controller.abort();
-        this.#fail(flight, new BeaconError(errors.timeout));
-      }, timeout),
-      session.scope.add(() => this.#end(flight)),
-    );
+    flight.stops.push(session.resources.add(() => this.#end(flight)));
 
     hooks.record("read-started", { attempt: flight.attempt });
     hooks.started(flight.attempt);
 
     // A listener told about the start may have ended the session.
     if (flight.finished) {
+      return;
+    }
+
+    // The host's clock can refuse a timer, and a read with no deadline is never started: it fails, as one that ran out of time does.
+    try {
+      flight.stops.push(
+        clock.setTimer(() => {
+          flight.controller.abort();
+          this.#fail(flight, new BeaconError(errors.timeout));
+        }, timeout),
+      );
+    } catch (cause) {
+      this.#fail(flight, toBeaconError(cause, errors.failed));
+
       return;
     }
 
@@ -322,7 +330,7 @@ export class SharedRead<TAnswer, TAccepted> {
       return;
     }
 
-    if (!session.scope.isActive()) {
+    if (!session.resources.isActive()) {
       this.#settle(group, { status: "superseded" });
 
       return;

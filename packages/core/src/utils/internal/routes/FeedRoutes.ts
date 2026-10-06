@@ -33,6 +33,7 @@ export class FeedRoutes {
     feed.consumers.push(consumer);
 
     return {
+      dependsOn: [consumer.definition.subject],
       open: (session) => this.#openMechanism(consumer, session),
       check: async (session, options) =>
         toCheckOutcome(
@@ -164,7 +165,7 @@ export class FeedRoutes {
 
     commit((transaction) => record.installNative(transaction, opened.native));
 
-    session.scope.add(() => {
+    session.resources.add(() => {
       commit((transaction) => record.installNative(transaction, null));
       opened.dispose?.();
     });

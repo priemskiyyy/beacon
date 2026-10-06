@@ -388,7 +388,7 @@ A reservation an owner holds stays valid after the owner is disposed, as long as
 
 Render the component under `BeaconProvider` with a real Beacon over the mock source and the test clock, and drive it the way [the testing guide](testing.md) does: answer, check, advance. Reading in a primitive never starts a session, so start the Beacon in the test, or pass `start` to the provider.
 
-- Run the tests in a DOM environment such as jsdom, with the `browser` and `development` export conditions and `solid-js` deduped. Under plain Node, `solid-js` resolves to its server build, which never runs effects, so no primitive would subscribe.
+- Run the tests in a DOM environment such as jsdom, with the `browser` and `development` export conditions, and with `solid-js` deduped and inlined (`server.deps.inline`) so that those conditions apply to it. Under plain Node, `solid-js` resolves to its server build, which never runs effects, so no primitive would subscribe.
 - Compile the JSX with `vite-plugin-solid`. Test a server render in a Node environment with the plugin's `ssr` option on.
 - Solid updates the DOM at once. After `await beacon.check()` the markup is current, with no tick to wait for.
 - Keep what `render` returns and call it at the end, so the provider ends its session.

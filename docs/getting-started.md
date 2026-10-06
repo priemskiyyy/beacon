@@ -159,24 +159,19 @@ With `start`, the provider opens the observation session while it is mounted. Th
 
 ### 4. Check
 
-A check asks each route's authority. Beacon has no timer of its own, so you decide when. Check once the session runs, then again when the page returns to the foreground.
+A check asks each route's authority. Beacon has no timer of its own, so you decide when. Check when the app starts, then again when the page returns to the foreground.
 
 ```tsx
 // src/App.tsx
-import { useBeacon, useStatus } from "@priemskiyyy/beacon-react";
+import { useBeacon } from "@priemskiyyy/beacon-react";
 import { useEffect } from "react";
 
 import { UpdateBanner } from "src/UpdateBanner";
 
 export const App = () => {
   const beacon = useBeacon();
-  const running = useStatus(({ state }) => state === "running");
 
   useEffect(() => {
-    if (!running) {
-      return;
-    }
-
     beacon.check({ reason: "startup" });
 
     const handleVisibility = () => {
@@ -190,7 +185,7 @@ export const App = () => {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [beacon, running]);
+  }, [beacon]);
 
   return (
     <main>
@@ -200,7 +195,7 @@ export const App = () => {
 };
 ```
 
-The check waits for the session because an effect of a child runs before the effect of its provider: a check in the first effect pass would find no session. `check` never rejects. Overlapping checks join one read, so two signals at once cost one request.
+The provider starts the session in a layout effect, before any effect of its children, so the first check finds it running. `check` never rejects. Overlapping checks join one read, so two signals at once cost one request.
 
 ### 5. Show the update
 

@@ -101,24 +101,21 @@ createRoot(container).render(
 | `beacon` | the registered Beacon to publish to the tree below                                           |
 | `start`  | `false` by default. When set, the provider holds the observation session while it is mounted |
 
-With `start`, an effect calls `beacon.start()` and returns its stop as the cleanup. On unmount it ends only that session. It never disposes the Beacon, and it checks nothing. A new `beacon` or `start` ends the old session and starts the new one.
+With `start`, a layout effect calls `beacon.start()` and returns its stop as the cleanup. A layout effect runs before the passive effects of the whole tree, so the session is already running when a child's mount effect runs. On unmount it ends only that session. It never disposes the Beacon, and it checks nothing. A new `beacon` or `start` ends the old session and starts the new one.
 
-Checks are yours. Since the effect of a child runs before the effect of its provider, check once the session runs:
+Checks are yours. A component checks in its own effect, and finds the session running:
 
 ```tsx
 // src/Checker.tsx
-import { useBeacon, useStatus } from "@priemskiyyy/beacon-react";
+import { useBeacon } from "@priemskiyyy/beacon-react";
 import { useEffect } from "react";
 
 export const Checker = () => {
   const beacon = useBeacon();
-  const running = useStatus(({ state }) => state === "running");
 
   useEffect(() => {
-    if (running) {
-      beacon.check({ reason: "startup" });
-    }
-  }, [beacon, running]);
+    beacon.check({ reason: "startup" });
+  }, [beacon]);
 
   return null;
 };

@@ -364,7 +364,7 @@ A reservation a component holds stays valid after the component unmounts, as lon
 
 Mount the component under `BeaconProvider` with a real Beacon over the mock source and the test clock, and drive it the way [the testing guide](testing.md) does: answer, check, advance. Reading in a composable never starts a session, so start the Beacon in the test, or pass `start` to the provider.
 
-- Run the tests in a DOM environment such as jsdom, and render the server tests in a Node environment.
+- Run the tests in a DOM environment such as jsdom, and test a server render in a Node environment. Keep one copy of `vue` in the test build (`resolve.dedupe`), so that the binding and your components share one reactivity system.
 - Await `nextTick()` after a change, since Vue updates the DOM on the next tick. A ref changes at once, and the DOM follows.
 - Mount with `createApp`, and unmount the app at the end so the provider ends its session.
 

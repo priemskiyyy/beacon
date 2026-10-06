@@ -115,7 +115,7 @@ test("VER-11 a parser that throws a beacon error keeps its own code", () => {
   expect(() => select("2.4.0", "v2")).toThrow(BeaconError);
 });
 
-test("a candidate with the running identity but another order is a conflict", () => {
+test("VER-17 a candidate with the running identity but another order is a conflict", () => {
   expect(() => select("2.4.0", "2.3.0", "web-build-b")).toThrow(
     expect.objectContaining({ code: "IDENTITY_CONFLICT" }),
   );

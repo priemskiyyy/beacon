@@ -28,7 +28,7 @@ const draftEditor = (
 ): DisruptionParticipant => ({
   name: "draft-editor",
   impacts: ["document-replacement"],
-  reserve: () => ({ status: "reserved", release: () => {} }),
+  reserve: () => ({ status: "reserved" }),
   ...overrides,
 });
 
@@ -688,7 +688,7 @@ test("useDisruption registers once, and its closures read reactive state when Be
               return { status: "blocked", code: "unsaved-draft" };
             }
 
-            return { status: "reserved", release: () => {} };
+            return { status: "reserved" };
           },
         }),
       ),
@@ -778,7 +778,7 @@ test("a command dispatched the moment the provider's new Beacon is seen finds th
           reserve: () => {
             asked.count += 1;
 
-            return { status: "reserved", release: () => {} };
+            return { status: "reserved" };
           },
         }),
       );
@@ -810,7 +810,7 @@ test("SAFE-14 a reservation a component held is released when the command ends, 
             new Promise((resolve) => {
               settling.finish = () => resolve({ status: "ready" });
             }),
-          release: () => {
+          resume: () => {
             released.count += 1;
           },
         }),

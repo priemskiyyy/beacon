@@ -34,6 +34,7 @@ export class FeedRecord {
   #hooks: FeedHooks;
   #read: SharedRead<SourceRead<unknown>, Verdict>;
   #accepted: AcceptedFeed | null = null;
+  #failure: BeaconError | null = null;
   #cancelExpiry = () => {};
 
   constructor({ source, clock, timeout, getScope, hooks }: FeedRecordOptions) {
@@ -50,13 +51,14 @@ export class FeedRecord {
         started: hooks.started,
         accepted: (attempt, verdict, session) =>
           this.#install(attempt, verdict, session),
-        failed: hooks.failed,
+        failed: (attempt, error) => this.#fail(attempt, error),
         record: hooks.record,
       },
       errors: {
         failed: {
           code: "SOURCE_FAILED",
-          message: "A release source could not be read.",
+          message:
+            "A release source could not be read. The cause is on the read-failed event of beacon.diagnostics.events.",
         },
         invalid: {
           code: "INVALID_DOCUMENT",
@@ -72,6 +74,9 @@ export class FeedRecord {
 
   /** The document the source last answered, or `null` before any. */
   getAccepted = () => this.#accepted;
+
+  /** The error of the last read that failed, until a read is accepted; `null` when the last one worked or none failed. A read nobody waited for is no failure of the source. */
+  getFailure = () => this.#failure;
 
   /** Reads the source, or joins the read in flight; resolves when this caller's read settled, and never rejects. */
   read = (session: Session, options: ReadOptions) =>
@@ -95,6 +100,7 @@ export class FeedRecord {
     this.#cancelExpiry = () => {};
 
     this.#accepted = null;
+    this.#failure = null;
   };
 
   // Throws the error a rejected answer becomes; the held document is never touched here.
@@ -155,10 +161,20 @@ export class FeedRecord {
     );
 
     this.#accepted = held;
+    this.#failure = null;
     this.#hooks.record(isRenewal ? "read-renewed" : "read-accepted", {
       attempt,
     });
     this.#hooks.accepted(held);
+  }
+
+  // A read that ended because nobody waited or the session ended says nothing about the source.
+  #fail(attempt: number, error: BeaconError) {
+    if (error.code !== "ABORTED") {
+      this.#failure = error;
+    }
+
+    this.#hooks.failed(attempt, error);
   }
 
   // Waits for what remains of the document's time, and announces the document expired when that time has come or cannot be waited for.

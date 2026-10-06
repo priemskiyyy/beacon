@@ -22,5 +22,7 @@ export type ReleaseSelection<TRelease> =
   | {
       status: "inconclusive";
       reason: InconclusiveReason;
+      /** Why, in words: for `missing-current-identity` the reader's own reason, for `incomparable-identity` what differs. */
+      detail: string | null;
       candidate: TRelease;
     };

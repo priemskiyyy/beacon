@@ -161,7 +161,7 @@ export class Diagnostics {
 
   #createEvent(
     type: BeaconDiagnosticEventType,
-    { route, command, attempt, operation, reason }: DiagnosticDetails,
+    { route, command, attempt, operation, reason, cause }: DiagnosticDetails,
   ): BeaconDiagnosticEvent {
     return Object.freeze({
       type,
@@ -172,6 +172,7 @@ export class Diagnostics {
       attempt: attempt ?? null,
       operation: operation ?? null,
       reason: reason ?? null,
+      cause: cause ?? null,
     });
   }
 

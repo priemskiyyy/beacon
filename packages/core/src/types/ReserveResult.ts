@@ -4,8 +4,9 @@ import type { Settlement } from "src/types/Settlement";
  * A participant's answer to a reservation. `blocked` refuses the command at
  * once, with a code for the application's own presentation. `reserved` closes
  * the participant's admission of new work, synchronously, before `settle`
- * waits for the work already begun, such as a save in flight. `release`
- * reopens admission and runs whether the command went on or not.
+ * waits for the work already begun, such as a save in flight. `resume` reopens
+ * admission, runs whether the command went on or not, and is left out when
+ * there is nothing to reopen.
  *
  * @example
  * ```ts
@@ -16,7 +17,7 @@ import type { Settlement } from "src/types/Settlement";
  *
  *     return { status: "ready" };
  *   },
- *   release: () => lease.release(),
+ *   resume: () => drafts.resume(),
  * };
  * ```
  */
@@ -25,5 +26,5 @@ export type ReserveResult =
   | {
       status: "reserved";
       settle?: (context: { signal: AbortSignal }) => Promise<Settlement>;
-      release: () => void;
+      resume?: () => void;
     };

@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import type { NoneDecision } from "src/types/NoneDecision";
+import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import type { TargetDecision } from "src/types/TargetDecision";
 import {
   UNKNOWN_IDENTITY,
@@ -43,11 +44,12 @@ test("an unknown target identity is inconclusive, never a difference", () => {
   expect(selectTarget({ decision, running: buildRunning() })).toEqual({
     status: "inconclusive",
     reason: "incomparable-identity",
+    detail: "offered identity unknown: not-reported",
     candidate: decision.release,
   });
 });
 
-test("a target of another domain is inconclusive even when the strings match", () => {
+test("a target of another domain is inconclusive even when the strings match, and says which side differs", () => {
   const decision: TargetDecision = {
     kind: "target",
     release: { identity: buildIdentity("web-build-b", "expo-update") },
@@ -56,6 +58,39 @@ test("a target of another domain is inconclusive even when the strings match", (
   expect(selectTarget({ decision, running: buildRunning() })).toMatchObject({
     status: "inconclusive",
     reason: "incomparable-identity",
+    detail: "domain: running web-artifact, offered expo-update",
+  });
+});
+
+test("a target of another authority says so, and one that differs in both names both", () => {
+  const other: ReleaseIdentity = {
+    status: "known",
+    authority: "com.example.shop",
+    domain: "web-artifact",
+    value: "web-build-b",
+  };
+
+  expect(
+    selectTarget({
+      decision: { kind: "target", release: { identity: other } },
+      running: buildRunning(),
+    }),
+  ).toMatchObject({
+    reason: "incomparable-identity",
+    detail: "authority: running com.example.notes, offered com.example.shop",
+  });
+  expect(
+    selectTarget({
+      decision: {
+        kind: "target",
+        release: { identity: { ...other, domain: "expo-update" } },
+      },
+      running: buildRunning(),
+    }),
+  ).toMatchObject({
+    reason: "incomparable-identity",
+    detail:
+      "authority: running com.example.notes, offered com.example.shop; domain: running web-artifact, offered expo-update",
   });
 });
 
@@ -67,10 +102,12 @@ test("an unknown running identity is inconclusive, never a difference", () => {
   ).toMatchObject({
     status: "inconclusive",
     reason: "missing-current-identity",
+    detail: "not-reported",
   });
   expect(selectTarget({ decision, running: null })).toMatchObject({
     status: "inconclusive",
     reason: "missing-current-identity",
+    detail: "running-not-known",
   });
 });
 

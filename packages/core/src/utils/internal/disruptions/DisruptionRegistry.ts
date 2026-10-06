@@ -5,6 +5,8 @@ import type { ReservationOutcome } from "src/types/internal/ReservationOutcome";
 import type { ReserveContext } from "src/types/ReserveContext";
 import type { ReserveResult } from "src/types/ReserveResult";
 import type { Settlement } from "src/types/Settlement";
+import { BeaconError } from "src/utils/BeaconError";
+import { describeImpacts } from "src/utils/internal/commands/describeImpacts";
 import { createDeferred } from "src/utils/internal/common/createDeferred";
 
 type DisruptionRegistryOptions = {
@@ -44,6 +46,13 @@ export class DisruptionRegistry {
   getRevision = () => this.#revision;
 
   register = (participant: DisruptionParticipant) => {
+    if (participant.impacts?.length === 0) {
+      throw new BeaconError({
+        code: "INVALID_CONFIGURATION",
+        message: `The participant "${participant.name}" lists no impacts, so it would never be asked. List the impacts it cares about, or omit the field to be asked before every impact that loses in-memory state.`,
+      });
+    }
+
     const registration: Registration = { participant };
 
     this.#registrations.add(registration);
@@ -100,11 +109,7 @@ export class DisruptionRegistry {
     context: ReserveContext,
   ): ReserveResult | null {
     try {
-      const isConcerned = participant.impacts.some((impact) =>
-        context.impacts.includes(impact),
-      );
-
-      if (!isConcerned) {
+      if (!this.#isConcerned(participant, context)) {
         return null;
       }
 
@@ -121,6 +126,17 @@ export class DisruptionRegistry {
     }
 
     return { status: "blocked", code: "reservation-failed" };
+  }
+
+  // A participant that names no impacts is concerned by every impact that loses what the app holds in memory.
+  #isConcerned(participant: DisruptionParticipant, context: ReserveContext) {
+    if (participant.impacts === undefined) {
+      return describeImpacts(context.impacts).disruptive;
+    }
+
+    return participant.impacts.some((impact) =>
+      context.impacts.includes(impact),
+    );
   }
 
   async #settle(held: Held[], signal: AbortSignal): Promise<BlockReason[]> {
@@ -191,7 +207,7 @@ export class DisruptionRegistry {
   #release(held: Held[]) {
     for (const { reservation } of [...held].reverse()) {
       try {
-        reservation.release();
+        reservation.resume?.();
       } catch (error) {
         this.#reportError(error);
       }

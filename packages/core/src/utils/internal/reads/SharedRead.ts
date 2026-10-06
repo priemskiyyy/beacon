@@ -145,7 +145,7 @@ export class SharedRead<TAnswer, TAccepted> {
         }, timeout),
       );
     } catch (cause) {
-      this.#fail(flight, toBeaconError(cause, errors.failed));
+      this.#fail(flight, toBeaconError(cause, errors.failed), cause);
 
       return;
     }
@@ -156,7 +156,7 @@ export class SharedRead<TAnswer, TAccepted> {
       );
     }).then(
       (answer) => this.#takeAnswer(flight, answer),
-      (cause) => this.#fail(flight, toBeaconError(cause, errors.failed)),
+      (cause) => this.#fail(flight, toBeaconError(cause, errors.failed), cause),
     );
   }
 
@@ -174,7 +174,7 @@ export class SharedRead<TAnswer, TAccepted> {
     try {
       accepted = accept(flight.attempt, answer);
     } catch (cause) {
-      this.#fail(flight, toBeaconError(cause, errors.invalid));
+      this.#fail(flight, toBeaconError(cause, errors.invalid), cause);
 
       return;
     }
@@ -185,7 +185,7 @@ export class SharedRead<TAnswer, TAccepted> {
     try {
       hooks.accepted(flight.attempt, accepted, flight.session);
     } catch (cause) {
-      this.#settleFailure(flight, toBeaconError(cause, errors.invalid));
+      this.#settleFailure(flight, toBeaconError(cause, errors.invalid), cause);
 
       return;
     }
@@ -194,7 +194,8 @@ export class SharedRead<TAnswer, TAccepted> {
     this.#startTrailing(flight.session);
   }
 
-  #fail(flight: ReadFlight, error: BeaconError) {
+  // `cause` is what was thrown, for the diagnostics only; a failure Beacon made itself, such as a timeout, threw nothing.
+  #fail(flight: ReadFlight, error: BeaconError, cause?: unknown) {
     const { hooks } = this.#options;
 
     if (flight.finished) {
@@ -204,15 +205,16 @@ export class SharedRead<TAnswer, TAccepted> {
     }
 
     this.#finish(flight);
-    this.#settleFailure(flight, error);
+    this.#settleFailure(flight, error, cause);
   }
 
-  #settleFailure(flight: ReadFlight, error: BeaconError) {
+  #settleFailure(flight: ReadFlight, error: BeaconError, cause?: unknown) {
     const { hooks } = this.#options;
 
     hooks.record("read-failed", {
       attempt: flight.attempt,
       reason: error.code,
+      cause,
     });
 
     // Whatever the owner does with the failure, everyone who waited is told and the next read goes on.

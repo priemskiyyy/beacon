@@ -5,6 +5,7 @@ import type { SourceReadContext } from "src/types/SourceReadContext";
 import type { CandidateDecision } from "src/types/CandidateDecision";
 import type { NoneDecision } from "src/types/NoneDecision";
 import type { RunningSubject } from "src/types/RunningSubject";
+import type { RunningRelease } from "src/types/RunningRelease";
 import { settle } from "src/mock/settle";
 import {
   buildWebRelease,
@@ -920,4 +921,45 @@ test("a source read is given the clock the Beacon runs on, so a source reads no 
   expect(seen).toHaveLength(2);
   expect(times).toEqual([1_000, 6_000]);
   expect(seen[0]?.clock).toBe(beacon.clock);
+
+test("CORE-14 an observation that is inconclusive names why: the reason the running reader gave, and then the identities that could not be compared", async () => {
+  const state: { running: RunningRelease } = {
+    running: {
+      identity: { status: "unknown", reason: "build-id-not-injected" },
+      label: null,
+      raw: {},
+    },
+  };
+
+  const context = createWebBeacon({
+    running: { boot: { id: "boot-1" }, web: () => state.running },
+  });
+
+  await startAndCheck(context);
+
+  expect(context.beacon.route("web").state.get().observation).toMatchObject({
+    status: "inconclusive",
+    reason: "missing-current-identity",
+    detail: "build-id-not-injected",
+  });
+
+  context.beacon.stop();
+  state.running = {
+    identity: {
+      status: "known",
+      authority: "com.example.shop",
+      domain: "web-artifact",
+      value: "web-build-b",
+    },
+    label: null,
+    raw: {},
+  };
+  context.beacon.start();
+  await settle();
+
+  expect(context.beacon.route("web").state.get().observation).toMatchObject({
+    status: "inconclusive",
+    reason: "incomparable-identity",
+    detail: "authority: running com.example.shop, offered com.example.notes",
+  });
 });

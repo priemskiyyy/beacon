@@ -69,8 +69,172 @@ test("POL-01 a first policy check that fails is unknown, not supported and not u
   expect(report.support).toMatchObject({ status: "failed" });
   expect(context.beacon.support.get()).toMatchObject({
     status: "unknown",
-    reason: "not-checked",
+    reason: "read-failed",
     evaluation: null,
+    error: { code: "SOURCE_FAILED" },
+  });
+});
+
+test("POL-01 a policy that was never read is not-checked, and only a check that failed makes it read-failed", async () => {
+  const context = createPolicyBeacon();
+
+  context.beacon.start();
+  await settle();
+
+  expect(context.beacon.support.get()).toMatchObject({
+    status: "unknown",
+    reason: "not-checked",
+    error: null,
+  });
+});
+
+test("POL-01 a read that fails is forgotten when the next one is accepted, and read-failed leaves with it", async () => {
+  const context = createPolicyBeacon({ build: 90 });
+
+  context.beacon.start();
+
+  const failing = context.beacon.check();
+
+  await settle();
+  context.mock.reject(new Error("offline"));
+  await failing;
+
+  expect(context.beacon.support.get()).toMatchObject({
+    reason: "read-failed",
+  });
+
+  await checkWith(context);
+
+  expect(context.beacon.support.get()).toMatchObject({
+    status: "unsupported",
+    reason: null,
+    error: null,
+  });
+
+  // The failure is gone for good: the policy lapsing later is only a lapse.
+  context.clock.advance(600_000);
+
+  expect(context.beacon.support.get()).toMatchObject({
+    reason: "expired",
+    error: null,
+  });
+});
+
+test("POL-03 a policy that expired and then failed to refresh is read-failed, with its last decision beside it", async () => {
+  const context = createPolicyBeacon({ build: 90 });
+
+  context.beacon.start();
+  await checkWith(context);
+  context.clock.advance(600_000);
+
+  expect(context.beacon.support.get()).toMatchObject({ reason: "expired" });
+
+  const rechecking = context.beacon.check();
+
+  await settle();
+  context.mock.reject(new Error("offline"));
+  await rechecking;
+
+  expect(context.beacon.support.get()).toMatchObject({
+    status: "unknown",
+    reason: "read-failed",
+    evaluation: { status: "unsupported", evidence: { freshness: "expired" } },
+    error: { code: "SOURCE_FAILED" },
+  });
+});
+
+test("POL-02 a read that fails while the accepted policy still holds leaves its evaluation in force", async () => {
+  const context = createPolicyBeacon({ build: 90 });
+
+  context.beacon.start();
+  await checkWith(context);
+
+  const before = context.beacon.support.get();
+  const rechecking = context.beacon.check();
+
+  await settle();
+  context.mock.reject(new Error("offline"));
+  await rechecking;
+
+  expect(context.beacon.support.get()).toBe(before);
+  expect(before).toMatchObject({ status: "unsupported", reason: null });
+
+  // The failure shows once the evaluation lapses, instead of the lapse alone.
+  context.clock.advance(600_000);
+
+  expect(context.beacon.support.get()).toMatchObject({
+    status: "unknown",
+    reason: "read-failed",
+    evaluation: { status: "unsupported" },
+  });
+});
+
+test("POL-01 a caller that stops waiting for the policy's read is no failure of the policy's source", async () => {
+  const context = createPolicyBeacon();
+  const controller = new AbortController();
+
+  context.beacon.start();
+
+  const checking = context.beacon.check({ signal: controller.signal });
+
+  await settle();
+  controller.abort();
+  await checking;
+
+  expect(context.beacon.support.get()).toMatchObject({
+    reason: "not-checked",
+    error: null,
+  });
+});
+
+test("POL-14 a policy whose evaluation failed keeps saying so when a later read fails", async () => {
+  const context = createPolicyBeacon({
+    evaluate: () => {
+      throw new Error("The policy cannot be evaluated.");
+    },
+  });
+
+  context.beacon.start();
+  await checkWith(context);
+
+  const rechecking = context.beacon.check();
+
+  await settle();
+  context.mock.reject(new Error("offline"));
+  await rechecking;
+
+  expect(context.beacon.support.get()).toMatchObject({
+    status: "unknown",
+    reason: "evaluation-failed",
+    error: { code: "POLICY_FAILED" },
+  });
+});
+
+test("LIFE-08 a scope that replaces the old one forgets that its policy's read failed", async () => {
+  const context = createPolicyBeacon();
+
+  context.beacon.start();
+
+  const failing = context.beacon.check();
+
+  await settle();
+  context.mock.reject(new Error("offline"));
+  await failing;
+
+  expect(context.beacon.support.get()).toMatchObject({
+    reason: "read-failed",
+  });
+
+  context.beacon.replaceScope({
+    application: "com.example.notes",
+    environment: "staging",
+    platform: "web",
+    distribution: "public-web",
+  });
+
+  expect(context.beacon.support.get()).toMatchObject({
+    reason: "not-checked",
+    error: null,
   });
 });
 

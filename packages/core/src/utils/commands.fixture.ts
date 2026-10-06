@@ -302,7 +302,7 @@ export const createParticipant = (
 
         return { status: "ready" };
       },
-      release: () => {
+      resume: () => {
         log.push(`${name}:release`);
       },
     };

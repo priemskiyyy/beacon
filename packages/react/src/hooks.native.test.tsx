@@ -116,7 +116,7 @@ const draftEditor = (
 ): DisruptionParticipant => ({
   name: "draft-editor",
   impacts: ["document-replacement"],
-  reserve: () => ({ status: "reserved", release: () => {} }),
+  reserve: () => ({ status: "reserved" }),
   ...overrides,
 });
 
@@ -397,7 +397,7 @@ test("useDisruption registers while mounted, asks the latest participant, and un
             return { status: "blocked", code: "unsaved-draft" };
           }
 
-          return { status: "reserved", release: () => {} };
+          return { status: "reserved" };
         },
       }),
     );
@@ -455,7 +455,7 @@ test("a command started by a press reaches the provider's Beacon, and a particip
             return { status: "blocked", code: "unsaved-draft" };
           }
 
-          return { status: "reserved", release: () => {} };
+          return { status: "reserved" };
         },
       }),
     );
@@ -513,7 +513,7 @@ test("BIND-07 strict mode on a concurrent root starts, stops and starts again, a
         reserve: () => {
           asked.count += 1;
 
-          return { status: "reserved", release: () => {} };
+          return { status: "reserved" };
         },
       }),
     );

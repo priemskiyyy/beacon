@@ -9,7 +9,10 @@ import { useProvidedBeacon } from "./internal/useProvidedBeacon.js";
  *
  * @example
  * ```ts
- * const exhausted = useTransitions(({ latest }) => latest?.exhausted === true);
+ * const updated = useTransitions(
+ *   ({ latest }) =>
+ *     latest?.judgedHere === true && latest.outcome === "target-running",
+ * );
  * ```
  */
 export function useTransitions(): ReadableValue<TransitionState>;

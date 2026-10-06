@@ -16,7 +16,7 @@ const draftEditor = (
 ): DisruptionParticipant => ({
   name: "draft-editor",
   impacts: ["document-replacement"],
-  reserve: () => ({ status: "reserved", release: () => {} }),
+  reserve: () => ({ status: "reserved" }),
   ...overrides,
 });
 
@@ -106,7 +106,7 @@ test("useDisruption asks the participant with the state it has when Beacon asks,
         return { status: "blocked", code: "unsaved-draft" };
       }
 
-      return { status: "reserved", release: () => {} };
+      return { status: "reserved" };
     },
   });
 
@@ -178,7 +178,7 @@ test("SAFE-14 a reservation a component held is released when the command ends, 
         new Promise((resolve) => {
           settling.finish = () => resolve({ status: "ready" });
         }),
-      release: () => {
+      resume: () => {
         released.count += 1;
       },
     }),

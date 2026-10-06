@@ -11,6 +11,7 @@ import type { MMKV as Mmkv4 } from "react-native-mmkv";
 import type { MMKV as Mmkv3 } from "react-native-mmkv-v3";
 import { expectTypeOf } from "vitest";
 
+import type { JournalOptions } from "src/types/JournalOptions";
 import type { JournalStorage } from "src/types/JournalStorage";
 import type { KeyValueStoreLike } from "src/types/KeyValueStoreLike";
 import { keyValueJournalStorage } from "src/utils/keyValueJournalStorage";
@@ -119,3 +120,25 @@ keyValueJournalStorage(localStorage, {
 
 // @ts-expect-error An MMKV instance has no getItem, so it needs the recipe.
 keyValueJournalStorage(mmkv4);
+
+// The journal takes a key-value store as it is, and a mode is optional.
+export const journalOverStore: JournalOptions = { storage: localStorage };
+
+export const requiredOverAsyncStorage: JournalOptions = {
+  mode: "required",
+  storage: AsyncStorageV3,
+};
+
+export const ownStorage: JournalOptions = { storage: localJournal };
+
+// @ts-expect-error A storage is a journal storage or a key-value store, not an object with neither.
+export const neither: JournalOptions = { storage: {} };
+
+export const unknownMode: JournalOptions = {
+  // @ts-expect-error The mode is best-effort or required.
+  mode: "sometimes",
+  storage: localStorage,
+};
+
+// @ts-expect-error An MMKV instance is no key-value store of the journal's either, so it needs the recipe.
+export const mmkvJournal: JournalOptions = { storage: mmkv4 };

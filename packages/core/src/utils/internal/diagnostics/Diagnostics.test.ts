@@ -41,9 +41,29 @@ test("an event is frozen, stamped by the clock and names the session, and what i
       attempt: 2,
       operation: null,
       reason: null,
+      cause: null,
     },
   ]);
   expect(Object.isFrozen(events[0])).toBe(true);
+});
+
+test("a failure event holds the raw value that was thrown as its cause, and what threw nothing has none", () => {
+  const { diagnostics } = createDiagnostics();
+  const events: BeaconDiagnosticEvent[] = [];
+  const failure = new Error("The provider rejected.");
+
+  diagnostics.view.events.subscribe((event) => events.push(event));
+  diagnostics.record("read-failed", {
+    reason: "SOURCE_FAILED",
+    cause: failure,
+  });
+  diagnostics.record("read-failed", { reason: "SOURCE_TIMEOUT" });
+  diagnostics.record("read-failed", {
+    reason: "SOURCE_FAILED",
+    cause: undefined,
+  });
+
+  expect(events.map((event) => event.cause)).toEqual([failure, null, null]);
 });
 
 test("CORE-01 an event is built only while someone listens, and the counters count either way", () => {

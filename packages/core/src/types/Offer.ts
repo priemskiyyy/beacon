@@ -5,7 +5,8 @@ import type { RouteBody } from "src/types/RouteBody";
  * The route's current actionable or informational interpretation of what an
  * authority wants: the release on offer and the reference to act on, plus
  * whatever more the route's provider reports. It is not a prepared target and
- * not a running fact.
+ * not a running fact. A command that needs an offer takes this object, and
+ * reads the `ref` inside it.
  *
  * @example
  * ```ts
@@ -13,6 +14,8 @@ import type { RouteBody } from "src/types/RouteBody";
  *
  * if (observation.status === "available") {
  *   const { ref, release } = observation.offer;
+ *
+ *   await beacon.route("web").reload({ offer: observation.offer });
  * }
  * ```
  */

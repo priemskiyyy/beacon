@@ -67,6 +67,7 @@ test("an unknown current order is inconclusive, never version zero", () => {
   expect(select("2.4.0", null)).toMatchObject({
     status: "inconclusive",
     reason: "missing-current-order",
+    detail: null,
   });
 });
 
@@ -84,7 +85,11 @@ test("VER-10 a comparator that says incomparable makes the selection inconclusiv
       currentOrder: "stable:2",
       version,
     }),
-  ).toMatchObject({ status: "inconclusive", reason: "incomparable-order" });
+  ).toMatchObject({
+    status: "inconclusive",
+    reason: "incomparable-order",
+    detail: null,
+  });
 });
 
 test("VER-11 a comparator that throws fails the selection with the cause kept", () => {

@@ -109,6 +109,65 @@ test("BIND-03 a prepared reference the route no longer holds is replaced, whethe
   expect(context.drivers.first.seen).toHaveLength(1);
 });
 
+test("BIND-03 a command takes the offer or the prepared target itself, and resolves the reference it carries", async () => {
+  const context = await start();
+  const prepared = prepare(context, BODY);
+
+  await expect(
+    context.first.download({ offer: context.offer }),
+  ).resolves.toMatchObject({ status: "accepted" });
+  await expect(context.first.activate({ prepared })).resolves.toMatchObject({
+    status: "accepted",
+  });
+  await expect(
+    context.first.snooze({ offer: context.offer }),
+  ).resolves.toMatchObject({ status: "accepted" });
+
+  expect(context.drivers.first.seen).toEqual([
+    { command: "download", given: context.offer },
+    { command: "activate", given: prepared },
+    { command: "snooze", given: context.offer },
+  ]);
+  expect(context.drivers.first.seen[0]?.given).toBe(context.offer);
+  expect(context.drivers.first.seen[1]?.given).toBe(prepared);
+});
+
+test("BIND-03 an offer or a prepared target that carries a copy, a forgery or another route's reference is foreign, and one that names a replaced reference is replaced", async () => {
+  const context = await start();
+  const prepared = prepare(context, BODY);
+
+  await expect(
+    context.first.download({
+      offer: { ...context.offer, ref: { ...context.offer.ref } },
+    }),
+  ).resolves.toEqual({ status: "stale", reason: "foreign" });
+  await expect(
+    context.first.download({
+      offer: {
+        ...context.offer,
+        ref: { kind: "offer", route: "first", id: 999 },
+      },
+    }),
+  ).resolves.toEqual({ status: "stale", reason: "foreign" });
+  await expect(
+    // The compiler refuses an offer of another route, so a host that is not typed is the caller.
+    context.first.download({ offer: untyped(context.otherOffer) }),
+  ).resolves.toEqual({ status: "stale", reason: "foreign" });
+  await expect(
+    context.first.activate({
+      prepared: { ...prepared, ref: { ...prepared.ref } },
+    }),
+  ).resolves.toEqual({ status: "stale", reason: "foreign" });
+  expect(context.drivers.first.seen).toHaveLength(0);
+
+  context.drivers.first.emitter()?.prepared({ status: "none" });
+
+  await expect(context.first.activate({ prepared })).resolves.toEqual({
+    status: "stale",
+    reason: "replaced",
+  });
+});
+
 test("BIND-03 a copy of a prepared reference is foreign", async () => {
   const context = await start();
   const prepared = prepare(context, BODY);

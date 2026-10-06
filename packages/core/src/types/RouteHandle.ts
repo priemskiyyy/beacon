@@ -19,7 +19,7 @@ import type { RouteSnapshotOf } from "src/types/RouteSnapshotOf";
  * const { observation } = web.state.get();
  *
  * if (observation.status === "available") {
- *   await web.reload({ offer: observation.offer.ref });
+ *   await web.reload({ offer: observation.offer });
  * }
  * ```
  */

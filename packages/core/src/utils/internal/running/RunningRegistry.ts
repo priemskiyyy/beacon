@@ -66,6 +66,8 @@ export class RunningRegistry {
   #store: ValueStore<RunningApplication>;
   #record: RunningRegistryOptions["record"];
   #sessionReads = new WeakMap<Session, Reads>();
+  // What a reader threw, by the failed fact it became: only the event that reports the failure holds it, never the published fact.
+  #thrown = new WeakMap<RunningFact, unknown>();
 
   state: ObservableValue<RunningApplication>;
 
@@ -186,11 +188,11 @@ export class RunningRegistry {
       resolve(reader({ scope: this.#getScope() })),
     )
       .then((answer) => this.#know(answer))
-      .catch((cause) => this.#fail(cause));
+      .catch((cause) => this.#fail(this.#toError(cause), cause));
 
     // Only the application's clock can make the wait itself fail, by throwing when a timer is armed.
     const fact = await Promise.race([reading, interrupted]).catch((cause) =>
-      this.#fail(cause),
+      this.#fail(this.#toError(cause), cause),
     );
 
     cancel();
@@ -211,13 +213,22 @@ export class RunningRegistry {
     });
   }
 
-  #fail(cause: unknown): RunningFact {
-    const error = toBeaconError(cause, {
+  #toError(cause: unknown) {
+    return toBeaconError(cause, {
       code: "RUNNING_READ_FAILED",
       message: "A running fact could not be read.",
     });
+  }
 
-    return Object.freeze({ state: "failed", error: toErrorInfo(error) });
+  #fail(error: BeaconError, cause?: unknown): RunningFact {
+    const fact: RunningFact = Object.freeze({
+      state: "failed",
+      error: toErrorInfo(error),
+    });
+
+    this.#thrown.set(fact, cause);
+
+    return fact;
   }
 
   #recordLate(subject: RunningSubject) {
@@ -232,7 +243,10 @@ export class RunningRegistry {
     }
 
     if (next.state === "failed") {
-      this.#record("running-failed", { reason: subject });
+      this.#record("running-failed", {
+        reason: subject,
+        cause: this.#thrown.get(next),
+      });
     }
 
     if (next.state === "known") {

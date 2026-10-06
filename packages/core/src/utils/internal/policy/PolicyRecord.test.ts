@@ -108,8 +108,14 @@ const createRecord = (
     now: () => 0,
   });
 
-  const update = (accepted: AcceptedFeed, facts = running) => {
-    commitChange((transaction) => record.update(transaction, accepted, facts));
+  const update = (
+    accepted: AcceptedFeed | null,
+    facts = running,
+    readFailure: BeaconError | null = null,
+  ) => {
+    commitChange((transaction) =>
+      record.update(transaction, accepted, facts, readFailure),
+    );
   };
 
   return { record, calls, failures, update };

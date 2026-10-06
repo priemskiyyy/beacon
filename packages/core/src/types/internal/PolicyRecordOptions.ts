@@ -10,8 +10,8 @@ export type PolicyRecordOptions = {
   listeners: Listeners;
   /** The published state of a route, or `undefined` when there is no such route. */
   getRoute: (name: string) => RouteState | undefined;
-  /** Told when an evaluation fails, once for each evaluation that does. */
-  onFailure: (error: BeaconError) => void;
+  /** Told when an evaluation fails, once for each evaluation that does, with what the policy threw if it threw. */
+  onFailure: (error: BeaconError, cause?: unknown) => void;
   /** Epoch milliseconds, for judging whether an evaluation that is kept still holds. */
   now: () => number;
 };

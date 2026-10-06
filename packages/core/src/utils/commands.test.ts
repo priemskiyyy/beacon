@@ -342,6 +342,58 @@ test("a participant that does not care about the impact is not asked", async () 
   expect(log).toEqual([]);
 });
 
+test("SAFE-01 a guard that names no impacts is asked before a reload, and its refusal stops the command", async () => {
+  const context = createWebCommandBeacon();
+  const offer = await startWithOffer(context);
+  const asked: string[] = [];
+
+  context.beacon.disruptions.register({
+    name: "note",
+    reserve: ({ command, impacts }) => {
+      asked.push(`${command}:${impacts.join("+")}`);
+
+      return { status: "blocked", code: "unsaved-note" };
+    },
+  });
+
+  await expect(context.beacon.route("web").reload({ offer })).resolves.toEqual({
+    status: "blocked",
+    reasons: [{ code: "unsaved-note", participant: { name: "note" } }],
+  });
+  expect(asked).toEqual(["reload:document-replacement"]);
+  expect(context.runs).toHaveLength(0);
+});
+
+test("SAFE-01 a guard that is free reserves with nothing to resume, and the reload goes on", async () => {
+  const context = createWebCommandBeacon();
+  const offer = await startWithOffer(context);
+
+  context.beacon.disruptions.register({
+    name: "note",
+    reserve: () => ({ status: "reserved" }),
+  });
+
+  const reload = context.beacon.route("web").reload({ offer });
+
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+
+  await expect(reload).resolves.toMatchObject({ status: "accepted" });
+  context.beacon.route("web").acknowledge();
+});
+
+test("SAFE-01 a participant that lists no impacts is refused when it registers, since it would never be asked", () => {
+  const { beacon } = createWebCommandBeacon();
+
+  expect(() =>
+    beacon.disruptions.register({
+      name: "note",
+      impacts: [],
+      reserve: () => ({ status: "reserved" }),
+    }),
+  ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
+});
+
 test("SAFE-06 a participant registered while settling changes the safety context, and blocks", async () => {
   const context = createWebCommandBeacon();
   const log: string[] = [];
@@ -491,7 +543,7 @@ test("SAFE-09 a guard that repeats the call it guards joins it instead of dispat
     reserve: () => {
       repeats.push(web.reload({ offer }));
 
-      return { status: "reserved", release: () => {} };
+      return { status: "reserved" };
     },
   });
 
@@ -611,7 +663,7 @@ test("a reservation released by starting the next command leaves that command's 
     impacts: ["document-replacement"],
     reserve: () => ({
       status: "reserved",
-      release: () => {
+      resume: () => {
         if (next.length > 0) {
           return;
         }
@@ -1005,7 +1057,6 @@ test("SAFE-04 a participant whose settlement throws at once blocks the command b
       settle: () => {
         throw failure;
       },
-      release: () => {},
     }),
   });
 

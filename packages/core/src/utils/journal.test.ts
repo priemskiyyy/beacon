@@ -114,6 +114,161 @@ test("JOURNAL-02 a best-effort intent that cannot be written is visible, and the
   expect(memory.records.has(KEY)).toBe(false);
 });
 
+test("JOURNAL-02 a journal that names no mode is best-effort: a write that fails is visible and the command goes on", async () => {
+  const memory = createMockJournalStorage();
+  const context = createWebCommandBeacon({ journal: { storage: memory } });
+  const offer = await startWithOffer(context);
+
+  memory.failWrites(new Error("quota exceeded"));
+
+  await expect(reload(context, offer)).resolves.toMatchObject({
+    status: "accepted",
+  });
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "degraded",
+    latest: { outcome: "same-boot" },
+  });
+});
+
+test("JOURNAL-01 a key-value store is the journal's storage as it is, and what it keeps is read back before a write counts", async () => {
+  const items = new Map<string, string>();
+
+  const store = {
+    getItem: (key: string) => items.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      items.set(key, value);
+    },
+    removeItem: (key: string) => {
+      items.delete(key);
+    },
+  };
+
+  const first = createWebCommandBeacon({
+    journal: { mode: "required", storage: store },
+  });
+
+  const offer = await startWithOffer(first);
+
+  await reload(first, offer);
+  expect(items.get(KEY)).toContain("reload");
+
+  const next = createWebCommandBeacon({
+    boot: "boot-2",
+    build: "web-build-a",
+    journal: { mode: "required", storage: store },
+  });
+
+  next.beacon.start();
+  await settle();
+  expect(next.beacon.transitions.get().latest).toMatchObject({
+    outcome: "target-running",
+  });
+
+  const forgetful = createWebCommandBeacon({
+    journal: {
+      mode: "required",
+      storage: { ...store, setItem: () => {} },
+    },
+  });
+
+  const forgotten = await startWithOffer(forgetful);
+
+  await expect(
+    forgetful.beacon.route("web").reload({ offer: forgotten }),
+  ).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "JOURNAL_FAILED" },
+  });
+});
+
+test("JOURNAL-01 a store that holds a key named read is still a key-value store, as Web Storage with such a key is", async () => {
+  const items = new Map<string, string>();
+
+  // Web Storage answers `"read" in storage` for any key an application stored, and keeps its methods on the prototype.
+  const methods = {
+    getItem: (key: string) => items.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      items.set(key, value);
+    },
+    removeItem: (key: string) => {
+      items.delete(key);
+    },
+  };
+
+  const store = Object.assign(Object.create(methods), { read: "an app's key" });
+  const context = createWebCommandBeacon({ journal: { storage: store } });
+  const offer = await startWithOffer(context);
+
+  await reload(context, offer);
+  expect(items.get(KEY)).toContain("reload");
+  expect(context.beacon.transitions.get().journal).toBe("ready");
+});
+
+test("JOURNAL-04 the boot that judged an intent says so, and only while it is that boot", async () => {
+  const memory = createMockJournalStorage();
+
+  seed(memory, [buildStored(buildIntent())]);
+
+  const next = createJournaled(memory, "required", {
+    boot: "boot-2",
+    build: "web-build-a",
+  });
+
+  next.beacon.start();
+  await settle();
+
+  expect(next.beacon.transitions.get().latest).toMatchObject({
+    outcome: "target-running",
+    judgedHere: true,
+  });
+
+  // The same boot stopping and starting again has not judged anything new, and still is the one that did.
+  next.beacon.stop();
+  next.beacon.start();
+  await settle();
+  expect(next.beacon.transitions.get().latest).toMatchObject({
+    judgedHere: true,
+  });
+
+  const later = createJournaled(memory, "required", {
+    boot: "boot-3",
+    build: "web-build-a",
+  });
+
+  later.beacon.start();
+  await settle();
+
+  expect(later.beacon.transitions.get().latest).toMatchObject({
+    outcome: "target-running",
+    judgedHere: false,
+  });
+});
+
+test("JOURNAL-04 an intent this boot wrote is not judged here, and a new one replaces what an earlier boot judged", async () => {
+  const memory = createMockJournalStorage();
+
+  seed(memory, [buildStored(buildIntent())]);
+
+  const context = createJournaled(memory, "required", {
+    boot: "boot-2",
+    build: "web-build-b",
+  });
+
+  const offer = await startWithOffer(context);
+
+  expect(context.beacon.transitions.get().latest).toMatchObject({
+    outcome: "target-not-running",
+    judgedHere: true,
+  });
+
+  await reload(context, offer);
+
+  expect(context.beacon.transitions.get().latest).toMatchObject({
+    outcome: "same-boot",
+    judgedHere: false,
+  });
+});
+
 test("JOURNAL-02 a best-effort intent that cannot be written is announced once, in the state that says the journal degraded", async () => {
   const memory = createMockJournalStorage();
   const context = createJournaled(memory, "best-effort");

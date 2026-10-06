@@ -5,9 +5,19 @@ import {
   DEFAULT_JOURNAL_BUDGET,
   DEFAULT_JOURNAL_RETENTION,
 } from "src/utils/constants/journal";
+import { keyValueJournalStorage } from "src/utils/keyValueJournalStorage";
 import { resolveDuration } from "src/utils/internal/options/resolveDuration";
 
-/** The journal options, or `undefined` for a Beacon without one; a budget or a retention that cannot work is refused at once. */
+// A key-value store is told by `getItem`, which Web Storage has on its prototype whatever keys an application stored; it is wrapped and read back after every write. Anything else is the journal's own storage.
+const toJournalStorage = (storage: JournalOptions["storage"]) => {
+  if ("getItem" in storage) {
+    return keyValueJournalStorage(storage);
+  }
+
+  return storage;
+};
+
+/** The journal options, or `undefined` for a Beacon without one, with the mode and the storage settled; a budget or a retention that cannot work is refused at once. */
 export const resolveJournalOptions = (
   options: JournalOptions | undefined,
   timeout: number,
@@ -26,8 +36,8 @@ export const resolveJournalOptions = (
   }
 
   return {
-    mode: options.mode,
-    storage: options.storage,
+    mode: options.mode ?? "best-effort",
+    storage: toJournalStorage(options.storage),
     budget,
     retention: resolveDuration(
       "journal.retention",

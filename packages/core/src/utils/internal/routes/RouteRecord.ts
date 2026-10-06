@@ -164,6 +164,7 @@ export class RouteRecord {
         status: "inconclusive",
         evidence,
         reason: selection.reason,
+        detail: selection.detail,
         candidate: selection.candidate,
       });
 

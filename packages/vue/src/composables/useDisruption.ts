@@ -16,13 +16,12 @@ import { useProvidedBeacon } from "src/composables/internal/useProvidedBeacon";
  *
  * useDisruption({
  *   name: "draft-editor",
- *   impacts: ["document-replacement"],
  *   reserve: () => {
  *     if (dirty.value) {
  *       return { status: "blocked", code: "unsaved-draft" };
  *     }
  *
- *     return { status: "reserved", release: resume };
+ *     return { status: "reserved" };
  *   },
  * });
  * ```

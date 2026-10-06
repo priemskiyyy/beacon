@@ -42,6 +42,8 @@ export class Journal {
   #transitions: StoredTransition[] = [];
   #queue: Promise<void> = Promise.resolve();
   #hydrated = false;
+  // The intents this boot gave their outcome: one read back with an outcome, or written by this boot, was judged at another moment.
+  #judgedHere = new WeakSet<StoredTransition["intent"]>();
 
   state: ObservableValue<TransitionState>;
 
@@ -179,8 +181,8 @@ export class Journal {
         await this.#call(options, "remove", () =>
           options.storage.remove(claim.key),
         );
-      } catch {
-        record("journal-failed", { reason: "clear" });
+      } catch (cause) {
+        record("journal-failed", { reason: "clear", cause });
         this.#publish({ journal: "degraded" });
 
         return;
@@ -281,8 +283,8 @@ export class Journal {
 
     try {
       text = await this.#call(options, "read", () => options.storage.read(key));
-    } catch {
-      record("journal-failed", { reason: "read" });
+    } catch (cause) {
+      record("journal-failed", { reason: "read", cause });
 
       return undefined;
     }
@@ -339,8 +341,8 @@ export class Journal {
       await this.#call(options, "write", () =>
         options.storage.write(key, serializeJournal(reconciled)),
       );
-    } catch {
-      record("journal-failed", { reason: "write" });
+    } catch (cause) {
+      record("journal-failed", { reason: "write", cause });
       this.#publish({ journal: "degraded" });
     }
   }
@@ -360,6 +362,8 @@ export class Journal {
     if (outcome === "same-boot") {
       return transition;
     }
+
+    this.#judgedHere.add(transition.intent);
 
     return {
       intent: transition.intent,
@@ -395,7 +399,7 @@ export class Journal {
     overflow: number;
     cause: unknown;
   }): JournalWrite {
-    this.#config.record("journal-failed", { reason: "write" });
+    this.#config.record("journal-failed", { reason: "write", cause });
 
     if (mode === "required") {
       this.#publish({ journal: "degraded" });
@@ -432,6 +436,7 @@ export class Journal {
       intent: latest.intent,
       outcome: latest.outcome ?? "same-boot",
       attempts: latest.attempts,
+      judgedHere: this.#judgedHere.has(latest.intent),
       exhausted: latest.attempts >= options.budget,
     });
   }

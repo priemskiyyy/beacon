@@ -27,6 +27,31 @@ const isOwn = <
   ledger.owns(reference) &&
   reference.route === entry.name;
 
+// A call names an offer by the offer or by its reference; only the reference is read, and only one Beacon minted is believed.
+const readOfferReference = (given: CommandInput["offer"]) => {
+  if (given === undefined) {
+    return undefined;
+  }
+
+  if ("ref" in given) {
+    return given.ref;
+  }
+
+  return given;
+};
+
+const readPreparedReference = (given: CommandInput["prepared"]) => {
+  if (given === undefined) {
+    return undefined;
+  }
+
+  if ("ref" in given) {
+    return given.ref;
+  }
+
+  return given;
+};
+
 const findOffer = (
   entry: RouteEntry,
   ledger: ReferenceLedger,
@@ -94,7 +119,11 @@ export const resolveCommand = (
   }
 
   if (command.reference === "prepared") {
-    const found = findPrepared(entry, ledger, input.prepared);
+    const found = findPrepared(
+      entry,
+      ledger,
+      readPreparedReference(input.prepared),
+    );
 
     if (found.status === "stale") {
       return found;
@@ -118,7 +147,12 @@ export const resolveCommand = (
   }
 
   if (command.reference === "offer" || command.reference === "optional-offer") {
-    const found = findOffer(entry, ledger, input.offer, now);
+    const found = findOffer(
+      entry,
+      ledger,
+      readOfferReference(input.offer),
+      now,
+    );
 
     if (found.status === "stale") {
       return found;

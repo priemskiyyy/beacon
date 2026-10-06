@@ -1,3 +1,4 @@
+import type { BeaconErrorCode } from "src/types/BeaconErrorCode";
 import type { CommandParameters } from "src/types/CommandParameters";
 import type { Lease } from "src/types/internal/Lease";
 import type { CommandAdmission } from "src/types/internal/CommandAdmission";
@@ -60,6 +61,8 @@ export class CommandCoordinator {
   #options: CommandCoordinatorOptions;
   #operations = new Map<string, CommandOperation>();
   #count = 0;
+  // What a failed outcome's error was made from, by the outcome: only the event that reports the failure holds it, never the outcome.
+  #thrown = new WeakMap<object, unknown>();
 
   constructor(options: CommandCoordinatorOptions) {
     this.#options = options;
@@ -253,15 +256,10 @@ export class CommandCoordinator {
       // Whatever throws here, the slot and the reservations are given back: a route never stays held by a call that is over.
       this.#release(operation);
 
-      return {
-        status: "failed",
-        error: toErrorInfo(
-          toBeaconError(cause, {
-            code: "COMMAND_FAILED",
-            message: "A command could not be carried out.",
-          }),
-        ),
-      };
+      return this.#fail(cause, {
+        code: "COMMAND_FAILED",
+        message: "A command could not be carried out.",
+      });
     } finally {
       stopFollowing();
     }
@@ -449,10 +447,14 @@ export class CommandCoordinator {
       return null;
     }
 
-    return stopWith({
+    const failed: CommandResult = {
       status: "failed",
       error: toErrorInfo(written.value.error),
-    });
+    };
+
+    this.#thrown.set(failed, written.value.error.cause);
+
+    return stopWith(failed);
   }
 
   // What has to hold for any command to run: the caller still waits, and the provider is open.
@@ -553,16 +555,23 @@ export class CommandCoordinator {
     try {
       return await invoke();
     } catch (cause) {
-      return {
-        status: "failed",
-        error: toErrorInfo(
-          toBeaconError(cause, {
-            code: "COMMAND_FAILED",
-            message: "A command failed.",
-          }),
-        ),
-      };
+      return this.#fail(cause, {
+        code: "COMMAND_FAILED",
+        message: "A command failed.",
+      });
     }
+  }
+
+  // A thrown value becomes a failed outcome with its code and message alone, and is remembered for the diagnostics.
+  #fail(cause: unknown, fallback: { code: BeaconErrorCode; message: string }) {
+    const outcome: Extract<CommandResult, { status: "failed" }> = {
+      status: "failed",
+      error: toErrorInfo(toBeaconError(cause, fallback)),
+    };
+
+    this.#thrown.set(outcome, cause);
+
+    return outcome;
   }
 
   // What the provider reported decides whether the reservations are released or stay held.
@@ -681,6 +690,7 @@ export class CommandCoordinator {
       command: name,
       reason: outcome.status,
       operation: operation?.id,
+      cause: this.#thrown.get(outcome),
     });
 
     return outcome;

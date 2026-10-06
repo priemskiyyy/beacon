@@ -12,7 +12,7 @@ import type { StaleReason } from "src/types/StaleReason";
  *
  * @example
  * ```ts
- * const outcome = await beacon.route("web").reload({ offer: offer.ref });
+ * const outcome = await beacon.route("web").reload({ offer });
  *
  * if (outcome.status === "blocked") {
  *   console.info(outcome.reasons.map((reason) => reason.code));

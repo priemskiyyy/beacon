@@ -35,5 +35,15 @@ export type Observation<TRoute extends string, TBody extends RouteBody> =
       status: "inconclusive";
       evidence: Evidence;
       reason: InconclusiveReason;
+      /**
+       * Why, in words, when the reason alone does not say. For
+       * `missing-current-identity` it is the running reader's own reason, such
+       * as `build-id-not-injected`, or `running-not-known` while the running
+       * fact is pending or failed. For `incomparable-identity` it names the
+       * authority or the domain that differs, with the running and the offered
+       * word of each, or the offered identity that is unknown. The order
+       * reasons have none.
+       */
+      detail: string | null;
       candidate: TBody["release"] | null;
     };

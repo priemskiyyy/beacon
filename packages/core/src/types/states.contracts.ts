@@ -8,6 +8,7 @@ import type { PreparedState } from "src/types/PreparedState";
 import type { RouteBody } from "src/types/RouteBody";
 import type { RunningApplication } from "src/types/RunningApplication";
 import type { ScopeReplacement } from "src/types/ScopeReplacement";
+import type { SupportState } from "src/types/SupportState";
 
 declare const running: RunningApplication;
 
@@ -22,6 +23,8 @@ declare const check: CheckOutcome;
 declare const outcome: CommandOutcome<{ kind: "reload-requested" }>;
 
 declare const replacement: ScopeReplacement;
+
+declare const support: SupportState;
 
 // A missing fact is pending or unknown, never an old version: only a known one has a release.
 // @ts-expect-error A running fact that is not known has no release to read.
@@ -62,3 +65,21 @@ export const installed = outcome.installed;
 
 // @ts-expect-error A replacement that is not blocked names no route.
 export const route = replacement.route;
+
+// A read that failed says why, and the last valid evaluation, when there is one, stays beside it.
+export const readFailure = () => {
+  if (support.reason !== "read-failed") {
+    return null;
+  }
+
+  return { code: support.error.code, evaluation: support.evaluation };
+};
+
+export const unchecked = () => {
+  if (support.reason !== "not-checked") {
+    return null;
+  }
+
+  // @ts-expect-error No check has run, so there is no error to read: a failed read is `read-failed`.
+  return support.error.code;
+};

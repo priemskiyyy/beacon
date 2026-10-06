@@ -2,7 +2,9 @@ import { expect, test, vi } from "vitest";
 
 import { createTestClock } from "src/mock/createTestClock";
 import type { DisruptionParticipant } from "src/types/DisruptionParticipant";
+import type { Impact } from "src/types/Impact";
 import type { ReserveContext } from "src/types/ReserveContext";
+import type { ReserveResult } from "src/types/ReserveResult";
 import type { Settlement } from "src/types/Settlement";
 import { createBrokenClock } from "src/utils/Beacon.fixture";
 import { createDeferred } from "src/utils/internal/common/createDeferred";
@@ -30,13 +32,13 @@ const createRegistry = () => {
 type Options = {
   impacts?: DisruptionParticipant["impacts"];
   settle?: () => Promise<Settlement>;
-  release?: () => void;
+  resume?: () => void;
 };
 
 const createParticipant = (
   name: string,
   log: string[],
-  { impacts = ["document-replacement"], settle, release }: Options = {},
+  { impacts = ["document-replacement"], settle, resume }: Options = {},
 ): DisruptionParticipant => ({
   name,
   impacts,
@@ -46,9 +48,9 @@ const createParticipant = (
     return {
       status: "reserved",
       ...(settle === undefined ? {} : { settle }),
-      release: () => {
+      resume: () => {
         log.push(`${name} released`);
-        release?.();
+        resume?.();
       },
     };
   },
@@ -180,7 +182,7 @@ test("SAFE-05 a release that throws is reported and the remaining releases still
   registry.register(createParticipant("first", log));
   registry.register(
     createParticipant("second", log, {
-      release: () => {
+      resume: () => {
         throw failure;
       },
     }),
@@ -220,6 +222,83 @@ test("a participant registered twice is asked twice, and each registration leave
     "drafts reserved",
     "drafts reserved",
   ]);
+});
+
+test("SAFE-01 a participant that names no impacts is asked before every impact that loses in-memory state, and before no other", () => {
+  const { registry } = createRegistry();
+  const asked: string[] = [];
+
+  registry.register({
+    name: "drafts",
+    reserve: (context) => {
+      asked.push(context.impacts.join("+"));
+
+      return { status: "reserved" };
+    },
+  });
+
+  const losing: Impact[] = [
+    "document-replacement",
+    "javascript-restart",
+    "native-update-flow",
+    "worker-takeover",
+    "external-handoff",
+  ];
+
+  for (const impact of losing) {
+    registry.reserve({ route: "web", command: "reload", impacts: [impact] });
+  }
+
+  registry.reserve({
+    route: "web",
+    command: "download",
+    impacts: ["may-activate-on-next-start"],
+  });
+  registry.reserve({ route: "web", command: "check", impacts: [] });
+
+  expect(asked).toEqual([
+    "document-replacement",
+    "javascript-restart",
+    "native-update-flow",
+    "worker-takeover",
+    "external-handoff",
+  ]);
+});
+
+test("SAFE-01 a participant that lists no impacts is refused at registration, and nothing is registered", () => {
+  const { registry } = createRegistry();
+  const reserve = vi.fn((): ReserveResult => ({ status: "reserved" }));
+
+  expect(() =>
+    registry.register({ name: "drafts", impacts: [], reserve }),
+  ).toThrow(
+    expect.objectContaining({
+      name: "BeaconError",
+      code: "INVALID_CONFIGURATION",
+      message: expect.stringContaining("omit the field"),
+    }),
+  );
+  expect(registry.getRevision()).toBe(0);
+  registry.reserve(RELOAD);
+  expect(reserve).not.toHaveBeenCalled();
+});
+
+test("SAFE-05 a reservation that names nothing to resume is released without a call", () => {
+  const { registry, reportError } = createRegistry();
+
+  registry.register({
+    name: "drafts",
+    reserve: () => ({ status: "reserved" }),
+  });
+
+  const outcome = registry.reserve(RELOAD);
+
+  if (outcome.status !== "reserved") {
+    throw new Error("The reservation should have been taken.");
+  }
+
+  outcome.lease.release();
+  expect(reportError).not.toHaveBeenCalled();
 });
 
 test("a participant asks only when the command has an impact it cares about", () => {

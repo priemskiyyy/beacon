@@ -17,7 +17,7 @@ import type { SupportPolicy } from "src/types/SupportPolicy";
  *   scope: { application: "com.example.notes", environment: "production", platform: "web", distribution: "public-web" },
  *   running: { web: readWebRelease },
  *   routes: { web },
- *   journal: { mode: "best-effort", storage },
+ *   journal: { storage },
  *   timeouts: { check: 5_000, journal: 2_000 },
  * };
  * ```

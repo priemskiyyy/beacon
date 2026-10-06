@@ -4,12 +4,15 @@ import type { DriverSession } from "src/types/DriverSession";
 import type { ErasedDriver } from "src/types/internal/ErasedDriver";
 import type { RouteGroupOptions } from "src/types/internal/RouteGroupOptions";
 import type { RouteRuntime } from "src/types/internal/RouteRuntime";
-import type { SharedReadErrors } from "src/types/internal/SharedReadErrors";
 import type { Session } from "src/types/internal/Session";
 import type { ObservationDraft } from "src/types/ObservationDraft";
 import type { PreparedDraft } from "src/types/PreparedDraft";
 import type { RouteBody } from "src/types/RouteBody";
 import { BeaconError } from "src/utils/BeaconError";
+import {
+  MANAGER_HELD_MESSAGE,
+  OPEN_FAILED_MESSAGE,
+} from "src/utils/constants/routes";
 import { createEvidence } from "src/utils/internal/feeds/createEvidence";
 import type { Transaction } from "src/utils/internal/observable/Transaction";
 import { SharedRead } from "src/utils/internal/reads/SharedRead";
@@ -35,13 +38,9 @@ export class DriverRoutes {
     const { clock, timeout, commit } = this.#options;
     const { driver } = route;
 
-    const failure: SharedReadErrors["failed"] = {
-      code: "DRIVER_FAILED",
-      message: "A provider could not be checked.",
-    };
-
     const entry: DriverEntry = {
       session: null,
+      notOpen: null,
       read: new SharedRead<
         ObservationDraft<RouteBody>,
         ObservationDraft<RouteBody>
@@ -71,8 +70,15 @@ export class DriverRoutes {
           record: this.#options.record,
         },
         errors: {
-          failed: failure,
-          invalid: failure,
+          failed: {
+            code: "DRIVER_FAILED",
+            message: "The provider threw while it was checked.",
+          },
+          invalid: {
+            code: "DRIVER_FAILED",
+            message:
+              "The provider answered something that is not an observation.",
+          },
           timeout: {
             code: "SOURCE_TIMEOUT",
             message: "A provider did not answer in time.",
@@ -89,16 +95,24 @@ export class DriverRoutes {
     };
   };
 
-  #recordFailure(route: string) {
-    this.#options.record("route-failed", { route, reason: "DRIVER_FAILED" });
+  // `cause` is what was thrown, or the explanation Beacon made where nothing was; it stays in the event.
+  #recordFailure(route: string, cause?: unknown) {
+    this.#options.record("route-failed", {
+      route,
+      reason: "DRIVER_FAILED",
+      cause,
+    });
   }
 
   #ask(entry: DriverEntry, signal: AbortSignal) {
     if (entry.session === null) {
-      throw new BeaconError({
-        code: "DRIVER_FAILED",
-        message: "The provider is not open.",
-      });
+      throw (
+        entry.notOpen ??
+        new BeaconError({
+          code: "DRIVER_FAILED",
+          message: "The provider is not open.",
+        })
+      );
     }
 
     return entry.session.check({ signal });
@@ -119,7 +133,9 @@ export class DriverRoutes {
     const { name, record, driver } = route;
     const { commit } = this.#options;
 
-    const release = this.#claimManager(route);
+    entry.notOpen = null;
+
+    const release = this.#claimManager(route, entry);
 
     if (release === null) {
       return;
@@ -129,9 +145,14 @@ export class DriverRoutes {
 
     try {
       opened = driver.open(this.#createContext(route, session));
-    } catch {
+    } catch (cause) {
       release();
-      this.#recordFailure(name);
+      entry.notOpen = new BeaconError({
+        code: "DRIVER_FAILED",
+        message: OPEN_FAILED_MESSAGE,
+        cause,
+      });
+      this.#recordFailure(name, cause);
 
       return;
     }
@@ -159,7 +180,7 @@ export class DriverRoutes {
   }
 
   // A manager one session holds is never opened by another: the route fails to open instead of racing for it.
-  #claimManager({ name, driver }: RoutedDriver) {
+  #claimManager({ name, driver }: RoutedDriver, entry: DriverEntry) {
     if (driver.exclusive === undefined) {
       return () => {};
     }
@@ -167,7 +188,11 @@ export class DriverRoutes {
     const release = claimExclusive(driver.exclusive);
 
     if (release === null) {
-      this.#recordFailure(name);
+      entry.notOpen = new BeaconError({
+        code: "DRIVER_FAILED",
+        message: MANAGER_HELD_MESSAGE,
+      });
+      this.#recordFailure(name, entry.notOpen);
     }
 
     return release;
@@ -187,19 +212,21 @@ export class DriverRoutes {
     }
 
     // The executor runs at once, so a provider that reports while it reconciles is heard, and one that throws is contained like one that rejects.
-    new Promise<void>((resolve) => resolve(reconcile({ signal }))).catch(() => {
-      // A provider that gives up because its session ended has not failed.
-      if (signal.aborted) {
-        this.#options.record("late-callback", {
-          route: name,
-          reason: "driver",
-        });
+    new Promise<void>((resolve) => resolve(reconcile({ signal }))).catch(
+      (cause) => {
+        // A provider that gives up because its session ended has not failed.
+        if (signal.aborted) {
+          this.#options.record("late-callback", {
+            route: name,
+            reason: "driver",
+          });
 
-        return;
-      }
+          return;
+        }
 
-      this.#recordFailure(name);
-    });
+        this.#recordFailure(name, cause);
+      },
+    );
   }
 
   #createContext(
@@ -221,8 +248,8 @@ export class DriverRoutes {
 
       try {
         commit(apply);
-      } catch {
-        this.#recordFailure(name);
+      } catch (cause) {
+        this.#recordFailure(name, cause);
       }
     };
 

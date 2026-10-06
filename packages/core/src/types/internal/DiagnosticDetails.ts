@@ -5,4 +5,6 @@ export type DiagnosticDetails = {
   attempt?: number | undefined;
   operation?: number | undefined;
   reason?: string | undefined;
+  /** The raw value a failure threw, kept only in the event. */
+  cause?: unknown;
 };

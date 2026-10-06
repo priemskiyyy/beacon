@@ -134,7 +134,8 @@ export class FeedRoutes {
       } catch (cause) {
         const error = toBeaconError(cause, {
           code: "SELECTION_FAILED",
-          message: "A release could not be selected.",
+          message:
+            "The select function of the route threw, so it chose nothing.",
         });
 
         this.#failures.set(name, { attempt: accepted.attempt, error });
@@ -142,6 +143,7 @@ export class FeedRoutes {
         this.#options.record("route-failed", {
           route: name,
           reason: error.code,
+          cause,
         });
       }
     }
@@ -152,10 +154,11 @@ export class FeedRoutes {
 
     try {
       opened = definition.mechanism.open({ scope: this.#options.getScope() });
-    } catch {
+    } catch (cause) {
       this.#options.record("route-failed", {
         route: name,
         reason: "DRIVER_FAILED",
+        cause,
       });
 
       return;

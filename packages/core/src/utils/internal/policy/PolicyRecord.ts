@@ -56,21 +56,28 @@ export class PolicyRecord {
     this.state = this.#store.observable;
   }
 
-  /** Evaluates again where the document, the running facts or a route changed, and installs what it means. */
+  /** Evaluates again where the document, the running facts or a route changed, and installs what it means; `readFailure` is the error of the source's last read when it failed and nothing has been accepted since. */
   update = (
     transaction: Transaction,
     accepted: AcceptedFeed | null,
     running: RunningApplication,
+    readFailure: BeaconError | null,
   ) => {
     const { policy } = this.#options;
 
-    if (policy === null || accepted === null) {
+    if (policy === null) {
+      return;
+    }
+
+    if (accepted === null) {
+      this.#install(transaction, this.#toUnchecked(readFailure));
+
       return;
     }
 
     const held = this.#evaluate(policy, accepted, running);
 
-    this.#install(transaction, this.#toState(held));
+    this.#install(transaction, this.#toState(held, readFailure));
   };
 
   /** Forgets every evaluation, as a policy of another scope says nothing about this one. */
@@ -118,7 +125,7 @@ export class PolicyRecord {
     this.#held = next;
 
     if (next.status === "failed") {
-      this.#options.onFailure(next.error);
+      this.#options.onFailure(next.error, next.cause);
 
       return next;
     }
@@ -174,6 +181,7 @@ export class PolicyRecord {
           code: "POLICY_FAILED",
           message: "The support policy could not be evaluated.",
         }),
+        cause,
       };
     }
   }
@@ -203,10 +211,25 @@ export class PolicyRecord {
     };
   }
 
+  // Nothing has been accepted: no check has run, or the last one failed.
+  #toUnchecked(readFailure: BeaconError | null): SupportState {
+    if (readFailure === null) {
+      return this.#unchecked;
+    }
+
+    return {
+      revision: 0,
+      status: "unknown",
+      reason: "read-failed",
+      evaluation: null,
+      error: toErrorInfo(readFailure),
+    };
+  }
+
   // A failure keeps the last valid evaluation in force while its policy still holds, and says what failed beside it.
-  #toState(held: Held): SupportState {
+  #toState(held: Held, readFailure: BeaconError | null): SupportState {
     if (held.status === "evaluated") {
-      return this.#toInForce(held, null);
+      return this.#toInForce(held, null, readFailure);
     }
 
     const error = toErrorInfo(held.error);
@@ -221,14 +244,28 @@ export class PolicyRecord {
       };
     }
 
-    return this.#toInForce(this.#lastValid, error);
+    return this.#toInForce(this.#lastValid, error, readFailure);
   }
 
-  // A policy whose evidence lapsed is unknown, with its last decision retained. The freshness recorded with an evaluation is as old as the evaluation, so the clock decides for one that is kept.
-  #toInForce(reached: Reached, error: SupportState["error"]): SupportState {
+  // A policy whose evidence lapsed is unknown, with its last decision retained, and says why it was not refreshed when the last read failed. The freshness recorded with an evaluation is as old as the evaluation, so the clock decides for one that is kept.
+  #toInForce(
+    reached: Reached,
+    error: SupportState["error"],
+    readFailure: BeaconError | null,
+  ): SupportState {
     const evaluation = this.#describe(reached);
 
     if (hasLapsed(evaluation.evidence, this.#options.now())) {
+      if (readFailure !== null) {
+        return {
+          revision: 0,
+          status: "unknown",
+          reason: "read-failed",
+          evaluation,
+          error: toErrorInfo(readFailure),
+        };
+      }
+
       return {
         revision: 0,
         status: "unknown",

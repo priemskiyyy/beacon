@@ -37,6 +37,8 @@ type Script = {
   throwOnDispose: Error | null;
   /** The reader of the provider's own subject that the driver offers by default, which it has none of unless a test gives one. */
   running: RunningReader;
+  /** Makes `check` reject, as a provider whose native call fails does. */
+  failCheck: Error | null;
 };
 
 // A provider driver whose session, emitter and commands a test controls.
@@ -95,7 +97,13 @@ export const createFakeDriver = (
 
       return {
         native,
-        check: async () => answers,
+        check: async () => {
+          if (script.failCheck !== undefined && script.failCheck !== null) {
+            throw script.failCheck;
+          }
+
+          return answers;
+        },
         ...(reconcile === undefined
           ? {}
           : {

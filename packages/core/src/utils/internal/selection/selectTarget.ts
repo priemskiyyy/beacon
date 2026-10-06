@@ -4,6 +4,7 @@ import type { ReleaseSelection } from "src/types/ReleaseSelection";
 import type { RunningRelease } from "src/types/RunningRelease";
 import { compareIdentities } from "src/utils/compareIdentities";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
+import { describeIdentityMismatch } from "src/utils/internal/selection/describeIdentityMismatch";
 import { inconclusive } from "src/utils/internal/selection/inconclusive";
 import { noOffer } from "src/utils/internal/selection/noOffer";
 
@@ -27,14 +28,30 @@ export const selectTarget = <TRelease extends ReleaseFacts>({
     return noOffer("incompatible", release);
   }
 
-  if (running === null || running.identity.status === "unknown") {
-    return inconclusive("missing-current-identity", release);
+  if (running === null) {
+    return inconclusive(
+      "missing-current-identity",
+      release,
+      "running-not-known",
+    );
+  }
+
+  if (running.identity.status === "unknown") {
+    return inconclusive(
+      "missing-current-identity",
+      release,
+      running.identity.reason,
+    );
   }
 
   const relation = compareIdentities(running.identity, release.identity);
 
   if (relation === "incomparable") {
-    return inconclusive("incomparable-identity", release);
+    return inconclusive(
+      "incomparable-identity",
+      release,
+      describeIdentityMismatch(running.identity, release.identity),
+    );
   }
 
   if (relation === "same") {

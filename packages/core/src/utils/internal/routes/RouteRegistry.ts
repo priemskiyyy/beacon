@@ -57,8 +57,8 @@ export class RouteRegistry {
       policy: options.policy,
       listeners: options.createListeners(),
       getRoute: (name) => this.#entries.get(name)?.record.state.get(),
-      onFailure: (error) =>
-        options.record("policy-failed", { reason: error.code }),
+      onFailure: (error, cause) =>
+        options.record("policy-failed", { reason: error.code, cause }),
       now: () => options.clock.now(),
     });
 
@@ -205,7 +205,12 @@ export class RouteRegistry {
 
     const accepted = this.#policyFeed.record.getAccepted();
 
-    this.#policy.update(transaction, accepted, this.#running.get());
+    this.#policy.update(
+      transaction,
+      accepted,
+      this.#running.get(),
+      this.#policyFeed.record.getFailure(),
+    );
 
     if (accepted === null) {
       return;

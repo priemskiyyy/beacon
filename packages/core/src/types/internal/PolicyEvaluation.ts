@@ -5,4 +5,5 @@ import type { SupportVerdict } from "src/types/SupportVerdict";
 export type PolicyEvaluation =
   // The record's own copy of the verdict, so the application changing what it answered changes nothing published.
   | { status: "evaluated"; verdict: SupportVerdict }
-  | { status: "failed"; error: BeaconError };
+  // `cause` is what the policy threw, for the diagnostics only.
+  | { status: "failed"; error: BeaconError; cause?: unknown };

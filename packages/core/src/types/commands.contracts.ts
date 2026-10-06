@@ -9,7 +9,9 @@ import type { CommandOutcome } from "src/types/CommandOutcome";
 import type { CommandParameters } from "src/types/CommandParameters";
 import type { CommandRunContext } from "src/types/CommandRunContext";
 import type { DriverRoute } from "src/types/DriverRoute";
+import type { Offer } from "src/types/Offer";
 import type { OfferReference } from "src/types/OfferReference";
+import type { Prepared } from "src/types/Prepared";
 import type { PreparedReference } from "src/types/PreparedReference";
 import type { ProviderResult } from "src/types/ProviderResult";
 import type { RouteBody } from "src/types/RouteBody";
@@ -112,8 +114,28 @@ export const downloaded = handle.download({ offer, signal });
 // @ts-expect-error A prepared reference is not an offer reference.
 handle.download({ offer: prepared });
 
-// A command that needs a prepared target takes a prepared reference, and only that one.
+// A command that needs an offer also takes the offer itself, and only one of its own route.
+declare const offered: Offer<"ota", RouteBody>;
+
+declare const offeredElsewhere: Offer<"elsewhere", RouteBody>;
+
+declare const preparedTarget: Prepared<"ota", RouteBody>;
+
+export const downloadedOffer = handle.download({ offer: offered });
+
+// @ts-expect-error An offer of another route does not fit.
+handle.download({ offer: offeredElsewhere });
+
+// @ts-expect-error A prepared target is not an offer.
+handle.download({ offer: preparedTarget });
+
+// A command that needs a prepared target takes a prepared reference, or the prepared target itself.
 export const restarted = handle.restart({ prepared });
+
+export const restartedTarget = handle.restart({ prepared: preparedTarget });
+
+// @ts-expect-error An offer is not a prepared target.
+handle.restart({ prepared: offered });
 
 // @ts-expect-error An offer reference is not a prepared reference.
 handle.restart({ prepared: offer });
@@ -127,8 +149,13 @@ handle.restart({});
 // @ts-expect-error A restart needs an argument.
 handle.restart();
 
-// An optional offer may be left out, and when it is given it is an offer reference.
-export const warmed = [handle.warm(), handle.warm({}), handle.warm({ offer })];
+// An optional offer may be left out, and when it is given it is an offer reference or the offer.
+export const warmed = [
+  handle.warm(),
+  handle.warm({}),
+  handle.warm({ offer }),
+  handle.warm({ offer: offered }),
+];
 
 // @ts-expect-error A prepared reference is not an offer reference.
 handle.warm({ offer: prepared });

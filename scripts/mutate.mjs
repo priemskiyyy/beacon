@@ -658,7 +658,7 @@ const MUTANTS = [
   },
   {
     file: `${core}/internal/routes/DriverRoutes.ts`,
-    find: "this.#recordFailure(name, entry.notOpen);",
+    find: "this.#recordFailure(name, held);",
     replace: "this.#recordFailure(name);",
     project: "core",
     describes: "a held native module left unexplained by the event at start",
@@ -674,7 +674,7 @@ const MUTANTS = [
   },
   {
     file: `${core}/internal/routes/DriverRoutes.ts`,
-    find: "entry.notOpen ??\n        new BeaconError({",
+    find: "record.getNotOpen() ??\n        new BeaconError({",
     replace: "new BeaconError({",
     project: "core",
     describes: "a check of a route that failed to open not saying why",

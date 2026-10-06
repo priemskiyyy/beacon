@@ -14,14 +14,11 @@ Install the fork you use. Microsoft's package is retired: its repository is arch
 
 ```ts
 import { Beacon } from "@priemskiyyy/beacon";
-import { codePushBundle, codePushUpdates } from "@priemskiyyy/beacon-code-push";
+import { codePushUpdates } from "@priemskiyyy/beacon-code-push";
 import CodePush from "@revopush/react-native-code-push";
 
 const beacon = new Beacon({
   scope,
-  running: {
-    bundle: codePushBundle({ codePush: CodePush }),
-  },
   routes: { update: codePushUpdates({ codePush: CodePush }) },
 });
 ```
@@ -48,7 +45,7 @@ export default CodePush({ checkFrequency: CodePush.CheckFrequency.MANUAL })(
 
 ## Options
 
-`codePushUpdates({ codePush })` takes the module. `codePushBundle({ codePush })` takes the same module and is the `bundle` running reader: `known` with authority `code-push`, domain `package-hash` and the package hash, or `unknown` with the reason `embedded-bundle` when CodePush reports no package. The `native` reader is yours: name the installed binary with authority the application id and domain `android-version-code` or `ios-build`, as the store adapters do.
+`codePushUpdates({ codePush })` takes the module, and reads the running bundle itself with `codePushBundle({ codePush })`, which it supplies as the reader of the `bundle` subject: a reader you pass as `running.bundle` wins. `codePushBundle` takes the same module and is the `bundle` running reader: `known` with authority `code-push`, domain `package-hash` and the package hash, or `unknown` with the reason `embedded-bundle` when CodePush reports no package. The `native` reader is the installed binary, named with the application id as authority and the domain `android-version-code` or `ios-build`, as the store adapters do: `deviceInfo` of [`@priemskiyyy/beacon-device-info`](../device-info) reads it over `react-native-device-info`, and `expoApplication` of [`@priemskiyyy/beacon-expo`](../expo) over `expo-application`, each under the platform and the application of the scope.
 
 ## What a check reports
 

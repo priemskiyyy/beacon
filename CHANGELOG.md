@@ -55,3 +55,18 @@
 
 - First release. `BeaconProvider` and the hooks `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useStatus`, `useObservable`, `useDisruption` and `useBeacon`, typed by the `Register`ed Beacon so a route is read by its name. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
 - Requires `@priemskiyyy/beacon` 0.1 and React 19.2.
+
+## @priemskiyyy/beacon-solid 0.1.0 - Unreleased
+
+- First release. The same `BeaconProvider` and primitives as the React binding, read as accessors: a route is read by its name from the `Register`ed Beacon, and the server and the hydrating render read state as it stands before any session.
+- Requires `@priemskiyyy/beacon` 0.1 and Solid 1.9.
+
+## @priemskiyyy/beacon-vue 0.1.0 - Unreleased
+
+- First release. The same `BeaconProvider` and composables as the React binding, read as computed refs: a route is read by its name from the `Register`ed Beacon, and the server and the hydrating render read state as it stands before any session.
+- Requires `@priemskiyyy/beacon` 0.1 and Vue 3.5.
+
+## @priemskiyyy/beacon-svelte 0.1.0 - Unreleased
+
+- First release. The same `BeaconProvider` and utilities as the React binding, read through `current` on Svelte 5 runes: a route is read by its name from the `Register`ed Beacon, and the server and the hydrating render read state as it stands before any session.
+- Requires `@priemskiyyy/beacon` 0.1 and Svelte 5.7.

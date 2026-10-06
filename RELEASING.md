@@ -4,7 +4,7 @@ All packages share one version line, and each has its own GitHub release tag. Pu
 
 The release tag uses the package name without its scope: `<name>-v<version>`, for example `beacon-expo-v0.1.0` for `@priemskiyyy/beacon-expo`, and `beacon-v0.1.0` for the core. Prereleases use the `next` dist-tag, and stable releases use `latest`.
 
-Publish `@priemskiyyy/beacon` first, then the adapters, then `@priemskiyyy/beacon-react`. Dependents declare the matching minor as a peer dependency, so a dependent published before the core cannot be installed.
+Publish `@priemskiyyy/beacon` first, then the adapters, then the framework bindings (`beacon-react`, `beacon-solid`, `beacon-vue` and `beacon-svelte`). Dependents declare the matching minor as a peer dependency, so a dependent published before the core cannot be installed.
 
 ## Prepare a release
 

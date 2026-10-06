@@ -27,6 +27,8 @@ export type BeaconOptions<TRoutes extends Record<string, RouteDefinition>> = {
     running?: number;
     /** Milliseconds a check may take to be answered, 10,000 by default. */
     check?: number;
+    /** Milliseconds a participant may take to settle before a command, 10,000 by default. */
+    settlement?: number;
   };
   clock?: BeaconClock;
 };

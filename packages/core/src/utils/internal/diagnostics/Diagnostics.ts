@@ -150,13 +150,14 @@ export class Diagnostics {
 
   #createEvent(
     type: BeaconDiagnosticEventType,
-    { route, attempt, operation, reason }: DiagnosticDetails,
+    { route, command, attempt, operation, reason }: DiagnosticDetails,
   ): BeaconDiagnosticEvent {
     return Object.freeze({
       type,
       timestamp: this.#clock.now(),
       session: this.#getSession(),
       route: route ?? null,
+      command: command ?? null,
       attempt: attempt ?? null,
       operation: operation ?? null,
       reason: reason ?? null,

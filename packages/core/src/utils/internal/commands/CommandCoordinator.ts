@@ -1,0 +1,541 @@
+import type { CommandParameters } from "src/types/CommandParameters";
+import type { Lease } from "src/types/internal/Lease";
+import type { CommandAdmission } from "src/types/internal/CommandAdmission";
+import type { CommandCoordinatorOptions } from "src/types/internal/CommandCoordinatorOptions";
+import type { CommandInput } from "src/types/internal/CommandInput";
+import type { CommandOperation } from "src/types/internal/CommandOperation";
+import type { CommandResult } from "src/types/internal/CommandResult";
+import type { CommandResolution } from "src/types/internal/CommandResolution";
+import type { CommandTarget } from "src/types/internal/CommandTarget";
+import type { RouteEntry } from "src/types/internal/RouteEntry";
+import type { Session } from "src/types/internal/Session";
+import type { OperationState } from "src/types/OperationState";
+import type { ProviderResult } from "src/types/ProviderResult";
+import { BeaconError } from "src/utils/BeaconError";
+import {
+  ABORTED_AFTER_DISPATCH,
+  DISPATCH_UNCONFIRMED,
+  OPERATION_INDETERMINATE,
+  OPERATION_IN_PROGRESS,
+  SAFETY_CHANGED,
+} from "src/utils/constants/commands";
+import { IDLE_OPERATION } from "src/utils/constants/routes";
+import { describeImpacts } from "src/utils/internal/commands/describeImpacts";
+import { readParameters } from "src/utils/internal/commands/readParameters";
+import { resolveCommand } from "src/utils/internal/commands/resolveCommand";
+import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
+import { createDeferred } from "src/utils/internal/common/createDeferred";
+import { isSameData } from "src/utils/internal/common/isSameData";
+import { untilAborted } from "src/utils/internal/common/untilAborted";
+import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
+import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
+import { commitChange } from "src/utils/internal/observable/commitChange";
+
+type Admitted = Extract<CommandAdmission, { status: "admitted" }>;
+
+/** Why the call stopped before the provider was asked, or what to dispatch. */
+type Verdict =
+  | {
+      status: "ready";
+      resolution: Extract<CommandResolution, { status: "resolved" }>;
+      native: unknown;
+    }
+  | { status: "stopped"; outcome: CommandResult };
+
+/**
+ * Carries out the commands of every route, one at a time per route and one
+ * disruptive command at a time across routes. A call takes its slot before it
+ * asks any participant or provider, because either can call back into Beacon.
+ * Then it reserves and settles the participants, revalidates, and dispatches
+ * once. It never queues a conflicting call, and it never retries one.
+ */
+export class CommandCoordinator {
+  #options: CommandCoordinatorOptions;
+  #operations = new Map<string, CommandOperation>();
+  #count = 0;
+
+  constructor(options: CommandCoordinatorOptions) {
+    this.#options = options;
+  }
+
+  /** Answers how the call settled; expected failures are outcomes, and it never rejects. */
+  run = (
+    target: CommandTarget,
+    input: CommandInput = {},
+  ): Promise<CommandResult> => {
+    const session = this.#options.getSession();
+
+    if (session === null) {
+      return this.#settle(target, {
+        status: "failed",
+        error: toErrorInfo(this.#options.createInactiveError()),
+      });
+    }
+
+    const resolution = resolveCommand(target, this.#options.ledger, input);
+
+    if (resolution.status === "stale") {
+      return this.#settle(target, resolution);
+    }
+
+    const parameters = readParameters(input);
+    const admission = this.#admit(target, resolution.reference, parameters);
+
+    if (admission.status === "blocked") {
+      return this.#settle(target, admission);
+    }
+
+    if (admission.status === "joined") {
+      return this.#join(admission.operation, input.signal);
+    }
+
+    return this.#start(session, target, admission, input);
+  };
+
+  /**
+   * Ends an unresolved operation of a route: its reservations are released and
+   * the route accepts commands again. It claims nothing about what the
+   * provider did, and a route with nothing unresolved is left alone.
+   */
+  acknowledge = (entry: RouteEntry) => {
+    const operation = this.#operations.get(entry.name);
+
+    if (operation === undefined || operation.phase !== "unresolved") {
+      return;
+    }
+
+    this.#release(operation);
+  };
+
+  /** Releases every reservation still held, as the Beacon ends. */
+  close = () => {
+    const held = [...this.#operations.values()];
+
+    this.#operations.clear();
+
+    for (const operation of held) {
+      this.#releaseLease(operation);
+    }
+  };
+
+  #admit(
+    { entry, name, command }: CommandTarget,
+    reference: object | null,
+    parameters: CommandParameters,
+  ): CommandAdmission {
+    const held = this.#operations.get(entry.name);
+
+    if (held !== undefined && held.phase === "unresolved") {
+      return this.#refuse(OPERATION_INDETERMINATE);
+    }
+
+    if (held !== undefined) {
+      const isIdentical =
+        held.command === name &&
+        held.reference === reference &&
+        isSameData(held.parameters, parameters);
+
+      if (!isIdentical) {
+        return this.#refuse(OPERATION_IN_PROGRESS);
+      }
+
+      return { status: "joined", operation: held };
+    }
+
+    const effects = describeImpacts(command.impacts);
+
+    if (effects.disruptive && this.#hasDisruptive()) {
+      return this.#refuse(OPERATION_IN_PROGRESS);
+    }
+
+    const deferred = createDeferred<CommandResult>();
+
+    this.#count += 1;
+
+    const operation: CommandOperation = {
+      id: this.#count,
+      entry,
+      command: name,
+      reference,
+      parameters,
+      disruptive: effects.disruptive,
+      replacesRealm: effects.replacesRealm,
+      phase: "running",
+      lease: null,
+      outcome: deferred.promise,
+    };
+
+    this.#operations.set(entry.name, operation);
+
+    return { status: "admitted", operation, settle: deferred.resolve };
+  }
+
+  #refuse(code: string): CommandAdmission {
+    return {
+      status: "blocked",
+      reasons: [{ code, participant: null }],
+    };
+  }
+
+  #hasDisruptive() {
+    return [...this.#operations.values()].some(
+      (operation) => operation.disruptive,
+    );
+  }
+
+  // Ends only this caller's wait; the operation it joined is not its own to abort.
+  async #join(
+    operation: CommandOperation,
+    signal: AbortSignal | undefined,
+  ): Promise<CommandResult> {
+    if (signal === undefined) {
+      return operation.outcome;
+    }
+
+    const raced = await untilAborted(operation.outcome, signal);
+
+    if (raced.status === "aborted") {
+      return { status: "cancelled", stage: "joined" };
+    }
+
+    return raced.value;
+  }
+
+  #start(
+    session: Session,
+    target: CommandTarget,
+    { operation, settle }: Admitted,
+    input: CommandInput,
+  ): Promise<CommandResult> {
+    this.#execute(session, target, operation, input).then((outcome) =>
+      settle(this.#settle(target, outcome, operation)),
+    );
+
+    return operation.outcome;
+  }
+
+  async #execute(
+    session: Session,
+    target: CommandTarget,
+    operation: CommandOperation,
+    input: CommandInput,
+  ): Promise<CommandResult> {
+    const controller = new AbortController();
+    const stopFollowing = this.#follow(session, controller, input.signal);
+
+    try {
+      return await this.#coordinate(target, operation, input, controller);
+    } catch (cause) {
+      this.#release(operation);
+
+      return {
+        status: "failed",
+        error: toErrorInfo(
+          toBeaconError(cause, {
+            code: "COMMAND_FAILED",
+            message: "A command could not be carried out.",
+          }),
+        ),
+      };
+    } finally {
+      stopFollowing();
+    }
+  }
+
+  // The caller's signal and the end of the session both end the wait.
+  #follow(
+    session: Session,
+    controller: AbortController,
+    signal: AbortSignal | undefined,
+  ) {
+    const abort = () => controller.abort();
+    const leaveSession = session.scope.add(abort);
+
+    if (signal === undefined) {
+      return leaveSession;
+    }
+
+    if (signal.aborted) {
+      abort();
+    }
+
+    signal.addEventListener("abort", abort, { once: true });
+
+    return () => {
+      leaveSession();
+      signal.removeEventListener("abort", abort);
+    };
+  }
+
+  async #coordinate(
+    target: CommandTarget,
+    operation: CommandOperation,
+    input: CommandInput,
+    controller: AbortController,
+  ): Promise<CommandResult> {
+    const { entry, name, command } = target;
+
+    this.#publish(entry, {
+      state: "running",
+      operation: { id: operation.id },
+      command: name,
+      progress: null,
+    });
+    this.#options.record("command-admitted", {
+      route: entry.name,
+      command: name,
+      operation: operation.id,
+    });
+
+    const reservation = this.#options.disruptions.reserve({
+      route: entry.name,
+      command: name,
+      impacts: command.impacts,
+    });
+
+    if (reservation.status === "blocked") {
+      this.#release(operation);
+
+      return { status: "blocked", reasons: reservation.reasons };
+    }
+
+    const { lease } = reservation;
+
+    operation.lease = lease;
+
+    const settling = await untilAborted(
+      lease.settle(controller.signal),
+      controller.signal,
+    );
+
+    if (settling.status === "aborted") {
+      this.#release(operation);
+
+      return { status: "cancelled", stage: "settling" };
+    }
+
+    if (settling.value.length > 0) {
+      this.#release(operation);
+
+      return { status: "blocked", reasons: settling.value };
+    }
+
+    const verdict = this.#revalidate(target, lease, input, controller);
+
+    if (verdict.status === "stopped") {
+      this.#release(operation);
+
+      return verdict.outcome;
+    }
+
+    return this.#dispatch(operation, verdict, controller);
+  }
+
+  // Everything the call assumed when it was admitted is looked at again, right before the provider is asked.
+  #revalidate(
+    target: CommandTarget,
+    lease: Lease,
+    input: CommandInput,
+    controller: AbortController,
+  ): Verdict {
+    if (controller.signal.aborted) {
+      return {
+        status: "stopped",
+        outcome: { status: "cancelled", stage: "before-dispatch" },
+      };
+    }
+
+    const resolution = resolveCommand(target, this.#options.ledger, input);
+
+    if (resolution.status === "stale") {
+      return { status: "stopped", outcome: resolution };
+    }
+
+    if (this.#options.disruptions.getRevision() !== lease.revision) {
+      return {
+        status: "stopped",
+        outcome: {
+          status: "blocked",
+          reasons: [{ code: SAFETY_CHANGED, participant: null }],
+        },
+      };
+    }
+
+    const native = target.entry.record.native.get();
+
+    if (native === null) {
+      return {
+        status: "stopped",
+        outcome: {
+          status: "failed",
+          error: toErrorInfo(
+            new BeaconError({
+              code: "DRIVER_FAILED",
+              message: "The provider is not open.",
+            }),
+          ),
+        },
+      };
+    }
+
+    return { status: "ready", resolution, native };
+  }
+
+  async #dispatch(
+    operation: CommandOperation,
+    { resolution, native }: Extract<Verdict, { status: "ready" }>,
+    controller: AbortController,
+  ): Promise<CommandResult> {
+    const dispatched = this.#call(() =>
+      resolution.invoke({
+        native,
+        signal: controller.signal,
+        parameters: operation.parameters,
+      }),
+    ).then((result) => this.#finish(operation, result));
+
+    const raced = await untilAborted(dispatched, controller.signal);
+
+    if (raced.status === "settled") {
+      return raced.value;
+    }
+
+    // The caller stopped waiting after the provider was asked: whether it took effect is not known.
+    this.#hold(operation, ABORTED_AFTER_DISPATCH);
+
+    return {
+      status: "indeterminate",
+      operation: { id: operation.id },
+      reason: ABORTED_AFTER_DISPATCH,
+    };
+  }
+
+  // A command that throws did not take effect; one that might have says so with `indeterminate`.
+  async #call(
+    invoke: () => Promise<ProviderResult<{ kind: string }>>,
+  ): Promise<ProviderResult<{ kind: string }>> {
+    try {
+      return await invoke();
+    } catch (cause) {
+      return {
+        status: "failed",
+        error: toErrorInfo(
+          toBeaconError(cause, {
+            code: "COMMAND_FAILED",
+            message: "A command failed.",
+          }),
+        ),
+      };
+    }
+  }
+
+  // What the provider reported decides whether the reservations are released or stay held.
+  #finish(
+    operation: CommandOperation,
+    result: ProviderResult<{ kind: string }>,
+  ): CommandResult {
+    if (result.status === "accepted") {
+      if (operation.replacesRealm) {
+        this.#hold(operation, DISPATCH_UNCONFIRMED);
+      } else {
+        this.#release(operation);
+      }
+
+      return {
+        status: "accepted",
+        operation: { id: operation.id },
+        receipt: result.receipt,
+      };
+    }
+
+    if (result.status === "indeterminate") {
+      this.#hold(operation, result.reason);
+
+      return {
+        status: "indeterminate",
+        operation: { id: operation.id },
+        reason: result.reason,
+      };
+    }
+
+    this.#release(operation);
+
+    if (result.status === "stale") {
+      return { status: "stale", reason: "provider-changed" };
+    }
+
+    if (result.status === "unsupported") {
+      return result;
+    }
+
+    if (result.status === "cancelled") {
+      return result;
+    }
+
+    if (result.status === "failed") {
+      return result;
+    }
+
+    return assertUnreachable(result);
+  }
+
+  // The operation stays, with its reservations, until the application acknowledges it.
+  #hold(operation: CommandOperation, reason: string) {
+    if (this.#operations.get(operation.entry.name) !== operation) {
+      return;
+    }
+
+    operation.phase = "unresolved";
+    this.#publish(operation.entry, {
+      state: "indeterminate",
+      operation: { id: operation.id },
+      command: operation.command,
+      reason,
+    });
+  }
+
+  #release(operation: CommandOperation) {
+    const { entry } = operation;
+
+    if (this.#operations.get(entry.name) === operation) {
+      this.#operations.delete(entry.name);
+    }
+
+    this.#releaseLease(operation);
+
+    // A release can call back into Beacon and start the next command, whose state stands.
+    if (this.#operations.has(entry.name)) {
+      return;
+    }
+
+    this.#publish(entry, IDLE_OPERATION);
+  }
+
+  #releaseLease(operation: CommandOperation) {
+    const { lease } = operation;
+
+    operation.lease = null;
+    lease?.release();
+  }
+
+  #publish(entry: RouteEntry, operation: OperationState) {
+    commitChange((transaction) =>
+      entry.record.installOperation(transaction, operation),
+    );
+  }
+
+  #settle(
+    { entry, name }: CommandTarget,
+    outcome: CommandResult,
+    operation?: CommandOperation,
+  ): Promise<CommandResult> {
+    this.#options.record("command-settled", {
+      route: entry.name,
+      command: name,
+      reason: outcome.status,
+      ...(operation === undefined ? {} : { operation: operation.id }),
+    });
+
+    return Promise.resolve(outcome);
+  }
+}

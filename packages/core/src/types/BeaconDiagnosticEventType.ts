@@ -1,6 +1,6 @@
 /**
  * What a diagnostic event records: a session change, a read of a running
- * fact, or a failure Beacon contained. Names describe observed facts, so an
+ * fact, a command taking or leaving its slot, or a failure Beacon contained. Names describe observed facts, so an
  * accepted store handoff is never called an installation.
  *
  * @example
@@ -16,6 +16,8 @@ export type BeaconDiagnosticEventType =
   | "running-failed"
   | "check-requested"
   | "route-failed"
+  | "command-admitted"
+  | "command-settled"
   | "read-started"
   | "read-accepted"
   | "read-renewed"

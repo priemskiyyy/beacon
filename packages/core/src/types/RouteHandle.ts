@@ -36,4 +36,11 @@ export type RouteHandle<
   native: ObservableValue<NativeOf<TDefinition> | null>;
   capabilities: RouteCapabilities<CommandsOfRoute<TDefinition>>;
   check(options?: CheckOptions): Promise<CheckOutcome>;
+  /**
+   * Ends what a command left unresolved: its reservations are released and
+   * the route accepts commands again. It claims nothing about what the provider
+   * did, so call it once the application has decided to continue in this
+   * runtime. A route with nothing unresolved is left alone.
+   */
+  acknowledge(): void;
 } & CommandFacade<TName, CommandsOfRoute<TDefinition>>;

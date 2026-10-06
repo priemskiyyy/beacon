@@ -23,6 +23,8 @@ export type BeaconDiagnosticEvent = {
   session: number | null;
   /** The route, by name, or `null`. */
   route: string | null;
+  /** The command, by name, or `null`. */
+  command: string | null;
   attempt: number | null;
   operation: number | null;
   /** Why it happened, such as `obsolete` or an error code. */

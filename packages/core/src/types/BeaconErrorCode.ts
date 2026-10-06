@@ -25,6 +25,8 @@
  * - `REVISION_CONFLICT`: one decision revision arrived with different content.
  * - `REVISION_EPOCH_CHANGED`: a revision arrived from another domain or epoch,
  *   which is never assumed to be newer.
+ * - `COMMAND_FAILED`: a provider command threw, so it reports a failure that
+ *   did not take effect.
  *
  * @example
  * ```ts
@@ -46,4 +48,5 @@ export type BeaconErrorCode =
   | "RUNNING_READ_FAILED"
   | "REVISION_REGRESSION"
   | "REVISION_CONFLICT"
-  | "REVISION_EPOCH_CHANGED";
+  | "REVISION_EPOCH_CHANGED"
+  | "COMMAND_FAILED";

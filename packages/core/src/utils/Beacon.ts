@@ -4,6 +4,9 @@ import type { BeaconStatus } from "src/types/BeaconStatus";
 import type { CheckOptions } from "src/types/CheckOptions";
 import type { CheckOutcome } from "src/types/CheckOutcome";
 import type { CheckReport } from "src/types/CheckReport";
+import type { CommandInput } from "src/types/internal/CommandInput";
+import type { CommandTarget } from "src/types/internal/CommandTarget";
+import type { Disruptions } from "src/types/Disruptions";
 import type { Session } from "src/types/internal/Session";
 import type { ObservableValue } from "src/types/ObservableValue";
 import type { RouteDefinition } from "src/types/RouteDefinition";
@@ -13,7 +16,10 @@ import { BeaconError } from "src/utils/BeaconError";
 import {
   DEFAULT_CHECK_TIMEOUT,
   DEFAULT_RUNNING_TIMEOUT,
+  DEFAULT_SETTLEMENT_TIMEOUT,
 } from "src/utils/constants/defaults";
+import { CommandCoordinator } from "src/utils/internal/commands/CommandCoordinator";
+import { DisruptionRegistry } from "src/utils/internal/disruptions/DisruptionRegistry";
 import { createSystemClock } from "src/utils/internal/clock/createSystemClock";
 import { Diagnostics } from "src/utils/internal/diagnostics/Diagnostics";
 import { createDisposedError } from "src/utils/internal/errors/createDisposedError";
@@ -22,6 +28,7 @@ import { Listeners } from "src/utils/internal/observable/Listeners";
 import { resolveDuration } from "src/utils/internal/options/resolveDuration";
 import { reportUnhandledError } from "src/utils/internal/reporting/reportUnhandledError";
 import { mapHandles, mapNames } from "src/utils/internal/routes/mapRoutes";
+import { getCommands } from "src/utils/internal/routes/getCommands";
 import { readCapabilities } from "src/utils/internal/routes/readCapabilities";
 import { RouteRegistry } from "src/utils/internal/routes/RouteRegistry";
 import { BeaconRuntime } from "src/utils/internal/runtime/BeaconRuntime";
@@ -51,6 +58,8 @@ export class Beacon<
   #runtime: BeaconRuntime;
   #running: RunningRegistry;
   #routes: RouteRegistry;
+  #disruptions: DisruptionRegistry;
+  #commands: CommandCoordinator;
   #diagnostics: Diagnostics;
   #names: Array<keyof TRoutes & string>;
   #handles: {
@@ -90,6 +99,17 @@ export class Beacon<
    */
   diagnostics: BeaconDiagnostics;
 
+  /**
+   * Where the application registers what a disruptive command must not catch,
+   * such as a document with unsaved edits.
+   *
+   * @example
+   * ```ts
+   * const unregister = beacon.disruptions.register(participant);
+   * ```
+   */
+  disruptions: Disruptions;
+
   constructor({
     scope,
     running,
@@ -118,6 +138,12 @@ export class Beacon<
         counters,
       }),
     });
+
+    const settlementTimeout = resolveDuration(
+      "timeouts.settlement",
+      timeouts.settlement,
+      DEFAULT_SETTLEMENT_TIMEOUT,
+    );
 
     const reportListenerError = (error: unknown) => {
       this.#diagnostics.record("listener-error");
@@ -153,6 +179,20 @@ export class Beacon<
 
     this.#running.state.subscribe(this.#routes.handleRunningChange);
 
+    this.#disruptions = new DisruptionRegistry({
+      clock,
+      timeout: settlementTimeout,
+      reportError: reportListenerError,
+    });
+
+    this.#commands = new CommandCoordinator({
+      ledger: this.#routes.getLedger(),
+      disruptions: this.#disruptions,
+      getSession: () => this.#runtime.getSession(),
+      createInactiveError: () => this.#createInactiveError(),
+      record: this.#diagnostics.record,
+    });
+
     this.#runtime = new BeaconRuntime({
       listeners: createListeners(),
       onStart: (session) => {
@@ -161,6 +201,7 @@ export class Beacon<
       },
       onDispose: () => {
         this.#running.close();
+        this.#commands.close();
         this.#routes.close();
         this.#diagnostics.record("disposed");
         this.#diagnostics.close();
@@ -176,6 +217,7 @@ export class Beacon<
     this.status = this.#runtime.status;
     this.running = this.#running.state;
     this.diagnostics = this.#diagnostics.view;
+    this.disruptions = Object.freeze({ register: this.#disruptions.register });
   }
 
   /**
@@ -286,11 +328,30 @@ export class Beacon<
       });
     }
 
+    const commands = Object.entries(getCommands(entry.definition)).flatMap(
+      ([commandName, command]) => {
+        if (command === undefined) {
+          return [];
+        }
+
+        const target: CommandTarget = { entry, name: commandName, command };
+
+        return [
+          [
+            commandName,
+            (input: CommandInput = {}) => this.#commands.run(target, input),
+          ],
+        ];
+      },
+    );
+
     return {
+      ...Object.fromEntries(commands),
       state: entry.record.state,
       native: entry.record.native,
       capabilities: readCapabilities(entry.definition),
       check: (options: CheckOptions = {}) => this.#checkRoute(name, options),
+      acknowledge: () => this.#commands.acknowledge(entry),
     };
   }
 
@@ -326,24 +387,22 @@ export class Beacon<
   }
 
   #createNotActiveOutcome(): CheckOutcome {
-    if (this.#runtime.status.get().state === "disposed") {
-      return {
-        status: "failed",
-        attempt: 0,
-        error: toErrorInfo(createDisposedError()),
-      };
-    }
-
     return {
       status: "failed",
       attempt: 0,
-      error: toErrorInfo(
-        new BeaconError({
-          code: "NOT_STARTED",
-          message: "A check needs a started Beacon.",
-        }),
-      ),
+      error: toErrorInfo(this.#createInactiveError()),
     };
+  }
+
+  #createInactiveError() {
+    if (this.#runtime.status.get().state === "disposed") {
+      return createDisposedError();
+    }
+
+    return new BeaconError({
+      code: "NOT_STARTED",
+      message: "An operation needs a started Beacon.",
+    });
   }
 }
 

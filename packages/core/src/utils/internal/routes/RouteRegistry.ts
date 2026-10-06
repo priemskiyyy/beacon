@@ -21,7 +21,8 @@ import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import { createEvidence } from "src/utils/internal/feeds/createEvidence";
 import { FeedRecord } from "src/utils/internal/feeds/FeedRecord";
-import { Transaction } from "src/utils/internal/observable/Transaction";
+import { commitChange } from "src/utils/internal/observable/commitChange";
+import type { Transaction } from "src/utils/internal/observable/Transaction";
 import { SharedRead } from "src/utils/internal/reads/SharedRead";
 import { ReferenceLedger } from "src/utils/internal/routes/ReferenceLedger";
 import { RouteRecord } from "src/utils/internal/routes/RouteRecord";
@@ -131,7 +132,7 @@ export class RouteRegistry {
         continue;
       }
 
-      this.#commit((transaction) => this.#consume(transaction, feed, accepted));
+      commitChange((transaction) => this.#consume(transaction, feed, accepted));
     }
   };
 
@@ -151,13 +152,6 @@ export class RouteRegistry {
     }
 
     return assertUnreachable(definition);
-  }
-
-  #commit(apply: (transaction: Transaction) => void) {
-    const transaction = new Transaction();
-
-    apply(transaction);
-    transaction.commit();
   }
 
   #addFeedRoute(entry: RouteEntry, source: ReleaseSource<unknown>) {
@@ -181,17 +175,17 @@ export class RouteRegistry {
         getScope,
         hooks: {
           started: (attempt) =>
-            this.#commit((transaction) => {
+            commitChange((transaction) => {
               for (const consumer of feed.consumers) {
                 consumer.record.beginCheck(transaction, attempt);
               }
             }),
           accepted: (accepted) =>
-            this.#commit((transaction) =>
+            commitChange((transaction) =>
               this.#consume(transaction, feed, accepted),
             ),
           failed: (attempt, error) =>
-            this.#commit((transaction) => {
+            commitChange((transaction) => {
               for (const consumer of feed.consumers) {
                 consumer.record.settleCheck(transaction, attempt, error);
               }
@@ -260,11 +254,11 @@ export class RouteRegistry {
         accept: (_attempt, draft) => draft,
         hooks: {
           started: (attempt) =>
-            this.#commit((transaction) =>
+            commitChange((transaction) =>
               entry.record.beginCheck(transaction, attempt),
             ),
           accepted: (attempt, draft) =>
-            this.#commit((transaction) => {
+            commitChange((transaction) => {
               entry.record.installDraft(
                 transaction,
                 draft,
@@ -273,7 +267,7 @@ export class RouteRegistry {
               entry.record.settleCheck(transaction, attempt, null);
             }),
           failed: (attempt, error) =>
-            this.#commit((transaction) =>
+            commitChange((transaction) =>
               entry.record.settleCheck(transaction, attempt, error),
             ),
           record,
@@ -332,12 +326,12 @@ export class RouteRegistry {
       return;
     }
 
-    this.#commit((transaction) =>
+    commitChange((transaction) =>
       entry.record.installNative(transaction, opened.native),
     );
 
     session.scope.add(() => {
-      this.#commit((transaction) =>
+      commitChange((transaction) =>
         entry.record.installNative(transaction, null),
       );
       opened.dispose?.();
@@ -366,7 +360,7 @@ export class RouteRegistry {
 
     driverEntry.session = opened;
 
-    this.#commit((transaction) =>
+    commitChange((transaction) =>
       entry.record.installNative(transaction, opened.native),
     );
 
@@ -375,7 +369,7 @@ export class RouteRegistry {
     session.scope.add(() => {
       controller.abort();
       driverEntry.session = null;
-      this.#commit((transaction) =>
+      commitChange((transaction) =>
         entry.record.installNative(transaction, null),
       );
       opened.dispose?.();
@@ -419,7 +413,7 @@ export class RouteRegistry {
         return;
       }
 
-      this.#commit(apply);
+      commitChange(apply);
     };
 
     return {

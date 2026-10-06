@@ -1,16 +1,5 @@
-import type { CommandMap } from "src/types/CommandMap";
-import type { RouteBody } from "src/types/RouteBody";
 import type { RouteDefinition } from "src/types/RouteDefinition";
-
-type Commands = CommandMap<unknown, RouteBody, RouteBody>;
-
-const getCommands = (definition: RouteDefinition): Commands => {
-  if (definition.kind === "feed") {
-    return definition.mechanism.commands;
-  }
-
-  return definition.driver.commands;
-};
+import { getCommands } from "src/utils/internal/routes/getCommands";
 
 /** What each command of a route declares, frozen, so a presentation can warn before it acts. */
 export const readCapabilities = (definition: RouteDefinition) =>

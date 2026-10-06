@@ -109,6 +109,7 @@ A typical provider sequence is an offer, a command that prepares, and a command 
 | Service worker | `activate` with the offer, then `reload` with the prepared target                                    |
 | Browser        | `reload` with the offer                                                                              |
 | App Store      | `openStore`, with an offer or without one                                                            |
+| Google Play    | `openStore` of `playStore`, with an offer or without one                                             |
 
 Every reference is checked twice: when the call arrives, and again immediately before the provider is asked. See [disruptions](disruptions.md).
 
@@ -157,6 +158,7 @@ The commands of the adapters:
 | Google Play    | `update`    | offer          | `native-update-flow`, `javascript-restart` | `provider-current`    | `immediate-flow-started`                                     |
 | Google Play    | `restart`   | prepared       | `javascript-restart`                       | `provider-current`    | `completion-requested`                                       |
 | App Store      | `openStore` | optional offer | `external-handoff`                         | `store-destination`   | `store-handoff-requested`                                    |
+| Google Play    | `openStore` | optional offer | `external-handoff`                         | `store-destination`   | `store-handoff-requested`                                    |
 
 ## Handling every status
 

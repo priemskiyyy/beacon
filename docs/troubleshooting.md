@@ -58,7 +58,7 @@ The events that report a failure carry the raw value in `cause`: `read-failed`, 
 
 ### A check fails with NOT_STARTED
 
-Nothing asks an authority until a session is open. Call `beacon.start()`, or mount `BeaconProvider`, which starts the session unless you gave it `start={false}`. In React, the provider starts the session in a layout effect, so a check in a component's `useEffect` finds it running, and a check in a child's `useLayoutEffect` does not: check once `useBeaconStatus` says `running` there. See [getting started](getting-started.md#_4-check).
+Nothing asks an authority until a session is open. Call `beacon.start()`, or mount `BeaconProvider`, which starts the session unless you gave it `start={false}`. In React, the provider starts the session in a layout effect, so a check in a component's `useEffect` finds it running, and a check in a child's `useLayoutEffect` does not: check once `useBeaconStatus` says `running` there. See [getting started](getting-started.md#start-it-and-check).
 
 ### The check succeeded and nothing is offered
 
@@ -97,7 +97,7 @@ Read `beacon.support.get().reason`. `no-policy` means the Beacon has no `policy`
 
 ### The source fails with INVALID_DOCUMENT
 
-The message names the rule. For the standard manifest, the usual ones are a scope that differs from the Beacon's in `application`, `environment`, `platform` or `distribution`, a manifest that has expired or lives longer than the lifetime limit, a route the manifest lacks, a decision of the wrong kind for the declared route, and a body that is not JSON, such as a login page. See [HTTP](http.md#what-is-accepted).
+The message names the rule. For the standard manifest, the usual ones are a scope that differs from the Beacon's in `application`, `environment`, `platform` or `distribution`, a manifest that has expired or lives longer than the lifetime limit, a route the manifest lacks, a decision of the wrong kind for the declared route, and a response that is not served as JSON, such as a login page or a file with another `Content-Type`. See [HTTP](http.md#what-is-accepted).
 
 ### The source fails with SOURCE_FAILED
 
@@ -178,7 +178,7 @@ The server answers with the most recent update for the runtime version and the c
 
 ### The installed binary is unknown
 
-A `native` running fact that says `unknown` names its reason. `another-application` means the native module answered for a different application id than the application of the scope (or the `authority` you gave the reader), and that is what Expo Go does, since it is its own app: none of its version numbers is kept. `build-not-read` means the module gave no build number, or `react-native-device-info` answered its text `unknown`. `application-not-read` means it gave no application id. `unsupported-platform` means the scope's `platform` is neither `ios` nor `android`, such as a web build of the same app, and the module was not asked. No store or Play route compares against a binary it cannot name. See [what the binary is](react-native.md#what-the-binary-is).
+A `native` running fact that says `unknown` names its reason. `another-application` means the native module answered for a different application id than the application of the scope (or the `authority` you gave the reader), and that is what Expo Go does, since it is its own app: none of its version numbers is kept. `build-not-read` means the module gave no build number, or `react-native-device-info` answered its text `unknown`. `application-not-read` means it gave no application id. `unsupported-platform` means the scope's `platform` is neither `ios` nor `android`, such as a web build of the same app, and the module was not asked. No store or Play route compares against a binary it cannot name. See [what the binary is](expo.md#the-installed-binary).
 
 ### The web build is unknown
 

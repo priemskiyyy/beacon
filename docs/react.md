@@ -28,7 +28,6 @@ import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
-declare const __BUILD_ID__: string;
 
 export const createBeacon = () =>
   new Beacon({
@@ -39,7 +38,7 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      web: webBuild({ id: __BUILD_ID__ }),
+      web: webBuild({ id: import.meta.env.VITE_BUILD_ID }),
     },
     routes: {
       web: targetRoute({
@@ -94,36 +93,29 @@ The provider owns the session. A layout effect calls `beacon.start()` and return
 
 Pass `start={false}` when something else owns the session, such as a service of yours that calls `beacon.start()` itself: the provider then publishes the Beacon and starts and stops nothing. Mount one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
-Checks are yours. A component checks in its own effect, and finds the session running:
-
-```tsx
-// src/Checker.tsx
-import { useBeacon } from "@priemskiyyy/beacon-react";
-import { useEffect } from "react";
-
-export const Checker = () => {
-  const beacon = useBeacon();
-
-  useEffect(() => {
-    beacon.check({ reason: "startup" });
-  }, [beacon]);
-
-  return null;
-};
-```
+Checks are yours, and the provider makes none. [`checkOn`](triggers.md) checks when a session opens and on the moments you name. It installs its triggers only while the provider holds a session open, so an effect that calls it and returns its stop works above the provider or below it:
 
 ```tsx
 // src/App.tsx
-import { Checker } from "src/Checker";
+import { checkOn } from "@priemskiyyy/beacon/triggers";
+import { foreground } from "@priemskiyyy/beacon/triggers/browser";
+import { useEffect } from "react";
+
+import { beacon } from "src/beacon";
 import { UpdateBanner } from "src/UpdateBanner";
 
-export const App = () => (
-  <main>
-    <Checker />
-    <UpdateBanner />
-  </main>
-);
+export const App = () => {
+  useEffect(() => checkOn(beacon, { triggers: [foreground()] }), []);
+
+  return (
+    <main>
+      <UpdateBanner />
+    </main>
+  );
+};
 ```
+
+A `beacon.check()` of your own in an effect works too: a component's `useEffect` finds the session running.
 
 ## The hooks
 
@@ -250,7 +242,38 @@ For a route handle you hold, read `handle.state` with `useObservable`.
 
 ## Guarding unsaved work
 
-`useDisruption` registers a participant while the component is mounted and unregisters it on unmount. Beacon always calls the latest participant you passed, so a closure over current state never goes stale and a render never registers again.
+`useDisruption` registers a participant while the component is mounted and unregisters it on unmount. Beacon always calls the latest participant you passed, so a closure over current state never goes stale and a render never registers again. A participant that names no `impacts` is asked before every command that would lose what the page holds, so the shortest guard answers one question:
+
+```tsx
+// src/Draft.tsx
+import { useDisruption } from "@priemskiyyy/beacon-react";
+import { useState } from "react";
+
+export const Draft = () => {
+  const [draft, setDraft] = useState("");
+  const [saved, setSaved] = useState("");
+
+  useDisruption({
+    name: "draft",
+    reserve: () =>
+      draft === saved
+        ? { status: "reserved" }
+        : { status: "blocked", code: "unsaved-draft" },
+  });
+
+  return (
+    <>
+      <textarea
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+      <button onClick={() => setSaved(draft)}>Save</button>
+    </>
+  );
+};
+```
+
+That guard is advisory: an edit can begin right after it said yes. A form that must not change while a reload is reserved closes its admission, and one that can save on demand settles. The strong guard does both:
 
 ```tsx
 // src/DraftEditor.tsx
@@ -266,7 +289,6 @@ export const DraftEditor = ({ save }: DraftEditorProps) => {
 
   useDisruption({
     name: "draft-editor",
-    impacts: ["document-replacement", "javascript-restart"],
     reserve: () => {
       // A ref, since admission must close now and not on the next render.
       locked.current = true;

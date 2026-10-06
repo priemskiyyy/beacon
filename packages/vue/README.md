@@ -103,6 +103,6 @@ Every selector composable takes `(selector, { isEqual })`: its ref changes only 
 
 A component that unmounts lets go of everything it subscribed to. Call the composables in `setup`, where Vue can tie them to the component.
 
-## Server rendering
+## Learn more
 
-The server and the hydrating render read every observable as it stood before any session (`getInitial`), so the markup matches whatever the client has learned by then, and a boundary that hydrates late still matches. Once the component is mounted, its refs switch to the live value and follow it. Start the Beacon through the provider and not before the hydrating render. The provider starts it before its children mount, so a check in a component's `onMounted` finds the session running. A server render starts nothing and reads nothing, and two requests never share a session.
+[The Vue guide](../../docs/vue.md) has every composable, server rendering and hydration, and testing. [Getting started](../../docs/getting-started.md) takes a web app from a manifest to a guarded update banner, and [the mental model](../../docs/mental-model.md) names the vocabulary.

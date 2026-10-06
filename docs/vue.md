@@ -28,7 +28,6 @@ import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
-declare const __BUILD_ID__: string;
 
 export const createBeacon = () =>
   new Beacon({
@@ -39,7 +38,7 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      web: webBuild({ id: __BUILD_ID__ }),
+      web: webBuild({ id: import.meta.env.VITE_BUILD_ID }),
     },
     routes: {
       web: targetRoute({
@@ -103,7 +102,7 @@ The provider owns the session. It calls `beacon.start()` just before it mounts a
 
 Pass `:start="false"` when something else owns the session, such as a service of yours that calls `beacon.start()` itself: the provider then publishes the Beacon and starts and stops nothing. A component of yours that forwards `start` to the provider must give it the default `true` (`withDefaults(defineProps<{ start?: boolean }>(), { start: true })`), since Vue reads an absent boolean prop as `false`. Mount one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
-The session starts before any child of the provider is created. A check in a child's `onMounted` therefore finds the session running and does not fail with `NOT_STARTED`. Checks are yours:
+The session starts before any child of the provider is created. A check in a child's `onMounted` therefore finds the session running and does not fail with `NOT_STARTED`. Checks are yours, and [`checkOn`](triggers.md) makes the ones an application usually wants, on a return, a reconnect or a timer, over any binding. A check of your own:
 
 ```ts
 // src/useStartupCheck.ts
@@ -316,7 +315,6 @@ const edit = (event: Event) => {
 
 useDisruption({
   name: "draft-editor",
-  impacts: ["document-replacement", "javascript-restart"],
   reserve: () => {
     // A ref changes at once, so edit refuses from now on, before Vue renders again.
     locked.value = true;

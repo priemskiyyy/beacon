@@ -50,9 +50,10 @@ import { minimumBuild } from "@priemskiyyy/beacon";
 
 import { config } from "src/remoteConfig";
 
-// No store route here: the screen below opens the store itself. Name a route in `remediation` when you have one.
+// "store" is the route of the Beacon below that opens the store page.
 export const policy = minimumBuild({
   source: config.select((document) => document.minimumBuild),
+  remediation: "store",
 });
 ```
 
@@ -60,7 +61,7 @@ export const policy = minimumBuild({
 
 ### What the binary is
 
-`expoApplication` of [`@priemskiyyy/beacon-expo`](expo.md#the-installed-binary) reads the installed binary from `expo-application`, and `deviceInfo` of [`@priemskiyyy/beacon-device-info`](device-info.md) does the same over `react-native-device-info` in a bare app. The release is named in the native words, or the policy above reads it as unknown: an Android build is `android-version-code` with the version code as text, an iOS build is `ios-build` with the build number as text, and the authority is the application id. [React Native](react-native.md#what-the-binary-is) explains each field.
+`expoApplication` of [`@priemskiyyy/beacon-expo`](expo.md#the-installed-binary) reads the installed binary from `expo-application`, and `deviceInfo` of [`@priemskiyyy/beacon-device-info`](device-info.md) does the same over `react-native-device-info` in a bare app. The release is named in the native words, or the policy above reads it as unknown: an Android build is `android-version-code` with the version code as text, an iOS build is `ios-build` with the build number as text, and the authority is the application id. [Expo](expo.md#the-installed-binary) explains each field.
 
 ```ts
 // src/nativeBuild.ts
@@ -75,7 +76,9 @@ export const nativeBuild = expoApplication({ application: Application });
 ```ts
 // src/beacon.ts
 import { Beacon } from "@priemskiyyy/beacon";
-import { Platform } from "react-native";
+import { appStore } from "@priemskiyyy/beacon-app-store";
+import { playStore } from "@priemskiyyy/beacon-google-play";
+import { Linking, Platform } from "react-native";
 
 import { nativeBuild } from "src/nativeBuild";
 import { policy } from "src/supportPolicy";
@@ -88,7 +91,12 @@ export const beacon = new Beacon({
     distribution: Platform.OS === "ios" ? "app-store" : "google-play",
   },
   running: { native: nativeBuild },
-  routes: {},
+  routes: {
+    store:
+      Platform.OS === "ios"
+        ? appStore({ appId: "284882215", country: "us", linking: Linking })
+        : playStore({ applicationId: "com.example.notes", linking: Linking }),
+  },
   policy,
 });
 
@@ -99,7 +107,7 @@ declare module "@priemskiyyy/beacon-react" {
 }
 ```
 
-The provider, the check on each return to the foreground and the reasons to keep the Beacon in a module of its own are in [React Native](react-native.md#set-up-the-beacon-once). This Beacon has no route, since the policy is the whole gate, and overlapping checks share one read.
+The provider, the check on each return to the foreground and the reasons to keep the Beacon in a module of its own are in [React Native](react-native.md#create-the-beacon), and [the forced upgrade there](react-native.md#stop-a-build-that-is-too-old) is this gate over a constant minimum. The store route, from `@priemskiyyy/beacon-app-store` and `@priemskiyyy/beacon-google-play`, is the only route: the policy is the gate, and `openStore` opens the page of the store the build came from.
 
 ### The screen
 
@@ -108,19 +116,12 @@ Show the gate for `unsupported` and for nothing else. `unknown` is not a verdict
 ```tsx
 // src/SupportGate.tsx
 import { useBeacon, useSupport } from "@priemskiyyy/beacon-react";
-import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { Button, Linking, Text, View } from "react-native";
-
-const STORE_URL = "https://example.com/get-the-app";
+import { Button, Text, View } from "react-native";
 
 export const SupportGate = ({ children }: { children: ReactNode }) => {
   const beacon = useBeacon();
   const status = useSupport(({ status }) => status);
-
-  useEffect(() => {
-    beacon.check({ reason: "startup" });
-  }, [beacon]);
 
   if (status !== "unsupported") {
     return <>{children}</>;
@@ -129,7 +130,10 @@ export const SupportGate = ({ children }: { children: ReactNode }) => {
   return (
     <View accessibilityRole="alert">
       <Text>This version of the app is no longer supported.</Text>
-      <Button title="Update" onPress={() => Linking.openURL(STORE_URL)} />
+      <Button
+        title="Update"
+        onPress={() => beacon.route("store").openStore()}
+      />
       <Button
         title="Check again"
         onPress={() => beacon.check({ reason: "manual" })}
@@ -142,21 +146,31 @@ export const SupportGate = ({ children }: { children: ReactNode }) => {
 ```tsx
 // src/App.tsx
 import { BeaconProvider } from "@priemskiyyy/beacon-react";
-import { Text } from "react-native";
+import { checkOn, foreground } from "@priemskiyyy/beacon/triggers";
+import { useEffect } from "react";
+import { AppState, Text } from "react-native";
 
 import { beacon } from "src/beacon";
 import { SupportGate } from "src/SupportGate";
 
-export const App = () => (
-  <BeaconProvider beacon={beacon}>
-    <SupportGate>
-      <Text>Notes</Text>
-    </SupportGate>
-  </BeaconProvider>
-);
+export const App = () => {
+  // One check when the session opens, and another each time the app comes back from the background.
+  useEffect(
+    () => checkOn(beacon, { triggers: [foreground({ appState: AppState })] }),
+    [],
+  );
+
+  return (
+    <BeaconProvider beacon={beacon}>
+      <SupportGate>
+        <Text>Notes</Text>
+      </SupportGate>
+    </BeaconProvider>
+  );
+};
 ```
 
-A check runs when the gate mounts, and that is a fetch of Remote Config when the last one is older than the interval. To check again each time the app returns to the foreground, use the hook in [React Native](react-native.md#when-to-check).
+A check runs when the session opens, and that is a fetch of Remote Config when the last one is older than the interval. The one the user asks for is `beacon.check({ reason: "manual" })`, such as a button on the gate. [React Native](react-native.md#when-to-check) adds a reconnect and an interval.
 
 ## What a check reports
 

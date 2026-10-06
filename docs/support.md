@@ -15,10 +15,7 @@ Beacon does not decide it. You write the policy, Beacon evaluates it against wha
 ```ts
 import { Beacon, supportPolicy, targetRoute } from "@priemskiyyy/beacon";
 import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
-import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
-import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
-
-declare const __BUILD_ID__: string;
+import { standardManifestSource } from "@priemskiyyy/beacon-http";
 
 const scope = {
   application: "com.example.notes",
@@ -27,16 +24,9 @@ const scope = {
   distribution: "public-web",
 };
 
-const routes = { web: { kind: "target" } } satisfies RouteDeclarations;
-
-const manifest = http({
-  fetch: async ({ scope, signal }) =>
-    readStandardManifest({
-      response: await fetch("/releases.json", { signal }),
-      scope,
-      routes,
-      now: Date.now(),
-    }),
+const manifest = standardManifestSource({
+  url: "/releases.json",
+  routes: { web: { kind: "target" } },
 });
 
 const policy = supportPolicy({
@@ -76,7 +66,7 @@ const policy = supportPolicy({
 export const beacon = new Beacon({
   scope,
   running: {
-    web: webBuild({ id: __BUILD_ID__ }),
+    web: webBuild({ id: import.meta.env.VITE_BUILD_ID }),
   },
   routes: {
     web: targetRoute({
@@ -206,7 +196,7 @@ console.info(
 
 ### A minimum native build
 
-`minimumBuild` is the forced upgrade as a policy: the binary that runs is `unsupported` when its build number is below the minimum a source names. It reads the `native` running fact, so the application needs a native reader, such as the one in [React Native](react-native.md#what-the-binary-is).
+`minimumBuild` is the forced upgrade as a policy: the binary that runs is `unsupported` when its build number is below the minimum a source names. It reads the `native` running fact, so the application needs a native reader, such as the one in [React Native](expo.md#the-installed-binary).
 
 ```ts
 import { minimumBuild } from "@priemskiyyy/beacon";

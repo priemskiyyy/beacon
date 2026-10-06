@@ -1,15 +1,15 @@
 ---
-description: "Beacon keeps one model of what your application runs, what its release authorities want, and which update actions can be requested, on the web and in React Native."
+description: "Beacon keeps one model of what your app runs, what its release authorities want, and which update actions can be requested, in React and React Native apps: an update banner that never restarts over unsaved input, and a forced upgrade."
 ---
 
 # Beacon
 
-Release awareness and update coordination for TypeScript applications, on the web and in React Native.
+Release awareness and update coordination for React and React Native apps.
 
-[Get started](getting-started.md) · [The mental model](mental-model.md) · [View on GitHub](https://github.com/priemskiyyy/beacon)
+[Get started on the web](getting-started.md) · [Get started in React Native](react-native.md) · [The mental model](mental-model.md) · [View on GitHub](https://github.com/priemskiyyy/beacon)
 
 ::: info Verification
-Everything is tested in process against fakes. The example apps and the browser package's storage and build reader also run in Chromium, and nothing has run on a device yet. See [verification](verification.md) and [limits](limits.md).
+Everything is tested in process against fakes. The minimal React app, the release labs and the browser package's storage and build reader also run in Chromium, the minimal Expo app against fake modules, and nothing has run on a device yet. See [verification](verification.md) and [limits](limits.md).
 :::
 
 ## The problem
@@ -29,95 +29,17 @@ Beacon owns those questions. Transport, storage, policy and presentation stay wi
 
 Beacon does not download bundles, install binaries, cache assets or decide policy on its own.
 
-## Install
+## Which packages do I install?
 
-| Package                                      | Use it for                                                                  |
-| -------------------------------------------- | --------------------------------------------------------------------------- |
-| `@priemskiyyy/beacon`                        | The runtime, `./adapter`, `./triggers`, `./versions`, `./mock`, `./testing` |
-| `@priemskiyyy/beacon-http`                   | Your own release manifest endpoint, through your own client                 |
-| `@priemskiyyy/beacon-browser`                | Reloading the browser document                                              |
-| `@priemskiyyy/beacon-service-worker`         | A waiting service worker as an update that is ready                         |
-| `@priemskiyyy/beacon-expo`                   | Expo Updates, and the installed build from `expo-application`               |
-| `@priemskiyyy/beacon-google-play`            | The Play Store page, and in-app updates (your bridge)                       |
-| `@priemskiyyy/beacon-app-store`              | The App Store route: metadata and store handoff                             |
-| `@priemskiyyy/beacon-code-push`              | The React Native CodePush family, over the fork you use                     |
-| `@priemskiyyy/beacon-device-info`            | The installed native build, from `react-native-device-info`                 |
-| `@priemskiyyy/beacon-firebase-remote-config` | Firebase Remote Config as a source, such as a minimum build                 |
-| `@priemskiyyy/beacon-react`                  | A provider and hooks, typed by the Beacon you register                      |
-| `@priemskiyyy/beacon-vue`                    | A provider and composables for Vue, typed the same way                      |
-| `@priemskiyyy/beacon-solid`                  | A provider and primitives for Solid, typed the same way                     |
-| `@priemskiyyy/beacon-svelte`                 | A provider and utilities for Svelte 5, typed the same way                   |
-| `@priemskiyyy/beacon-devtools`               | An inspector for the session, the routes and the diagnostics                |
+| You build                | Install                                                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| An Expo app              | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-react`, `@priemskiyyy/beacon-expo`, and the SDKs `expo-updates` and `expo-application`                       |
+| A React Native app       | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-react`, `@priemskiyyy/beacon-device-info`, and `@priemskiyyy/beacon-code-push` if you use CodePush           |
+| A web app in React       | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-react`, `@priemskiyyy/beacon-http`, `@priemskiyyy/beacon-browser`                                            |
+| A web app in another one | the same, with `@priemskiyyy/beacon-vue`, `@priemskiyyy/beacon-solid` or `@priemskiyyy/beacon-svelte` in place of the React package                      |
+| A forced upgrade         | `@priemskiyyy/beacon-app-store` and `@priemskiyyy/beacon-google-play` for the store page, and `@priemskiyyy/beacon-firebase-remote-config` for a minimum |
 
-```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http @priemskiyyy/beacon-browser
-```
-
-Every package is ESM only, side-effect free and typed. The core has no dependencies, and no adapter imports a provider SDK: you pass in the one you already use.
-
-## An example
-
-A web application, a manifest at `/releases.json`, and a reload the user asks for.
-
-```ts
-import { Beacon, targetRoute } from "@priemskiyyy/beacon";
-import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
-import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
-import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
-
-declare const __BUILD_ID__: string;
-
-const scope = {
-  application: "com.example.notes",
-  environment: "production",
-  platform: "web",
-  distribution: "public-web",
-};
-
-const routes = { web: { kind: "target" } } satisfies RouteDeclarations;
-
-const manifest = http({
-  fetch: async ({ scope, signal, validator }) =>
-    readStandardManifest({
-      response: await fetch("/releases.json", {
-        signal,
-        headers: validator === null ? {} : { "if-none-match": validator },
-      }),
-      scope,
-      routes,
-      now: Date.now(),
-    }),
-});
-
-export const beacon = new Beacon({
-  scope,
-  running: {
-    web: webBuild({ id: __BUILD_ID__ }),
-  },
-  routes: {
-    web: targetRoute({
-      source: manifest.select((document) => document.routes.web),
-      mechanism: browserReload(),
-    }),
-  },
-});
-
-beacon.start();
-
-await beacon.check({ reason: "startup" });
-
-const { observation } = beacon.route("web").state.get();
-
-if (observation.status === "available") {
-  const outcome = await beacon
-    .route("web")
-    .reload({ offer: observation.offer });
-
-  console.info(outcome.status);
-}
-```
-
-`outcome.status` is `accepted` when the reload was requested. It says nothing about which build the next document runs. Only the next boot shows that.
+[Getting started](getting-started.md) and [React Native](react-native.md) have the exact lines. Every package is ESM only, side-effect free and typed. The core has no dependencies, and no adapter imports a provider SDK: you pass in the one you already use. The README has [a line for each package](https://github.com/priemskiyyy/beacon#packages).
 
 ## Where Beacon stops
 
@@ -125,10 +47,10 @@ It is not an installer, a cache, a scheduler or a policy engine. It has no timer
 
 ## Where to go next
 
-- [Getting started](getting-started.md): the browser with HTTP and a framework binding, then React Native with Expo.
-- [The mental model](mental-model.md): subjects, routes, decisions, evidence, references and outcomes.
-- Guides: [routes](routes.md), [commands](commands.md), [support](support.md), [disruptions](disruptions.md), [journal](journal.md), [scopes](scopes.md) and [sessions](sessions.md).
-- Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [Google Play](google-play.md), [App Store](app-store.md), [CodePush](code-push.md), [device info](device-info.md), [triggers](triggers.md), [Firebase Remote Config](firebase-remote-config.md) and [custom adapters](custom-adapters.md).
-- Bindings: [React](react.md), [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
-- [Devtools](devtools.md), [recipes](recipes.md), [testing](testing.md) and [troubleshooting](troubleshooting.md).
-- [API](api.md), [verification](verification.md), [limits](limits.md), [decisions](decisions.md) and [architecture](internals/architecture.md).
+- Getting started: [the web](getting-started.md), then [React Native](react-native.md).
+- Guides: [recipes](recipes.md), [guarding unsaved input](disruptions.md), [the journal](journal.md), [triggers](triggers.md), [the React hooks](react.md), [testing](testing.md) and [devtools](devtools.md).
+- Concepts: [the mental model](mental-model.md), [routes](routes.md), [support](support.md), [scopes](scopes.md) and [sessions](sessions.md).
+- Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [device info](device-info.md), [CodePush](code-push.md), [App Store](app-store.md), [Google Play](google-play.md), [Firebase Remote Config](firebase-remote-config.md) and [custom adapters](custom-adapters.md).
+- Reference: [API](api.md), [commands](commands.md), [troubleshooting](troubleshooting.md), [limits](limits.md), [verification](verification.md) and [decisions](decisions.md).
+- Other frameworks: [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
+- Internals: [architecture](internals/architecture.md).

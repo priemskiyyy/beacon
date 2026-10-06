@@ -18,13 +18,13 @@ export const scope: ReleaseScope = {
 };
 ```
 
-| Field          | Meaning                                                                                              |
-| -------------- | ---------------------------------------------------------------------------------------------------- |
-| `application`  | the application, such as its bundle or package id; the Play adapter reads its Android id here        |
-| `environment`  | `production`, `staging` and so on; a manifest for another environment is refused                     |
-| `platform`     | `web`, `ios`, `android`                                                                              |
-| `distribution` | the channel: `public-web`, `app-store`, `google-play`. The App Store adapter serves only `app-store` |
-| `partition`    | optional; names the account when the answers differ by account                                       |
+| Field          | Meaning                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| `application`  | the application, such as its bundle or package id; the Play adapter reads its Android id here           |
+| `environment`  | `production`, `staging` and so on; a manifest for another environment is refused                        |
+| `platform`     | `web`, `ios`, `android`                                                                                 |
+| `distribution` | the channel: `public-web`, `app-store`, `google-play`, `development`. A store route serves only its own |
+| `partition`    | optional; names the account when the answers differ by account                                          |
 
 The values are yours. Beacon compares them and does not interpret them, except where an adapter says so.
 
@@ -32,7 +32,7 @@ The values are yours. Beacon compares them and does not interpret them, except w
 
 When the answers differ by account, `partition` names the account as opaque text. No source keeps, renews or compares one account's answer for another. The [HTTP adapter](http.md) keeps a validator and a document only for the scope they were read for, and the [journal](journal.md) puts the partition in its key.
 
-Put no token in it. It reaches your client only as part of the scope, and it is not a place for a secret. A manifest never states a partition: the standard manifest repeats the other four fields and leaves this one to the client.
+Put no token in it. It reaches your client only as part of the scope, and it is not a place for a secret. A manifest never states a partition: the standard manifest may state the other four fields, and judges them when it does, and leaves this one to the client.
 
 ## Replacing the scope
 
@@ -77,7 +77,7 @@ If a session is open, it ends and a new one starts with the next scope, under th
 
 ## Scope checks in adapters
 
-- `http` with the standard manifest refuses a manifest whose `application`, `environment`, `platform` or `distribution` differ from the scope's.
-- `appStoreLookup` makes no request and answers "no release" for a scope whose `distribution` is not `app-store`.
+- `http` with the standard manifest refuses a manifest that states an `application`, an `environment`, a `platform` or a `distribution` that differs from the scope's. A manifest may leave them out.
+- `appStoreLookup` makes no request and answers "no release" for a scope whose `distribution` is not `app-store`, and the `openStore` of `appStore` and of `playStore` is `unsupported` for a scope that is not their own, `app-store` and `google-play`.
 - `googlePlay` uses `scope.application` as the Android application id.
 - The conformance suite `testReleaseSource` takes the scope a source speaks for.

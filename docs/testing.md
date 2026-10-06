@@ -170,6 +170,84 @@ test("the running build is not offered to itself", async () => {
 });
 ```
 
+## A manifest at a URL
+
+`standardManifestSource` asks the global `fetch` for its URL, so a test gives it one of its own with the `fetch` option: a function of the URL and the request that answers a `Response`, or anything with a `status`, `headers.get` and `text()`. The source sends the validator, the scope and the time itself, so the fake only has to be a server. Serve the JSON with a JSON `Content-Type`, as a host does, or the read fails with `INVALID_DOCUMENT`.
+
+```ts
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
+import { standardManifestSource } from "@priemskiyyy/beacon-http";
+import type { ManifestFetch } from "@priemskiyyy/beacon-http";
+import { expect, test } from "vitest";
+
+// What a deploy writes, answered the way a static host does: with an ETag, and a 304 for a copy the client holds.
+const createServer = (identity: string) => {
+  const requests: (string | null)[] = [];
+
+  const fetch: ManifestFetch = async (_url, { headers }) => {
+    const validator = headers["if-none-match"] ?? null;
+
+    requests.push(validator);
+
+    if (validator === '"1"') {
+      return new Response(null, { status: 304, headers: { etag: '"1"' } });
+    }
+
+    const manifest = {
+      schemaVersion: 1,
+      routes: { web: { kind: "target", release: { identity } } },
+    };
+
+    return new Response(JSON.stringify(manifest), {
+      status: 200,
+      headers: { etag: '"1"', "content-type": "application/json" },
+    });
+  };
+
+  return { fetch, requests };
+};
+
+test("a deploy is offered, and a copy the server confirms is kept", async () => {
+  const server = createServer("web-build-b");
+
+  const manifest = standardManifestSource({
+    url: "/releases.json",
+    routes: { web: { kind: "target" } },
+    fetch: server.fetch,
+  });
+
+  const beacon = new Beacon({
+    scope: {
+      application: "com.example.notes",
+      environment: "production",
+      platform: "web",
+      distribution: "public-web",
+    },
+    running: { web: webBuild({ id: "web-build-a" }) },
+    routes: {
+      web: targetRoute({
+        source: manifest.select((release) => release.routes.web),
+        mechanism: browserReload(),
+      }),
+    },
+  });
+
+  beacon.start();
+  await beacon.check();
+
+  expect(beacon.route("web").state.get().observation.status).toBe("available");
+
+  await beacon.check();
+
+  // The second request carried the validator, and the 304 renewed what the first one taught.
+  expect(server.requests).toEqual([null, '"1"']);
+  expect(beacon.route("web").state.get().observation.status).toBe("available");
+});
+```
+
+The fake keeps what it was asked, so the test can say that the second check carried the validator and that the `304` renewed what the first one taught, with no body. Answer another status to see a server that fails: a `404` makes the check `failed` with `SOURCE_FAILED`, and the offer that was accepted stays. [HTTP](http.md#what-is-accepted) lists what each answer becomes.
+
 ## Held reads
 
 `hold` lets a test decide when a read finishes, so it can put two things in flight at once.

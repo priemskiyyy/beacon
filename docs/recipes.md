@@ -18,7 +18,6 @@ import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
-declare const __BUILD_ID__: string;
 
 export const beacon = new Beacon({
   scope: {
@@ -28,7 +27,7 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    web: webBuild({ id: __BUILD_ID__ }),
+    web: webBuild({ id: import.meta.env.VITE_BUILD_ID }),
   },
   routes: {
     web: targetRoute({
@@ -163,12 +162,12 @@ export const SupportGate = ({ children }: { children: ReactNode }) => {
   );
 
   if (required.length > 0 && observation.status === "available") {
-    const { ref } = observation.offer;
+    const { offer } = observation;
 
     return (
       <section role="alert">
         <h1>This version is no longer supported</h1>
-        <button onClick={() => beacon.route("web").reload({ offer: ref })}>
+        <button onClick={() => beacon.route("web").reload({ offer })}>
           Update now
         </button>
       </section>
@@ -187,16 +186,16 @@ export const SupportGate = ({ children }: { children: ReactNode }) => {
 };
 ```
 
-`unsupported` is a verdict of your policy. `unknown` is not. A policy that lapsed is `unknown` with its last decision kept beside it, and how long you tolerate that is your decision. See [support](support.md#when-support-ends). The remediation here is the route `web`. With several routes, pick the entry by its `route` name.
+`unsupported` is a verdict of your policy. `unknown` is not. A policy that lapsed is `unknown` with its last decision kept beside it, and how long you tolerate that is your decision. See [support](support.md#when-support-ends). The remediation here is the route `web`. With several routes, pick the entry by its `route` name. For a build too old in an app on a device, [React Native](react-native.md#stop-a-build-that-is-too-old) makes the same screen with `minimumBuild` and a store route, whose `openStore` needs no offer.
 
 ## Check on foreground and on an interval
 
-Beacon has no timer of its own. [`@priemskiyyy/beacon/triggers`](triggers.md) calls `check` from the signals your application already has, and checks that overlap join one read, so several signals at once cost one request. The `reason` only labels the diagnostics.
+Beacon has no timer of its own. [`@priemskiyyy/beacon/triggers`](triggers.md) calls `check` from the signals your application already has, and checks that overlap join one read, so several signals at once cost one request. The `reason` only labels the diagnostics. A `checkOn` in an effect is enough, and the effect may sit above the provider: it installs its triggers while a session is open, which a `BeaconProvider` holds.
 
 In React Native, `AppState` and NetInfo go in as they are, and the package keeps the rule that only a trip through the background is a return:
 
 ```ts
-// src/watchNative.ts
+// src/useNativeChecks.ts
 import {
   checkOn,
   foreground,
@@ -204,49 +203,49 @@ import {
   reconnect,
 } from "@priemskiyyy/beacon/triggers";
 import NetInfo from "@react-native-community/netinfo";
+import { useEffect } from "react";
 import { AppState } from "react-native";
 
 import { native } from "src/native";
 
-export const watchNative = () => {
-  const stop = native.start();
-
-  const stopChecking = checkOn(native, {
-    triggers: [
-      foreground({ appState: AppState, minAway: 30_000 }),
-      reconnect({ netInfo: NetInfo }),
-      interval({ every: 30 * 60_000, jitter: 0.2 }),
-    ],
-    backoff: { first: 10_000, max: 15 * 60_000 },
-  });
-
-  return () => {
-    stopChecking();
-    stop();
-  };
+export const useNativeChecks = () => {
+  useEffect(
+    () =>
+      checkOn(native, {
+        triggers: [
+          foreground({ appState: AppState, minAway: 30_000 }),
+          reconnect({ netInfo: NetInfo }),
+          interval({ every: 30 * 60_000, jitter: 0.2 }),
+        ],
+        backoff: { first: 10_000, max: 15 * 60_000 },
+      }),
+    [],
+  );
 };
 ```
 
 On the web, the `/browser` subpath of the package has the same two triggers over the page's own events: `foreground` listens to `visibilitychange` and `pageshow`, and pauses an interval while the tab is hidden, and `reconnect` listens to `online`. The check at startup is `checkOn`'s own.
 
 ```ts
-// src/watchForUpdates.ts
+// src/useWebChecks.ts
 import { checkOn, interval } from "@priemskiyyy/beacon/triggers";
 import { foreground, reconnect } from "@priemskiyyy/beacon/triggers/browser";
+import { useEffect } from "react";
 
 import { beacon } from "src/beacon";
 
-export const watchForUpdates = (every: number) => {
-  const stop = beacon.start();
-
-  const stopChecking = checkOn(beacon, {
-    triggers: [foreground(), reconnect(), interval({ every, jitter: 0.2 })],
-  });
-
-  return () => {
-    stopChecking();
-    stop();
-  };
+export const useWebChecks = () => {
+  useEffect(
+    () =>
+      checkOn(beacon, {
+        triggers: [
+          foreground(),
+          reconnect(),
+          interval({ every: 600_000, jitter: 0.2 }),
+        ],
+      }),
+    [],
+  );
 };
 ```
 
@@ -304,7 +303,7 @@ export const nextOtaStep = async () => {
 };
 ```
 
-`ready` comes from the provider's report, never from the download call having returned. Because an update that was downloaded can be selected at a later start, tell the user before you download. A banner with one button that downloads and restarts in a row calls `applyUpdate` of `@priemskiyyy/beacon-expo` instead, which runs the two commands in order and answers where it stopped ([Expo](expo.md#apply-an-update)).
+`ready` comes from the provider's report, never from the download call having returned. Because an update that was downloaded can be selected at a later start, tell the user before you download. A banner with one button that downloads and restarts in a row calls `applyUpdate` of `@priemskiyyy/beacon-expo` instead, which runs the two commands in order and answers where it stopped ([Expo](expo.md#apply-an-update)), and the one of [React Native](react-native.md#show-the-update) is that banner.
 
 ### Google Play
 

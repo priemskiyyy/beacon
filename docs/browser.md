@@ -24,7 +24,6 @@ import type {
 import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
-declare const __BUILD_ID__: string;
 
 export const beacon = new Beacon({
   scope: {
@@ -34,7 +33,7 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    web: webBuild({ id: __BUILD_ID__ }),
+    web: webBuild({ id: import.meta.env.VITE_BUILD_ID }),
   },
   routes: {
     web: targetRoute({

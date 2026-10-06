@@ -58,7 +58,7 @@ A host without a global `fetch` fails the read and says to pass one.
 
 A manifest that a cache serves late is an offer that is no longer true, so the freshness of the file is yours to set:
 
-- Serve it with `Cache-Control: no-cache`, which lets a cache store it and makes it ask the server before it answers, or `max-age=0, must-revalidate`. The source's own `cache: "no-cache"` asks the browser to do exactly that, and it does not reach a CDN or a proxy between you and the browser.
+- Serve it as `application/json`, which a static host does for a `.json` file, and with `Cache-Control: no-cache`, which lets a cache store it and makes it ask the server before it answers, or `max-age=0, must-revalidate`. The source's own `cache: "no-cache"` asks the browser to do exactly that, and it does not reach a CDN or a proxy between you and the browser.
 - Serve an `ETag`, which most static hosts do by default. The next read sends it back, and a `304` answers without a body.
 - A service worker that precaches the manifest serves the file it stored. Keep the manifest out of the precache, or it reports the build that was current when the worker installed.
 - Put it on the origin of the app, or an origin you control. A redirect is refused.
@@ -279,16 +279,16 @@ The release's identity has to be named the way the page or the binary names what
 
 The whole manifest or none of it. `standardManifestSource`, `readStandardManifest` (the response) and `parseStandardManifest` (the text) throw a `BeaconError` that says which rule broke, and a source that throws keeps the last document it accepted.
 
-| Outcome                                                                                       | Result                                                         |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `200` with a JSON body                                                                        | parsed                                                         |
-| `304`                                                                                         | `not-modified`, which renews what the source holds             |
-| `204`, `404`, `401`, `403`, `429`, a server error, any other status                           | `SOURCE_FAILED`, never "no release"                            |
-| A redirected response                                                                         | `SOURCE_FAILED`: use a same-origin endpoint                    |
-| A body that is not JSON, such as a login page, or is empty                                    | `INVALID_DOCUMENT`                                             |
-| A body over the size limit                                                                    | `INVALID_DOCUMENT`; an over-limit `Content-Length` is not read |
-| An unknown `schemaVersion`, another scope, a route missing, or a decision of the wrong kind   | `INVALID_DOCUMENT`                                             |
-| A date that does not exist, a lifetime over the limit, a future issue, or an expired manifest | `INVALID_DOCUMENT`                                             |
+| Outcome                                                                                                                                 | Result                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `200` with a JSON body                                                                                                                  | parsed                                                         |
+| `304`                                                                                                                                   | `not-modified`, which renews what the source holds             |
+| `204`, `404`, `401`, `403`, `429`, a server error, any other status                                                                     | `SOURCE_FAILED`, never "no release"                            |
+| A redirected response                                                                                                                   | `SOURCE_FAILED`: use a same-origin endpoint                    |
+| A response that is not served as JSON, such as a login page (its `Content-Type` is not `application/json` or `+json`), or an empty body | `INVALID_DOCUMENT`                                             |
+| A body over the size limit                                                                                                              | `INVALID_DOCUMENT`; an over-limit `Content-Length` is not read |
+| An unknown `schemaVersion`, another scope, a route missing, or a decision of the wrong kind                                             | `INVALID_DOCUMENT`                                             |
+| A date that does not exist, a lifetime over the limit, a future issue, or an expired manifest                                           | `INVALID_DOCUMENT`                                             |
 
 The `ETag` is the validator for the next read and never the revision. A field the schema does not name is ignored and never reaches the document. A repeated JSON key keeps its last value, because the text is decoded as JSON.
 

@@ -1,6 +1,6 @@
 # @priemskiyyy/beacon-app-store
 
-App Store metadata and store handoff for [Beacon](../../core), as two separate capabilities: an advisory marketing-release source, and a mechanism that opens the store page. Neither installs anything, and a marketing version is never presented as the exact native build a device will receive.
+The App Store page of your app as a [Beacon](../../core) route: Apple's lookup as an advisory marketing-release source, and a handoff that opens the store page. Neither installs anything, and a marketing version is never presented as the exact native build a device will receive.
 
 ## Installation
 
@@ -8,7 +8,7 @@ App Store metadata and store handoff for [Beacon](../../core), as two separate c
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-app-store
 ```
 
-## Create a route
+## Example
 
 ```ts
 import { Beacon } from "@priemskiyyy/beacon";
@@ -41,28 +41,20 @@ const beacon = new Beacon({
 await beacon.route("binary").openStore();
 ```
 
-`appStore` is the lookup, the order of marketing versions and the handoff joined into one route; `appStoreLookup`, `appleVersion`, `appleMarketingVersion` and `appStoreHandoff` stay exported for an application that composes its own with `newerRoute`. On React Native, `linking` is `Linking` from `react-native`.
+Both halves of the route answer only for the `app-store` distribution: a lookup for a scope that says another makes no request and has no release to offer, and `openStore` is `unsupported` with the reason `other-distribution` and opens nothing. A resolved `openStore` means only that the OS accepted the request.
 
-Without a `fetch` of your own, `appStore` asks Apple's lookup through the global `fetch`: it refuses a status that is not a success and a response that says it was redirected (React Native's `fetch` cannot say), and reads the JSON into the four fields the source needs, an entry that is not shaped so being an invalid document. Pass `fetch` for a client that adds headers or goes through a proxy; it owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw. The source then checks that the entry is your app and bundle, and refuses several entries, another app, a missing version or a malformed date, each with its own message.
+## Options
 
-## What a check reports
+| `appStore` option | Meaning                                                                                                                 |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `appId`           | the numeric App Store id of your app                                                                                    |
+| `country`         | the storefront the lookup asks, such as `de`                                                                            |
+| `bundleId`        | when given, the entry the lookup finds must carry it                                                                    |
+| `linking`         | the platform's link opener: React Native's `Linking`                                                                    |
+| `fetch`           | a lookup client of your own; the global `fetch` by default, whose response cannot say it was redirected on React Native |
 
-| Lookup                          | Route observation                                                                     |
-| ------------------------------- | ------------------------------------------------------------------------------------- |
-| a newer marketing version       | `available`, with the release date as advisory metadata                               |
-| the same or an older version    | `none`                                                                                |
-| no entry                        | `none`, detail `no-match`: nothing matched in that storefront only                    |
-| a scope that is not `app-store` | `none`, detail `other-distribution`, with no request                                  |
-| no `shortVersion` running       | `inconclusive`: nothing claims a newer version without knowing the order of what runs |
+`appStoreLookup`, `appleVersion`, `appleMarketingVersion` and `appStoreHandoff` stay exported for an application that composes its own route with `newerRoute`.
 
-The running native release is read by `expoApplication` of [`@priemskiyyy/beacon-expo`](../expo), or by `deviceInfo` of [`@priemskiyyy/beacon-device-info`](../device-info) over `react-native-device-info`, under the platform and the application of the scope. It is named by the build number (`CFBundleVersion`) as text, under the domain `ios-build` and the authority `scope.application`. It keeps `raw.applicationId`, `raw.shortVersion` (`CFBundleShortVersionString`, which `appleMarketingVersion` reads) and `raw.buildNumber`. A marketing version can never satisfy a build-level minimum.
+## Learn more
 
-## Handoff
-
-| Command     | Needs             | Impact             | Binding             | Receipt                   |
-| ----------- | ----------------- | ------------------ | ------------------- | ------------------------- |
-| `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-requested` |
-
-`openStore` takes an offer or none, since remediation can send a user to the store without one. It opens `https://apps.apple.com/app/id<appId>`, built from your configured id alone and never from a manifest. A resolved call means only that the OS accepted the request: the user can decline or never return, and the route settles as soon as it is accepted, without waiting for the app to come back.
-
-TestFlight, enterprise and development builds are not App Store distributions. The distribution is your configuration, and the store adapters agree on `app-store` (exported here as `APP_STORE_DISTRIBUTION`), `google-play` (exported by [`@priemskiyyy/beacon-google-play`](../google-play)) and `development`. Both halves of the route answer only for `app-store`: a lookup read for a scope whose `distribution` is another makes no request and has no release to offer, and `openStore` is `unsupported` with the reason `other-distribution` and opens nothing. The route is yours to leave out where it does not apply. A required native update with no usable route is a support state to handle, not a reason to redirect to the store again and again.
+[The App Store guide](../../../docs/app-store.md) has what a check reports, the handoff, the distributions the store adapters agree on and what the lookup refuses. [React Native](../../../docs/react-native.md#stop-a-build-that-is-too-old) uses it in a forced-upgrade screen.

@@ -30,6 +30,12 @@ export const beacon = new Beacon({
     }),
   },
 });
+
+declare module "@priemskiyyy/beacon-react" {
+  interface Register {
+    beacon: typeof beacon;
+  }
+}
 ```
 
 The route is a driver route: the browser owns both the question and the answer, so it needs no source. It reads `navigator.serviceWorker` only when a session starts, so creating it in a server render is safe, and a page without service workers is an environment that cannot check.
@@ -99,6 +105,41 @@ const stop = beacon.route("worker").state.subscribe(async () => {
   await route.reload({ prepared: prepared.value });
 });
 ```
+
+### In React: two buttons
+
+The two steps are two buttons, one for each thing the route knows. `activate` asks the waiting worker to take over, and only when the route says that the takeover happened is there something to restart into:
+
+```tsx
+// src/WorkerUpdate.tsx
+import { useBeacon, useRoute } from "@priemskiyyy/beacon-react";
+
+export const WorkerUpdate = () => {
+  const beacon = useBeacon();
+  const { observation, prepared } = useRoute("worker");
+  const worker = beacon.route("worker");
+
+  if (prepared.status === "ready") {
+    return (
+      <button onClick={() => worker.reload({ prepared: prepared.value })}>
+        Restart to update
+      </button>
+    );
+  }
+
+  if (observation.status === "available") {
+    return (
+      <button onClick={() => worker.activate({ offer: observation.offer })}>
+        Update
+      </button>
+    );
+  }
+
+  return null;
+};
+```
+
+An app whose worker precaches the shell needs this route and no manifest route: a reload loads the build the worker stored, so a manifest would offer a build the page cannot reach ([browser](browser.md#create-a-route)). The release of a waiting worker is unknown, so say that an update is ready and nothing more.
 
 ## What the worker must do
 

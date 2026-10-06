@@ -521,25 +521,25 @@ See [React](react.md).
 
 See [Vue](vue.md).
 
-| Export                 | Kind       | What it is                                                                       |
-| ---------------------- | ---------- | -------------------------------------------------------------------------------- |
-| `BeaconProvider`       | component  | publishes a Beacon and holds the session while mounted; `start={false}` opts out |
-| `useRoute`             | composable | a route's state by its name, optionally selected, as a read-only computed ref    |
-| `useRunning`           | composable | what is running per subject                                                      |
-| `useSupport`           | composable | what the support policy says about what runs                                     |
-| `useTransitions`       | composable | what the journal knows                                                           |
-| `useBeaconStatus`      | composable | where the session stands                                                         |
-| `useObservable`        | composable | any other observable of Beacon                                                   |
-| `useDisruption`        | composable | registers a participant while mounted                                            |
-| `useBeacon`            | composable | the provider's Beacon, as a computed ref                                         |
-| `Register`             | interface  | merge `beacon` into it so the composables know your routes                       |
-| `RegisteredBeacon`     | type       | the Beacon you registered; every Beacon without its routes until one is          |
-| `RegisteredRoutes`     | type       | the routes of the registered Beacon                                              |
-| `RegisteredRouteName`  | type       | the name of a route of the registered Beacon                                     |
-| `RegisteredRoute`      | type       | the handle of a route of the registered Beacon                                   |
-| `RegisteredRouteState` | type       | the state of a route of the registered Beacon                                    |
-| `BeaconProviderProps`  | type       | the Beacon to publish, and whether to start it                                   |
-| `SelectorOptions`      | type       | the core's `{ isEqual }`, re-exported for the composables                        |
+| Export                 | Kind       | What it is                                                                        |
+| ---------------------- | ---------- | --------------------------------------------------------------------------------- |
+| `BeaconProvider`       | component  | publishes a Beacon and holds the session while mounted; `:start="false"` opts out |
+| `useRoute`             | composable | a route's state by its name, optionally selected, as a read-only computed ref     |
+| `useRunning`           | composable | what is running per subject                                                       |
+| `useSupport`           | composable | what the support policy says about what runs                                      |
+| `useTransitions`       | composable | what the journal knows                                                            |
+| `useBeaconStatus`      | composable | where the session stands                                                          |
+| `useObservable`        | composable | any other observable of Beacon                                                    |
+| `useDisruption`        | composable | registers a participant while mounted                                             |
+| `useBeacon`            | composable | the provider's Beacon, as a computed ref                                          |
+| `Register`             | interface  | merge `beacon` into it so the composables know your routes                        |
+| `RegisteredBeacon`     | type       | the Beacon you registered; every Beacon without its routes until one is           |
+| `RegisteredRoutes`     | type       | the routes of the registered Beacon                                               |
+| `RegisteredRouteName`  | type       | the name of a route of the registered Beacon                                      |
+| `RegisteredRoute`      | type       | the handle of a route of the registered Beacon                                    |
+| `RegisteredRouteState` | type       | the state of a route of the registered Beacon                                     |
+| `BeaconProviderProps`  | type       | the Beacon to publish, and whether to start it                                    |
+| `SelectorOptions`      | type       | the core's `{ isEqual }`, re-exported for the composables                         |
 
 ## @priemskiyyy/beacon-solid
 

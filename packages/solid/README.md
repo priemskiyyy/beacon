@@ -103,6 +103,6 @@ Every selector primitive takes `(selector, { isEqual })`: what depends on it run
 
 Without a provider, `useBeacon()` and every primitive that reads the provider's Beacon throw `BeaconError` with `INVALID_CONFIGURATION`.
 
-## Server rendering
+## Learn more
 
-The server and the hydrating render read every observable as it stood before any session (`getInitial`), so the markup matches whatever the client has learned by then, and a boundary that hydrates late still matches. The live value is read when the component mounts, and a change of it updates the DOM after hydration. Start the Beacon through the provider and not before the hydrating render. The provider starts it when the tree mounts, before any child's `onMount` runs, so a check there finds the session running. A server render mounts nothing, so it starts nothing and reads nothing, and two requests never share a session.
+[The Solid guide](../../docs/solid.md) has every primitive, server rendering and hydration, and testing. [Getting started](../../docs/getting-started.md) takes a web app from a manifest to a guarded update banner, and [the mental model](../../docs/mental-model.md) names the vocabulary.

@@ -1,106 +1,77 @@
 ---
-description: "Set up Beacon for a web application with an HTTP manifest, the browser reload and a framework binding, then for React Native with Expo Updates, one step at a time."
+description: "Ship a safe update banner on the web: a static manifest, one Beacon with the browser reload and journal, a provider, the banner, a guard for unsaved input, checks on return and reconnect, the cancelled reload and a service worker."
 ---
 
 # Getting started
 
-Two setups follow. [The browser](#the-browser) reads a release manifest and reloads the document. [React Native](#react-native-and-expo) asks Expo Updates and restarts the runtime. Both end with a check and a command the user asks for. The browser setup uses React, and the Vue, Solid and Svelte bindings work the same way.
+This page takes a React app on Vite and a static host to an update banner that never reloads over unsaved input. The Vue, Solid and Svelte bindings work the same way (install `@priemskiyyy/beacon-vue`, `-solid` or `-svelte` in place of the React package), and [React Native](react-native.md) is the same path for an app on a device. Everything after [Next](#next) is optional.
 
-## The browser
+::: tip Which packages do I install?
+A web app takes four of ours.
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http @priemskiyyy/beacon-browser @priemskiyyy/beacon-react
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-react @priemskiyyy/beacon-http @priemskiyyy/beacon-browser
 ```
 
-::: tip Not using React?
-Install `@priemskiyyy/beacon-vue`, `@priemskiyyy/beacon-solid` or `@priemskiyyy/beacon-svelte` in place of the React package. Steps 1 and 2 are the same, except that `Register` is merged into the module of the binding you chose. Steps 3 to 5 have a version for each framework on its own page: [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
 :::
 
-### 1. Publish a manifest
+## Publish a manifest
 
-Your deployment writes `/releases.json`. It states what one application, environment, platform and distribution should run.
+Your build writes this file next to the app, with the id of the build it just shipped.
 
 ```json
 {
   "schemaVersion": 1,
-  "application": "com.example.notes",
-  "environment": "production",
-  "platform": "web",
-  "distribution": "public-web",
-  "decisionRevision": {
-    "kind": "ordered",
-    "domain": "notes-web-deployments",
-    "epoch": "production-v1",
-    "value": "208"
-  },
-  "issuedAt": "2026-09-27T10:00:00Z",
-  "expiresAt": "2026-09-27T10:10:00Z",
   "routes": {
     "web": {
       "kind": "target",
-      "release": {
-        "identity": {
-          "status": "known",
-          "authority": "com.example.notes",
-          "domain": "web-artifact",
-          "value": "web-build-b"
-        },
-        "label": "September release"
-      }
+      "release": { "identity": "a91b44e" }
     }
   }
 }
 ```
 
-Three rules matter here. The `identity` must use the same `authority` and `domain` as what the page reports it is running, or the two cannot be compared. The `decisionRevision` grows with every deployment decision, so an older copy served late is rejected. The manifest expires within 24 hours of `issuedAt`, and past `expiresAt` it is no longer evidence. [The HTTP page](http.md) has the whole schema.
+The same id goes into the bundle, where the page reads what runs. With Vite that is a variable the build sets once:
 
-### 2. Create the Beacon
+```sh
+VITE_BUILD_ID=$(git rev-parse --short HEAD) vite build
+printf '{"schemaVersion":1,"routes":{"web":{"kind":"target","release":{"identity":"%s"}}}}' "$(git rev-parse --short HEAD)" > dist/releases.json
+```
 
-One Beacon serves the whole application, so create it in a module of its own.
+Serve `releases.json` as `application/json`, which a static host does for a `.json` file, with `Cache-Control: no-cache`, so a cache asks the server before it answers and a deploy is seen at once. Nothing else is required of a static host: [the HTTP page](http.md#when-your-release-service-can-write-more) has the optional times, revision and scope.
+
+## Create the Beacon
 
 ```ts
 // src/beacon.ts
 import { Beacon, targetRoute } from "@priemskiyyy/beacon";
-import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
-import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
-import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
+import {
+  browserReload,
+  browserStorage,
+  webBuild,
+} from "@priemskiyyy/beacon-browser";
+import { standardManifestSource } from "@priemskiyyy/beacon-http";
 
-// Your bundler replaces this with the id of the build, such as the commit.
-declare const __BUILD_ID__: string;
-
-const scope = {
-  application: "com.example.notes",
-  environment: "production",
-  platform: "web",
-  distribution: "public-web",
-};
-
-const routes = { web: { kind: "target" } } satisfies RouteDeclarations;
-
-const manifest = http({
-  fetch: async ({ scope, signal, validator }) =>
-    readStandardManifest({
-      response: await fetch("/releases.json", {
-        signal,
-        headers: validator === null ? {} : { "if-none-match": validator },
-      }),
-      scope,
-      routes,
-      now: Date.now(),
-    }),
+const releases = standardManifestSource({
+  url: "/releases.json",
+  routes: { web: { kind: "target" } },
 });
 
 export const beacon = new Beacon({
-  scope,
-  running: {
-    web: webBuild({ id: __BUILD_ID__ }),
+  scope: {
+    application: "com.example.notes",
+    environment: "production",
+    platform: "web",
+    distribution: "public-web",
   },
+  running: { web: webBuild({ id: import.meta.env.VITE_BUILD_ID }) },
   routes: {
     web: targetRoute({
-      source: manifest.select((document) => document.routes.web),
+      source: releases.select((manifest) => manifest.routes.web),
       mechanism: browserReload(),
     }),
   },
+  journal: { storage: browserStorage() },
 });
 
 declare module "@priemskiyyy/beacon-react" {
@@ -110,91 +81,70 @@ declare module "@priemskiyyy/beacon-react" {
 }
 ```
 
-Read it from the top.
+`scope` says which app this is, and a manifest that states another scope is refused whole. `standardManifestSource` fetches the file and judges it. `webBuild` reads which build runs, from the id the bundler wrote into the code and never from the manifest, and a build id nobody injected is unknown, never a build named `undefined`. `browserReload` is the command that replaces the document. `journal` keeps a record in the tab, so the next page load can tell whether the reload reached the new build. `Register` tells the hooks which Beacon you have. Constructing a Beacon starts nothing.
 
-- **`scope`** says who the manifest must speak for. A manifest for another environment is refused whole.
-- **`request`** is your client call. It fetches, sends the validator back as `If-None-Match`, and lets `readStandardManifest` turn the response into a validated document. Beacon makes no request of its own.
-- **The boot id** names this document. It is minted once per page load, never per build, so the journal can tell one boot from the next, and Beacon mints it for you, once for the JavaScript runtime, however many Beacons it makes. Pass `running: { boot: { id } }` only to choose it, as a test does.
-- **`running.web`** reads what executes now, from the build and never from the manifest. `webBuild` names the build under your application as authority and the domain `web-artifact`, which is what the manifest's release says, and a build id the bundler never injected is unknown and never a build named `undefined`.
-- **`targetRoute`** offers the release the manifest names when it is a different, comparable release from the one running.
-- **`Register`** tells the React hooks which Beacon you have, so `useRoute("web")` is checked and typed.
-
-Constructing a Beacon starts nothing.
-
-### 3. Publish it and start the session
-
-```tsx
-// src/main.tsx
-import { BeaconProvider } from "@priemskiyyy/beacon-react";
-import { createRoot } from "react-dom/client";
-
-import { App } from "src/App";
-import { beacon } from "src/beacon";
-
-const container = document.getElementById("root");
-
-if (container === null) {
-  throw new Error("The page has no #root element.");
-}
-
-createRoot(container).render(
-  <BeaconProvider beacon={beacon}>
-    <App />
-  </BeaconProvider>,
-);
-```
-
-The provider opens the observation session while it is mounted, and ends it when it unmounts. That reads the running facts and opens the browser mechanism. It checks nothing and fetches nothing. `start={false}` leaves the session to you.
-
-### 4. Check
-
-A check asks each route's authority. Beacon has no timer of its own, so you decide when. Check when the app starts, then again when the page returns to the foreground.
+## Start it and check
 
 ```tsx
 // src/App.tsx
-import { useBeacon } from "@priemskiyyy/beacon-react";
+import { checkOn } from "@priemskiyyy/beacon/triggers";
+import { foreground, reconnect } from "@priemskiyyy/beacon/triggers/browser";
+import { BeaconProvider } from "@priemskiyyy/beacon-react";
 import { useEffect } from "react";
 
-import { UpdateBanner } from "src/UpdateBanner";
+import { beacon } from "./beacon";
+import { DraftForm } from "./DraftForm";
+import { UpdateBanner } from "./UpdateBanner";
 
 export const App = () => {
-  const beacon = useBeacon();
-
-  useEffect(() => {
-    beacon.check({ reason: "startup" });
-
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        beacon.check({ reason: "foreground" });
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [beacon]);
+  // Checks when the page loads, when its tab is shown again and when the network comes back.
+  useEffect(
+    () => checkOn(beacon, { triggers: [foreground(), reconnect()] }),
+    [],
+  );
 
   return (
-    <main>
+    <BeaconProvider beacon={beacon}>
+      <h1>Notes</h1>
+      <p>Build {import.meta.env.VITE_BUILD_ID}</p>
       <UpdateBanner />
-    </main>
+      <DraftForm />
+    </BeaconProvider>
   );
 };
 ```
 
-The provider starts the session in a layout effect, before the `useEffect` of any child, so the first check finds it running. `check` never rejects. Overlapping checks join one read, so two signals at once cost one request. [Triggers](triggers.md) is the package that makes these moments, with a reconnect and an interval besides, for the web as well as React Native.
+```tsx
+// src/main.tsx
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 
-### 5. Show the update
+import { App } from "./App";
+
+const root = document.getElementById("root");
+
+if (root !== null) {
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
+```
+
+The provider starts the session while it is mounted and ends it when it unmounts, and nothing is fetched before that. `checkOn` installs its triggers only while a session is open, so it checks once when the provider has started one, and the order of the provider and the effect does not matter. It answers its stop, which is what the effect returns. `foreground` also covers a page the browser restores from its back-forward cache, and `main.tsx` only mounts the app.
+
+## Show the update
 
 ```tsx
 // src/UpdateBanner.tsx
 import { useBeacon, useRoute } from "@priemskiyyy/beacon-react";
+import { useState } from "react";
 
 export const UpdateBanner = () => {
   const beacon = useBeacon();
-  const observation = useRoute("web", (snapshot) => snapshot.observation);
+  const { observation } = useRoute("web");
+  const [notice, setNotice] = useState<string | null>(null);
 
   if (observation.status !== "available") {
     return null;
@@ -205,101 +155,106 @@ export const UpdateBanner = () => {
       .route("web")
       .reload({ offer: observation.offer });
 
-    if (outcome.status !== "accepted") {
-      console.warn("The update did not start:", outcome.status);
+    if (outcome.status !== "blocked") {
+      return;
     }
+
+    setNotice("Save your note, then update.");
   };
 
   return (
-    <button onClick={update}>
-      Update to {observation.offer.release.label ?? "the new version"}
-    </button>
+    <div role="status">
+      <p>A new version is ready.</p>
+      {notice !== null && <p>{notice}</p>}
+      <button onClick={update}>Update</button>
+    </div>
   );
 };
 ```
 
-The route `observation` has four states: `unknown`, `none`, `available` and `inconclusive`. Only `available` carries an offer. `reload` takes the offer, and Beacon reads the reference it minted inside it (`offer.ref`, which works too). `reload` needs an offer because the browser reload is declared with `reference: "offer"`.
+The observation is `available` when the manifest names a build other than the one that runs, and `none` when it names the same one. `reload` takes the offer you were shown. An accepted reload is a request: the page is replaced, and only the next boot shows which build runs.
 
-### What happens on the click
+## Guard unsaved input
 
-1. Beacon checks that the offer is still the route's current one and that its evidence still holds.
-2. Every participant registered with `beacon.disruptions` is asked to reserve, then to settle. A participant that guards unsaved work can block the reload here. See [disruptions](disruptions.md).
-3. The browser adapter calls `location.reload()` and the outcome is `accepted` with the receipt `reload-requested`.
+```tsx
+// src/DraftForm.tsx
+import { useDisruption } from "@priemskiyyy/beacon-react";
+import { useState } from "react";
 
-Nothing here says which build the next document runs. The reload binds to no build: the next navigation receives whatever is deployed. After an accepted reload, the old document may stay alive, so the route stays unresolved and refuses another command until you call `beacon.route("web").acknowledge()`. In practice the page is gone by then.
+export const DraftForm = () => {
+  const [text, setText] = useState("");
+  const [saved, setSaved] = useState("");
 
-## React Native and Expo
+  useDisruption({
+    name: "note",
+    reserve: () => {
+      if (text !== saved) {
+        return { status: "blocked", code: "unsaved-note" };
+      }
 
-```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo expo-updates expo-application
-```
-
-Expo Updates decides eligibility, fetches assets and picks what starts next. The adapter maps what it says. The module goes in as an argument, so the adapter imports no SDK.
-
-```ts
-// src/beacon.native.ts
-import { Beacon } from "@priemskiyyy/beacon";
-import { expoApplication, expoUpdates } from "@priemskiyyy/beacon-expo";
-import * as Application from "expo-application";
-import * as Updates from "expo-updates";
-import { Platform } from "react-native";
-
-export const beacon = new Beacon({
-  scope: {
-    application: "com.example.notes",
-    environment: "production",
-    platform: Platform.OS,
-    // Yours to say. The App Store route answers only for "app-store".
-    distribution: "app-store",
-  },
-  running: { native: expoApplication({ application: Application }) },
-  routes: { ota: expoUpdates({ updates: Updates }) },
-});
-```
-
-The route reads the update that launched by itself. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`. `expoApplication` reads the installed binary, its version code on Android or its build number on iOS, under the platform and the application of the scope, in the words the store adapters and the journal compare in, and a binary of another application, such as Expo Go, is unknown and never your build.
-
-Start the session at bootstrap and check when the app starts (`checkOn` does that by itself) and when it returns from the background.
-
-```ts
-// src/updates.ts
-import { checkOn, foreground } from "@priemskiyyy/beacon/triggers";
-import { AppState } from "react-native";
-
-import { beacon } from "src/beacon.native";
-
-export const startUpdates = () => {
-  const stop = beacon.start();
-
-  // Only a trip through the background is a return: on iOS a system dialog is inactive and back to active, and `foreground` knows it.
-  const stopChecking = checkOn(beacon, {
-    triggers: [foreground({ appState: AppState })],
+      return { status: "reserved" };
+    },
   });
 
-  return () => {
-    stopChecking();
-    stop();
-  };
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        setSaved(text);
+      }}
+    >
+      <textarea
+        aria-label="Note"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+      />
+      <button type="submit">Save</button>
+    </form>
+  );
 };
 ```
 
-An update is applied in two commands: `download` prepares it and `reload` restarts the runtime with it. `applyUpdate` of the Expo package runs both, in that order, for the banner's button, and answers where it stopped.
+Beacon asks a participant before a command that would lose what the page holds, and one that names no `impacts` is asked before every such command, the document replacement of this reload included. A blocked reload changes nothing and is safe to try again. The guard answers a question and does not stop typing, so an edit can begin right after it said yes: [disruptions](disruptions.md) has the guard that reserves.
 
-```ts
-import { applyUpdate } from "@priemskiyyy/beacon-expo";
+::: details Nothing happens?
 
-import { beacon } from "src/beacon.native";
+1. The session is open? `useBeaconStatus()` says `running`. The provider starts it unless you gave it `start={false}`.
+2. A check ran and succeeded? `useRoute("web", (route) => route.check)` is `succeeded`, or `failed` with an `error` that has a code and a message.
+3. What does the observation say? `none` with `same-identity` means the manifest names the build that runs, which is the right answer when nothing is deployed. `inconclusive` has a `detail`: `build-id-not-injected` means `VITE_BUILD_ID` was not set where the build ran.
+4. Why did a read fail? `beacon.diagnostics.events.subscribe((event) => console.warn(event.type, event.reason, event.cause))` shows what was thrown.
+5. The inspector, in development: [Devtools](devtools.md) shows all of it, on the web only.
 
-export const update = () => applyUpdate(beacon.route("ota"));
-```
+[Troubleshooting](troubleshooting.md) has each code and reason.
+:::
 
-`download` fetches the provider's current selection, which can differ from the update you were shown. Its receipt says `same`, `different` or `unknown`, and the `reload` step of the answer carries it. `reload` takes the prepared reference and restarts the JavaScript runtime. No code after it is guaranteed to run, and the route stays unresolved until `route.acknowledge()`. [Expo](expo.md#apply-an-update) says what each step of the answer means.
-
-The React hooks work the same way as above. Register the Beacon in the same fashion, and read the route by its name with `useRoute("ota")`. [React Native](react-native.md) is the whole path for a device: the provider, Fast Refresh, what a reload keeps, guarding unsaved input and what no device has run.
+::: warning Do you ship a service worker?
+A worker that precaches the app shell (Workbox, `vite-plugin-pwa` by default) answers the reload from its cache: the page comes back as the old build, the banner returns, and the journal says `target-not-running`. Update through [the service worker route](service-worker.md) instead, and keep `releases.json` out of the precache.
+:::
 
 ## Next
 
-- [The mental model](mental-model.md) explains the vocabulary used above.
+- [Browser](browser.md) has the reload, the running build and the journal's storage, and [HTTP](http.md) the manifest, with a client of your own.
+- [Triggers](triggers.md) adds an interval and a backoff to the checks.
+- [The journal](journal.md) says "Updated." once the new build runs, and [routes](routes.md) a source of your own.
 - Your framework: [React](react.md), [Vue](vue.md), [Solid](solid.md) or [Svelte](svelte.md), with every hook, composable, primitive or utility.
-- [Recipes](recipes.md) has a banner that waits for a saved form, and a forced upgrade.
-- [Testing](testing.md) runs all of this without a browser or a device.
+- [The mental model](mental-model.md), [recipes](recipes.md), [testing](testing.md) and [troubleshooting](troubleshooting.md).
+
+### If your page asks before it leaves
+
+A page with a `beforeunload` prompt can be cancelled by the user after `reload` answered `accepted`, and nothing tells the page's Beacon. The route then waits, and the guard stays closed. Release it from a timer, which runs once the prompt is answered, in a file that `main.tsx` imports once:
+
+```ts
+// src/leaveGuard.ts
+import { beacon } from "./beacon";
+
+// Registered after your own beforeunload guard, so that it sees whether the guard asked for a prompt.
+addEventListener("beforeunload", (event) => {
+  if (!event.defaultPrevented && event.returnValue === "") {
+    return;
+  }
+
+  setTimeout(() => beacon.route("web").acknowledge(), 0);
+});
+```
+
+[Browser](browser.md#a-reload-the-page-cancels) says what it costs and what a real Chromium prompt showed.

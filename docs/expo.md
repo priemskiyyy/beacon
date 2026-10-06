@@ -10,7 +10,7 @@ This page is the adapter. [React Native](react-native.md) is the whole app aroun
 
 ## Before the route
 
-1. Install the SDK with `npx expo install expo-updates`, which picks the version of your SDK, and the packages with `pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo`. To read the installed binary as well, which the store routes and the journal compare against, add `npx expo install expo-application`: `expoApplication` of the same package reads it.
+1. Install the SDKs with `npx expo install expo-updates expo-application`, which picks the versions of your SDK, and the packages with `pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-react @priemskiyyy/beacon-expo`. `expo-application` is for the installed binary, which the store routes, the forced upgrade and the journal compare against: `expoApplication` of the same package reads it.
 2. Configure updates once with `eas update:configure`. It writes `runtimeVersion` and `updates.url` to `app.json`, and sets a channel on the build profiles of `eas.json`. The adapter changes none of these.
 3. Build the binary with that channel, and publish updates to the same channel: `eas update --channel production --message "..."`.
 

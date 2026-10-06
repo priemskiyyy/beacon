@@ -100,6 +100,6 @@ Call the utilities while a component initializes, as you would `getContext`, and
 
 Every selector utility takes `(selector, { isEqual })`: what depends on it runs again only when the selection changes by `isEqual` (`Object.is` by default). The route name, the observable and the selector are read once, when the component initializes; a provider that publishes another Beacon is followed.
 
-## Server rendering
+## Learn more
 
-The server and the hydrating render read every observable as it stood before any session (`getInitial`), so the markup matches whatever the client has learned by then, and a boundary that hydrates late still matches. The live value is read right after mount. The provider starts the session in a pre effect, before its children mount, so a check in a component's `onMount` finds it running. Effects never run on the server, so the provider starts nothing there and reads nothing, and two requests never share a session.
+[The Svelte guide](../../docs/svelte.md) has every utility, server rendering and hydration, and testing. [Getting started](../../docs/getting-started.md) takes a web app from a manifest to a guarded update banner, and [the mental model](../../docs/mental-model.md) names the vocabulary.

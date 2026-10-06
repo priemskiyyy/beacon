@@ -28,7 +28,6 @@ import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
-declare const __BUILD_ID__: string;
 
 export const createBeacon = () =>
   new Beacon({
@@ -39,7 +38,7 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      web: webBuild({ id: __BUILD_ID__ }),
+      web: webBuild({ id: import.meta.env.VITE_BUILD_ID }),
     },
     routes: {
       web: targetRoute({
@@ -110,7 +109,7 @@ The provider owns the session. A pre effect calls `beacon.start()` and returns i
 
 Pass `start={false}` when something else owns the session, such as a service of yours that calls `beacon.start()` itself: the provider then publishes the Beacon and starts and stops nothing. Mount one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
-A pre effect runs before the effects of the children. The session therefore starts before any child's `onMount`, and a check there does not fail with `NOT_STARTED`. Checks are yours:
+A pre effect runs before the effects of the children. The session therefore starts before any child's `onMount`, and a check there does not fail with `NOT_STARTED`. Checks are yours, and [`checkOn`](triggers.md) makes the ones an application usually wants, on a return, a reconnect or a timer, over any binding. A check of your own:
 
 ```svelte
 <!-- src/Checker.svelte -->
@@ -355,7 +354,6 @@ The observable is read once, so it does not follow a provider that publishes ano
 
   useDisruption({
     name: "draft-editor",
-    impacts: ["document-replacement", "javascript-restart"],
     reserve: () => {
       // A write to `$state` is seen at once, so oninput refuses from now on, before Svelte updates the DOM.
       locked = true;

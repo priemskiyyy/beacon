@@ -70,7 +70,7 @@ export const beacon = new Beacon({
 });
 ```
 
-The route is a driver route on the `bundle` subject. It never calls `sync`, `notifyAppReady`, `allowRestart` or `disallowRestart`, and the type it takes lists one install mode, so an immediate install cannot be written. The module belongs to one open session at a time: a second Beacon that opens a route on it fails to open, and that route says `DRIVER_FAILED`. [React Native](react-native.md#what-the-binary-is) says more of the `native` reader and the rest of the app around it.
+The route is a driver route on the `bundle` subject. It never calls `sync`, `notifyAppReady`, `allowRestart` or `disallowRestart`, and the type it takes lists one install mode, so an immediate install cannot be written. The module belongs to one open session at a time: a second Beacon that opens a route on it fails to open, and that route says `DRIVER_FAILED`. [React Native](expo.md#the-installed-binary) says more of the `native` reader and the rest of the app around it.
 
 ### The running bundle
 

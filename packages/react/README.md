@@ -1,6 +1,6 @@
 # @priemskiyyy/beacon-react
 
-React bindings for [Beacon](../core): hooks that read route state and what is running, and a provider that holds the observation session while it is mounted. Reading never starts a session, checks a route or requests a command.
+React bindings for [Beacon](../core), on the web and in React Native: hooks that read route state and what is running, and a provider that holds the observation session while it is mounted. Reading never starts a session, checks a route or requests a command.
 
 ## Installation
 
@@ -93,6 +93,6 @@ const UpdateBanner = () => {
 
 Every selector hook takes `(selector, { isEqual })`: it renders again only when the selection changes by `isEqual` (`Object.is` by default).
 
-## Server rendering
+## Learn more
 
-The server and the hydrating render read every observable as it stood before any session (`getInitial`), so the markup matches whatever the client has learned by then, and a boundary that hydrates late still matches. Let the provider start the Beacon, and not before the hydrating render. The provider starts it when the tree mounts, before any child's `useEffect` runs, so a check in a component's mount effect finds the session running. A child's `useLayoutEffect` runs before the provider's, so it does not. A server render starts nothing and reads nothing, and two requests never share a session.
+[The React guide](../../docs/react.md) has the hooks, selectors, server rendering and hydration, and Strict Mode. [Getting started](../../docs/getting-started.md) takes a web app from a manifest to a guarded update banner, and [the mental model](../../docs/mental-model.md) names the vocabulary.

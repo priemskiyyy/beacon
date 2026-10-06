@@ -28,7 +28,6 @@ import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
-declare const __BUILD_ID__: string;
 
 export const createBeacon = () =>
   new Beacon({
@@ -39,7 +38,7 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      web: webBuild({ id: __BUILD_ID__ }),
+      web: webBuild({ id: import.meta.env.VITE_BUILD_ID }),
     },
     routes: {
       web: targetRoute({
@@ -97,7 +96,7 @@ The provider owns the session. An effect calls `beacon.start()` and returns its 
 
 Pass `start={false}` when something else owns the session, such as a service of yours that calls `beacon.start()` itself: the provider then publishes the Beacon and starts and stops nothing. Mount one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
-The provider creates its effect before any child exists, and Solid runs effects in the order it created them. The session therefore starts before any child's `onMount`, and a check there does not fail with `NOT_STARTED`. Checks are yours:
+The provider creates its effect before any child exists, and Solid runs effects in the order it created them. The session therefore starts before any child's `onMount`, and a check there does not fail with `NOT_STARTED`. Checks are yours, and [`checkOn`](triggers.md) makes the ones an application usually wants, on a return, a reconnect or a timer, over any binding. A check of your own:
 
 ```tsx
 // src/Checker.tsx
@@ -336,7 +335,6 @@ export const DraftEditor = (props: DraftEditorProps) => {
 
   useDisruption({
     name: "draft-editor",
-    impacts: ["document-replacement", "javascript-restart"],
     reserve: () => {
       // A signal changes at once, and so does the DOM it drives.
       setLocked(true);

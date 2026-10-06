@@ -27,38 +27,24 @@ import {
   browserStorage,
   webBuild,
 } from "@priemskiyyy/beacon-browser";
-import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
-import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
+import { standardManifestSource } from "@priemskiyyy/beacon-http";
 
-declare const __BUILD_ID__: string;
-
-const scope = {
-  application: "com.example.notes",
-  environment: "production",
-  platform: "web",
-  distribution: "public-web",
-};
-
-const routes = { web: { kind: "target" } } satisfies RouteDeclarations;
-
-const manifest = http({
-  fetch: async ({ scope, signal }) =>
-    readStandardManifest({
-      response: await fetch("/releases.json", { signal }),
-      scope,
-      routes,
-      now: Date.now(),
-    }),
+const manifest = standardManifestSource({
+  url: "/releases.json",
+  routes: { web: { kind: "target" } },
 });
 
 export const beacon = new Beacon({
-  scope,
-  running: {
-    web: webBuild({ id: __BUILD_ID__ }),
+  scope: {
+    application: "com.example.notes",
+    environment: "production",
+    platform: "web",
+    distribution: "public-web",
   },
+  running: { web: webBuild({ id: import.meta.env.VITE_BUILD_ID }) },
   routes: {
     web: targetRoute({
-      source: manifest.select((document) => document.routes.web),
+      source: manifest.select((release) => release.routes.web),
       mechanism: browserReload(),
     }),
   },
@@ -221,7 +207,7 @@ if (latest?.judgedHere && latest.outcome === "target-running") {
 }
 ```
 
-## Checkpoints
+## Advanced: checkpoints
 
 A target that runs is not the same as a target that works. `beacon.reportReady({ checkpoint })` is the application saying its own code reached a point, such as the primary screen with the data it needs.
 

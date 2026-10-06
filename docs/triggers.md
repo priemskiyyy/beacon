@@ -14,8 +14,8 @@ It is a subpath of the core package, so there is nothing else to install, and an
 
 ## React Native
 
-```tsx
-// src/useUpdateChecks.native.ts
+```ts
+// src/useChecks.native.ts
 import {
   checkOn,
   foreground,
@@ -26,7 +26,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 
-export const useUpdateChecks = () => {
+export const useChecks = () => {
   useEffect(
     () =>
       checkOn(beacon, {
@@ -44,19 +44,19 @@ export const useUpdateChecks = () => {
 
 `checkOn` checks once each time a session opens, with no trigger to list for it, and then on the moments its triggers name. `foreground` alone is the smallest useful set: `checkOn(beacon, { triggers: [foreground({ appState: AppState })] })`.
 
-`checkOn` answers its stop, which is what `useEffect` wants back as a cleanup. Under Strict Mode the effect runs, stops and runs again, and one set of listeners is left. Call the hook below `BeaconProvider`: the session it opens is what installs the triggers, so the order of the two effects does not matter. [React Native](react-native.md#when-to-check) has the wiring of the whole app, and `@react-native-community/netinfo` is yours to install if you use `reconnect`.
+`checkOn` installs its triggers only while a session is open, and takes them back when it ends, so the order of the provider and the effect does not matter, and the hook may sit above the provider or below it. It answers its stop, which is what a `useEffect` wants back as a cleanup: under Strict Mode the effect runs, stops and runs again, and one set of listeners is left. Outside a component, such as a plain module, one call at module level does the same, and is never stopped. [React Native](react-native.md#when-to-check) has the wiring of the whole app, and `@react-native-community/netinfo` is yours to install if you use `reconnect`.
 
 ## On the web
 
 The `@priemskiyyy/beacon/triggers/browser` subpath has the same two triggers over the page's own events, under the same names and with the same reasons, so nothing has to be written by hand:
 
-```tsx
-// src/useUpdateChecks.web.ts
+```ts
+// src/useChecks.web.ts
 import { checkOn, interval } from "@priemskiyyy/beacon/triggers";
 import { foreground, reconnect } from "@priemskiyyy/beacon/triggers/browser";
 import { useEffect } from "react";
 
-export const useUpdateChecks = () => {
+export const useChecks = () => {
   useEffect(
     () =>
       checkOn(beacon, {

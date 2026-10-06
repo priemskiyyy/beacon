@@ -126,6 +126,10 @@ The snapshot has the status, the number of the open session or `null`, and three
 
 Events never replay, and one is built only while someone listens. An event has a `type`, a `timestamp` on the Beacon clock, and the `session`, `route`, `command`, `attempt`, `operation`, `reason` and `cause` that apply, each `null` otherwise. It names things by number and name and a short reason code, never a URL, a manifest, a release note, a credential or a provider payload. The one exception is `cause`, on the events that report a failure: the raw value that was thrown, in the event alone and never in a snapshot or an outcome. A listener that forwards events to telemetry must drop it.
 
+### Advanced: the event types
+
+Twenty-two types name what Beacon did, in seven groups.
+
 | Group     | Types                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |
 | session   | `session-started`, `session-stopped`, `disposed`                                                  |

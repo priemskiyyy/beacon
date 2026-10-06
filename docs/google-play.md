@@ -14,7 +14,7 @@ description: "Open the Google Play page of your app from a Beacon route with no 
 Start with `playStore`. `googlePlay` is for an application that has written a bridge over Play's in-app update library, and [below](#in-app-updates-needs-a-native-bridge-you-write) says what that takes.
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play @priemskiyyy/beacon-expo
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play
 ```
 
 ## Open the store page
@@ -50,7 +50,7 @@ export const beacon = new Beacon({
 | ----------- | ----------------- | ------------------ | ------------------- | ------------------------- |
 | `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-requested` |
 
-`openStore` has the shape the App Store route declares, so an application in both stores names one route and calls one method, whichever it is on ([App Store](app-store.md#one-store-route-for-both-platforms)). The route asks nobody what the store has, so it never offers an update: its check is no offer, detail `no-lookup`, which is not proof that no release exists. Beacon's `usable` flag on a remediation counts an offer or a prepared target only, so a policy that names this route reads it as not usable: open the store from your own button rather than gating it on that flag.
+`openStore` has the shape the App Store route declares, so an application in both stores names one route and calls one method, whichever it is on ([App Store](app-store.md#one-store-route-for-both-platforms)). The route asks nobody what the store has, so it never offers an update: its check is no offer, detail `no-lookup`, which is not proof that no release exists. A remediation that names this route is `usable` as soon as the session is open, since its page needs no offer, and the outcome of `openStore` says when the provider refuses, as it does for a build of another distribution.
 
 ```ts
 import { beacon } from "src/storeBeacon";
@@ -151,7 +151,7 @@ The running native release is read by `expoApplication` of `@priemskiyyy/beacon-
 
 The route is a driver route on the `native` subject. A bridge belongs to one open session at a time: a second Beacon that opens a route on the same bridge fails to open it, and that route says `DRIVER_FAILED`. A hot reload that makes the Beacon again is no second Beacon while the provider follows it: the old session ends first ([React Native](react-native.md#the-provider)).
 
-What runs is the installed build, which the `native` running reader says. `expo-application` gives `nativeBuildVersion`, the version code as text, and [React Native](react-native.md#what-the-binary-is) says what the reader reports and when it says unknown: a binary of another application, such as Expo Go, is never named as your build.
+What runs is the installed build, which the `native` running reader says. `expo-application` gives `nativeBuildVersion`, the version code as text, and [Expo](expo.md#the-installed-binary) says what the reader reports and when it says unknown: a binary of another application, such as Expo Go, is never named as your build.
 
 The bridge is not read until a session opens, and the adapter never enables asset-pack deletion or any other destructive option.
 

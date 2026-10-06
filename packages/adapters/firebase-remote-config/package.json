@@ -1,0 +1,67 @@
+{
+  "name": "@priemskiyyy/beacon-firebase-remote-config",
+  "version": "0.1.0",
+  "description": "Firebase Remote Config as a Beacon release source for React Native and the web: a minimum-build gate read from what the server sent, never from a default or a missing key.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priemskiyyy/beacon.git",
+    "directory": "packages/adapters/firebase-remote-config"
+  },
+  "bugs": {
+    "url": "https://github.com/priemskiyyy/beacon/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint:typescript": "tsc --noEmit -p .",
+    "lint:eslint": "eslint src",
+    "test:unit": "vitest run --root ../../.. --project firebase-remote-config"
+  },
+  "peerDependencies": {
+    "@priemskiyyy/beacon": ">=0.1.0 <0.2",
+    "@react-native-firebase/remote-config": ">=26.0.0 <27",
+    "firebase": ">=12.0.0 <13"
+  },
+  "peerDependenciesMeta": {
+    "@react-native-firebase/remote-config": {
+      "optional": true
+    },
+    "firebase": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@priemskiyyy/beacon": "workspace:*"
+  },
+  "keywords": [
+    "firebase",
+    "remote-config",
+    "force-update",
+    "minimum-version",
+    "react-native",
+    "release",
+    "update",
+    "typescript",
+    "beacon",
+    "adapter"
+  ]
+}

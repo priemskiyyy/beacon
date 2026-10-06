@@ -282,7 +282,7 @@ const devtoolsTimers = [
 const hostGlobals = ["window", "document", "navigator", "self"].map((name) => ({
   name,
   message:
-    "The core is platform neutral; a host is reached only through an adapter.",
+    "Shipped code is platform neutral; a host is reached only through what the application passes in.",
 }));
 
 // React Native's engines and older browsers lack these, so library code
@@ -296,6 +296,68 @@ const portableGlobals = [
   ["TextDecoder", "Decode explicitly; TextDecoder is missing on React Native."],
   ["TextEncoder", "Encode explicitly; TextEncoder is missing on React Native."],
 ].map(([name, message]) => ({ name, message }));
+
+// The packages a React Native app runs: what Hermes and React Native lack or
+// do differently (react-native 0.86 and the Hermes it builds, V1 and classic),
+// which test/hermes/setup.ts removes for the tests too. The compiler's library
+// (ES2022) already refuses what is newer, such as toSorted or Promise.try.
+const reactNativeGlobals = [
+  [
+    "crypto",
+    "React Native has no global crypto: take the boot id or any random value from the application.",
+  ],
+  [
+    "URL",
+    "React Native's URL has a setter for search only, no canParse, and reads only http(s) URLs: build the string.",
+  ],
+  [
+    "URLSearchParams",
+    "React Native's URLSearchParams cuts a value at its second '=': build the string.",
+  ],
+  ["Buffer", "React Native has no Buffer."],
+  [
+    "Intl",
+    "Hermes has Intl.Collator, DateTimeFormat and NumberFormat only, and no Segmenter, PluralRules or ListFormat: format in the application.",
+  ],
+  ["WeakRef", "Hermes classic has no WeakRef."],
+  ["FinalizationRegistry", "Hermes has no FinalizationRegistry."],
+  [
+    "localStorage",
+    "React Native has no localStorage: the application passes its storage in.",
+  ],
+  [
+    "sessionStorage",
+    "React Native has no sessionStorage: the application passes its storage in.",
+  ],
+  ["location", "React Native has no location."],
+].map(([name, message]) => ({ name, message }));
+
+const reactNativeSyntax = toRestrictions([
+  [
+    "ArrowFunctionExpression[async=true] > :matches(AssignmentPattern, ObjectPattern, ArrayPattern, RestElement).params",
+    "Hermes V1 (React Native 0.84 and later) resolves undefined from an async arrow function whose parameter is not a plain name (facebook/hermes#1761), and an Expo or Metro build repairs it only when its Babel preset does: take a plain name and destructure or default in the body.",
+  ],
+  [
+    "MemberExpression[property.name='getReader']",
+    "React Native's own fetch has no response body stream (Expo's has): read response.text() or response.json().",
+  ],
+  [
+    "MemberExpression[object.name='Promise'][property.name=/^(withResolvers|try)$/]",
+    "Hermes classic has neither Promise.withResolvers nor Promise.try: make the promise with its executor.",
+  ],
+  [
+    "MemberExpression[object.name=/^(Object|Map)$/][property.name='groupBy']",
+    "Hermes has no groupBy: group in a loop.",
+  ],
+  [
+    "MemberExpression[property.name=/^(toSorted|fromAsync)$/]",
+    "Hermes has neither Array.prototype.toSorted nor Array.fromAsync: copy and sort, or loop.",
+  ],
+  [
+    "MemberExpression[object.name='Symbol'][property.name=/^(dispose|asyncDispose)$/]",
+    "Hermes has no Symbol.dispose.",
+  ],
+]);
 
 const packageSyntax = [...relativeImports, ...bannedSyntax, ...reexports];
 
@@ -387,8 +449,14 @@ export default tseslint.config(
         ...hostTimers,
         ...hostGlobals,
         ...portableGlobals,
+        ...reactNativeGlobals,
       ],
-      "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
+      "no-restricted-syntax": [
+        "error",
+        ...packageSyntax,
+        ...clockReads,
+        ...reactNativeSyntax,
+      ],
     },
   },
   {
@@ -410,21 +478,56 @@ export default tseslint.config(
     // The system clock is the one owner of the host's timers and time sources.
     files: ["packages/core/src/utils/internal/clock/createSystemClock.ts"],
     rules: {
-      "no-restricted-globals": ["error", ...hostGlobals, ...portableGlobals],
-      "no-restricted-syntax": ["error", ...packageSyntax],
-    },
-  },
-  {
-    files: ["packages/adapters/*/src/**/*.ts"],
-    ignores: [...tests, ...entryPoints],
-    rules: {
-      ...restrictImports([...frameworks, sdks, testRunners]),
-      "no-restricted-globals": ["error", ...hostTimers, ...portableGlobals],
-      "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
+      "no-restricted-globals": [
+        "error",
+        ...hostGlobals,
+        ...portableGlobals,
+        ...reactNativeGlobals,
+      ],
+      "no-restricted-syntax": ["error", ...packageSyntax, ...reactNativeSyntax],
     },
   },
   ...[
-    { framework: react, files: ["packages/react/src/**/*.{ts,tsx}"] },
+    {
+      // The adapters of what a React Native app runs.
+      files: [
+        "packages/adapters/{expo,google-play,app-store,http}/src/**/*.ts",
+      ],
+      globals: [...hostGlobals, ...reactNativeGlobals],
+      syntax: reactNativeSyntax,
+    },
+    {
+      files: ["packages/adapters/{browser,service-worker}/src/**/*.ts"],
+      globals: [],
+      syntax: [],
+    },
+  ].map(({ files, globals, syntax }) => ({
+    files,
+    ignores: [...tests, ...entryPoints],
+    rules: {
+      ...restrictImports([...frameworks, sdks, testRunners]),
+      "no-restricted-globals": [
+        "error",
+        ...hostTimers,
+        ...portableGlobals,
+        ...globals,
+      ],
+      "no-restricted-syntax": [
+        "error",
+        ...packageSyntax,
+        ...clockReads,
+        ...syntax,
+      ],
+    },
+  })),
+  ...[
+    {
+      framework: react,
+      files: ["packages/react/src/**/*.{ts,tsx}"],
+      // The binding a React Native app renders with, so it reaches no browser and no engine library Hermes lacks.
+      globals: [...hostGlobals, ...reactNativeGlobals],
+      syntax: [...packageSyntax, ...reactNativeSyntax],
+    },
     { framework: solid, files: ["packages/solid/src/**/*.{ts,tsx}"] },
     { framework: vue, files: ["packages/vue/src/**/*.{ts,tsx}"] },
     {
@@ -433,7 +536,7 @@ export default tseslint.config(
       // svelte-package rewrites no aliases, so this binding imports by relative path.
       syntax: [...bannedSyntax, ...reexports],
     },
-  ].map(({ framework, files, syntax = packageSyntax }) => ({
+  ].map(({ framework, files, globals = [], syntax = packageSyntax }) => ({
     // A binding reads Beacon's observables, imports only its own framework, and never a provider SDK or the host's timers.
     files,
     ignores: [...tests, ...entryPoints],
@@ -443,7 +546,12 @@ export default tseslint.config(
         sdks,
         testRunners,
       ]),
-      "no-restricted-globals": ["error", ...hostTimers, ...portableGlobals],
+      "no-restricted-globals": [
+        "error",
+        ...hostTimers,
+        ...portableGlobals,
+        ...globals,
+      ],
       "no-restricted-syntax": ["error", ...syntax, ...clockReads],
     },
   })),
@@ -480,11 +588,12 @@ export default tseslint.config(
     rules: { "no-restricted-globals": "off" },
   },
   {
-    // Declaration merging is how an application tells a binding which Beacon it has, and only an interface can be merged.
+    // Declaration merging is how an application tells a binding which Beacon it has, and how a test run tells its tests what a global setup made, and only an interface can be merged.
     files: [
       "packages/*/src/types/Register.ts",
       "packages/*/src/register.fixture.ts",
       "examples/*/src/beacon.ts",
+      "test/hermes/globalSetup.ts",
     ],
     rules: {
       "@typescript-eslint/consistent-type-definitions": "off",

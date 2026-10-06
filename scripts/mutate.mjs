@@ -487,6 +487,38 @@ const MUTANTS = [
     project: "expo",
     describes: "two Beacons sharing one Expo module",
   },
+  // What Hermes lacks or reads differently: the projects that run a package in
+  // the environment of a React Native app must notice where the plain ones do not.
+  {
+    file: `${core}/internal/clock/createSystemClock.ts`,
+    find: "now: () => Date.now(),",
+    replace: "now: () => (crypto.randomUUID().length > 0 ? Date.now() : 0),",
+    project: "core-hermes",
+    describes: "a clock that needs Web Crypto, which Hermes does not have",
+  },
+  {
+    file: "packages/adapters/app-store/src/utils/readReleaseDate.ts",
+    find: "const SECONDS_LENGTH = 19;",
+    replace: "const SECONDS_LENGTH = 10;",
+    project: "app-store-hermes",
+    describes:
+      "a release date whose time of day Hermes rolled over, such as minute 60, taken for one that exists",
+  },
+  {
+    file: `${http}/utils/readTimestamp.ts`,
+    find: "const SECONDS_LENGTH = 19;",
+    replace: "const SECONDS_LENGTH = 10;",
+    project: "http-hermes",
+    describes:
+      "a manifest time whose time of day Hermes rolled over, such as minute 60, taken for one that exists",
+  },
+  {
+    file: "packages/react/src/context/BeaconProvider.tsx",
+    find: "    if (!start) {",
+    replace: "    document.title;\n\n    if (!start) {",
+    project: "react-native",
+    describes: "a provider that reads the document, which React Native lacks",
+  },
 ];
 
 const run = (project) => {

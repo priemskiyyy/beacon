@@ -90,6 +90,23 @@ const syntax = [
     "declare const signal: { reason: string }; const reason = signal.reason;",
     "no-restricted-syntax",
   ],
+  // Hermes V1 resolves undefined from an async arrow function whose parameter is not a plain name.
+  [
+    "export const run = async ({ scope }: { scope: string }) => scope;",
+    "no-restricted-syntax",
+  ],
+  [
+    "export const run = async (options: object = {}) => options;",
+    "no-restricted-syntax",
+  ],
+  [
+    "export const run = async ([first]: string[]) => first;",
+    "no-restricted-syntax",
+  ],
+  [
+    "export const run = async (...rest: string[]) => rest;",
+    "no-restricted-syntax",
+  ],
   [
     "declare const source: { removeAllListeners: () => void }; source.removeAllListeners();",
     "no-restricted-syntax",
@@ -214,6 +231,74 @@ const boundaries = [
   ["const copy = structuredClone({});", "no-restricted-globals", CORE],
   ["const decoder = new TextDecoder();", "no-restricted-globals", ADAPTER],
   ["const encoder = new TextEncoder();", "no-restricted-globals", CORE],
+  // What Hermes and React Native lack, in every package a React Native app runs.
+  ["const id = crypto.randomUUID();", "no-restricted-globals", CORE],
+  ["const id = crypto.randomUUID();", "no-restricted-globals", ADAPTER],
+  ["const id = crypto.randomUUID();", "no-restricted-globals", NATIVE_ADAPTER],
+  ["const id = crypto.randomUUID();", "no-restricted-globals", REACT],
+  ["const id = crypto.randomUUID();", "no-restricted-globals", CLOCK],
+  [
+    'const url = new URL("https://example.com");',
+    "no-restricted-globals",
+    CORE,
+  ],
+  [
+    'const url = new URL("https://example.com");',
+    "no-restricted-globals",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'const query = new URLSearchParams("a=b");',
+    "no-restricted-globals",
+    ADAPTER,
+  ],
+  ["const bytes = Buffer.from([]);", "no-restricted-globals", CORE],
+  ["const format = new Intl.DateTimeFormat();", "no-restricted-globals", CORE],
+  [
+    "const reference = new WeakRef({});",
+    "no-restricted-globals",
+    NATIVE_ADAPTER,
+  ],
+  ["const store = localStorage;", "no-restricted-globals", ADAPTER],
+  ["const page = location;", "no-restricted-globals", NATIVE_ADAPTER],
+  ["const view = window;", "no-restricted-globals", NATIVE_ADAPTER],
+  ["const page = document;", "no-restricted-globals", REACT],
+  [
+    "const gate = Promise.withResolvers();",
+    "no-restricted-syntax",
+    NATIVE_ADAPTER,
+  ],
+  ["const gate = Promise.try(() => 1);", "no-restricted-syntax", CORE],
+  [
+    "const groups = Object.groupBy([1], (n) => n);",
+    "no-restricted-syntax",
+    REACT,
+  ],
+  [
+    "declare const values: number[]; const sorted = values.toSorted();",
+    "no-restricted-syntax",
+    ADAPTER,
+  ],
+  [
+    "const scope = { [Symbol.dispose]: () => {} };\nconst end = Symbol.dispose;",
+    "no-restricted-syntax",
+    CORE,
+  ],
+  [
+    "declare const response: { body: { getReader: () => void } }; response.body.getReader();",
+    "no-restricted-syntax",
+    ADAPTER,
+  ],
+  [
+    "export const run = async ({ scope }: { scope: string }) => scope;",
+    "no-restricted-syntax",
+    NATIVE_ADAPTER,
+  ],
+  [
+    "export const run = async ({ scope }: { scope: string }) => scope;",
+    "no-restricted-syntax",
+    REACT,
+  ],
   ["const time = Date.now();", "no-restricted-syntax", CORE],
   ["const time = new Date();", "no-restricted-syntax", CORE],
   ["const time = Date();", "no-restricted-syntax", CORE],
@@ -329,6 +414,24 @@ const allowed = [
     "packages/adapters/http/src/fakeFetch.fixture.ts",
   ],
   ["export const view = globalThis.window;", ADAPTER],
+  // The browser adapters run where a document is, so what Hermes lacks is theirs to use.
+  [
+    'export const href = new URL("https://example.com").href + localStorage.length;',
+    "packages/adapters/browser/src/lint-probe.ts",
+  ],
+  [
+    "export const id = crypto.randomUUID();",
+    "packages/adapters/service-worker/src/lint-probe.ts",
+  ],
+  // A plain name is enough: the body does the destructuring, and a function or a sync arrow may take a pattern.
+  [
+    "export const run = async (context: { scope: string }) => {\n  const { scope } = context;\n\n  return scope;\n};",
+    NATIVE_ADAPTER,
+  ],
+  [
+    "export const pick = ({ scope }: { scope: string }) => scope;\n\nexport async function read({ scope }: { scope: string }) {\n  return scope;\n}",
+    CORE,
+  ],
   [
     'import { createSignal } from "solid-js";\n\nexport const signal = createSignal;',
     DEVTOOLS,

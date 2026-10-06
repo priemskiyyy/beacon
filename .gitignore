@@ -22,3 +22,5 @@ tasks/
 # svelte-package writes its work here
 .svelte-kit/
 
+# expo writes its export log here
+.expo/

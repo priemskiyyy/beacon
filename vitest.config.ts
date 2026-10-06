@@ -19,7 +19,12 @@ const FRAMEWORKS = ["solid", "vue", "svelte", "devtools"];
 
 const PROJECT_OPTIONS: Record<string, Partial<ProjectOptions>> = {
   // A binding must render against the same React instance as the renderer under test.
-  react: { environment: "jsdom", dedupe: ["react", "react-dom"] },
+  react: {
+    environment: "jsdom",
+    dedupe: ["react", "react-dom"],
+    // Those run without a DOM, as the `react-native` project below.
+    exclude: ["**/*.native.test.tsx"],
+  },
   "example-react": { environment: "jsdom", dedupe: ["react", "react-dom"] },
 };
 
@@ -48,6 +53,37 @@ const project = (directory: string, folder: string) => {
     },
   } satisfies TestProjectConfiguration;
 };
+
+// The shipped packages that also run under the JavaScript environment of a
+// React Native app (test/hermes/setup.ts removes what Hermes lacks), each as a
+// project named `<folder>-hermes`. Adding a package here is all it takes.
+const HERMES: Array<[string, string]> = [
+  ["packages", "core"],
+  ["packages/adapters", "http"],
+  ["packages/adapters", "expo"],
+  ["packages/adapters", "google-play"],
+  ["packages/adapters", "app-store"],
+];
+
+const hermesProject = (directory: string, folder: string) =>
+  ({
+    extends: true,
+    resolve: {
+      alias: {
+        src: fileURLToPath(
+          new URL(`./${directory}/${folder}/src`, import.meta.url),
+        ),
+      },
+    },
+    test: {
+      name: `${folder}-hermes`,
+      include: [`${directory}/${folder}/src/**/*.test.{ts,tsx}`],
+      exclude: [...configDefaults.exclude],
+      environment: "node",
+      globalSetup: ["test/hermes/globalSetup.ts"],
+      setupFiles: ["test/hermes/setup.ts"],
+    },
+  }) satisfies TestProjectConfiguration;
 
 // Every package is an ordinary project named after its folder, so a new one is
 // tested without being listed here.
@@ -194,6 +230,32 @@ const devtoolsProject = {
   },
 } satisfies TestProjectConfiguration;
 
+// The binding rendered by a renderer that has no DOM, in the environment of a
+// React Native app: what a host that is not react-dom sees.
+const reactNativeProject = {
+  extends: true,
+  resolve: { alias: aliasOf("react"), dedupe: ["react"] },
+  test: {
+    name: "react-native",
+    include: ["packages/react/src/**/*.native.test.tsx"],
+    environment: "node",
+    globalSetup: ["test/hermes/globalSetup.ts"],
+    setupFiles: ["test/hermes/setup.ts"],
+  },
+} satisfies TestProjectConfiguration;
+
+// The setup file that removes what Hermes lacks is itself tested under it.
+const hermesHarnessProject = {
+  extends: true,
+  test: {
+    name: "hermes-harness",
+    include: ["test/hermes/**/*.test.ts"],
+    environment: "node",
+    globalSetup: ["test/hermes/globalSetup.ts"],
+    setupFiles: ["test/hermes/setup.ts"],
+  },
+} satisfies TestProjectConfiguration;
+
 export default defineConfig({
   test: {
     globals: false,
@@ -214,6 +276,9 @@ export default defineConfig({
       ...discover("packages"),
       ...discover("packages/adapters"),
       ...discover("examples"),
+      ...HERMES.map(([directory, folder]) => hermesProject(directory, folder)),
+      hermesHarnessProject,
+      reactNativeProject,
       devtoolsProject,
       ...frameworkProjects,
     ],

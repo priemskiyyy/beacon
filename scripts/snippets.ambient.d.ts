@@ -58,7 +58,7 @@ declare global {
     { status: "available" }
   >;
   const session: { userId: string };
-  const NativeModules: { PlayUpdates: PlayBridge };
+  const playBridge: PlayBridge;
   const UpdateBanner: () => null;
   const isDirty: () => boolean;
   const resume: () => void;

@@ -18,3 +18,6 @@ playwright-report/
 
 # The local decision log, plan and notes, not published
 tasks/
+
+# svelte-package writes its work here
+.svelte-kit/

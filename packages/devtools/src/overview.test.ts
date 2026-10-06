@@ -1,11 +1,11 @@
 import { Beacon } from "@priemskiyyy/beacon";
 import { fireEvent, within } from "@testing-library/dom";
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import { afterEach, expect, test } from "vitest";
 
 import { SCOPE, buildDocument, createLabBeacon } from "src/beacon.fixture";
 import { formatDateTime } from "src/formatting/formatDateTime";
-import { mountDevtools, settle } from "src/mountDevtools.fixture";
+import { mountDevtools } from "src/mountDevtools.fixture";
 
 afterEach(() => {
   document.body.replaceChildren();

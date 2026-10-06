@@ -1,11 +1,12 @@
 import { BeaconError } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { fireEvent, within } from "@testing-library/dom";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { createLabBeacon } from "src/beacon.fixture";
 import { BeaconDevtools } from "src/BeaconDevtools";
 import { createEmittingBeacon } from "src/emittingBeacon.fixture";
-import { mountDevtools, settle } from "src/mountDevtools.fixture";
+import { mountDevtools } from "src/mountDevtools.fixture";
 import { spyOnBeacon } from "src/spyOnBeacon.fixture";
 import { PREFERENCES_KEY } from "src/utils/constants/defaults";
 

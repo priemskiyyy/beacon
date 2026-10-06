@@ -1,8 +1,9 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { fireEvent, within } from "@testing-library/dom";
 import { afterEach, expect, test } from "vitest";
 
 import { SECRETS, buildDocument, createLabBeacon } from "src/beacon.fixture";
-import { mountDevtools, settle } from "src/mountDevtools.fixture";
+import { mountDevtools } from "src/mountDevtools.fixture";
 import { spyOnBeacon } from "src/spyOnBeacon.fixture";
 import { stubClipboard } from "src/stubClipboard.fixture";
 import { PREFERENCES_KEY } from "src/utils/constants/defaults";

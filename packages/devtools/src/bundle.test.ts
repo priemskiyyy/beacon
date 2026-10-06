@@ -3,12 +3,12 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { BeaconError } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { fireEvent } from "@testing-library/dom";
 import { afterEach, expect, test } from "vitest";
 
 import { createLabBeacon } from "src/beacon.fixture";
 import type * as sources from "src/index";
-import { settle } from "src/mountDevtools.fixture";
 
 afterEach(() => {
   document.body.replaceChildren();

@@ -1,8 +1,9 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { fireEvent, within } from "@testing-library/dom";
 import { afterEach, expect, test } from "vitest";
 
 import { createLabBeacon, quietDocument } from "src/beacon.fixture";
-import { mountDevtools, settle } from "src/mountDevtools.fixture";
+import { mountDevtools } from "src/mountDevtools.fixture";
 
 afterEach(() => {
   document.body.replaceChildren();

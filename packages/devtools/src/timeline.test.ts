@@ -1,10 +1,11 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { fireEvent, within } from "@testing-library/dom";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { createLabBeacon } from "src/beacon.fixture";
 import { createEmittingBeacon } from "src/emittingBeacon.fixture";
 import { formatEventTime } from "src/formatting/formatEventTime";
-import { mountDevtools, settle } from "src/mountDevtools.fixture";
+import { mountDevtools } from "src/mountDevtools.fixture";
 import { stubClipboard } from "src/stubClipboard.fixture";
 
 afterEach(() => {

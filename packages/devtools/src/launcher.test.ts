@@ -1,10 +1,11 @@
 import type { BeaconDiagnosticEventType } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { fireEvent } from "@testing-library/dom";
 import { afterEach, expect, test } from "vitest";
 
 import { createLabBeacon } from "src/beacon.fixture";
 import { createEmittingBeacon } from "src/emittingBeacon.fixture";
-import { mountDevtools, settle } from "src/mountDevtools.fixture";
+import { mountDevtools } from "src/mountDevtools.fixture";
 import { EVENT_FAILURES } from "src/utils/constants/events";
 
 afterEach(() => {

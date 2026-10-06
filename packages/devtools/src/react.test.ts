@@ -1,4 +1,5 @@
 import { BeaconError } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { BeaconProvider } from "@priemskiyyy/beacon-react";
 import { fireEvent, within } from "@testing-library/dom";
 import { cleanup, render } from "@testing-library/react";
@@ -7,7 +8,6 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { createLabBeacon } from "src/beacon.fixture";
 import type { LabBeacon } from "src/beacon.fixture";
-import { settle } from "src/mountDevtools.fixture";
 import { BeaconDevtools } from "src/react";
 import { spyOnBeacon } from "src/spyOnBeacon.fixture";
 import type { BeaconDevtoolsProps } from "src/types/BeaconDevtoolsProps";

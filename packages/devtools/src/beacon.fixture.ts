@@ -8,7 +8,6 @@ import {
 } from "@priemskiyyy/beacon";
 import type {
   CandidateDecision,
-  JournalStorage,
   NoneDecision,
   ProviderResult,
   ReleaseIdentity,
@@ -19,7 +18,11 @@ import type {
   SupportVerdict,
   TargetDecision,
 } from "@priemskiyyy/beacon";
-import { createMockSource, createTestClock } from "@priemskiyyy/beacon/mock";
+import {
+  createMockJournalStorage,
+  createMockSource,
+  createTestClock,
+} from "@priemskiyyy/beacon/mock";
 import { integer } from "@priemskiyyy/beacon/versions";
 
 export const SCOPE: ReleaseScope = {
@@ -137,23 +140,6 @@ const webRelease: RunningRelease = {
   raw: { revision: "abc", cookie: SECRETS.cookie },
 };
 
-// A journal that keeps what it is given in memory.
-const createMemoryStorage = () => {
-  const data = new Map<string, string>();
-
-  const storage: JournalStorage = {
-    read: async (key) => data.get(key) ?? null,
-    write: async (key, value) => {
-      data.set(key, value);
-    },
-    remove: async (key) => {
-      data.delete(key);
-    },
-  };
-
-  return { storage, data };
-};
-
 const OTA_BODY: RouteBody = {
   release: {
     identity: {
@@ -174,7 +160,7 @@ export const createLabBeacon = ({
 }: { journal?: boolean } = {}) => {
   const mock = createMockSource<LabManifest>({ name: "manifest" });
   const clock = createTestClock({ now: 1_700_000_000_000 });
-  const memory = createMemoryStorage();
+  const storage = createMockJournalStorage();
   const commands = { reloads: 0, prefetches: 0, downloads: 0 };
   const held: HeldReload[] = [];
 
@@ -289,9 +275,7 @@ export const createLabBeacon = ({
       source: mock.source.select((manifest) => manifest.support),
       evaluate: evaluateSupport,
     }),
-    ...(journal
-      ? { journal: { mode: "best-effort", storage: memory.storage } }
-      : {}),
+    ...(journal ? { journal: { mode: "best-effort", storage } } : {}),
     clock,
   });
 
@@ -300,7 +284,7 @@ export const createLabBeacon = ({
     clock,
     mock,
     commands,
-    journal: memory.data,
+    journal: storage.records,
     /** Settles the oldest held reload the provider was asked for. */
     settleReload: (result: ProviderResult<Receipt>) =>
       held.shift()?.settle(result),

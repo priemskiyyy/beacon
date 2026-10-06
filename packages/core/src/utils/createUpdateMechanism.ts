@@ -5,7 +5,9 @@ import type { UpdateMechanism } from "src/types/UpdateMechanism";
 /**
  * Declares a mechanism so that its native type and its commands are inferred
  * together: a command's `run` receives the native handle and the reference it
- * declared, typed, without an annotation.
+ * declared, typed, without an annotation. Annotate what `run` returns with its
+ * receipt (`Promise<ProviderResult<ReloadReceipt>>`), or the receipt's `kind`
+ * widens to `string`.
  *
  * @example
  * ```ts

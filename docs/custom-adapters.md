@@ -79,7 +79,7 @@ A command declares four things, before it can be called:
 
 `run` answers a `ProviderResult`: `accepted` with a receipt that names what was accepted, `stale`, `unsupported` with a reason, `cancelled` with a stage, `failed` with an error, or `indeterminate`. A `run` that throws is a `failed` with `COMMAND_FAILED`, and one that may have taken effect says `indeterminate`. The receipt is never a bare "updated".
 
-The types derive the route's method from the declaration. A route made with this mechanism has `route.relaunch({ offer })`, and its receipt type is `RelaunchReceipt`. A command whose `run` promised an offer cannot be called without one.
+The types derive the route's method from the declaration. A route made with this mechanism has `route.relaunch({ offer })`, and its receipt type is `RelaunchReceipt`. A command whose `run` promised an offer cannot be called without one. Annotate what `run` returns, as above: without `Promise<ProviderResult<RelaunchReceipt>>` TypeScript widens the receipt's `kind` to `string`, and the caller can no longer tell receipts apart.
 
 ### Names that are taken
 

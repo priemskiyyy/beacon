@@ -114,6 +114,13 @@ test("a check after dispose fails as disposed", async () => {
   });
 });
 
+test("routeNames lists the routes as they were defined, and cannot be edited", () => {
+  const { beacon } = createWebBeacon();
+
+  expect(beacon.routeNames).toEqual(["web"]);
+  expect(Object.isFrozen(beacon.routeNames)).toBe(true);
+});
+
 test("BIND-01 a route name that was never defined throws for untyped callers", () => {
   const { beacon } = createWebBeacon();
 

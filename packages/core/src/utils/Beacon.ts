@@ -31,6 +31,7 @@ import { DisruptionRegistry } from "src/utils/internal/disruptions/DisruptionReg
 import { createSystemClock } from "src/utils/internal/clock/createSystemClock";
 import { Diagnostics } from "src/utils/internal/diagnostics/Diagnostics";
 import { untilAborted } from "src/utils/internal/common/untilAborted";
+import { freezeList } from "src/utils/internal/common/freezeList";
 import { isSameData } from "src/utils/internal/common/isSameData";
 import { createDisposedError } from "src/utils/internal/errors/createDisposedError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
@@ -96,6 +97,17 @@ export class Beacon<
    * ```
    */
   status: ObservableValue<BeaconStatus>;
+
+  /**
+   * The names of the routes, as they were defined, for a presentation that
+   * lists them. The list is frozen.
+   *
+   * @example
+   * ```ts
+   * const names = beacon.routeNames;
+   * ```
+   */
+  routeNames: Array<keyof TRoutes & string>;
 
   /**
    * What is executing right now, per subject, as far as the local readers
@@ -272,6 +284,7 @@ export class Beacon<
     });
 
     this.#names = Object.keys(routes);
+    this.routeNames = freezeList([...this.#names]);
     this.#entries = this.#routes.getEntries();
     this.#handles = mapHandles<TRoutes>(this.#entries, (entry) =>
       this.#createHandle(entry),

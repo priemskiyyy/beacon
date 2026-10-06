@@ -109,9 +109,9 @@ export const testRunningReader = ({
       expect(reads()).toBe(0);
     });
 
-    test("reading it asks its host, so the count that proves it cold is wired", async ({
-      skip,
-    }) => {
+    test("reading it asks its host, so the count that proves it cold is wired", async (context) => {
+      const { skip } = context;
+
       const { reader, reads } = create();
 
       if (reads === undefined) {

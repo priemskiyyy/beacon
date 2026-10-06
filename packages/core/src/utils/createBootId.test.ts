@@ -1,3 +1,5 @@
+import { webcrypto } from "node:crypto";
+
 import { afterEach, expect, test, vi } from "vitest";
 
 import { createBootId } from "src/utils/createBootId";
@@ -7,7 +9,8 @@ const VERSION_4 =
 
 const COUNT = 2_000;
 
-const host = globalThis.crypto;
+// The host's own source, kept apart from the global a Hermes-like run removes.
+const host = webcrypto;
 
 afterEach(() => {
   vi.unstubAllGlobals();

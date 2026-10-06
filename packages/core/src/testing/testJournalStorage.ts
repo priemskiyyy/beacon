@@ -161,9 +161,9 @@ export const testJournalStorage = ({
       }
     });
 
-    test("what was written is still there for a storage opened again over the backend", async ({
-      skip,
-    }) => {
+    test("what was written is still there for a storage opened again over the backend", async (context) => {
+      const { skip } = context;
+
       const { storage, reopen } = await create();
 
       if (reopen === undefined) {
@@ -181,9 +181,9 @@ export const testJournalStorage = ({
       await expect(reopened.read(key)).resolves.toBe("kept across a restart");
     });
 
-    test("what was removed is still gone for a storage opened again over the backend", async ({
-      skip,
-    }) => {
+    test("what was removed is still gone for a storage opened again over the backend", async (context) => {
+      const { skip } = context;
+
       const { storage, reopen } = await create();
 
       if (reopen === undefined) {

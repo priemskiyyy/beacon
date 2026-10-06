@@ -51,8 +51,7 @@ export const parseStandardManifest = <TDeclarations extends RouteDeclarations>({
 }: ParseStandardManifestOptions<TDeclarations>): StandardRead<TDeclarations> => {
   const bounds = { ...DEFAULT_LIMITS, ...limits };
 
-  // A text of more characters than the limit has more bytes, so it is not measured.
-  if (text.length > bounds.bytes || measureBytes(text) > bounds.bytes) {
+  if (measureBytes(text) > bounds.bytes) {
     throw invalidManifest(`The manifest is larger than ${bounds.bytes} bytes.`);
   }
 

@@ -9,6 +9,9 @@ test.each([
   ["€", 3],
   ["😀", 4],
   ["a€😀", 8],
+  // TextEncoder writes a lone surrogate as the replacement character.
+  ["\ud800", 3],
+  ["a\udc00b", 5],
 ])("%j is %i bytes of UTF-8", (text, bytes) => {
   expect(measureBytes(text)).toBe(bytes);
   expect(new TextEncoder().encode(text).byteLength).toBe(bytes);

@@ -1,7 +1,10 @@
 import { invalidManifest } from "src/utils/invalidManifest";
 
 // A calendar date and a time of day in UTC, with the fraction of a second optional.
-const TIMESTAMP = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d{1,3})?Z$/;
+const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+
+// The length of `2026-09-27T10:00:00`, the part of a timestamp the engine may roll over.
+const SECONDS_LENGTH = 19;
 
 /**
  * Epoch milliseconds of a UTC timestamp such as `2026-09-27T10:00:00Z`. The
@@ -13,13 +16,13 @@ export const readTimestamp = (value: unknown, field: string): number => {
     throw invalidManifest(`${field} must be a timestamp.`);
   }
 
-  const match = TIMESTAMP.exec(value);
   const milliseconds = Date.parse(value);
 
   if (
-    match === null ||
+    !TIMESTAMP.test(value) ||
     Number.isNaN(milliseconds) ||
-    !new Date(milliseconds).toISOString().startsWith(match[1] ?? "")
+    new Date(milliseconds).toISOString().slice(0, SECONDS_LENGTH) !==
+      value.slice(0, SECONDS_LENGTH)
   ) {
     throw invalidManifest(
       `${field} must be a UTC timestamp such as 2026-09-27T10:00:00Z.`,

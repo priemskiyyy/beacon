@@ -14,7 +14,7 @@ description: "Open the Google Play page of your app from a Beacon route with no 
 Start with `playStore`. `googlePlay` is for an application that has written a bridge over Play's in-app update library, and [below](#in-app-updates-needs-a-native-bridge-you-write) says what that takes.
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play @priemskiyyy/beacon-native
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play @priemskiyyy/beacon-expo
 ```
 
 ## Open the store page

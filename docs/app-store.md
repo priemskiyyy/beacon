@@ -7,10 +7,10 @@ description: "Read App Store metadata as an advisory marketing-release source, o
 `@priemskiyyy/beacon-app-store` offers two separate capabilities: an advisory source of marketing releases, and a mechanism that opens the store page. `appStore` joins them into one route. Neither installs anything. A marketing version is never presented as the exact native build a device will receive.
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-app-store @priemskiyyy/beacon-native
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-app-store @priemskiyyy/beacon-expo
 ```
 
-`@priemskiyyy/beacon-native` reads the installed binary, which the route compares the store's version with.
+`expoApplication` of `@priemskiyyy/beacon-expo` reads the installed binary, which the route compares the store's version with. An app without Expo reads it with `deviceInfo` of `@priemskiyyy/beacon-device-info` instead.
 
 ## Create a route
 

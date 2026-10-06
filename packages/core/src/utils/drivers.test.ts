@@ -275,3 +275,29 @@ test("LIFE-02 a listener that starts again and is then disposed leaves no sessio
   expect(context.counts.opens).toBe(2);
   expect(context.counts.disposals).toBe(2);
 });
+
+test("LIFE-04 a driver that throws while it reconciles fails its route and leaves start and the others alone", async () => {
+  const broken = createFakeDriver({
+    throwOnReconcile: new Error("cannot read local state"),
+  });
+
+  const healthy = createFakeDriver();
+
+  const { beacon } = createRoutedBeacon({
+    broken: broken.route,
+    healthy: healthy.route,
+  });
+
+  const events: string[] = [];
+
+  beacon.diagnostics.events.subscribe((event) => {
+    events.push(`${event.type}:${event.route}:${event.reason}`);
+  });
+
+  expect(() => beacon.start()).not.toThrow();
+  await settle();
+
+  expect(events).toContain("route-failed:broken:DRIVER_FAILED");
+  expect(healthy.counts.opens).toBe(1);
+  expect(beacon.route("healthy").native.get()).not.toBeNull();
+});

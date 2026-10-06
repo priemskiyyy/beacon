@@ -28,6 +28,8 @@ type Script = {
   failOpen: Error | null;
   /** What `open` reports at once, before it returns, as a provider whose callbacks are synchronous does. */
   emitOnOpen: ObservationDraft<RouteBody> | null;
+  /** Makes the first reconcile throw before it returns, as a provider that cannot read its local state does. */
+  throwOnReconcile: Error | null;
 };
 
 // A provider driver whose session, emitter and commands a test controls.
@@ -79,6 +81,14 @@ export const createFakeDriver = (
       return {
         native,
         check: async () => ({ status: "available", offer: BODY }),
+        ...(script.throwOnReconcile === undefined ||
+        script.throwOnReconcile === null
+          ? {}
+          : {
+              reconcile: () => {
+                throw script.throwOnReconcile;
+              },
+            }),
         dispose: () => {
           counts.disposals += 1;
         },

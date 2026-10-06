@@ -515,13 +515,14 @@ export class RouteRegistry {
     opened: DriverSession<object, RouteBody>,
     signal: AbortSignal,
   ) {
-    if (opened.reconcile === undefined) {
+    const { reconcile } = opened;
+
+    if (reconcile === undefined) {
       return;
     }
 
-    const reconciled = opened.reconcile({ signal });
-
-    new Promise<void>((resolve) => resolve(reconciled)).catch(() => {
+    // The executor runs at once, so a provider that reports while it reconciles is heard, and one that throws is contained like one that rejects.
+    new Promise<void>((resolve) => resolve(reconcile({ signal }))).catch(() => {
       this.#options.record("route-failed", {
         route: entry.name,
         reason: "DRIVER_FAILED",

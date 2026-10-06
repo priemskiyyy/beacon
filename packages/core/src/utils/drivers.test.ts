@@ -175,3 +175,58 @@ test("a provider's session is disposed once, and only the resources it made are 
   expect(context.counts).toEqual({ opens: 2, disposals: 2 });
   expect(context.native.label).toBe("fake provider");
 });
+
+test("LIFE-11 a second Beacon cannot open a route on a manager the first holds, and says so", async () => {
+  const manager = {};
+  const first = createDriverBeacon({}, manager);
+  const second = createDriverBeacon({}, manager);
+  const events: string[] = [];
+
+  second.beacon.diagnostics.events.subscribe((event) => {
+    events.push(`${event.type}:${event.route}:${event.reason}`);
+  });
+
+  first.beacon.start();
+  second.beacon.start();
+
+  expect(first.counts.opens).toBe(1);
+  expect(second.counts.opens).toBe(0);
+  expect(second.ota.native.get()).toBeNull();
+  expect(events).toContain("route-failed:ota:DRIVER_FAILED");
+  await expect(second.ota.check()).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "DRIVER_FAILED" },
+  });
+});
+
+test("LIFE-11 the manager is free again once the holder stops, and a driver that fails to open frees it", async () => {
+  const manager = {};
+  const first = createDriverBeacon({}, manager);
+
+  const failing = createDriverBeacon(
+    { failOpen: new Error("no module") },
+    manager,
+  );
+
+  const second = createDriverBeacon({}, manager);
+
+  const stop = first.beacon.start();
+
+  stop();
+  failing.beacon.start();
+  failing.beacon.stop();
+  second.beacon.start();
+
+  expect(second.counts.opens).toBe(1);
+  expect(second.ota.native.get()).not.toBeNull();
+});
+
+test("LIFE-11 a driver without an exclusive manager is opened by any number of Beacons", () => {
+  const first = createDriverBeacon();
+  const second = createDriverBeacon();
+
+  first.beacon.start();
+  second.beacon.start();
+
+  expect(first.counts.opens + second.counts.opens).toBe(2);
+});

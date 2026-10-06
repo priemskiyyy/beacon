@@ -26,6 +26,7 @@ import { FeedRecord } from "src/utils/internal/feeds/FeedRecord";
 import { commitChange } from "src/utils/internal/observable/commitChange";
 import type { Transaction } from "src/utils/internal/observable/Transaction";
 import { SharedRead } from "src/utils/internal/reads/SharedRead";
+import { claimExclusive } from "src/utils/internal/routes/claimExclusive";
 import { ReferenceLedger } from "src/utils/internal/routes/ReferenceLedger";
 import { PolicyRecord } from "src/utils/internal/policy/PolicyRecord";
 import { RouteRecord } from "src/utils/internal/routes/RouteRecord";
@@ -429,11 +430,18 @@ export class RouteRegistry {
       return;
     }
 
+    const release = this.#claimManager(entry, driver);
+
+    if (release === null) {
+      return;
+    }
+
     let opened: DriverSession<object, RouteBody>;
 
     try {
       opened = driver.open(this.#createDriverContext(entry, driver, session));
     } catch {
+      release();
       this.#options.record("route-failed", {
         route: entry.name,
         reason: "DRIVER_FAILED",
@@ -457,9 +465,28 @@ export class RouteRegistry {
         entry.record.installNative(transaction, null),
       );
       opened.dispose?.();
+      release();
     });
 
     this.#reconcile(entry, opened, controller.signal);
+  }
+
+  // A manager one session holds is never opened by another: the route fails to open instead of racing for it.
+  #claimManager(entry: RouteEntry, driver: ErasedDriver) {
+    if (driver.exclusive === undefined) {
+      return () => {};
+    }
+
+    const release = claimExclusive(driver.exclusive);
+
+    if (release === null) {
+      this.#options.record("route-failed", {
+        route: entry.name,
+        reason: "DRIVER_FAILED",
+      });
+    }
+
+    return release;
   }
 
   // Reads the provider's current local state, as it stands after a restart; a failure is contained.

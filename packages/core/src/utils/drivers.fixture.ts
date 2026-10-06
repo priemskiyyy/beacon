@@ -31,7 +31,10 @@ type Script = {
 };
 
 // A provider driver whose session, emitter and commands a test controls.
-export const createFakeDriver = (script: Partial<Script> = {}) => {
+export const createFakeDriver = (
+  script: Partial<Script> = {},
+  exclusive: object | null = null,
+) => {
   const counts = { opens: 0, disposals: 0 };
   const emitters: Array<DriverEmitter<RouteBody, RouteBody>> = [];
   const downloads: HeldDownload[] = [];
@@ -59,6 +62,7 @@ export const createFakeDriver = (script: Partial<Script> = {}) => {
     name: "fake-driver",
     subject: "native",
     prepares: true,
+    ...(exclusive === null ? {} : { exclusive }),
     open: ({ emit }) => {
       counts.opens += 1;
 
@@ -103,8 +107,11 @@ export const createFakeDriver = (script: Partial<Script> = {}) => {
   };
 };
 
-export const createDriverBeacon = (script: Partial<Script> = {}) => {
-  const driver = createFakeDriver(script);
+export const createDriverBeacon = (
+  script: Partial<Script> = {},
+  exclusive: object | null = null,
+) => {
+  const driver = createFakeDriver(script, exclusive);
   const context = createRoutedBeacon({ ota: driver.route });
 
   return { ...context, ...driver, ota: context.beacon.route("ota") };

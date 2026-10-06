@@ -31,6 +31,13 @@ export type ReleaseDriver<
   /** The running subject this provider replaces, so an intent can be read back against it. */
   subject: RunningSubject;
   prepares: boolean;
+  /**
+   * The native manager this provider must have to itself, such as the one
+   * update manager of the app. Only one open session holds it: a second
+   * session that would open the same manager fails to open, and its route
+   * reports `DRIVER_FAILED`, instead of racing the first for the provider.
+   */
+  exclusive?: object;
   open(
     context: DriverContext<TOffer, TPrepared>,
   ): DriverSession<TNative, TOffer>;

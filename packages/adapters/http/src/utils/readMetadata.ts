@@ -4,6 +4,7 @@ import {
   UNSAFE_KEYS,
 } from "src/utils/constants/limits";
 import { invalidManifest } from "src/utils/invalidManifest";
+import { readField } from "src/utils/readField";
 import { readRecord } from "src/utils/readRecord";
 import { readText } from "src/utils/readText";
 
@@ -12,28 +13,26 @@ export const readMetadata = (
   value: unknown,
   field: string,
 ): ManifestMetadata => {
-  const entries = Object.entries(readRecord(value, field));
+  const record = readRecord(value, field);
 
-  if (entries.length > MAXIMUM_METADATA_ENTRIES) {
+  // Sorted, so the same metadata written in another order is the same document.
+  const keys = Object.keys(record).sort();
+
+  if (keys.length > MAXIMUM_METADATA_ENTRIES) {
     throw invalidManifest(
       `${field} must have at most ${MAXIMUM_METADATA_ENTRIES} entries.`,
     );
   }
 
-  // Sorted, so the same metadata written in another order is the same document.
-  const sorted = entries.sort(
-    ([left], [right]) => Number(left > right) - Number(left < right),
-  );
-
   return Object.fromEntries(
-    sorted.map(([key, entry]) => {
+    keys.map((key) => {
       if (UNSAFE_KEYS.includes(key)) {
         throw invalidManifest(`${field} must not have the key ${key}.`);
       }
 
       readText(key, `A key of ${field}`);
 
-      return [key, readText(entry, `${field}.${key}`)];
+      return [key, readText(readField(record, key), `${field}.${key}`)];
     }),
   );
 };

@@ -398,10 +398,23 @@ describe("a manifest is JSON of the shape the schema names", () => {
     expectRefused(text, /must be an object/);
   });
 
-  test("a metadata key that could corrupt a registry is refused", () => {
-    const text = VALID.replace('"releaseNotesKey"', '"__proto__"');
+  test.each(["__proto__", "constructor", "prototype"])(
+    "the metadata key %s, which could corrupt a registry, is refused",
+    (key) => {
+      const text = VALID.replace('"releaseNotesKey"', JSON.stringify(key));
 
-    expectRefused(text, /must not have the key __proto__/);
+      expectRefused(text, new RegExp(`must not have the key ${key}`));
+    },
+  );
+
+  test.each([
+    ["an empty key", ""],
+    ["a key of 257 characters", "k".repeat(257)],
+  ])("%s is refused like any other text", (_name, key) => {
+    expectRefused(
+      withWebRelease({ ...buildRelease("a"), metadata: { [key]: "value" } }),
+      /A key of routes\.web\.release\.metadata must have 1 to 256 characters/,
+    );
   });
 
   test("a metadata value that is not text is refused", () => {

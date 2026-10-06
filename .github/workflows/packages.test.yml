@@ -50,6 +50,11 @@ jobs:
       - name: Lint rule probes
         run: pnpm test:lint
 
+      # Every test names the specification row it proves, and the table in the
+      # verification doc is read from them.
+      - name: Scenario coverage
+        run: pnpm test:scenarios
+
       # Every provider SDK and the clock are faked in process, so the whole
       # suite runs here with no device, no network and no credentials.
       - name: Unit tests

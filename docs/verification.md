@@ -1,0 +1,35 @@
+# Verification
+
+The specification lists 202 required regression scenarios in 14 groups. A test is named after the row it proves, such as `SAFE-03`, and one row can have several tests. The table below is read from the tests by `scripts/verify-scenarios.mjs`, which fails when it disagrees with them or when a test names a row that does not exist. It counts rows with a test, not rows a device has passed.
+
+<!-- scenarios:start -->
+
+| Group   | Covers                              | Specified | Proven | Rows proven                                                        |
+| ------- | ----------------------------------- | --------- | ------ | ------------------------------------------------------------------ |
+| CORE    | Core state and observations         | 14        | 13     | 01, 02, 03, 04, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
+| VER     | Identity, ordering, and revision    | 18        | 17     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 18 |
+| HTTP    | HTTP, manifests, and shared feeds   | 18        | 4      | 01, 03, 04, 05                                                     |
+| POL     | Support policy                      | 14        | 1      | 04                                                                 |
+| WEB     | Browser reload and deployment       | 12        | 4      | 01, 02, 03, 12                                                     |
+| SW      | Service-worker and Workbox          | 16        | 5      | 01, 02, 03, 08, 13                                                 |
+| EXPO    | Expo Updates                        | 20        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 10, 18                             |
+| PLAY    | Google Play native flows            | 18        | 7      | 01, 08, 10, 11, 12, 13, 14                                         |
+| STORE   | App Store metadata and handoff      | 10        | 6      | 01, 02, 03, 04, 05, 07                                             |
+| SAFE    | Disruption coordination             | 14        | 9      | 02, 03, 04, 05, 06, 08, 09, 10, 11                                 |
+| JOURNAL | Persistence and boot reconciliation | 14        | 0      | none                                                               |
+| LIFE    | Sessions and resource ownership     | 12        | 4      | 01, 02, 03, 06                                                     |
+| SEC     | Security and diagnostics            | 12        | 1      | 05                                                                 |
+| BIND    | Types, React, and SSR               | 10        | 2      | 01, 03                                                             |
+| Total   |                                     | 202       | 83     |                                                                    |
+
+<!-- scenarios:end -->
+
+## What the tests are
+
+Every provider SDK, the clock and the network are faked in process. The Expo Updates and React Native adapters are also typechecked against the real SDK's types, in `*.contracts.ts` files that prove the structural types the adapters use are satisfied by the real modules. A contract file is typechecked and never run.
+
+## What they are not
+
+Nothing has run in a real browser, on a device, or against a real Play or App Store distribution, and a fake bridge verifies state handling, not installation. What a stable release of each adapter still needs is in [the decision record](decisions.md#not-verified-on-a-device).
+
+The groups with few or no proven rows are features that are not built yet: the support policy (`POL`), the transition journal and boot reconciliation (`JOURNAL`), and the parts of `HTTP`, `SEC` and `BIND` that belong to a standard manifest, the diagnostics inspector and the other framework bindings. [The decision record](decisions.md#not-built-yet) lists them.

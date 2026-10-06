@@ -75,7 +75,7 @@ const startWithOffer = async ({
   return observation.offer.ref;
 };
 
-test("creating the mechanism and the beacon touch the window not at all", () => {
+test("WEB-12 creating the mechanism and the beacon touch the window not at all", () => {
   const { window } = createWebBeacon();
 
   expect(window.locationReads()).toBe(0);

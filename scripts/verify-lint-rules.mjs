@@ -139,7 +139,11 @@ const boundaries = [
   ['import { createSignal } from "solid-js";', "no-restricted-imports", CORE],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", REACT],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", VUE],
-  ['import { isServer } from "solid-js/web";', "no-restricted-imports", ADAPTER],
+  [
+    'import { isServer } from "solid-js/web";',
+    "no-restricted-imports",
+    ADAPTER,
+  ],
   ['import { ref } from "vue";', "no-restricted-imports", CORE],
   ['import { ref } from "vue";', "no-restricted-imports", SOLID],
   ['import { ref } from "@vue/reactivity";', "no-restricted-imports", REACT],
@@ -225,10 +229,7 @@ const allowed = [
     'import { writable } from "svelte/store";\n\nexport const store = writable;',
     SVELTE,
   ],
-  [
-    'import { value } from "./value.js";\n\nexport const copy = value;',
-    SVELTE,
-  ],
+  ['import { value } from "./value.js";\n\nexport const copy = value;', SVELTE],
   [
     'import { vi } from "vitest";\n\nexport const spy = vi.fn();',
     "packages/adapters/http/src/fakeFetch.fixture.ts",

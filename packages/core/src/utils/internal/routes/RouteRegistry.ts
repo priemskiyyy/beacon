@@ -165,17 +165,19 @@ export class RouteRegistry {
     return this.#toOutcome(result, this.#policyFailure);
   };
 
-  /** Selects again from every document held, since what is running decides what is on offer. */
+  /** Selects again from every document held, since what is running decides what is on offer; every route changes in one commit. */
   handleRunningChange = () => {
-    for (const feed of this.#feeds.values()) {
-      const accepted = feed.record.getAccepted();
+    this.#commit((transaction) => {
+      for (const feed of this.#feeds.values()) {
+        const accepted = feed.record.getAccepted();
 
-      if (accepted === null) {
-        continue;
+        if (accepted === null) {
+          continue;
+        }
+
+        this.#consume(transaction, feed, accepted);
       }
-
-      this.#commit((transaction) => this.#consume(transaction, feed, accepted));
-    }
+    });
   };
 
   /**

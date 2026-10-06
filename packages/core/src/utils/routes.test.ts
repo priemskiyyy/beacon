@@ -1,11 +1,19 @@
 import { expect, test } from "vitest";
 
-import { buildWebRelease, settle } from "src/utils/Beacon.fixture";
+import { createMockSource } from "src/mock/createMockSource";
+import {
+  buildWebRelease,
+  createRoutedBeacon,
+  settle,
+} from "src/utils/Beacon.fixture";
+import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
+import { targetRoute } from "src/utils/targetRoute";
 import {
   createTwoRouteBeacon,
   createWebBeacon,
   target,
 } from "src/utils/routes.fixture";
+import type { Manifest } from "src/utils/routes.fixture";
 
 const startAndCheck = async (context: ReturnType<typeof createWebBeacon>) => {
   context.beacon.start();
@@ -354,4 +362,57 @@ test("a check requested with a reason records it for diagnostics", async () => {
   await context.beacon.check({ reason: "foreground" });
 
   expect(reasons).toContain("foreground");
+});
+
+test("CORE-07 a running fact that changes routes of several sources reaches a listener with every route already selected", async () => {
+  const first = createMockSource<Manifest>({ name: "first" });
+  const second = createMockSource<Manifest>({ name: "second" });
+  const running = { build: "web-build-c" };
+
+  const inert = createUpdateMechanism({
+    name: "inert",
+    open: () => ({ native: {} }),
+    commands: {},
+  });
+
+  const route = (mock: typeof first) =>
+    targetRoute({
+      subject: "web",
+      source: mock.source.select((manifest) => manifest.web),
+      mechanism: inert,
+    });
+
+  const { beacon } = createRoutedBeacon(
+    { first: route(first), second: route(second) },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => buildWebRelease(running.build),
+      },
+    },
+  );
+
+  const answer = { web: target("web-build-a"), policy: { minimum: "1.0.0" } };
+
+  first.answer({ document: answer });
+  second.answer({ document: answer });
+  beacon.start();
+  await beacon.check();
+
+  const seen: string[] = [];
+
+  beacon.route("first").state.subscribe(() => {
+    seen.push(
+      `${beacon.running.get().web.state === "known" ? "known" : "pending"}:${beacon.route("first").state.get().observation.status}:${beacon.route("second").state.get().observation.status}`,
+    );
+  });
+
+  running.build = "web-build-a";
+  beacon.stop();
+  beacon.start();
+  await settle();
+
+  expect(seen.filter((entry) => entry.startsWith("known"))).toEqual(
+    seen.filter((entry) => entry === "known:none:none"),
+  );
 });

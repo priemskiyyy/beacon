@@ -8,7 +8,7 @@ import type { ReleaseSourceOptions } from "src/types/ReleaseSourceOptions";
  *
  * @example
  * ```ts
- * const decisions = createReleaseSource({ name: "internal-release-api", read });
+ * const decisions = createReleaseSource<Decision>({ name: "internal-release-api", read });
  * const web = decisions.select((decision) => decision.web);
  * ```
  */

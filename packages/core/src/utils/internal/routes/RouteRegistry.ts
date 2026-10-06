@@ -4,9 +4,10 @@ import type { FeedEntry } from "src/types/internal/FeedEntry";
 import type { ReadOptions } from "src/types/internal/ReadOptions";
 import type { RouteEntry } from "src/types/internal/RouteEntry";
 import type { RouteRegistryOptions } from "src/types/internal/RouteRegistryOptions";
-import type { RouteRuntime } from "src/types/internal/RouteRuntime";
 import type { Session } from "src/types/internal/Session";
+import type { ObservableValue } from "src/types/ObservableValue";
 import type { RouteDefinition } from "src/types/RouteDefinition";
+import type { RunningApplication } from "src/types/RunningApplication";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
 import { commitChange } from "src/utils/internal/observable/commitChange";
 import type { Transaction } from "src/utils/internal/observable/Transaction";
@@ -23,9 +24,9 @@ import { toCheckOutcome } from "src/utils/internal/routes/toCheckOutcome";
  * kind of route lives with the kind.
  */
 export class RouteRegistry {
-  #options: RouteRegistryOptions;
   #ledger = new ReferenceLedger();
   #entries = new Map<string, RouteEntry>();
+  #running: ObservableValue<RunningApplication>;
   #feeds: FeedRoutes;
   #drivers: DriverRoutes;
   #policy: PolicyRecord;
@@ -33,7 +34,7 @@ export class RouteRegistry {
   #policyFailure: CheckFailure | null = null;
 
   constructor(options: RouteRegistryOptions) {
-    this.#options = options;
+    this.#running = options.running;
 
     const group = {
       clock: options.clock,
@@ -49,20 +50,7 @@ export class RouteRegistry {
     this.#drivers = new DriverRoutes(group);
 
     for (const [name, definition] of Object.entries(options.definitions)) {
-      const record = new RouteRecord({
-        name,
-        prepares: this.#prepares(definition),
-        ledger: this.#ledger,
-        clock: options.clock,
-        createListeners: options.createListeners,
-      });
-
-      this.#entries.set(name, {
-        name,
-        definition,
-        record,
-        runtime: this.#createRuntime(name, record, definition),
-      });
+      this.#entries.set(name, this.#createEntry(name, definition, options));
     }
 
     this.#policy = new PolicyRecord({
@@ -74,7 +62,11 @@ export class RouteRegistry {
       now: () => options.clock.now(),
     });
 
-    this.#policyFeed = this.#createPolicyFeed();
+    // The policy shares the feed of its source with every route that reads it.
+    this.#policyFeed =
+      options.policy === null
+        ? null
+        : this.#feeds.getFeed(options.policy.source.source);
   }
 
   /** The references this Beacon has minted, for the commands that take them back. */
@@ -85,7 +77,16 @@ export class RouteRegistry {
   /** Opens what every route owns for the session: its mechanism or driver, and the expiry of a document held from before. */
   open = (session: Session) => {
     for (const { runtime } of this.#entries.values()) {
+      // A listener told that a route opened may have ended the session: nothing else is opened for it.
+      if (!session.scope.isActive()) {
+        return;
+      }
+
       runtime.open(session);
+    }
+
+    if (!session.scope.isActive()) {
+      return;
     }
 
     this.#feeds.resume(session);
@@ -122,6 +123,7 @@ export class RouteRegistry {
    */
   reset = () => {
     this.#feeds.reset();
+    this.#policyFailure = null;
 
     this.#commit((transaction) => {
       for (const { record } of this.#entries.values()) {
@@ -140,42 +142,40 @@ export class RouteRegistry {
     this.#policy.close();
   };
 
-  #prepares(definition: RouteDefinition) {
-    if (definition.kind === "feed") {
-      return false;
-    }
-
-    if (definition.kind === "driver") {
-      return definition.driver.prepares;
-    }
-
-    return assertUnreachable(definition);
-  }
-
-  #createRuntime(
+  #createEntry(
     name: string,
-    record: RouteRecord,
     definition: RouteDefinition,
-  ): RouteRuntime {
+    { clock, createListeners }: RouteRegistryOptions,
+  ): RouteEntry {
+    const create = (prepares: boolean) =>
+      new RouteRecord({
+        name,
+        prepares,
+        ledger: this.#ledger,
+        clock,
+        createListeners,
+      });
+
     if (definition.kind === "feed") {
-      return this.#feeds.add({ name, record, definition });
+      const record = create(false);
+      const runtime = this.#feeds.add({ name, record, definition });
+
+      return { name, definition, record, runtime };
     }
 
     if (definition.kind === "driver") {
-      return this.#drivers.add({ name, record, driver: definition.driver });
+      const record = create(definition.driver.prepares);
+
+      const runtime = this.#drivers.add({
+        name,
+        record,
+        driver: definition.driver,
+      });
+
+      return { name, definition, record, runtime };
     }
 
     return assertUnreachable(definition);
-  }
-
-  #createPolicyFeed() {
-    const { policy } = this.#options;
-
-    if (policy === null) {
-      return null;
-    }
-
-    return this.#feeds.getFeed(policy.source.source);
   }
 
   // The support policy reads routes to say which remediation is usable, so it follows every change of one.
@@ -193,7 +193,7 @@ export class RouteRegistry {
 
     const accepted = this.#policyFeed.record.getAccepted();
 
-    this.#policy.update(transaction, accepted, this.#options.running.get());
+    this.#policy.update(transaction, accepted, this.#running.get());
 
     if (accepted === null) {
       return;

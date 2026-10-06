@@ -7,6 +7,8 @@ import type { VersionStrategy } from "src/types/VersionStrategy";
 import { BeaconError } from "src/utils/BeaconError";
 import { compareIdentities } from "src/utils/compareIdentities";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
+import { inconclusive } from "src/utils/internal/selection/inconclusive";
+import { noOffer } from "src/utils/internal/selection/noOffer";
 import { runStrategy } from "src/utils/internal/selection/runStrategy";
 
 const relateToRunning = (
@@ -44,31 +46,17 @@ export const selectNewer = <
   version,
 }: SelectNewerInput<TRelease, TParsed, TInput>): ReleaseSelection<TRelease> => {
   if (decision.kind === "none") {
-    return {
-      status: "none",
-      reason: "no-decision",
-      detail: decision.reason,
-      candidate: null,
-    };
+    return noOffer<TRelease>("no-decision", null, decision.reason);
   }
 
   const { release } = decision;
 
   if (release.compatibility?.status === "incompatible") {
-    return {
-      status: "none",
-      reason: "incompatible",
-      detail: null,
-      candidate: release,
-    };
+    return noOffer("incompatible", release);
   }
 
   if (currentOrder === null) {
-    return {
-      status: "inconclusive",
-      reason: "missing-current-order",
-      candidate: release,
-    };
+    return inconclusive("missing-current-order", release);
   }
 
   const candidateOrder = runStrategy(version.name, () =>
@@ -80,12 +68,7 @@ export const selectNewer = <
   );
 
   if (!runStrategy(version.name, () => version.admits(candidateOrder))) {
-    return {
-      status: "none",
-      reason: "not-admitted",
-      detail: null,
-      candidate: release,
-    };
+    return noOffer("not-admitted", release);
   }
 
   const comparison = runStrategy(version.name, () =>
@@ -93,31 +76,17 @@ export const selectNewer = <
   );
 
   if (comparison === "incomparable") {
-    return {
-      status: "inconclusive",
-      reason: "incomparable-order",
-      candidate: release,
-    };
+    return inconclusive("incomparable-order", release);
   }
 
   const relation = relateToRunning(running, release);
 
   if (comparison === "equal" && relation === "different") {
-    return {
-      status: "none",
-      reason: "equal-order-different-identity",
-      detail: null,
-      candidate: release,
-    };
+    return noOffer("equal-order-different-identity", release);
   }
 
   if (comparison === "equal") {
-    return {
-      status: "none",
-      reason: "equal-order",
-      detail: null,
-      candidate: release,
-    };
+    return noOffer("equal-order", release);
   }
 
   if (relation === "same") {
@@ -129,12 +98,7 @@ export const selectNewer = <
   }
 
   if (comparison === "older") {
-    return {
-      status: "none",
-      reason: "older-than-current",
-      detail: null,
-      candidate: release,
-    };
+    return noOffer("older-than-current", release);
   }
 
   if (comparison === "newer") {

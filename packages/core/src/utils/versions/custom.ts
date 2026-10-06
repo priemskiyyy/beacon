@@ -8,7 +8,7 @@ import type { VersionStrategy } from "src/types/VersionStrategy";
  *
  * @example
  * ```ts
- * const strategy = custom({
+ * const strategy = custom<Revision, string>({
  *   name: "release-train",
  *   parse: parseRevision,
  *   compare: (candidate, current) => {

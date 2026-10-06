@@ -4,10 +4,8 @@ import type { Evidence } from "src/types/Evidence";
 import type { RouteState } from "src/types/internal/RouteState";
 import type { Observation } from "src/types/Observation";
 import type { ObservationDraft } from "src/types/ObservationDraft";
-import type { Offer } from "src/types/Offer";
 import type { ObservableValue } from "src/types/ObservableValue";
 import type { OperationState } from "src/types/OperationState";
-import type { Prepared } from "src/types/Prepared";
 import type { PreparedDraft } from "src/types/PreparedDraft";
 import type { PreparedState } from "src/types/PreparedState";
 import type { Release } from "src/types/Release";
@@ -44,7 +42,7 @@ type Body = RouteBody;
  */
 export class RouteRecord {
   #name: string;
-  #initial: RouteState;
+  #initial: Omit<RouteState, "revision">;
   #ledger: ReferenceLedger;
   #clock: BeaconClock;
   #store: ValueStore<RouteState>;
@@ -68,8 +66,7 @@ export class RouteRecord {
       ? { status: "unknown" }
       : { status: "not-applicable" };
 
-    this.#initial = Object.freeze({
-      revision: 0,
+    this.#initial = {
       check: IDLE_CHECK,
       observation: Object.freeze({
         status: "unknown",
@@ -77,35 +74,16 @@ export class RouteRecord {
       }),
       prepared: Object.freeze(prepared),
       operation: IDLE_OPERATION,
-    });
+    };
 
-    this.#store = new ValueStore<RouteState>(this.#initial, createListeners());
+    this.#store = new ValueStore<RouteState>(
+      Object.freeze({ revision: 0, ...this.#initial }),
+      createListeners(),
+    );
     this.#native = new ValueStore<object | null>(null, createListeners());
     this.state = this.#store.observable;
     this.native = this.#native.observable;
   }
-
-  /** The offer the route holds now, or `null`. */
-  getOffer = (): Offer<string, Body> | null => {
-    const { observation } = this.#store.get();
-
-    if (observation.status !== "available") {
-      return null;
-    }
-
-    return observation.offer;
-  };
-
-  /** The prepared target the route holds now, or `null`. */
-  getPrepared = (): Prepared<string, Body> | null => {
-    const { prepared } = this.#store.get();
-
-    if (prepared.status !== "ready") {
-      return null;
-    }
-
-    return prepared.value;
-  };
 
   beginCheck = (transaction: Transaction, attempt: number) => {
     this.#apply(transaction, {
@@ -238,17 +216,6 @@ export class RouteRecord {
     assertUnreachable(draft);
   };
 
-  /** Replaces the evidence behind the observation, as a renewal or an expiry does, and nothing else. */
-  installEvidence = (transaction: Transaction, evidence: Evidence) => {
-    const { observation } = this.#store.get();
-
-    if (observation.status === "unknown") {
-      return;
-    }
-
-    this.#install(transaction, { ...observation, evidence });
-  };
-
   installPrepared = (transaction: Transaction, draft: PreparedDraft<Body>) => {
     const observedAt = this.#clock.now();
 
@@ -260,12 +227,15 @@ export class RouteRecord {
       return;
     }
 
-    const ref = this.#keepOrMintPrepared(
-      this.getPrepared(),
+    const { prepared } = this.#store.get();
+
+    const ref = this.#keepOr(
+      prepared.status === "ready" ? prepared.value : null,
       draft.value.release,
+      () => this.#ledger.mintPrepared(this.#name),
     );
 
-    const value = Object.freeze({ ref, ...draft.value });
+    const value = Object.freeze({ ...draft.value, ref });
 
     this.#apply(transaction, {
       prepared: Object.freeze({ status: "ready", value, observedAt }),
@@ -276,7 +246,7 @@ export class RouteRecord {
     this.#apply(transaction, { operation });
   };
 
-  /** Moves the progress of the running operation; a report with no operation running is dropped. */
+  /** Moves the progress of the running operation; a report with no operation running is dropped, and one that is no fraction between 0 and 1 says the provider cannot tell. */
   installProgress = (transaction: Transaction, fraction: number | null) => {
     const { operation } = this.#store.get();
 
@@ -284,8 +254,17 @@ export class RouteRecord {
       return;
     }
 
+    const isFraction =
+      fraction !== null &&
+      Number.isFinite(fraction) &&
+      fraction >= 0 &&
+      fraction <= 1;
+
     this.#apply(transaction, {
-      operation: Object.freeze({ ...operation, progress: fraction }),
+      operation: Object.freeze({
+        ...operation,
+        progress: isFraction ? fraction : null,
+      }),
     });
   };
 
@@ -295,19 +274,7 @@ export class RouteRecord {
 
   /** Goes back to knowing nothing, as a route does that has never been checked; the references it minted no longer match anything. */
   reset = (transaction: Transaction) => {
-    const held = this.#store.get();
-
-    // A route that learned nothing has nothing to forget, and its listeners hear nothing.
-    if (
-      isSameData({ ...held, revision: 0 }, { ...this.#initial, revision: 0 })
-    ) {
-      return;
-    }
-
-    transaction.set(
-      this.#store,
-      Object.freeze({ ...this.#initial, revision: held.revision + 1 }),
-    );
+    this.#apply(transaction, this.#initial);
   };
 
   close = () => {
@@ -315,74 +282,54 @@ export class RouteRecord {
     this.#native.close();
   };
 
-  #keepOrMintPrepared(
-    held: Prepared<string, Body> | null,
+  // A release that is the same keeps its reference, so what a renewal refreshes is still what the user was shown.
+  #keepOr<TReference>(
+    held: { ref: TReference; release: Release<object | null> } | null,
     release: Release<object | null>,
+    mint: () => TReference,
   ) {
     if (held !== null && isSameRelease(held.release, release)) {
       return held.ref;
     }
 
-    return this.#ledger.mintPrepared(this.#name);
+    return mint();
   }
 
-  #keepOrMintOffer(
-    held: Offer<string, Body> | null,
-    release: Release<object | null>,
-  ) {
-    if (held !== null && isSameRelease(held.release, release)) {
-      return held.ref;
-    }
-
-    return this.#ledger.mintOffer(this.#name);
-  }
-
-  // A release that is the same keeps its reference, so an offer refreshed by a renewal is still the one the user was shown.
   #available(body: Body, evidence: Evidence): Observation<string, Body> {
-    const ref = this.#keepOrMintOffer(this.getOffer(), body.release);
+    const { observation } = this.#store.get();
+
+    const ref = this.#keepOr(
+      observation.status === "available" ? observation.offer : null,
+      body.release,
+      () => this.#ledger.mintOffer(this.#name),
+    );
 
     return {
       status: "available",
       evidence,
-      offer: Object.freeze({ ref, ...body }),
+      offer: Object.freeze({ ...body, ref }),
     };
   }
 
   #install(transaction: Transaction, observation: Observation<string, Body>) {
-    const held = this.#store.get().observation;
-
-    if (isSameData(held, observation)) {
-      return;
-    }
-
     this.#apply(transaction, { observation: Object.freeze(observation) });
   }
 
+  // A patch that changes no dimension keeps the snapshot, its revision and its listeners' peace.
   #apply(
     transaction: Transaction,
     patch: Partial<Omit<RouteState, "revision">>,
   ) {
     const held = this.#store.get();
+    const next = { ...held, ...patch };
 
-    const next = {
-      check: patch.check ?? held.check,
-      observation: patch.observation ?? held.observation,
-      prepared: patch.prepared ?? held.prepared,
-      operation: patch.operation ?? held.operation,
-    };
-
-    if (
-      next.check === held.check &&
-      next.observation === held.observation &&
-      next.prepared === held.prepared &&
-      next.operation === held.operation
-    ) {
+    if (isSameData(next, held)) {
       return;
     }
 
     transaction.set(
       this.#store,
-      Object.freeze({ revision: held.revision + 1, ...next }),
+      Object.freeze({ ...next, revision: held.revision + 1 }),
     );
   }
 }

@@ -4,6 +4,8 @@ import type { ReleaseSelection } from "src/types/ReleaseSelection";
 import type { RunningRelease } from "src/types/RunningRelease";
 import { compareIdentities } from "src/utils/compareIdentities";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
+import { inconclusive } from "src/utils/internal/selection/inconclusive";
+import { noOffer } from "src/utils/internal/selection/noOffer";
 
 type SelectTargetInput<TRelease extends ReleaseFacts> = {
   decision: { kind: "target"; release: TRelease } | NoneDecision;
@@ -16,50 +18,27 @@ export const selectTarget = <TRelease extends ReleaseFacts>({
   running,
 }: SelectTargetInput<TRelease>): ReleaseSelection<TRelease> => {
   if (decision.kind === "none") {
-    return {
-      status: "none",
-      reason: "no-decision",
-      detail: decision.reason,
-      candidate: null,
-    };
+    return noOffer<TRelease>("no-decision", null, decision.reason);
   }
 
   const { release } = decision;
 
   if (release.compatibility?.status === "incompatible") {
-    return {
-      status: "none",
-      reason: "incompatible",
-      detail: null,
-      candidate: release,
-    };
+    return noOffer("incompatible", release);
   }
 
   if (running === null || running.identity.status === "unknown") {
-    return {
-      status: "inconclusive",
-      reason: "missing-current-identity",
-      candidate: release,
-    };
+    return inconclusive("missing-current-identity", release);
   }
 
   const relation = compareIdentities(running.identity, release.identity);
 
   if (relation === "incomparable") {
-    return {
-      status: "inconclusive",
-      reason: "incomparable-identity",
-      candidate: release,
-    };
+    return inconclusive("incomparable-identity", release);
   }
 
   if (relation === "same") {
-    return {
-      status: "none",
-      reason: "same-identity",
-      detail: null,
-      candidate: release,
-    };
+    return noOffer("same-identity", release);
   }
 
   if (relation === "different") {

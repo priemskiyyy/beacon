@@ -57,7 +57,16 @@ const comparePrereleases = (
     return ordering;
   }
 
-  return compareDecimals(String(candidate.length), String(current.length));
+  // Every shared identifier is equal, so the longer prerelease has the higher precedence.
+  if (candidate.length > current.length) {
+    return "newer";
+  }
+
+  if (candidate.length < current.length) {
+    return "older";
+  }
+
+  return "equal";
 };
 
 /** Orders by precedence as SemVer 2.0.0 defines it; build metadata never counts. */

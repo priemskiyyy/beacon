@@ -9,33 +9,24 @@ export class ReferenceLedger {
   #minted = new WeakSet<object>();
   #count = 0;
 
-  mintOffer = (route: string): OfferReference<string> => {
-    this.#count += 1;
+  mintOffer = (route: string): OfferReference<string> =>
+    this.#remember({ kind: "offer", route, id: this.#nextId() });
 
-    const reference: OfferReference<string> = Object.freeze({
-      kind: "offer",
-      route,
-      id: this.#count,
-    });
-
-    this.#minted.add(reference);
-
-    return reference;
-  };
-
-  mintPrepared = (route: string): PreparedReference<string> => {
-    this.#count += 1;
-
-    const reference: PreparedReference<string> = Object.freeze({
-      kind: "prepared",
-      route,
-      id: this.#count,
-    });
-
-    this.#minted.add(reference);
-
-    return reference;
-  };
+  mintPrepared = (route: string): PreparedReference<string> =>
+    this.#remember({ kind: "prepared", route, id: this.#nextId() });
 
   owns = (reference: object) => this.#minted.has(reference);
+
+  // Numbered across both kinds, so no two references of one Beacon share an id.
+  #nextId() {
+    this.#count += 1;
+
+    return this.#count;
+  }
+
+  #remember<TReference extends object>(reference: TReference) {
+    this.#minted.add(Object.freeze(reference));
+
+    return reference;
+  }
 }

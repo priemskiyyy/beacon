@@ -1,5 +1,6 @@
 import { createMockSource } from "src/mock/createMockSource";
 import { createTestClock } from "src/mock/createTestClock";
+import type { BeaconClock } from "src/types/BeaconClock";
 import type { AcceptedFeed } from "src/types/internal/AcceptedFeed";
 import type { Session } from "src/types/internal/Session";
 import type { ReleaseScope } from "src/types/ReleaseScope";
@@ -24,9 +25,12 @@ export const createSession = (id = 1): Session => ({
 
 type FeedOptions = { timeout?: number; source?: ReleaseSource<Manifest> };
 
-export const createFeed = ({ timeout = 10_000, source }: FeedOptions = {}) => {
+// A feed on a clock of the test's own, for a host clock that does what the test clock never does.
+export const createFeedOn = (
+  clock: BeaconClock,
+  { timeout = 10_000, source }: FeedOptions = {},
+) => {
   const mock = createMockSource<Manifest>();
-  const clock = createTestClock({ now: 1_000 });
   const log: string[] = [];
   const accepted: AcceptedFeed[] = [];
   const failures: BeaconError[] = [];
@@ -48,7 +52,13 @@ export const createFeed = ({ timeout = 10_000, source }: FeedOptions = {}) => {
     },
   });
 
-  return { feed, mock, clock, log, accepted, failures, records };
+  return { feed, mock, log, accepted, failures, records };
+};
+
+export const createFeed = (options: FeedOptions = {}) => {
+  const clock = createTestClock({ now: 1_000 });
+
+  return { ...createFeedOn(clock, options), clock };
 };
 
 // A feed whose owner is told of each start by `onStart`, which may reenter it.

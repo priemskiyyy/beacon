@@ -1,8 +1,7 @@
 import type { RevisionClaim } from "src/types/internal/RevisionClaim";
 import type { RevisionVerdict } from "src/types/internal/RevisionVerdict";
+import { CANONICAL_DECIMAL_PATTERN } from "src/utils/constants/versions";
 import { compareDecimals } from "src/utils/internal/versions/compareDecimals";
-
-const RENEWED: RevisionVerdict = { status: "renewed" };
 
 const ACCEPTED: RevisionVerdict = { status: "accepted" };
 
@@ -14,15 +13,35 @@ const isConflicting = (held: RevisionClaim, incoming: RevisionClaim) => {
   return held.digest !== incoming.digest;
 };
 
+// The same revision again: a conflict when both sides can say their content differs, a renewal otherwise.
+const judgeSameRevision = (
+  held: RevisionClaim,
+  incoming: RevisionClaim,
+): RevisionVerdict => {
+  if (isConflicting(held, incoming)) {
+    return { status: "rejected", code: "REVISION_CONFLICT" };
+  }
+
+  return { status: "renewed", digest: incoming.digest ?? held.digest };
+};
+
 /**
- * Judges an incoming decision against the one held. An ordered revision may
- * only advance within its domain and epoch, the same revision may only renew
- * the same decision, and a change of epoch is never assumed to be newer.
+ * Judges an incoming decision against the one held. An ordered revision must
+ * be a canonical decimal, and may only advance within its domain and epoch;
+ * the same revision may only renew the same decision, and a change of epoch is
+ * never assumed to be newer.
  */
 export const judgeRevision = (
   held: RevisionClaim | null,
   incoming: RevisionClaim,
 ): RevisionVerdict => {
+  if (
+    incoming.revision?.kind === "ordered" &&
+    !CANONICAL_DECIMAL_PATTERN.test(incoming.revision.value)
+  ) {
+    return { status: "rejected", code: "INVALID_DOCUMENT" };
+  }
+
   if (held === null || held.revision === null) {
     return ACCEPTED;
   }
@@ -36,11 +55,7 @@ export const judgeRevision = (
       return ACCEPTED;
     }
 
-    if (isConflicting(held, incoming)) {
-      return { status: "rejected", code: "REVISION_CONFLICT" };
-    }
-
-    return RENEWED;
+    return judgeSameRevision(held, incoming);
   }
 
   if (
@@ -67,11 +82,7 @@ export const judgeRevision = (
       return { status: "rejected", code: "REVISION_REGRESSION" };
     }
 
-    if (isConflicting(held, incoming)) {
-      return { status: "rejected", code: "REVISION_CONFLICT" };
-    }
-
-    return RENEWED;
+    return judgeSameRevision(held, incoming);
   }
 
   return { status: "rejected", code: "REVISION_EPOCH_CHANGED" };

@@ -9,7 +9,6 @@ import type { ReleaseSource } from "src/types/ReleaseSource";
 import type { SourceRead } from "src/types/SourceRead";
 import { BeaconError } from "src/utils/BeaconError";
 import { REVISION_MESSAGES } from "src/utils/constants/revisions";
-import { CANONICAL_DECIMAL_PATTERN } from "src/utils/constants/versions";
 import { createEvidence } from "src/utils/internal/feeds/createEvidence";
 import { SharedRead } from "src/utils/internal/reads/SharedRead";
 import { judgeRevision } from "src/utils/internal/revisions/judgeRevision";
@@ -86,7 +85,7 @@ export class FeedRecord {
       return;
     }
 
-    this.#armExpiry(session, accepted);
+    this.#armExpiry(session, accepted, this.#clock.now());
   };
 
   /** Forgets the document and its revision high-water mark, as another scope's evidence is never compared with this one's. */
@@ -101,21 +100,18 @@ export class FeedRecord {
   // Throws the error a rejected answer becomes; the held document is never touched here.
   #judge(attempt: number, read: SourceRead<unknown>): Verdict {
     const revision = read.revision ?? null;
-    const held = this.#accepted?.claim ?? null;
+    const expiresAt = read.expiresAt ?? null;
     const claim = { revision, digest: read.digest ?? null };
 
-    if (
-      revision !== null &&
-      revision.kind === "ordered" &&
-      !CANONICAL_DECIMAL_PATTERN.test(revision.value)
-    ) {
+    // A source's own arithmetic can answer NaN, which no timer or comparison could ever expire.
+    if (expiresAt !== null && !Number.isFinite(expiresAt)) {
       throw new BeaconError({
         code: "INVALID_DOCUMENT",
-        message: "An ordered decision revision must be a canonical decimal.",
+        message: "An expiry must be a finite epoch time in milliseconds.",
       });
     }
 
-    const verdict = judgeRevision(held, claim);
+    const verdict = judgeRevision(this.#accepted?.claim ?? null, claim);
 
     if (verdict.status === "rejected") {
       throw new BeaconError({
@@ -128,16 +124,13 @@ export class FeedRecord {
       source: this.#source.name,
       origin: "network",
       receivedAt: this.#clock.now(),
-      expiresAt: read.expiresAt ?? null,
+      expiresAt,
       issuer: read.issuer ?? null,
       revision,
     });
 
     // A renewal that proves nothing about its content does not make the decision forget the digest it was accepted with.
-    const digest =
-      verdict.status === "renewed"
-        ? (claim.digest ?? held?.digest ?? null)
-        : claim.digest;
+    const digest = verdict.status === "renewed" ? verdict.digest : claim.digest;
 
     return {
       accepted: Object.freeze({
@@ -156,14 +149,15 @@ export class FeedRecord {
     session: Session,
   ) {
     this.#accepted = accepted;
-    this.#armExpiry(session, accepted);
+    this.#armExpiry(session, accepted, accepted.evidence.receivedAt);
     this.#hooks.record(isRenewal ? "read-renewed" : "read-accepted", {
       attempt,
     });
     this.#hooks.accepted(accepted);
   }
 
-  #armExpiry(session: Session, accepted: AcceptedFeed) {
+  // Expires the document if its time has come, or waits for what remains of it; `now` is when the wait is measured from.
+  #armExpiry(session: Session, accepted: AcceptedFeed, now: number) {
     this.#cancelExpiry();
 
     this.#cancelExpiry = () => {};
@@ -174,16 +168,17 @@ export class FeedRecord {
       return;
     }
 
-    const remaining = expiresAt - this.#clock.now();
+    const remaining = expiresAt - now;
 
     if (remaining <= 0) {
-      this.#handleExpiry(session, accepted);
+      this.#expire(accepted);
 
       return;
     }
 
+    // A host timer holds a bounded delay, so a long wait wakes early and waits again.
     const cancel = this.#clock.setTimer(
-      () => this.#handleExpiry(session, accepted),
+      () => this.#armExpiry(session, accepted, this.#clock.now()),
       remaining,
     );
 
@@ -195,20 +190,7 @@ export class FeedRecord {
     };
   }
 
-  #handleExpiry(session: Session, accepted: AcceptedFeed) {
-    const { expiresAt } = accepted.evidence;
-
-    if (this.#accepted !== accepted || expiresAt === null) {
-      return;
-    }
-
-    // A host timer holds a bounded delay, so a long wait wakes early and is armed again.
-    if (this.#clock.now() < expiresAt) {
-      this.#armExpiry(session, accepted);
-
-      return;
-    }
-
+  #expire(accepted: AcceptedFeed) {
     const evidence: Evidence = Object.freeze({
       ...accepted.evidence,
       freshness: "expired",

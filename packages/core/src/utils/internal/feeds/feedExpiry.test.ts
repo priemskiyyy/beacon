@@ -1,7 +1,10 @@
 import { expect, test } from "vitest";
 
+import { createTestClock } from "src/mock/createTestClock";
+import type { BeaconClock } from "src/types/BeaconClock";
 import {
   createFeed,
+  createFeedOn,
   createSession,
 } from "src/utils/internal/feeds/FeedRecord.fixture";
 
@@ -98,4 +101,61 @@ test("a resumed document that has not expired arms its expiry again", async () =
 
   clock.advance(4_000);
   expect(feed.getAccepted()?.evidence.freshness).toBe("expired");
+});
+
+test("a timer that wakes before the clock reaches the expiry waits for what remains", async () => {
+  const { feed, mock, clock } = createFeed();
+
+  const pending = feed.read(createSession(), {
+    mode: "join",
+    signal: undefined,
+  });
+
+  mock.resolve({ document: { name: "a" }, expiresAt: 100_000 });
+  await pending;
+
+  // The wall clock went back while the timer counted on: the timer is early by what the wall clock lost.
+  clock.setNow(0);
+  clock.advance(99_000);
+
+  expect(feed.getAccepted()?.evidence.freshness).toBe("fresh");
+  expect(clock.pendingTimers()).toBe(1);
+
+  clock.advance(1_000);
+
+  expect(feed.getAccepted()?.evidence.freshness).toBe("expired");
+  expect(clock.pendingTimers()).toBe(0);
+});
+
+test("a document that expires a millisecond after it was received is announced fresh before it is announced expired", async () => {
+  const base = createTestClock({ now: 1_000 });
+
+  // A host clock that has moved on by the time it is read again.
+  const clock: BeaconClock = {
+    ...base,
+    now: () => {
+      const time = base.now();
+
+      base.skip(1);
+
+      return time;
+    },
+  };
+
+  const { feed, mock, accepted } = createFeedOn(clock);
+
+  const pending = feed.read(createSession(), {
+    mode: "join",
+    signal: undefined,
+  });
+
+  mock.resolve({ document: { name: "a" }, expiresAt: 1_001 });
+  await pending;
+  base.advance(1);
+
+  expect(accepted.map((entry) => entry.evidence.freshness)).toEqual([
+    "fresh",
+    "expired",
+  ]);
+  expect(feed.getAccepted()).toBe(accepted.at(-1));
 });

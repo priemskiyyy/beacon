@@ -3,6 +3,7 @@
 import { expectTypeOf } from "vitest";
 
 import type { CandidateDecision } from "src/types/CandidateDecision";
+import type { CommandDescriptor } from "src/types/CommandDescriptor";
 import type { NoneDecision } from "src/types/NoneDecision";
 import type { Observation } from "src/types/Observation";
 import type { OfferReference } from "src/types/OfferReference";
@@ -255,20 +256,147 @@ createUpdateMechanism({
 });
 
 createUpdateMechanism({
+  name: "reserved offer",
+  open: () => ({ native: browser }),
+  commands: {
+    hijack: {
+      reference: "none",
+      impacts: [],
+      binding: "provider-current",
+      // @ts-expect-error A command cannot declare a parameter named after the offer reference.
+      run: async (context: {
+        native: Browser;
+        signal: AbortSignal;
+        parameters: { offer: string };
+      }): Promise<ProviderResult<ReloadReceipt>> => {
+        context.parameters.offer.trim();
+
+        return { status: "accepted", receipt: { kind: "reload-requested" } };
+      },
+    },
+  },
+});
+
+createUpdateMechanism({
+  name: "reserved prepared",
+  open: () => ({ native: browser }),
+  commands: {
+    hijack: {
+      reference: "none",
+      impacts: [],
+      binding: "provider-current",
+      // @ts-expect-error A command cannot declare a parameter named after the prepared reference.
+      run: async (context: {
+        native: Browser;
+        signal: AbortSignal;
+        parameters: { prepared: string };
+      }): Promise<ProviderResult<ReloadReceipt>> => {
+        context.parameters.prepared.trim();
+
+        return { status: "accepted", receipt: { kind: "reload-requested" } };
+      },
+    },
+  },
+});
+
+const anyCommand = {
+  reference: "none",
+  impacts: [],
+  binding: "provider-current",
+  run: async (): Promise<ProviderResult<ReloadReceipt>> => ({
+    status: "accepted",
+    receipt: { kind: "reload-requested" },
+  }),
+} satisfies CommandDescriptor<
+  Browser,
+  RouteBody,
+  RouteBody,
+  Record<never, never>,
+  ReloadReceipt
+>;
+
+createUpdateMechanism({
   name: "colliding",
   open: () => ({ native: browser }),
   commands: {
     // @ts-expect-error A command cannot take the name of a member every route handle has.
-    check: {
-      reference: "none",
-      impacts: [],
-      binding: "provider-current",
-      run: async (): Promise<ProviderResult<ReloadReceipt>> => ({
-        status: "accepted",
-        receipt: { kind: "reload-requested" },
-      }),
-    },
+    check: anyCommand,
   },
+});
+
+createUpdateMechanism({
+  name: "colliding state",
+  open: () => ({ native: browser }),
+  commands: {
+    // @ts-expect-error A command cannot be named state, which every route handle reads.
+    state: anyCommand,
+  },
+});
+
+createUpdateMechanism({
+  name: "colliding native",
+  open: () => ({ native: browser }),
+  commands: {
+    // @ts-expect-error A command cannot be named native, which every route handle reads.
+    native: anyCommand,
+  },
+});
+
+createUpdateMechanism({
+  name: "colliding capabilities",
+  open: () => ({ native: browser }),
+  commands: {
+    // @ts-expect-error A command cannot be named capabilities, which every route handle reads.
+    capabilities: anyCommand,
+  },
+});
+
+createUpdateMechanism({
+  name: "colliding acknowledge",
+  open: () => ({ native: browser }),
+  commands: {
+    // @ts-expect-error A command cannot be named acknowledge, which every route handle has.
+    acknowledge: anyCommand,
+  },
+});
+
+createReleaseDriver({
+  name: "colliding driver",
+  subject: "native",
+  prepares: false,
+  open: () => ({
+    native: browser,
+    check: async () => ({ status: "unknown", reason: "not-checked" }),
+  }),
+  commands: {
+    // @ts-expect-error A driver's commands are named by the same rule as a mechanism's.
+    check: anyCommand,
+  },
+});
+
+createReleaseDriver({
+  name: "hollow driver",
+  subject: "native",
+  prepares: false,
+  open: () => ({
+    // @ts-expect-error A native handle is an object: null already means the route is not open.
+    native: null,
+    check: async () => ({ status: "unknown", reason: "not-checked" }),
+  }),
+  commands: {},
+});
+
+createReleaseDriver({
+  name: "primitive manager",
+  subject: "native",
+  prepares: false,
+  // @ts-expect-error The native manager a driver holds is an object, which a claim is kept by identity.
+  exclusive: "manager",
+  open: () => ({
+    native: browser,
+    check: async () => ({ status: "unknown", reason: "not-checked" }),
+  }),
+  commands: {},
 });
 
 createUpdateMechanism({

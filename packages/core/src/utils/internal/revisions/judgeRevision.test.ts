@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { expect, test } from "vitest";
 
 import type { DecisionRevision } from "src/types/DecisionRevision";
@@ -68,21 +69,46 @@ test("VER-14 the same revision with different content is a conflict", () => {
 test("VER-15 the same revision with the same content only renews", () => {
   expect(judgeRevision(ordered("208", "a"), ordered("208", "a"))).toEqual({
     status: "renewed",
+    digest: "a",
   });
   expect(
     judgeRevision(opaque("policy-43", "a"), opaque("policy-43", "a")),
   ).toEqual({
     status: "renewed",
+    digest: "a",
   });
 });
 
-test("the same revision without a digest on either side cannot be told apart and renews", () => {
+test("the same revision without a digest on either side cannot be told apart, renews, and keeps the digest there is", () => {
   expect(judgeRevision(ordered("208", null), ordered("208", "b"))).toEqual({
     status: "renewed",
+    digest: "b",
   });
   expect(judgeRevision(ordered("208", "a"), ordered("208", null))).toEqual({
     status: "renewed",
+    digest: "a",
   });
+  expect(judgeRevision(ordered("208", null), ordered("208", null))).toEqual({
+    status: "renewed",
+    digest: null,
+  });
+});
+
+test("VER-08 an ordered revision that is not a canonical decimal is invalid, whatever is held", () => {
+  const invalid = ["", "007", "-1", "1.5", "1e3", " 7", "12a", "٣"];
+
+  for (const value of invalid) {
+    expect(judgeRevision(null, ordered(value))).toEqual({
+      status: "rejected",
+      code: "INVALID_DOCUMENT",
+    });
+    expect(judgeRevision(ordered("208"), ordered(value))).toEqual({
+      status: "rejected",
+      code: "INVALID_DOCUMENT",
+    });
+  }
+
+  expect(judgeRevision(null, opaque("007"))).toEqual({ status: "accepted" });
 });
 
 test("VER-16 another epoch or domain is never assumed to be newer", () => {
@@ -117,4 +143,26 @@ test("an unversioned decision cannot replace a versioned one", () => {
     status: "rejected",
     code: "REVISION_REGRESSION",
   });
+});
+
+test("VER-09 an ordered revision of any size advances, regresses or repeats as the integer it names", () => {
+  const decimal = fc.stringMatching(/^(0|[1-9][0-9]{0,40})$/);
+
+  fc.assert(
+    fc.property(decimal, decimal, (held, incoming) => {
+      const verdict = judgeRevision(ordered(held), ordered(incoming));
+
+      if (BigInt(incoming) > BigInt(held)) {
+        expect(verdict).toEqual({ status: "accepted" });
+      } else if (BigInt(incoming) < BigInt(held)) {
+        expect(verdict).toEqual({
+          status: "rejected",
+          code: "REVISION_REGRESSION",
+        });
+      } else {
+        expect(verdict).toEqual({ status: "renewed", digest: "a" });
+      }
+    }),
+    { numRuns: 500 },
+  );
 });

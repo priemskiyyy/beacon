@@ -81,6 +81,10 @@ test("VER-06 malformed and coercible-looking strings are rejected", () => {
     "1.2.3+build..1",
     " 1.2.3",
     "1.2.3 ",
+    "1.2.3\n",
+    "\n1.2.3",
+    "١.٢.٣",
+    "1.2.3-alpha_1",
     "1.2.x",
     "^1.2.3",
     "1.2.3-α",
@@ -115,6 +119,39 @@ test("a parsed version is frozen", () => {
   expect(Object.isFrozen(parsed)).toBe(true);
   expect(Object.isFrozen(parsed.prerelease)).toBe(true);
   expect(Object.isFrozen(parsed.build)).toBe(true);
+});
+
+const decimal = fc.stringMatching(/^(0|[1-9][0-9]{0,30})$/);
+
+const orderOf = (candidate: bigint, current: bigint): Comparison => {
+  if (candidate > current) {
+    return "newer";
+  }
+
+  if (candidate < current) {
+    return "older";
+  }
+
+  return "equal";
+};
+
+test("VER-07 major, minor and patch of any size order as the tuple of the integers they name", () => {
+  fc.assert(
+    fc.property(
+      fc.tuple(decimal, decimal, decimal),
+      fc.tuple(decimal, decimal, decimal),
+      (a, b) => {
+        const orders = a.map((value, index) =>
+          orderOf(BigInt(value), BigInt(b[index] ?? "0")),
+        );
+
+        const expected = orders.find((order) => order !== "equal") ?? "equal";
+
+        expect(compare(a.join("."), b.join("."))).toBe(expected);
+      },
+    ),
+    { numRuns: 500 },
+  );
 });
 
 const identifier = fc.oneof(

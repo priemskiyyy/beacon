@@ -50,7 +50,7 @@ export class FeedRoutes {
       return held;
     }
 
-    const { clock, timeout, getScope, record, commit } = this.#options;
+    const { clock, timeout, getScope, commit } = this.#options;
 
     const feed: FeedEntry = {
       consumers: [],
@@ -74,7 +74,7 @@ export class FeedRoutes {
                 consumer.record.settleCheck(transaction, attempt, error);
               }
             }),
-          record,
+          record: this.#options.record,
         },
       }),
     };
@@ -104,16 +104,18 @@ export class FeedRoutes {
     }
   };
 
-  /** Forgets every document held. */
+  /** Forgets every document held, and the selections that failed from them. */
   reset = () => {
     for (const feed of this.#feeds.values()) {
       feed.record.reset();
     }
+
+    this.#failures.clear();
   };
 
   // A selection that throws fails only its own route's check; the observation it held stays.
   #consume(transaction: Transaction, feed: FeedEntry, accepted: AcceptedFeed) {
-    const { running, record } = this.#options;
+    const { running } = this.#options;
 
     for (const consumer of feed.consumers) {
       const { definition, name } = consumer;
@@ -136,7 +138,10 @@ export class FeedRoutes {
 
         this.#failures.set(name, { attempt: accepted.attempt, error });
         consumer.record.settleCheck(transaction, accepted.attempt, error);
-        record("route-failed", { route: name, reason: error.code });
+        this.#options.record("route-failed", {
+          route: name,
+          reason: error.code,
+        });
       }
     }
   }

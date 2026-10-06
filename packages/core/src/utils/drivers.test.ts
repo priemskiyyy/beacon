@@ -1,16 +1,26 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
 import { createMockSource } from "src/mock/createMockSource";
+import type { DriverEmitter } from "src/types/DriverEmitter";
+import type { ObservationDraft } from "src/types/ObservationDraft";
+import type { ProviderResult } from "src/types/ProviderResult";
+import type { RouteBody } from "src/types/RouteBody";
 import { createRoutedBeacon, settle } from "src/utils/Beacon.fixture";
 import {
   BODY,
   createDriverBeacon,
   createFakeDriver,
 } from "src/utils/drivers.fixture";
+import { createReleaseDriver } from "src/utils/createReleaseDriver";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
+import { createMemoryStorage } from "src/utils/journal.fixture";
 import { target } from "src/utils/routes.fixture";
 import { targetRoute } from "src/utils/targetRoute";
 import type { Manifest } from "src/utils/routes.fixture";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const startWithOffer = async (
   context: ReturnType<typeof createDriverBeacon>,
@@ -278,7 +288,9 @@ test("LIFE-02 a listener that starts again and is then disposed leaves no sessio
 
 test("LIFE-04 a driver that throws while it reconciles fails its route and leaves start and the others alone", async () => {
   const broken = createFakeDriver({
-    throwOnReconcile: new Error("cannot read local state"),
+    reconcile: () => {
+      throw new Error("cannot read local state");
+    },
   });
 
   const healthy = createFakeDriver();
@@ -321,6 +333,383 @@ test("LIFE-11 a driver whose dispose throws still gives its native manager back,
 
   expect(context.counts.opens).toBe(2);
   expect(context.ota.native.get()).not.toBeNull();
+});
 
-  vi.useRealTimers();
+test("LIFE-02 a listener that stops the session as a provider opens leaves it disposed and never reconciled", () => {
+  const reconcile = vi.fn(async () => {});
+  const context = createDriverBeacon({ reconcile });
+
+  context.ota.native.subscribe(() => context.beacon.stop());
+  context.beacon.start();
+
+  expect(context.counts).toEqual({ opens: 1, disposals: 1 });
+  expect(reconcile).not.toHaveBeenCalled();
+  expect(context.ota.native.get()).toBeNull();
+});
+
+test("LIFE-02 a listener that stops the session while routes open leaves the routes after it unopened", () => {
+  const first = createFakeDriver();
+  const second = createFakeDriver();
+
+  const { beacon } = createRoutedBeacon({
+    first: first.route,
+    second: second.route,
+  });
+
+  beacon.route("first").native.subscribe(() => beacon.stop());
+  beacon.start();
+
+  expect(first.counts).toEqual({ opens: 1, disposals: 1 });
+  expect(second.counts).toEqual({ opens: 0, disposals: 0 });
+});
+
+test("LIFE-04 a reconcile that fails because its session ended is a late callback, not a failed route", async () => {
+  const context = createDriverBeacon({
+    reconcile: (signal) =>
+      new Promise<void>((_resolve, reject) => {
+        signal.addEventListener(
+          "abort",
+          () => reject(new Error("The session ended.")),
+          {
+            once: true,
+          },
+        );
+      }),
+  });
+
+  const events: string[] = [];
+
+  context.beacon.diagnostics.events.subscribe((event) => {
+    events.push(event.type);
+  });
+  context.beacon.start();
+  context.beacon.stop();
+  await settle();
+
+  expect(events).not.toContain("route-failed");
+  expect(context.beacon.diagnostics.get().counters.lateCallbacks).toBe(1);
+});
+
+test("CORE-06 a provider that repeats a prepared report or a progress fraction changes nothing and tells nobody", async () => {
+  const context = createDriverBeacon();
+  const offer = await startWithOffer(context);
+  const emitter = context.emitter();
+
+  emitter?.prepared({ status: "ready", value: BODY });
+
+  const downloading = context.ota.download({ offer });
+
+  await settle();
+  emitter?.progress(0.5);
+
+  const held = context.ota.state.get();
+  const heard = vi.fn();
+
+  context.ota.state.subscribe(heard);
+  emitter?.prepared({ status: "ready", value: BODY });
+  emitter?.progress(0.5);
+
+  expect(context.ota.state.get()).toBe(held);
+  expect(heard).not.toHaveBeenCalled();
+
+  emitter?.progress(0.75);
+  emitter?.prepared({ status: "none" });
+  emitter?.prepared({ status: "none" });
+
+  expect(heard).toHaveBeenCalledTimes(2);
+  expect(context.ota.state.get().revision).toBe(held.revision + 2);
+
+  context.downloads[0]?.settleWith({ status: "unsupported", reason: "test" });
+  await downloading;
+});
+
+test("CORE-06 a fraction reported while no operation runs is dropped", async () => {
+  const context = createDriverBeacon();
+
+  await startWithOffer(context);
+
+  const held = context.ota.state.get();
+
+  context.emitter()?.progress(0.5);
+
+  expect(context.ota.state.get()).toBe(held);
+});
+
+test("a prepared target the provider confirms again keeps its reference until the release changes", () => {
+  const context = createDriverBeacon();
+
+  const readReference = () => {
+    const { prepared } = context.ota.state.get();
+
+    if (prepared.status !== "ready") {
+      throw new Error("Nothing is prepared.");
+    }
+
+    return prepared.value.ref;
+  };
+
+  context.beacon.start();
+  context.emitter()?.prepared({ status: "ready", value: BODY });
+
+  const first = readReference();
+
+  context.emitter()?.prepared({ status: "ready", value: BODY });
+  expect(readReference()).toBe(first);
+
+  context.emitter()?.prepared({
+    status: "ready",
+    value: {
+      release: {
+        identity: {
+          status: "known",
+          authority: "com.example.notes",
+          domain: "android-version-code",
+          value: "121",
+        },
+      },
+    },
+  });
+  expect(readReference()).not.toBe(first);
+});
+
+test("a disruptive command of a driver route is journaled against the subject its provider replaces", async () => {
+  const memory = createMemoryStorage();
+
+  const restarting = createReleaseDriver({
+    name: "restarting",
+    subject: "bundle",
+    prepares: false,
+    open: () => ({
+      native: {},
+      check: async (): Promise<ObservationDraft<RouteBody>> => ({
+        status: "unknown",
+        reason: "not-checked",
+      }),
+    }),
+    commands: {
+      restart: {
+        reference: "none",
+        impacts: ["javascript-restart"],
+        binding: "provider-current",
+        run: async (): Promise<
+          ProviderResult<{ kind: "restart-requested" }>
+        > => ({
+          status: "accepted",
+          receipt: { kind: "restart-requested" },
+        }),
+      },
+    },
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { ota: restarting },
+    { journal: { mode: "best-effort", storage: memory.storage } },
+  );
+
+  beacon.start();
+  await settle();
+
+  await expect(beacon.route("ota").restart()).resolves.toMatchObject({
+    status: "accepted",
+  });
+  expect(beacon.transitions.get().latest).toMatchObject({
+    intent: { route: "ota", command: "restart", subject: "bundle" },
+  });
+});
+
+test("LIFE-04 a provider that answers what is no observation fails its check, keeps what was held and leaves the route usable", async () => {
+  const answers = ['{"status":"available"}', '{"status":"banana"}', "null"];
+
+  for (const answer of answers) {
+    const { beacon } = createRoutedBeacon({
+      ota: createReleaseDriver({
+        name: "garbling",
+        subject: "native",
+        prepares: false,
+        open: () => ({
+          native: {},
+          check: async (): Promise<ObservationDraft<RouteBody>> =>
+            JSON.parse(answer),
+        }),
+        commands: {},
+      }),
+    });
+
+    beacon.start();
+
+    await expect(beacon.route("ota").check()).resolves.toMatchObject({
+      status: "failed",
+      error: { code: "DRIVER_FAILED" },
+    });
+    expect(beacon.route("ota").state.get()).toMatchObject({
+      check: { state: "failed", error: { code: "DRIVER_FAILED" } },
+      observation: { status: "unknown", reason: "not-checked" },
+    });
+    expect(beacon.route("ota").native.get()).not.toBeNull();
+  }
+});
+
+test("LIFE-04 a provider that reports what is no observation or no prepared target is contained, and the route keeps what it held", async () => {
+  const context = createDriverBeacon();
+  const events: string[] = [];
+
+  context.beacon.diagnostics.events.subscribe((event) => {
+    events.push(`${event.type}:${event.route}:${event.reason}`);
+  });
+  context.beacon.start();
+  await context.ota.check();
+
+  const held = context.ota.state.get();
+  const emitter = context.emitter();
+
+  expect(() =>
+    emitter?.observation(JSON.parse('{"status":"banana"}')),
+  ).not.toThrow();
+  expect(() => emitter?.observation(JSON.parse("null"))).not.toThrow();
+  expect(() =>
+    emitter?.prepared(JSON.parse('{"status":"ready"}')),
+  ).not.toThrow();
+  expect(() => emitter?.prepared(JSON.parse("null"))).not.toThrow();
+
+  expect(context.ota.state.get()).toBe(held);
+  expect(
+    events.filter((event) => event === "route-failed:ota:DRIVER_FAILED"),
+  ).toHaveLength(4);
+});
+
+test("CORE-05 a progress that is no fraction between 0 and 1 is published as unknown, never as a number to show", async () => {
+  const context = createDriverBeacon();
+  const offer = await startWithOffer(context);
+  const emitter = context.emitter();
+  const downloading = context.ota.download({ offer });
+
+  await settle();
+
+  const reported = [];
+
+  for (const fraction of [0, 0.5, 1, 1.5, -0.1, Number.NaN, Infinity, 0.25]) {
+    emitter?.progress(fraction);
+
+    const { operation } = context.ota.state.get();
+
+    reported.push(operation.state === "running" ? operation.progress : "idle");
+  }
+
+  expect(reported).toEqual([0, 0.5, 1, null, null, null, null, 0.25]);
+
+  context.downloads[0]?.settleWith({ status: "unsupported", reason: "test" });
+  await downloading;
+});
+
+test("CORE-05 a provider that declared it prepares nothing cannot make its route prepare", () => {
+  const emitters: Array<DriverEmitter<RouteBody, RouteBody>> = [];
+  const events: string[] = [];
+
+  const { beacon } = createRoutedBeacon({
+    ota: createReleaseDriver({
+      name: "unpreparing",
+      subject: "native",
+      prepares: false,
+      open: ({ emit }) => {
+        emitters.push(emit);
+
+        return {
+          native: {},
+          check: async (): Promise<ObservationDraft<RouteBody>> => ({
+            status: "unknown",
+            reason: "not-checked",
+          }),
+        };
+      },
+      commands: {},
+    }),
+  });
+
+  beacon.diagnostics.events.subscribe((event) => {
+    events.push(`${event.type}:${event.route}:${event.reason}`);
+  });
+  beacon.start();
+
+  const held = beacon.route("ota").state.get();
+
+  emitters[0]?.prepared({ status: "none" });
+  emitters[0]?.prepared({ status: "ready", value: BODY });
+
+  expect(beacon.route("ota").state.get()).toBe(held);
+  expect(held.prepared).toEqual({ status: "not-applicable" });
+  expect(events.filter((event) => event.startsWith("route-failed"))).toEqual([
+    "route-failed:ota:DRIVER_FAILED",
+    "route-failed:ota:DRIVER_FAILED",
+  ]);
+});
+
+test("BIND-03 a provider cannot claim a reference: the offer keeps the one Beacon minted", async () => {
+  type ClaimingOffer = RouteBody & { ref: string };
+
+  const claiming: ClaimingOffer = { ...BODY, ref: "claimed" };
+
+  const { beacon } = createRoutedBeacon({
+    ota: createReleaseDriver({
+      name: "claiming",
+      subject: "native",
+      prepares: false,
+      open: () => ({
+        native: {},
+        check: async (): Promise<ObservationDraft<ClaimingOffer>> => ({
+          status: "available",
+          offer: claiming,
+        }),
+      }),
+      commands: {},
+    }),
+  });
+
+  beacon.start();
+  await beacon.route("ota").check();
+
+  const { observation } = beacon.route("ota").state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  expect(observation.offer.ref).toMatchObject({ kind: "offer", route: "ota" });
+});
+
+test("CORE-14 a provider that answers unknown, nothing or inconclusive is published as it said, with itself as the evidence", async () => {
+  const answers: Array<ObservationDraft<RouteBody>> = [
+    { status: "unknown", reason: "unsupported-environment" },
+    { status: "none", reason: "no-decision", detail: "up-to-date" },
+    { status: "inconclusive", reason: "incomparable-identity" },
+  ];
+
+  const observations = [];
+
+  for (const answer of answers) {
+    const context = createDriverBeacon({ answers: answer });
+
+    context.beacon.start();
+    await context.ota.check();
+    observations.push(context.ota.state.get().observation);
+  }
+
+  expect(observations).toEqual([
+    { status: "unknown", reason: "unsupported-environment" },
+    {
+      status: "none",
+      evidence: expect.objectContaining({
+        source: "fake-driver",
+        origin: "provider",
+      }),
+      reason: "no-decision",
+      detail: "up-to-date",
+      candidate: null,
+    },
+    {
+      status: "inconclusive",
+      evidence: expect.objectContaining({ origin: "provider" }),
+      reason: "incomparable-identity",
+      candidate: null,
+    },
+  ]);
 });

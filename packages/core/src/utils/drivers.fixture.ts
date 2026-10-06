@@ -24,12 +24,14 @@ type HeldDownload = {
 };
 
 type Script = {
+  /** What `check` answers, an offer of `BODY` by default. */
+  answers: ObservationDraft<RouteBody>;
   /** Makes `open` throw, as a provider that cannot start does. */
   failOpen: Error | null;
   /** What `open` reports at once, before it returns, as a provider whose callbacks are synchronous does. */
   emitOnOpen: ObservationDraft<RouteBody> | null;
-  /** Makes the first reconcile throw before it returns, as a provider that cannot read its local state does. */
-  throwOnReconcile: Error | null;
+  /** What `reconcile` does, given the signal of its session: throw before it returns, reject later or report. Without it the provider has none. */
+  reconcile: (signal: AbortSignal) => Promise<void>;
   /** Makes `dispose` throw, as a provider whose unsubscribe fails does. */
   throwOnDispose: Error | null;
 };
@@ -39,6 +41,13 @@ export const createFakeDriver = (
   script: Partial<Script> = {},
   exclusive: object | null = null,
 ) => {
+  const { reconcile } = script;
+
+  const answers: ObservationDraft<RouteBody> = script.answers ?? {
+    status: "available",
+    offer: BODY,
+  };
+
   const counts = { opens: 0, disposals: 0 };
   const emitters: Array<DriverEmitter<RouteBody, RouteBody>> = [];
   const downloads: HeldDownload[] = [];
@@ -82,14 +91,12 @@ export const createFakeDriver = (
 
       return {
         native,
-        check: async () => ({ status: "available", offer: BODY }),
-        ...(script.throwOnReconcile === undefined ||
-        script.throwOnReconcile === null
+        check: async () => answers,
+        ...(reconcile === undefined
           ? {}
           : {
-              reconcile: () => {
-                throw script.throwOnReconcile;
-              },
+              reconcile: ({ signal }: { signal: AbortSignal }) =>
+                reconcile(signal),
             }),
         dispose: () => {
           counts.disposals += 1;

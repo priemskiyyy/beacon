@@ -17,7 +17,7 @@ import { claimExclusive } from "src/utils/internal/routes/claimExclusive";
 import type { RouteRecord } from "src/utils/internal/routes/RouteRecord";
 import { toCheckOutcome } from "src/utils/internal/routes/toCheckOutcome";
 
-type DriverRoute = { name: string; record: RouteRecord; driver: ErasedDriver };
+type RoutedDriver = { name: string; record: RouteRecord; driver: ErasedDriver };
 
 /**
  * Owns the routes a provider answers for: each one's shared check, and the
@@ -31,8 +31,8 @@ export class DriverRoutes {
   }
 
   /** Builds the shared check of a route, and answers how it opens and is checked. */
-  add = (route: DriverRoute): RouteRuntime => {
-    const { clock, timeout, record, commit } = this.#options;
+  add = (route: RoutedDriver): RouteRuntime => {
+    const { clock, timeout, commit } = this.#options;
     const { driver } = route;
 
     const failure: SharedReadErrors["failed"] = {
@@ -68,7 +68,7 @@ export class DriverRoutes {
             commit((transaction) =>
               route.record.settleCheck(transaction, attempt, error),
             ),
-          record,
+          record: this.#options.record,
         },
         errors: {
           failed: failure,
@@ -87,6 +87,10 @@ export class DriverRoutes {
         toCheckOutcome(await entry.read.read(session, options), null),
     };
   };
+
+  #recordFailure(route: string) {
+    this.#options.record("route-failed", { route, reason: "DRIVER_FAILED" });
+  }
 
   #ask(entry: DriverEntry, signal: AbortSignal) {
     if (entry.session === null) {
@@ -110,7 +114,7 @@ export class DriverRoutes {
     });
   }
 
-  #open(route: DriverRoute, entry: DriverEntry, session: Session) {
+  #open(route: RoutedDriver, entry: DriverEntry, session: Session) {
     const { name, record, driver } = route;
     const { commit } = this.#options;
 
@@ -126,10 +130,7 @@ export class DriverRoutes {
       opened = driver.open(this.#createContext(route, session));
     } catch {
       release();
-      this.#options.record("route-failed", {
-        route: name,
-        reason: "DRIVER_FAILED",
-      });
+      this.#recordFailure(name);
 
       return;
     }
@@ -157,7 +158,7 @@ export class DriverRoutes {
   }
 
   // A manager one session holds is never opened by another: the route fails to open instead of racing for it.
-  #claimManager({ name, driver }: DriverRoute) {
+  #claimManager({ name, driver }: RoutedDriver) {
     if (driver.exclusive === undefined) {
       return () => {};
     }
@@ -165,10 +166,7 @@ export class DriverRoutes {
     const release = claimExclusive(driver.exclusive);
 
     if (release === null) {
-      this.#options.record("route-failed", {
-        route: name,
-        reason: "DRIVER_FAILED",
-      });
+      this.#recordFailure(name);
     }
 
     return release;
@@ -176,32 +174,40 @@ export class DriverRoutes {
 
   // Reads the provider's current local state, as it stands after a restart; a failure is contained.
   #reconcile(
-    { name }: DriverRoute,
+    { name }: RoutedDriver,
     opened: DriverSession<object, RouteBody>,
     signal: AbortSignal,
   ) {
     const { reconcile } = opened;
 
-    if (reconcile === undefined) {
+    // A listener told that the provider opened may have ended the session already.
+    if (reconcile === undefined || signal.aborted) {
       return;
     }
 
     // The executor runs at once, so a provider that reports while it reconciles is heard, and one that throws is contained like one that rejects.
     new Promise<void>((resolve) => resolve(reconcile({ signal }))).catch(() => {
-      this.#options.record("route-failed", {
-        route: name,
-        reason: "DRIVER_FAILED",
-      });
+      // A provider that gives up because its session ended has not failed.
+      if (signal.aborted) {
+        this.#options.record("late-callback", {
+          route: name,
+          reason: "driver",
+        });
+
+        return;
+      }
+
+      this.#recordFailure(name);
     });
   }
 
   #createContext(
-    { name, record, driver }: DriverRoute,
+    { name, record, driver }: RoutedDriver,
     session: Session,
   ): DriverContext<RouteBody, RouteBody> {
     const { getScope, running, commit } = this.#options;
 
-    // A report from a session that ended is counted and dropped.
+    // A report from a session that ended is counted and dropped, and one Beacon cannot take is a failed route, never a throw into the provider.
     const install = (apply: (transaction: Transaction) => void) => {
       if (!session.scope.isActive()) {
         this.#options.record("late-callback", {
@@ -212,7 +218,11 @@ export class DriverRoutes {
         return;
       }
 
-      commit(apply);
+      try {
+        commit(apply);
+      } catch {
+        this.#recordFailure(name);
+      }
     };
 
     return {
@@ -227,8 +237,16 @@ export class DriverRoutes {
               this.#createEvidence(driver.name),
             ),
           ),
-        prepared: (draft: PreparedDraft<RouteBody>) =>
-          install((transaction) => record.installPrepared(transaction, draft)),
+        prepared: (draft: PreparedDraft<RouteBody>) => {
+          // A provider that said it prepares nothing has broken its own declaration.
+          if (!driver.prepares) {
+            this.#recordFailure(name);
+
+            return;
+          }
+
+          install((transaction) => record.installPrepared(transaction, draft));
+        },
         progress: (fraction: number | null) =>
           install((transaction) =>
             record.installProgress(transaction, fraction),

@@ -243,6 +243,106 @@ test("HTTP-01 two routes of one source share a single read and one accepted docu
   );
 });
 
+test("HTTP-05 one check that asks for a read after the current one reads a shared source once, and asks again only for a read that was under way before it", async () => {
+  const { beacon, mock } = createTwoRouteBeacon();
+  const answer = { first: target("build-a"), second: target("build-a") };
+
+  beacon.start();
+
+  const report = beacon.check({ mode: "after-current" });
+
+  await settle();
+  expect(mock.stats().reads).toBe(1);
+
+  mock.resolve({ document: answer });
+  await settle();
+  expect(mock.stats().reads).toBe(1);
+
+  await expect(report).resolves.toMatchObject({
+    routes: {
+      first: { status: "succeeded", attempt: 1 },
+      second: { status: "succeeded", attempt: 1 },
+    },
+  });
+
+  const under = beacon.check();
+
+  await settle();
+
+  const after = beacon.check({ mode: "after-current" });
+
+  await settle();
+  mock.resolve({ document: answer });
+  await settle();
+  expect(mock.stats().reads).toBe(3);
+  mock.resolve({ document: answer });
+
+  await expect(under).resolves.toMatchObject({
+    routes: { first: { attempt: 2 }, second: { attempt: 2 } },
+  });
+  await expect(after).resolves.toMatchObject({
+    routes: { first: { attempt: 3 }, second: { attempt: 3 } },
+  });
+  expect(mock.stats().reads).toBe(3);
+});
+
+test("CORE-06 a snapshot, its offer and its evidence are frozen, and the release in the offer is the source's own object, kept as it is", async () => {
+  const context = createWebBeacon();
+  const decision = target("web-build-a");
+
+  context.mock.answer({
+    document: { web: decision, policy: { minimum: "1.0.0" } },
+    expiresAt: 601_000,
+  });
+  context.beacon.start();
+  await context.beacon.route("web").check();
+
+  const snapshot = context.beacon.route("web").state.get();
+
+  if (snapshot.observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  const { offer, evidence } = snapshot.observation;
+
+  expect(Object.isFrozen(snapshot)).toBe(true);
+  expect(Object.isFrozen(snapshot.check)).toBe(true);
+  expect(Object.isFrozen(snapshot.observation)).toBe(true);
+  expect(Object.isFrozen(offer)).toBe(true);
+  expect(Object.isFrozen(evidence)).toBe(true);
+  expect(offer.release).toBe(decision.release);
+  expect(Object.isFrozen(decision.release)).toBe(false);
+});
+
+test("HTTP-01 a selection that throws for one route of a shared source fails that route's check alone", async () => {
+  const { beacon, mock } = createTwoRouteBeacon();
+
+  beacon.start();
+
+  const report = beacon.check();
+
+  await settle();
+  mock.resolve({
+    document: {
+      get first(): never {
+        throw new Error("The projection threw.");
+      },
+      second: target("build-a"),
+    },
+  });
+
+  await expect(report).resolves.toMatchObject({
+    routes: {
+      first: { status: "failed", error: { code: "SELECTION_FAILED" } },
+      second: { status: "succeeded", attempt: 1 },
+    },
+  });
+  expect(beacon.route("first").state.get().observation.status).toBe("unknown");
+  expect(beacon.route("second").state.get().observation.status).toBe(
+    "available",
+  );
+});
+
 test("a running fact that changes selects again from the document held", async () => {
   const releases = ["web-build-a", "web-build-b"];
 
@@ -543,4 +643,67 @@ test("CORE-01 every observable can be read as it was before any session, which i
   expect(web.state.getInitial()).toEqual(before.route);
   expect(web.native.getInitial()).toEqual(before.native);
   expect(web.state.get()).not.toEqual(web.state.getInitial());
+});
+
+test("LIFE-04 a mechanism that throws while it opens fails its route's native handle and leaves start and the check alone", async () => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+  const events: string[] = [];
+
+  const web = targetRoute({
+    subject: "web",
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism: createUpdateMechanism({
+      name: "broken",
+      open: () => {
+        throw new Error("There is no window.");
+      },
+      commands: {},
+    }),
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { web },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => buildWebRelease("web-build-b"),
+      },
+    },
+  );
+
+  beacon.diagnostics.events.subscribe((event) => {
+    events.push(`${event.type}:${event.route}:${event.reason}`);
+  });
+  mock.answer({
+    document: { web: target("web-build-a"), policy: { minimum: "1.0.0" } },
+  });
+
+  expect(() => beacon.start()).not.toThrow();
+  expect(beacon.route("web").native.get()).toBeNull();
+  expect(events).toContain("route-failed:web:DRIVER_FAILED");
+
+  await expect(beacon.route("web").check()).resolves.toMatchObject({
+    status: "succeeded",
+  });
+  expect(beacon.route("web").state.get().observation.status).toBe("available");
+});
+
+test("CORE-02 a document that expires while a newer read is under way leaves that read's check alone", async () => {
+  const context = createWebBeacon();
+
+  await startAndCheck(context);
+  context.clock.advance(595_000);
+
+  const second = context.beacon.route("web").check();
+
+  await settle();
+  context.clock.advance(5_000);
+
+  expect(context.beacon.route("web").state.get()).toMatchObject({
+    check: { state: "checking", attempt: 2 },
+    observation: { status: "available", evidence: { freshness: "expired" } },
+  });
+
+  context.mock.reject(new Error("offline"));
+  await second;
 });

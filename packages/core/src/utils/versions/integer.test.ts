@@ -39,6 +39,7 @@ test("VER-09 signs, fractions, exponents, leading zeros and whitespace are rejec
     "007",
     " 7",
     "7 ",
+    "7\n",
     "٧",
     -1,
     1.5,
@@ -57,6 +58,7 @@ test("a safe integer and its canonical string parse to the same value", () => {
   expect(strategy.parse(108)).toBe("108");
   expect(strategy.parse("108")).toBe("108");
   expect(strategy.parse(0)).toBe("0");
+  expect(strategy.parse(-0)).toBe("0");
   expect(compare(108, "108")).toBe("equal");
 });
 
@@ -84,6 +86,25 @@ test("integers order like the numbers they name", () => {
       expect(compare(a, b)).toBe(expected);
       expect(compare(String(a), b)).toBe(expected);
     }),
+  );
+});
+
+const decimal = fc.stringMatching(/^(0|[1-9][0-9]{0,40})$/);
+
+test("VER-07 decimal strings of any size order like the integers they name", () => {
+  fc.assert(
+    fc.property(decimal, decimal, (a, b) => {
+      const [left, right] = [BigInt(a), BigInt(b)];
+
+      if (left > right) {
+        expect(compare(a, b)).toBe("newer");
+      } else if (left < right) {
+        expect(compare(a, b)).toBe("older");
+      } else {
+        expect(compare(a, b)).toBe("equal");
+      }
+    }),
+    { numRuns: 500 },
   );
 });
 

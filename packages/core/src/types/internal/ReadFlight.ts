@@ -9,6 +9,6 @@ export type ReadFlight = {
   group: ReadWaiterGroup;
   /** Set when nobody waits anymore or the read ended, so a late answer is ignored. */
   finished: boolean;
-  /** Stops the deadline and takes the read back from its session. */
-  release: () => void;
+  /** What ends with the read: its deadline, and its place among the cleanups of its session. */
+  stops: Array<() => void>;
 };

@@ -21,14 +21,17 @@ export class SharedRead<TAnswer, TAccepted> {
   #attempts = 0;
   #flight: ReadFlight | null = null;
   #trailing: ReadWaiterGroup | null = null;
+  #calls = new WeakMap<ReadOptions, ReadWaiterGroup>();
 
   constructor(options: SharedReadOptions<TAnswer, TAccepted>) {
     this.#options = options;
   }
 
   /** Reads, or joins the read in flight; resolves when this caller's read settled, and never rejects. */
-  read = (session: Session, { mode, signal }: ReadOptions) =>
+  read = (session: Session, options: ReadOptions) =>
     new Promise<ReadResult>((resolve) => {
+      const { signal } = options;
+
       if (!session.scope.isActive()) {
         resolve({ status: "superseded" });
 
@@ -41,7 +44,7 @@ export class SharedRead<TAnswer, TAccepted> {
         return;
       }
 
-      const { group, isNew } = this.#chooseGroup(mode);
+      const { group, isNew } = this.#chooseGroup(options);
 
       let detach = () => {};
 
@@ -69,7 +72,22 @@ export class SharedRead<TAnswer, TAccepted> {
       this.#startFlight(session, group);
     });
 
-  #chooseGroup(mode: ReadOptions["mode"]) {
+  // What one call asked of this authority, it asks once: a read that the call itself started is not one to ask again after.
+  #chooseGroup(options: ReadOptions) {
+    const own = this.#calls.get(options);
+
+    if (own !== undefined && this.#isWaiting(own)) {
+      return { group: own, isNew: false };
+    }
+
+    const chosen = this.#pickGroup(options.mode);
+
+    this.#calls.set(options, chosen.group);
+
+    return chosen;
+  }
+
+  #pickGroup(mode: ReadOptions["mode"]) {
     const flight = this.#flight;
 
     if (flight === null) {
@@ -87,6 +105,11 @@ export class SharedRead<TAnswer, TAccepted> {
     return { group: this.#trailing, isNew: false };
   }
 
+  // A group is waiting while its read is in flight or is next.
+  #isWaiting(group: ReadWaiterGroup) {
+    return this.#flight?.group === group || this.#trailing === group;
+  }
+
   #startFlight(session: Session, group: ReadWaiterGroup) {
     const { clock, timeout, perform, hooks, errors } = this.#options;
 
@@ -98,22 +121,18 @@ export class SharedRead<TAnswer, TAccepted> {
       controller: new AbortController(),
       group,
       finished: false,
-      release: () => {},
+      stops: [],
     };
 
     this.#flight = flight;
 
-    const cancelTimeout = clock.setTimer(() => {
-      flight.controller.abort();
-      this.#fail(flight, new BeaconError(errors.timeout));
-    }, timeout);
-
-    const removeCleanup = session.scope.add(() => this.#end(flight));
-
-    flight.release = () => {
-      cancelTimeout();
-      removeCleanup();
-    };
+    flight.stops.push(
+      clock.setTimer(() => {
+        flight.controller.abort();
+        this.#fail(flight, new BeaconError(errors.timeout));
+      }, timeout),
+      session.scope.add(() => this.#end(flight)),
+    );
 
     hooks.record("read-started", { attempt: flight.attempt });
     hooks.started(flight.attempt);
@@ -128,12 +147,12 @@ export class SharedRead<TAnswer, TAccepted> {
         perform({ attempt: flight.attempt, signal: flight.controller.signal }),
       );
     }).then(
-      (answer) => this.#handleAnswer(flight, answer),
+      (answer) => this.#takeAnswer(flight, answer),
       (cause) => this.#fail(flight, toBeaconError(cause, errors.failed)),
     );
   }
 
-  #handleAnswer(flight: ReadFlight, answer: TAnswer) {
+  #takeAnswer(flight: ReadFlight, answer: TAnswer) {
     const { accept, hooks, errors } = this.#options;
 
     if (flight.finished) {
@@ -187,24 +206,27 @@ export class SharedRead<TAnswer, TAccepted> {
       attempt: flight.attempt,
       reason: error.code,
     });
-    hooks.failed(flight.attempt, error);
-    this.#settle(flight.group, {
-      status: "failed",
-      attempt: flight.attempt,
-      error,
-    });
-    this.#startTrailing(flight.session);
+
+    // Whatever the owner does with the failure, everyone who waited is told and the next read goes on.
+    try {
+      hooks.failed(flight.attempt, error);
+    } finally {
+      this.#settle(flight.group, {
+        status: "failed",
+        attempt: flight.attempt,
+        error,
+      });
+      this.#startTrailing(flight.session);
+    }
   }
 
   #finish(flight: ReadFlight) {
     flight.finished = true;
-    flight.release();
-
-    if (this.#flight !== flight) {
-      return;
-    }
-
     this.#flight = null;
+
+    for (const stop of flight.stops) {
+      stop();
+    }
   }
 
   #settle(group: ReadWaiterGroup, result: ReadResult) {
@@ -225,33 +247,32 @@ export class SharedRead<TAnswer, TAccepted> {
 
     flight.controller.abort();
     this.#finish(flight);
-    this.#options.hooks.failed(
-      flight.attempt,
-      new BeaconError({
-        code: "ABORTED",
-        message: "The session ended during the check.",
-      }),
-    );
-    this.#settle(flight.group, { status: "superseded" });
 
-    const trailing = this.#trailing;
+    try {
+      this.#options.hooks.failed(
+        flight.attempt,
+        new BeaconError({
+          code: "ABORTED",
+          message: "The session ended during the check.",
+        }),
+      );
+    } finally {
+      this.#settle(flight.group, { status: "superseded" });
 
-    this.#trailing = null;
+      const trailing = this.#trailing;
 
-    if (trailing === null) {
-      return;
+      this.#trailing = null;
+
+      if (trailing !== null) {
+        this.#settle(trailing, { status: "superseded" });
+      }
     }
-
-    this.#settle(trailing, { status: "superseded" });
   }
 
   #leave(waiter: ReadWaiter) {
     const { group } = waiter;
 
-    if (!group.waiters.delete(waiter)) {
-      return;
-    }
-
+    group.waiters.delete(waiter);
     waiter.settle({ status: "cancelled" });
 
     if (group.waiters.size > 0) {
@@ -274,14 +295,18 @@ export class SharedRead<TAnswer, TAccepted> {
     flight.controller.abort();
     this.#finish(flight);
     hooks.record("read-abandoned", { attempt: flight.attempt });
-    hooks.failed(
-      flight.attempt,
-      new BeaconError({
-        code: "ABORTED",
-        message: "Every caller stopped waiting for the check.",
-      }),
-    );
-    this.#startTrailing(flight.session);
+
+    try {
+      hooks.failed(
+        flight.attempt,
+        new BeaconError({
+          code: "ABORTED",
+          message: "Every caller stopped waiting for the check.",
+        }),
+      );
+    } finally {
+      this.#startTrailing(flight.session);
+    }
   }
 
   #startTrailing(session: Session) {

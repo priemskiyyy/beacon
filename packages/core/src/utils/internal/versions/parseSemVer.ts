@@ -23,13 +23,9 @@ export const parseSemVer = (input: string): SemVer => {
     throw createInvalidVersionError("semver", input.slice(0, 32));
   }
 
-  const match = SEMVER_PATTERN.exec(input);
-
-  if (match === null) {
-    throw createInvalidVersionError("semver", input);
-  }
-
-  const [, major, minor, patch, prerelease, build] = match;
+  // The grammar has the three numbers in every match, which the tuple does not know.
+  const [, major, minor, patch, prerelease, build] =
+    SEMVER_PATTERN.exec(input) ?? [];
 
   if (major === undefined || minor === undefined || patch === undefined) {
     throw createInvalidVersionError("semver", input);

@@ -2,6 +2,7 @@ import type { RevisionVerdict } from "src/types/internal/RevisionVerdict";
 
 /** What each rejected revision says to the person reading the error. */
 export const REVISION_MESSAGES = {
+  INVALID_DOCUMENT: "An ordered decision revision must be a canonical decimal.",
   REVISION_REGRESSION:
     "A release source answered an older decision revision than the one held.",
   REVISION_CONFLICT:

@@ -144,6 +144,27 @@ test("a source that throws synchronously is a failed read, not a rejection", asy
   });
 });
 
+test("a source that answers an expiry that is not a finite time is an invalid document, and nothing is held", async () => {
+  const { feed, mock, clock } = createFeed();
+
+  for (const expiresAt of [Number.NaN, Infinity, -Infinity]) {
+    const pending = feed.read(createSession(), {
+      mode: "join",
+      signal: undefined,
+    });
+
+    mock.resolve({ document: { name: "a" }, expiresAt });
+
+    await expect(pending).resolves.toMatchObject({
+      status: "failed",
+      error: { code: "INVALID_DOCUMENT" },
+    });
+  }
+
+  expect(feed.getAccepted()).toBeNull();
+  expect(clock.pendingTimers()).toBe(0);
+});
+
 test("a read that outlives its deadline fails with a timeout and is aborted", async () => {
   const { feed, mock, clock } = createFeed({ timeout: 500 });
 
@@ -215,15 +236,12 @@ test("a caller whose signal already aborted never starts a read", async () => {
 });
 
 test("a listener that ends the session when a read starts supersedes the caller", async () => {
-  const { feed, mock } = createFeed();
   const session = createSession();
-
   const started = createFeedWithStartHook(() => session.scope.dispose());
 
   await expect(
     started.feed.read(session, { mode: "join", signal: undefined }),
   ).resolves.toEqual({ status: "superseded" });
   expect(started.mock.stats().reads).toBe(0);
-  expect(mock.stats().reads).toBe(0);
-  expect(feed.getAccepted()).toBeNull();
+  expect(started.feed.getAccepted()).toBeNull();
 });

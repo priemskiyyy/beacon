@@ -132,6 +132,26 @@ test("an unknown running identity leaves an equal order unexplained by identity"
   ).toMatchObject({ status: "none", reason: "equal-order" });
 });
 
+test("a running release nobody can read leaves the order to decide, and names no identity conflict", () => {
+  const selectWithoutRunning = (order: string) =>
+    selectNewer({
+      decision: candidate(order),
+      running: null,
+      currentOrder: "2.3.0",
+      version: semver(),
+    });
+
+  expect(selectWithoutRunning("2.4.0")).toMatchObject({ status: "offer" });
+  expect(selectWithoutRunning("2.3.0")).toMatchObject({
+    status: "none",
+    reason: "equal-order",
+  });
+  expect(selectWithoutRunning("2.2.0")).toMatchObject({
+    status: "none",
+    reason: "older-than-current",
+  });
+});
+
 test("an incompatible candidate is not offered and stays visible", () => {
   const decision: CandidateDecision<string> = {
     kind: "candidate",

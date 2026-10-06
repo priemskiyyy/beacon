@@ -22,7 +22,7 @@ expectTypeOf(linking).toExtend<LinkingLike>();
 export const store = appStoreLookup({
   appId: "284882215",
   country: "de",
-  request: async () => ({ results: [] }),
+  fetch: async () => ({ results: [] }),
 });
 
 expectTypeOf(store.select((document) => document.decision).project)
@@ -33,14 +33,14 @@ appStoreLookup({
   appId: "1",
   country: "de",
   // @ts-expect-error -- the client must resolve the lookup's entries, not a raw body.
-  request: async () => ({ count: 0 }),
+  fetch: async () => ({ count: 0 }),
 });
 
 appStoreLookup({
   appId: "1",
   country: "de",
   // @ts-expect-error -- an entry has a version, or it is not an entry.
-  request: async () => ({ results: [{ trackId: 1, bundleId: "a" }] }),
+  fetch: async () => ({ results: [{ trackId: 1, bundleId: "a" }] }),
 });
 
 export const mechanism = appStoreHandoff({ appId: "284882215", linking });

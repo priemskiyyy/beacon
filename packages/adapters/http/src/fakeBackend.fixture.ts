@@ -6,7 +6,7 @@ import type {
 } from "@priemskiyyy/beacon";
 
 import type { HttpAnswer } from "src/types/HttpAnswer";
-import type { HttpRequest } from "src/types/HttpRequest";
+import type { HttpFetchContext } from "src/types/HttpFetchContext";
 
 export type FakeManifest = { web: TargetDecision | NoneDecision };
 
@@ -42,7 +42,7 @@ const buildManifest = (build: string): FakeManifest => ({
 
 // A manifest endpoint with an ETag: the same validator gets `not-modified`, anything else gets the document.
 export const fakeBackend = () => {
-  const requests: HttpRequest[] = [];
+  const fetches: HttpFetchContext[] = [];
 
   const state = {
     build: "web-build-a",
@@ -57,15 +57,15 @@ export const fakeBackend = () => {
   };
 
   return {
-    requests,
+    fetches,
     state,
-    reads: () => requests.length,
-    request: async (
-      request: HttpRequest,
+    reads: () => fetches.length,
+    fetch: async (
+      context: HttpFetchContext,
     ): Promise<HttpAnswer<FakeManifest>> => {
-      requests.push(request);
+      fetches.push(context);
 
-      if (request.validator === state.validator) {
+      if (context.validator === state.validator) {
         return { status: "not-modified", expiresAt: state.expiresAt };
       }
 

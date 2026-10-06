@@ -409,7 +409,7 @@ test("an update is checked, downloaded and then restarted with what was prepared
 });
 ```
 
-The other adapters work the same way. `googlePlay({ bridge })` takes an object that keeps the `PlayBridge` contract. `serviceWorker({ container, registration })` takes fakes of the container and the registration. `appStoreHandoff({ appId, linking })` takes anything with `openURL`. `browserReload({ target })` takes anything with `location.reload()`. `http({ request })` takes your own function.
+The other adapters work the same way. `googlePlay({ bridge })` takes an object that keeps the `PlayBridge` contract. `serviceWorker({ container, registration })` takes fakes of the container and the registration. `appStoreHandoff({ appId, linking })` takes anything with `openURL`. `browserReload({ target })` takes anything with `location.reload()`. `http({ fetch })` takes your own function.
 
 A test with a fake proves how Beacon maps a native result. It never proves that a Play update installed, that a service worker activated or that an Expo update launched. See [limits](limits.md).
 

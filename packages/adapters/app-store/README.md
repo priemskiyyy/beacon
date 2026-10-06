@@ -24,7 +24,7 @@ const store = appStoreLookup({
   appId: APP_STORE_ID, // the numeric id
   country: "de", // your lookup storefront, never derived from the device
   bundleId: "com.example.notes",
-  request: async ({ url, signal }) =>
+  fetch: async ({ url, signal }) =>
     parseLookup(await (await fetch(url, { signal })).json()),
 });
 
@@ -37,7 +37,7 @@ const binary = newerRoute({
 });
 ```
 
-`request` is your client call: it owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw. The source then checks that the entry is your app and bundle, and refuses several entries, another app, a missing version or a malformed date, each with its own message.
+`fetch` is your client call: it owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw. The source then checks that the entry is your app and bundle, and refuses several entries, another app, a missing version or a malformed date, each with its own message.
 
 ## What it reports
 

@@ -2,7 +2,7 @@ export { http } from "src/http";
 
 export type { HttpAdapterOptions } from "src/types/HttpAdapterOptions";
 export type { HttpAnswer } from "src/types/HttpAnswer";
-export type { HttpRequest } from "src/types/HttpRequest";
+export type { HttpFetchContext } from "src/types/HttpFetchContext";
 export type { ManifestLimits } from "src/types/ManifestLimits";
 export type { ManifestMetadata } from "src/types/ManifestMetadata";
 export type { ManifestResponse } from "src/types/ManifestResponse";

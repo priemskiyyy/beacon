@@ -33,7 +33,7 @@ const inert = createUpdateMechanism({
 });
 
 export const manifest = http({
-  request: () => readStandardManifest({ response, scope, routes, now: 0 }),
+  fetch: () => readStandardManifest({ response, scope, routes, now: 0 }),
 });
 
 export const web = targetRoute({

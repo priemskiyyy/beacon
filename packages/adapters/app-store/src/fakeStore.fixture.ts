@@ -1,5 +1,5 @@
 import type { AppStoreLookupEntry } from "src/types/AppStoreLookupEntry";
-import type { AppStoreLookupRequest } from "src/types/AppStoreLookupRequest";
+import type { AppStoreFetchContext } from "src/types/AppStoreFetchContext";
 import type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";
 import type { LinkingLike } from "src/types/LinkingLike";
 
@@ -16,9 +16,9 @@ export const entry = (
   ...overrides,
 });
 
-// An App Store lookup whose answer a test scripts, and whose requests it records.
+// An App Store lookup whose answer a test scripts, and whose fetches it records.
 export const fakeStore = (initial: AppStoreLookupEntry[] = [entry()]) => {
-  const requests: AppStoreLookupRequest[] = [];
+  const fetches: AppStoreFetchContext[] = [];
 
   const state: { results: AppStoreLookupEntry[]; failure: Error | null } = {
     results: initial,
@@ -26,12 +26,12 @@ export const fakeStore = (initial: AppStoreLookupEntry[] = [entry()]) => {
   };
 
   return {
-    requests,
-    reads: () => requests.length,
-    request: async (
-      request: AppStoreLookupRequest,
+    fetches,
+    reads: () => fetches.length,
+    fetch: async (
+      context: AppStoreFetchContext,
     ): Promise<AppStoreLookupResponse> => {
-      requests.push(request);
+      fetches.push(context);
 
       if (state.failure !== null) {
         throw state.failure;

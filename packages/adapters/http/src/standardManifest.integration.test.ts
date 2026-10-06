@@ -43,7 +43,7 @@ const create = () => {
 
   const manifest = http({
     name: "manifest",
-    request: async ({ scope }) =>
+    fetch: async ({ scope }) =>
       readStandardManifest({
         response: server.response,
         scope,

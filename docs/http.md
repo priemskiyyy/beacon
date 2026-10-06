@@ -12,7 +12,7 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http
 
 ## Create a source
 
-`http({ name, request })` answers a source. `request` runs once for each read.
+`http({ name, fetch })` answers a source. `fetch` runs once for each read.
 
 ```ts
 import { http } from "@priemskiyyy/beacon-http";
@@ -26,7 +26,7 @@ declare const parseReleases: (input: unknown) => Releases;
 
 export const manifest = http({
   name: "release-manifest",
-  request: async ({ signal, validator }): Promise<HttpAnswer<Releases>> => {
+  fetch: async ({ signal, validator }): Promise<HttpAnswer<Releases>> => {
     const response = await fetch("/releases.json", {
       signal,
       headers: validator === null ? {} : { "if-none-match": validator },
@@ -47,7 +47,7 @@ export const manifest = http({
 });
 ```
 
-`request` receives the `scope`, an abort `signal`, the `attempt` number and the `validator` of the answer this source holds for that scope, or `null`. Validate the response in your client before you answer: Beacon trusts the types. A thrown `BeaconError` keeps its code, and any other error fails the read with `SOURCE_FAILED` and keeps the original as `cause`.
+`fetch` receives the `scope`, an abort `signal`, the `attempt` number and the `validator` of the answer this source holds for that scope, or `null`. Validate the response in your client before you answer: Beacon trusts the types. A thrown `BeaconError` keeps its code, and any other error fails the read with `SOURCE_FAILED` and keeps the original as `cause`.
 
 ### The answer
 
@@ -77,7 +77,7 @@ const routes = {
 
 const manifest = http({
   name: "release-manifest",
-  request: async ({ scope, signal, validator }) =>
+  fetch: async ({ scope, signal, validator }) =>
     readStandardManifest({
       response: await fetch("/releases.json", {
         signal,
@@ -226,7 +226,7 @@ const read = parseStandardManifest({
 console.info(read.revision, read.digest, read.expiresAt);
 ```
 
-The example text is not a manifest, so this call throws `INVALID_DOCUMENT` at run time. Answer `{ status: "changed", ...read }` from `request` when it succeeds.
+The example text is not a manifest, so this call throws `INVALID_DOCUMENT` at run time. Answer `{ status: "changed", ...read }` from `fetch` when it succeeds.
 
 ## Not included
 

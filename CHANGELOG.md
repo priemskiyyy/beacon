@@ -22,7 +22,7 @@
 
 ## @priemskiyyy/beacon-http 0.1.0 - Unreleased
 
-- First release. `http({ request })` turns the application's client call into a release source. The client validates the response and resolves `changed` with the document and its evidence, or `not-modified`, which renews the document held for the scope with the new expiry when the backend gave one.
+- First release. `http({ fetch })` turns the application's client call into a release source. The client validates the response and resolves `changed` with the document and its evidence, or `not-modified`, which renews the document held for the scope with the new expiry when the backend gave one.
 - `readStandardManifest` and `parseStandardManifest` are the optional standard manifest: a response or its text becomes a typed document for the routes the application declares, or a `BeaconError` that names the rule it broke. An account's answers stay apart through `partition` in the scope.
 - Requires `@priemskiyyy/beacon` 0.1.
 

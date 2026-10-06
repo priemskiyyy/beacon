@@ -20,7 +20,7 @@ import { http } from "@priemskiyyy/beacon-http";
 
 const manifest = http({
   name: "release-manifest",
-  request: async ({ signal, validator }) => {
+  fetch: async ({ signal, validator }) => {
     const response = await fetch("/releases.json", {
       signal,
       headers: validator === null ? {} : { "if-none-match": validator },
@@ -47,7 +47,7 @@ const web = targetRoute({
 });
 ```
 
-`request` receives the scope, an abort signal, the attempt number and the validator of the answer this source holds. Validate the response in your client, with the schema library you already use, before you answer: Beacon trusts the types. A thrown `BeaconError` keeps its code, and any other error fails the read with `SOURCE_FAILED` and keeps the original as `cause`.
+`fetch` receives the scope, an abort signal, the attempt number and the validator of the answer this source holds. Validate the response in your client, with the schema library you already use, before you answer: Beacon trusts the types. A thrown `BeaconError` keeps its code, and any other error fails the read with `SOURCE_FAILED` and keeps the original as `cause`.
 
 ## The answer
 
@@ -83,7 +83,7 @@ const routes = {
 
 const manifest = http({
   name: "release-manifest",
-  request: async ({ scope, signal, validator }) =>
+  fetch: async ({ scope, signal, validator }) =>
     readStandardManifest({
       response: await fetch("/releases.json", {
         signal,

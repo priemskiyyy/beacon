@@ -9,7 +9,7 @@ import { toSourceRead } from "src/utils/toSourceRead";
 
 /**
  * The application's own release manifest endpoint as a Beacon release source.
- * `request` is the application's client call, which validates the response
+ * `fetch` is the application's client call, which validates the response
  * and answers `changed` with the document or `not-modified`; this adapter
  * makes no request and parses nothing. It remembers the last answer it
  * accepted for the scope, so `not-modified` renews that document instead of
@@ -20,14 +20,14 @@ import { toSourceRead } from "src/utils/toSourceRead";
  * ```ts
  * const manifest = http({
  *   name: "release-manifest",
- *   request: ({ signal, validator }) => api.manifest({ signal, etag: validator }),
+ *   fetch: ({ signal, validator }) => api.manifest({ signal, etag: validator }),
  * });
  * const web = manifest.select((document) => document.web);
  * ```
  */
 export const http = <TDocument>({
   name = "http",
-  request,
+  fetch: fetchAnswer,
 }: HttpAdapterOptions<TDocument>): ReleaseSource<TDocument> => {
   let memory: HttpMemory<TDocument> | null = null;
 
@@ -36,7 +36,7 @@ export const http = <TDocument>({
     read: async ({ scope, signal, attempt }) => {
       const held = memory?.scope === scope ? memory : null;
 
-      const answer = await request({
+      const answer = await fetchAnswer({
         scope,
         signal,
         attempt,

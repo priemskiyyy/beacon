@@ -9,11 +9,11 @@ import type { ReleaseScope } from "@priemskiyyy/beacon";
  *
  * @example
  * ```ts
- * const request = ({ scope, signal, validator }: HttpRequest) =>
+ * const fetchManifest = ({ scope, signal, validator }: HttpFetchContext) =>
  *   api.manifest({ scope, signal, etag: validator });
  * ```
  */
-export type HttpRequest = {
+export type HttpFetchContext = {
   scope: ReleaseScope;
   signal: AbortSignal;
   attempt: number;

@@ -12,7 +12,7 @@ import { browserReload } from "@priemskiyyy/beacon-browser";
 import { http } from "@priemskiyyy/beacon-http";
 
 const manifest = http({
-  request: async ({ signal, validator }) =>
+  fetch: async ({ signal, validator }) =>
     parseManifestResponse(await fetchManifest({ signal, validator })),
 });
 

@@ -26,7 +26,7 @@ import { readLookupEntry } from "src/utils/readLookupEntry";
  *
  * @example
  * ```ts
- * const store = appStoreLookup({ appId: "284882215", country: "de", request });
+ * const store = appStoreLookup({ appId: "284882215", country: "de", fetch });
  * const binary = store.select((document) => document.decision);
  * ```
  */
@@ -35,7 +35,7 @@ export const appStoreLookup = ({
   country,
   bundleId,
   name = "app-store-lookup",
-  request,
+  fetch: fetchLookup,
 }: AppStoreLookupOptions): ReleaseSource<AppStoreDocument> => {
   assertAppId(appId);
   assertCountry(country);
@@ -50,7 +50,7 @@ export const appStoreLookup = ({
         };
       }
 
-      const response = await request({
+      const response = await fetchLookup({
         url: createLookupUrl(appId, country),
         signal,
       });

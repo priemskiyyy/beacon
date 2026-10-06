@@ -21,7 +21,7 @@ declare const api: {
 };
 
 export const manifest = http({
-  request: ({ signal, validator }) => api.manifest({ signal, etag: validator }),
+  fetch: ({ signal, validator }) => api.manifest({ signal, etag: validator }),
 });
 
 expectTypeOf(manifest).toEqualTypeOf<ReleaseSource<ApiManifest>>();
@@ -40,19 +40,19 @@ export const web = targetRoute({
 
 http({
   // @ts-expect-error -- an answer is changed or not modified.
-  request: () => ({ status: "unchanged" }),
+  fetch: () => ({ status: "unchanged" }),
 });
 
 // @ts-expect-error -- a changed answer carries its document.
-http({ request: () => ({ status: "changed" }) });
+http({ fetch: () => ({ status: "changed" }) });
 
 http({
   // @ts-expect-error -- an expiry is epoch milliseconds, not a date string.
-  request: () => ({ status: "not-modified", expiresAt: "2026-10-24" }),
+  fetch: () => ({ status: "not-modified", expiresAt: "2026-10-24" }),
 });
 
 http({
-  request: () => ({
+  fetch: () => ({
     status: "changed",
     document: {},
     // @ts-expect-error -- a revision is opaque or ordered.

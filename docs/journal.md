@@ -37,7 +37,7 @@ const scope = {
 const routes = { web: { kind: "target" } } satisfies RouteDeclarations;
 
 const manifest = http({
-  request: async ({ scope, signal }) =>
+  fetch: async ({ scope, signal }) =>
     readStandardManifest({
       response: await fetch("/releases.json", { signal }),
       scope,

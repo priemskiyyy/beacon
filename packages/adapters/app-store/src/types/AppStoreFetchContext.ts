@@ -5,10 +5,10 @@
  *
  * @example
  * ```ts
- * const request = ({ url, signal }: AppStoreLookupRequest) => lookup(url, { signal });
+ * const lookUp = ({ url, signal }: AppStoreFetchContext) => lookup(url, { signal });
  * ```
  */
-export type AppStoreLookupRequest = {
+export type AppStoreFetchContext = {
   url: string;
   signal: AbortSignal;
 };

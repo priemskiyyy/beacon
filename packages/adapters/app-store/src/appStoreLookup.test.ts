@@ -17,9 +17,9 @@ const buildRead = () => ({
 test("creating the source makes no request", () => {
   const store = fakeStore();
 
-  appStoreLookup({ appId: APP_ID, country: "de", request: store.request });
+  appStoreLookup({ appId: APP_ID, country: "de", fetch: store.fetch });
 
-  expect(store.requests).toEqual([]);
+  expect(store.fetches).toEqual([]);
 });
 
 test("a read asks for the configured app in the configured storefront", async () => {
@@ -29,10 +29,10 @@ test("a read asks for the configured app in the configured storefront", async ()
   await appStoreLookup({
     appId: APP_ID,
     country: "de",
-    request: store.request,
+    fetch: store.fetch,
   }).read(read);
 
-  expect(store.requests).toEqual([
+  expect(store.fetches).toEqual([
     {
       url: `https://itunes.apple.com/lookup?id=${APP_ID}&country=de`,
       signal: read.signal,
@@ -47,7 +47,7 @@ test("the answer is the decision, from the store as its issuer", async () => {
     appId: APP_ID,
     country: "de",
     bundleId: BUNDLE_ID,
-    request: store.request,
+    fetch: store.fetch,
   }).read(buildRead());
 
   expect(answer).toMatchObject({
@@ -66,7 +66,7 @@ test("a client that throws fails the read as it was thrown", async () => {
     appStoreLookup({
       appId: APP_ID,
       country: "de",
-      request: store.request,
+      fetch: store.fetch,
     }).read(buildRead()),
   ).rejects.toBe(failure);
 });
@@ -75,16 +75,16 @@ test("STORE-03 an id that is not a number, or a storefront that is not a country
   const store = fakeStore();
 
   expect(() =>
-    appStoreLookup({ appId: "12a", country: "de", request: store.request }),
+    appStoreLookup({ appId: "12a", country: "de", fetch: store.fetch }),
   ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
   expect(() =>
-    appStoreLookup({ appId: APP_ID, country: "DE", request: store.request }),
+    appStoreLookup({ appId: APP_ID, country: "DE", fetch: store.fetch }),
   ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
   expect(() =>
     appStoreLookup({
       appId: APP_ID,
       country: "de&id=1",
-      request: store.request,
+      fetch: store.fetch,
     }),
   ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
 });
@@ -93,15 +93,14 @@ test("the source is named for diagnostics, and app-store-lookup by default", () 
   const store = fakeStore();
 
   expect(
-    appStoreLookup({ appId: APP_ID, country: "de", request: store.request })
-      .name,
+    appStoreLookup({ appId: APP_ID, country: "de", fetch: store.fetch }).name,
   ).toBe("app-store-lookup");
   expect(
     appStoreLookup({
       appId: APP_ID,
       country: "de",
       name: "ios-store",
-      request: store.request,
+      fetch: store.fetch,
     }).name,
   ).toBe("ios-store");
 });
@@ -113,7 +112,7 @@ test("STORE-09 a scope of another distribution is answered without a request, an
     appId: APP_ID,
     country: "de",
     bundleId: BUNDLE_ID,
-    request: store.request,
+    fetch: store.fetch,
   });
 
   for (const distribution of ["testflight", "enterprise", "development"]) {
@@ -126,5 +125,5 @@ test("STORE-09 a scope of another distribution is answered without a request, an
     });
   }
 
-  expect(store.requests).toEqual([]);
+  expect(store.fetches).toEqual([]);
 });

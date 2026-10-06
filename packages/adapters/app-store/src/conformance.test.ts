@@ -29,7 +29,7 @@ testReleaseSource({
       source: appStoreLookup({
         appId: APP_ID,
         country: "de",
-        request: store.request,
+        fetch: store.fetch,
       }),
       reads: store.reads,
     };

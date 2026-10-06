@@ -34,7 +34,7 @@ const store = appStoreLookup({
   appId: "284882215",
   country: "de",
   bundleId: "com.example.notes",
-  request: async ({ url, signal }) =>
+  fetch: async ({ url, signal }) =>
     parseLookup(await (await fetch(url, { signal })).json()),
 });
 
@@ -77,7 +77,7 @@ The lookup and the handoff are separate. The route joins them: `newerRoute` sele
 
 ## The lookup source
 
-`appStoreLookup` reads Apple's published lookup shape through your client. `request` receives the documented lookup URL for your app and storefront, and a signal. It owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw.
+`appStoreLookup` reads Apple's published lookup shape through your client. `fetch` receives the documented lookup URL for your app and storefront, and a signal. It owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw.
 
 | Option     | Rule                                                                                      |
 | ---------- | ----------------------------------------------------------------------------------------- |

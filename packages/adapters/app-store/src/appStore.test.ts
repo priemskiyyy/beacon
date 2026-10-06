@@ -42,7 +42,7 @@ const create = (running: string | null = "3.2.0") => {
     appId: APP_ID,
     country: "de",
     bundleId: BUNDLE_ID,
-    request: store.request,
+    fetch: store.fetch,
   });
 
   const binary = newerRoute({

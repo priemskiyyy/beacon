@@ -247,8 +247,8 @@ See [HTTP](http.md).
 | `http`                         | function | your manifest endpoint as a release source, through your client                     |
 | `readStandardManifest`         | function | a standard manifest response as an answer of `http`                                 |
 | `parseStandardManifest`        | function | the text of a standard manifest as a valid read, or an error naming the rule broken |
-| `HttpAdapterOptions`           | type     | the name and the `request` of `http()`                                              |
-| `HttpRequest`                  | type     | what one read hands your client: scope, signal, attempt and validator               |
+| `HttpAdapterOptions`           | type     | the name and the `fetch` of `http()`                                                |
+| `HttpFetchContext`             | type     | what one read hands your client: scope, signal, attempt and validator               |
 | `HttpAnswer`                   | type     | what your client resolves: `changed` with a document, or `not-modified`             |
 | `ManifestLimits`               | type     | the tunable limits of a manifest: bytes, lifetime and skew                          |
 | `ManifestMetadata`             | type     | the short strings a manifest may attach to a release                                |
@@ -339,8 +339,8 @@ See [App Store](app-store.md).
 | `appStoreHandoff`        | function | a mechanism that opens the store page, with `openStore`                |
 | `appleVersion`           | function | the version strategy of Apple marketing versions                       |
 | `appleMarketingVersion`  | function | reads the marketing version of what runs, for `newerRoute`'s `current` |
-| `AppStoreLookupOptions`  | type     | the app id, storefront, bundle id, name and `request`                  |
-| `AppStoreLookupRequest`  | type     | what one lookup hands your client: the URL and a signal                |
+| `AppStoreLookupOptions`  | type     | the app id, storefront, bundle id, name and `fetch`                    |
+| `AppStoreFetchContext`   | type     | what one lookup hands your client: the URL and a signal                |
 | `AppStoreLookupResponse` | type     | what your client resolves: the lookup's entries                        |
 | `AppStoreLookupEntry`    | type     | one result of Apple's lookup, with the fields the adapter reads        |
 | `AppStoreDocument`       | type     | the document the lookup source answers: one decision                   |

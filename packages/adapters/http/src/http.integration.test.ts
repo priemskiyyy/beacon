@@ -12,7 +12,7 @@ import { http } from "src/http";
 const createWebBeacon = () => {
   const backend = fakeBackend();
   const clock = createTestClock({ now: 1_000 });
-  const manifest = http({ name: "manifest", request: backend.request });
+  const manifest = http({ name: "manifest", fetch: backend.fetch });
 
   const web = targetRoute({
     subject: "web",
@@ -91,7 +91,7 @@ test("a not modified answer renews the offer the user was shown and moves its ex
     expiresAt: 1_201_000,
     freshness: "fresh",
   });
-  expect(backend.requests.map((request) => request.validator)).toEqual([
+  expect(backend.fetches.map((context) => context.validator)).toEqual([
     null,
     '"208"',
   ]);

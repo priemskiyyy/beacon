@@ -1,11 +1,11 @@
-import type { AppStoreLookupRequest } from "src/types/AppStoreLookupRequest";
+import type { AppStoreFetchContext } from "src/types/AppStoreFetchContext";
 import type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";
 
 /**
  * Options for `appStoreLookup()`. `appId` and `country` are the application's
  * own configuration: the storefront is never derived from the device, since a
  * device's physical country does not establish its account storefront.
- * `bundleId`, when given, must match the entry's. `request` is the
+ * `bundleId`, when given, must match the entry's. `fetch` is the
  * application's client call, which owns the transport and validates the
  * response.
  *
@@ -15,7 +15,7 @@ import type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";
  *   appId: "284882215",
  *   country: "de",
  *   bundleId: "com.example.notes",
- *   request: async ({ url, signal }) => parseLookup(await (await fetch(url, { signal })).json()),
+ *   fetch: async ({ url, signal }) => parseLookup(await (await fetch(url, { signal })).json()),
  * });
  * ```
  */
@@ -24,7 +24,7 @@ export type AppStoreLookupOptions = {
   country: string;
   bundleId?: string;
   name?: string;
-  request: (
-    request: AppStoreLookupRequest,
+  fetch: (
+    context: AppStoreFetchContext,
   ) => AppStoreLookupResponse | Promise<AppStoreLookupResponse>;
 };

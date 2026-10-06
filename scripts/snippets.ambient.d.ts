@@ -64,7 +64,7 @@ declare global {
   const resume: () => void;
   const parseManifest: (input: unknown) => WebDocument;
   const parseLookup: (input: unknown) => AppStoreLookupResponse;
-  const fetchManifest: (request: {
+  const fetchManifest: (options: {
     signal: AbortSignal;
     validator: string | null;
   }) => Promise<unknown>;

@@ -45,24 +45,10 @@ testVersionStrategy({
 
 testUpdateMechanism({
   name: "app-store-handoff",
-  create: () => {
-    const opened = { count: 0 };
-
-    const mechanism = appStoreHandoff({
+  create: () => ({
+    mechanism: appStoreHandoff({
       appId: APP_ID,
       linking: fakeLinking().linking,
-    });
-
-    return {
-      mechanism: {
-        ...mechanism,
-        open: () => {
-          opened.count += 1;
-
-          return mechanism.open();
-        },
-      },
-      opens: () => opened.count,
-    };
-  },
+    }),
+  }),
 });

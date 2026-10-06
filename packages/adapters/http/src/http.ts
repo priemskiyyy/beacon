@@ -20,7 +20,7 @@ import { toSourceRead } from "src/utils/toSourceRead";
  *
  * @example
  * ```ts
- * const manifest = http({
+ * const manifest = http<Manifest>({
  *   name: "release-manifest",
  *   fetch: ({ signal, validator }) => api.manifest({ signal, etag: validator }),
  * });

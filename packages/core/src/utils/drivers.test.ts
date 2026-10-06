@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { createMockSource } from "src/mock/createMockSource";
 import { createRoutedBeacon, settle } from "src/utils/Beacon.fixture";
@@ -300,4 +300,27 @@ test("LIFE-04 a driver that throws while it reconciles fails its route and leave
   expect(events).toContain("route-failed:broken:DRIVER_FAILED");
   expect(healthy.counts.opens).toBe(1);
   expect(beacon.route("healthy").native.get()).not.toBeNull();
+});
+
+test("LIFE-11 a driver whose dispose throws still gives its native manager back, so the next session opens", () => {
+  vi.useFakeTimers({ toFake: ["queueMicrotask"] });
+
+  const manager = {};
+
+  const context = createDriverBeacon(
+    { throwOnDispose: new Error("unsubscribe failed") },
+    manager,
+  );
+
+  context.beacon.start();
+  context.beacon.stop();
+
+  expect(() => vi.runAllTicks()).toThrow("unsubscribe failed");
+
+  context.beacon.start();
+
+  expect(context.counts.opens).toBe(2);
+  expect(context.ota.native.get()).not.toBeNull();
+
+  vi.useRealTimers();
 });

@@ -485,8 +485,13 @@ export class RouteRegistry {
       this.#commit((transaction) =>
         entry.record.installNative(transaction, null),
       );
-      opened.dispose?.();
-      release();
+
+      // The manager goes back even when the provider fails to let go of it.
+      try {
+        opened.dispose?.();
+      } finally {
+        release();
+      }
     });
 
     this.#reconcile(entry, opened, controller.signal);

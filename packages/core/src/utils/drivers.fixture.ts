@@ -30,6 +30,8 @@ type Script = {
   emitOnOpen: ObservationDraft<RouteBody> | null;
   /** Makes the first reconcile throw before it returns, as a provider that cannot read its local state does. */
   throwOnReconcile: Error | null;
+  /** Makes `dispose` throw, as a provider whose unsubscribe fails does. */
+  throwOnDispose: Error | null;
 };
 
 // A provider driver whose session, emitter and commands a test controls.
@@ -91,6 +93,14 @@ export const createFakeDriver = (
             }),
         dispose: () => {
           counts.disposals += 1;
+
+          const failure = script.throwOnDispose ?? null;
+
+          if (failure === null) {
+            return;
+          }
+
+          throw failure;
         },
       };
     },

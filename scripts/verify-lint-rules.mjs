@@ -50,7 +50,37 @@ const syntax = [
   ["type Value = ReadonlyArray<string>;", "no-restricted-syntax"],
   ['export * from "src/value";', "no-restricted-syntax"],
   [
+    "declare const values: number[]; values.filter(Boolean).map(String);",
+    "no-restricted-syntax",
+  ],
+  [
+    "declare const values: number[]; values.map(String).filter(Boolean);",
+    "no-restricted-syntax",
+  ],
+  [
+    "export const pick = (flag: boolean) => {\n  return flag ? 1 : 2;\n};",
+    "no-restricted-syntax",
+  ],
+  [
+    "export const pick = (flag: boolean) => (flag ? 1 : 2);",
+    "no-restricted-syntax",
+  ],
+  [
+    "export const run = (flag: boolean) => {\n  console.log(0);\n\n  if (flag) {\n    console.log(1);\n  }\n};",
+    "no-restricted-syntax",
+  ],
+  [
+    "export const run = (flags: boolean[]) => {\n  for (const flag of flags) {\n    console.log(0);\n\n    if (flag) {\n      console.log(1);\n    }\n  }\n};",
+    "no-restricted-syntax",
+  ],
+  [
     "declare const signal: { throwIfAborted: () => void }; signal.throwIfAborted();",
+    "no-restricted-syntax",
+  ],
+  ["const stop = AbortSignal.abort();", "no-restricted-syntax"],
+  ["const stop = AbortSignal.timeout(1_000);", "no-restricted-syntax"],
+  [
+    "declare const signal: { reason: string }; const reason = signal.reason;",
     "no-restricted-syntax",
   ],
   [
@@ -119,9 +149,12 @@ const boundaries = [
   ["const copy = structuredClone({});", "no-restricted-globals", CORE],
   ["const decoder = new TextDecoder();", "no-restricted-globals", ADAPTER],
   ["const encoder = new TextEncoder();", "no-restricted-globals", CORE],
-  ["const time = Date.now();", "no-restricted-properties", CORE],
-  ["const time = performance.now();", "no-restricted-properties", CORE],
-  ["const time = Date.now();", "no-restricted-properties", ADAPTER],
+  ["const time = Date.now();", "no-restricted-syntax", CORE],
+  ["const time = new Date();", "no-restricted-syntax", CORE],
+  ["const time = Date();", "no-restricted-syntax", CORE],
+  ["const time = performance.now();", "no-restricted-syntax", CORE],
+  ["const time = Date.now();", "no-restricted-syntax", ADAPTER],
+  ["const time = Date.now();", "no-restricted-syntax", REACT],
   [
     'export { value } from "src/value";',
     "no-restricted-syntax",
@@ -167,6 +200,15 @@ const allowed = [
   ],
   ["export const time = Date.now() + performance.now();", CLOCK],
   ["export const time = Date.now();", TEST],
+  ["export const at = new Date(1_000);", CORE],
+  [
+    "export const run = (flag: boolean) => {\n  if (!flag) {\n    return;\n  }\n\n  console.log(1);\n};",
+    CORE,
+  ],
+  [
+    "export const run = (flag: boolean) => {\n  if (flag) {\n    return 1;\n  }\n\n  return 2;\n};",
+    CORE,
+  ],
 ];
 
 const getRuleIds = async (code, filePath) => {

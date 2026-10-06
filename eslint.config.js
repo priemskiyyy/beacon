@@ -57,8 +57,44 @@ const bannedSyntax = toRestrictions([
   ],
   ["ExportAllDeclaration", "List public exports explicitly."],
   [
+    "CallExpression[callee.property.name='map'][callee.object.callee.property.name='filter']",
+    "Use one .flatMap() with early returns: return [] to skip, return [value] to keep.",
+  ],
+  [
+    "CallExpression[callee.property.name='filter'][callee.object.callee.property.name='map']",
+    "Use one .flatMap() with early returns: return [] to skip, return [value] to keep.",
+  ],
+  [
+    "ReturnStatement > ConditionalExpression",
+    "Return early from an if instead of returning a ternary.",
+  ],
+  [
+    "ArrowFunctionExpression > ConditionalExpression.body",
+    "Give the arrow a block that returns early from an if instead of a ternary body.",
+  ],
+  [
+    ":function > BlockStatement > IfStatement[alternate=null]:last-child",
+    "Guard, then work: write `if (!condition) { return; }` and do the work after it, instead of ending a function with an if block.",
+  ],
+  [
+    ":matches(ForStatement, ForOfStatement, ForInStatement, WhileStatement, DoWhileStatement) > BlockStatement > IfStatement[alternate=null]:last-child",
+    "Guard, then work: write `if (!condition) { continue; }` and do the work after it, instead of ending a loop body with an if block.",
+  ],
+  [
     "MemberExpression[property.name='throwIfAborted']",
-    "React Native's AbortSignal has no throwIfAborted. Check signal.aborted.",
+    "React Native's AbortSignal has no throwIfAborted(): check signal.aborted.",
+  ],
+  [
+    "MemberExpression[object.name='AbortSignal'][property.name=/^(abort|any|timeout)$/]",
+    "React Native's AbortSignal has no static abort(), any() or timeout(): use an AbortController.",
+  ],
+  [
+    "MemberExpression[property.name='reason'][object.property.name='signal']",
+    "React Native's AbortSignal has no reason: reject with an error of your own.",
+  ],
+  [
+    "MemberExpression[object.name='signal'][property.name='reason']",
+    "React Native's AbortSignal has no reason: reject with an error of your own.",
   ],
   [
     "MemberExpression[property.name='removeAllListeners']",
@@ -74,6 +110,24 @@ const reexports = toRestrictions([
   [
     "ExportNamedDeclaration[source]",
     "Keep explicit re-exports at public package entry points only.",
+  ],
+]);
+
+// Every instant is read from the Beacon clock, so tests control time and
+// suspension; only the system clock reads the host's time.
+const clockReads = toRestrictions([
+  [
+    "MemberExpression[object.name='Date'][property.name='now']",
+    "Read time from the Beacon clock.",
+  ],
+  [
+    "NewExpression[callee.name='Date'][arguments.length=0]",
+    "Read time from the Beacon clock.",
+  ],
+  ["CallExpression[callee.name='Date']", "Read time from the Beacon clock."],
+  [
+    "MemberExpression[object.name='performance'][property.name='now']",
+    "Read time from the Beacon clock.",
   ],
 ]);
 
@@ -131,8 +185,6 @@ const testRunners = {
   message: "Runtime code never imports a test runner.",
 };
 
-// Every duration is measured on the Beacon clock, so tests control time and
-// suspension; only the system clock reads the host's timers.
 const hostTimers = [
   "setTimeout",
   "clearTimeout",
@@ -163,18 +215,7 @@ const portableGlobals = [
   ["TextEncoder", "Encode explicitly; TextEncoder is missing on React Native."],
 ].map(([name, message]) => ({ name, message }));
 
-const clockReads = [
-  {
-    object: "Date",
-    property: "now",
-    message: "Read time from the Beacon clock.",
-  },
-  {
-    object: "performance",
-    property: "now",
-    message: "Read time from the Beacon clock.",
-  },
-];
+const packageSyntax = [...relativeImports, ...bannedSyntax, ...reexports];
 
 export default tseslint.config(
   {
@@ -232,17 +273,12 @@ export default tseslint.config(
     files: ["packages/**/src/**/*.{ts,tsx}"],
     ignores: entryPoints,
     rules: {
-      "no-restricted-syntax": [
-        "error",
-        ...relativeImports,
-        ...bannedSyntax,
-        ...reexports,
-      ],
+      "no-restricted-syntax": ["error", ...packageSyntax],
     },
   },
   {
     files: ["packages/core/src/**/*.ts"],
-    ignores: tests,
+    ignores: [...tests, ...entryPoints],
     rules: {
       ...restrictImports([react, sdks, testRunners]),
       "no-restricted-globals": [
@@ -251,7 +287,7 @@ export default tseslint.config(
         ...hostGlobals,
         ...portableGlobals,
       ],
-      "no-restricted-properties": ["error", ...clockReads],
+      "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
     },
   },
   {
@@ -259,26 +295,26 @@ export default tseslint.config(
     files: ["packages/core/src/utils/internal/clock/createSystemClock.ts"],
     rules: {
       "no-restricted-globals": ["error", ...hostGlobals, ...portableGlobals],
-      "no-restricted-properties": "off",
+      "no-restricted-syntax": ["error", ...packageSyntax],
     },
   },
   {
     files: ["packages/adapters/*/src/**/*.ts"],
-    ignores: tests,
+    ignores: [...tests, ...entryPoints],
     rules: {
       ...restrictImports([react, sdks, testRunners]),
       "no-restricted-globals": ["error", ...hostTimers, ...portableGlobals],
-      "no-restricted-properties": ["error", ...clockReads],
+      "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
     },
   },
   {
     // A binding reads Beacon's observables and never a provider SDK or the host's timers.
     files: ["packages/react/src/**/*.{ts,tsx}"],
-    ignores: tests,
+    ignores: [...tests, ...entryPoints],
     rules: {
       ...restrictImports([sdks, testRunners]),
       "no-restricted-globals": ["error", ...hostTimers, ...portableGlobals],
-      "no-restricted-properties": ["error", ...clockReads],
+      "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
     },
   },
   {

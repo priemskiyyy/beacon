@@ -35,16 +35,16 @@ The page walks through four sections, each with a "Try this" hint:
 
 ## How it fits together
 
-| File                                           | Role                                                                                                                                    |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `../shared/lab/createReleaseLab.ts`            | The scripted world, the controls, and one Beacon per document over the same journal.                                                    |
-| `../shared/lab/utils/createLabBeacon.ts`       | The Beacon: a `web` target route, the support policy over the same read, and the journal.                                               |
-| `../shared/lab/utils/createManifestSource.ts`  | The release service, over `createMockSource` from `@priemskiyyy/beacon/mock`.                                                           |
-| `../shared/lab/utils/createReloadMechanism.ts` | The `reload` command: it requests a navigation and returns a `reload-requested` receipt.                                                |
-| `src/beacon.ts`                                | Merges the lab's Beacon into `Register`, so `useRoute("web")` is typed and `useRoute("elsewhere")` does not compile.                    |
-| `src/Application.tsx`                          | Publishes the Beacon with `<BeaconProvider start>`, keyed by document, and asks for the startup check once the provider has started it. |
-| `../shared/formatting/`                        | Every state in words, matched exhaustively.                                                                                             |
-| `src/components/`                              | One folder per panel; the styles are the shared `cva` recipes.                                                                          |
+| File                                           | Role                                                                                                                                                        |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `../shared/lab/createReleaseLab.ts`            | The scripted world, the controls, and one Beacon per document over the same journal.                                                                        |
+| `../shared/lab/utils/createLabBeacon.ts`       | The Beacon: a `web` target route, the support policy over the same read, and the journal.                                                                   |
+| `../shared/lab/utils/createManifestSource.ts`  | The release service, over `createMockSource` from `@priemskiyyy/beacon/mock`.                                                                               |
+| `../shared/lab/utils/createReloadMechanism.ts` | The `reload` command: it requests a navigation and returns a `reload-requested` receipt.                                                                    |
+| `src/beacon.ts`                                | Merges the lab's Beacon into `Register`, so `useRoute("web")` is typed and `useRoute("elsewhere")` does not compile.                                        |
+| `src/Application.tsx`                          | Publishes the Beacon with `<BeaconProvider>`, which starts the session, keyed by document, and asks for the startup check once the provider has started it. |
+| `../shared/formatting/`                        | Every state in words, matched exhaustively.                                                                                                                 |
+| `src/components/`                              | One folder per panel; the styles are the shared `cva` recipes.                                                                                              |
 
 ## Automated tests
 

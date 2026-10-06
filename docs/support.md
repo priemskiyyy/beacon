@@ -13,12 +13,7 @@ Beacon does not decide it. You write the policy, Beacon evaluates it against wha
 `supportPolicy({ source, evaluate })` takes a view of a source's document and a pure function of that view and the running facts. The standard manifest of the [HTTP adapter](http.md) carries a denylist for this purpose, and the example reads it. A minimum build kept in Firebase Remote Config is read the same way: see [Firebase Remote Config](firebase-remote-config.md).
 
 ```ts
-import {
-  Beacon,
-  createBootId,
-  supportPolicy,
-  targetRoute,
-} from "@priemskiyyy/beacon";
+import { Beacon, supportPolicy, targetRoute } from "@priemskiyyy/beacon";
 import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
@@ -81,12 +76,10 @@ const policy = supportPolicy({
 export const beacon = new Beacon({
   scope,
   running: {
-    boot: { id: createBootId() },
     web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
-      subject: "web",
       source: manifest.select((document) => document.routes.web),
       mechanism: browserReload(),
     }),
@@ -211,58 +204,36 @@ console.info(
 
 ### A minimum native build
 
-A policy that reads the native build code must say what it does when the native fact is not there yet.
+`minimumBuild` is the forced upgrade as a policy: the binary that runs is `unsupported` when its build number is below the minimum a source names. It reads the `native` running fact, so the application needs a native reader, such as the one in [React Native](react-native.md#what-the-binary-is).
 
 ```ts
-import { createReleaseSource, supportPolicy } from "@priemskiyyy/beacon";
-import { integer } from "@priemskiyyy/beacon/versions";
-
-const build = integer();
+import { createReleaseSource, minimumBuild } from "@priemskiyyy/beacon";
 
 const catalog = createReleaseSource<{ minimumBuild: number }>({
   name: "support-catalog",
   read: async () => ({ document: { minimumBuild: 112 } }),
 });
 
-export const minimum = supportPolicy({
+export const minimum = minimumBuild({
   source: catalog.select((document) => document.minimumBuild),
-  evaluate: (minimumBuild, running) => {
-    const { native } = running;
-
-    if (native.state !== "known") {
-      return {
-        status: "unknown",
-        reasons: [{ code: "native-build-not-read", subject: "native" }],
-        remediation: [],
-      };
-    }
-
-    const code = native.release.raw.versionCode;
-
-    if (typeof code !== "number" && typeof code !== "string") {
-      return {
-        status: "unknown",
-        reasons: [{ code: "native-build-unreadable", subject: "native" }],
-        remediation: [],
-      };
-    }
-
-    if (
-      build.compare(build.parse(code), build.parse(minimumBuild)) === "older"
-    ) {
-      return {
-        status: "unsupported",
-        reasons: [{ code: "native-build-too-old", subject: "native" }],
-        remediation: [{ route: "binary", level: "required" }],
-      };
-    }
-
-    return { status: "supported", reasons: [], remediation: [] };
-  },
+  remediation: "binary",
 });
 ```
 
-A native fact that is `pending`, `unconfigured` or `failed` is unknown here, never a build below the minimum. A store's marketing version never satisfies a build-level minimum; see [App Store](app-store.md).
+The minimum is text or a number, such as a Remote Config parameter, and `remediation` names the route that sends an older build to the store, a route of the same Beacon, which a route it does not have fails to compile. Leave it out when the screen opens the store itself, and `level: "recommended"` makes that route a recommendation where `required` is the default. The verdict is one of these, and never a guess:
+
+| When                                                                                                                                       | Status        | Reason code               |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | ------------------------- |
+| the `native` fact is `pending`, `failed` or `unconfigured`                                                                                 | `unknown`     | `native-build-not-read`   |
+| its identity is unknown, is not named in `android-version-code` or `ios-build`, or is of another application than the `authority` you give | `unknown`     | `native-build-unreadable` |
+| the build is below the minimum                                                                                                             | `unsupported` | `native-build-too-old`    |
+| the build is at the minimum or above it                                                                                                    | `supported`   |                           |
+
+It reads the build from the identity of the release, which is the same on both platforms, and so is right for an iOS build number as well as for an Android version code. Both sides are compared as whole numbers with `integer()`, so a minimum or a build that is not one, such as a dotted `1.2.0`, fails the evaluation of the policy with `INVALID_VERSION`, and not the read of the source, which has succeeded: support is `unknown` with the reason `evaluation-failed` and the failure in `error`, or, when an earlier evaluation was valid, that one stays in force beside the error. `authority: scope.application` is for a reader of your own that does not check the application id itself: a binary of another application, such as Expo Go running your code, is then unknown and never a build below the minimum. A store's marketing version never satisfies a build-level minimum; see [App Store](app-store.md).
+
+The three words an identity's `domain` takes here, and in the readers and the sources that agree with them, are constants of the core: `ANDROID_VERSION_CODE_DOMAIN`, `IOS_BUILD_DOMAIN` and `WEB_ARTIFACT_DOMAIN`.
+
+The codes `native-build-not-read`, `native-build-unreadable` and `native-build-too-old` are named by `minimumBuild`, and, like `web-build-not-read` in the first policy above, are the names of a policy's verdicts. They are not reader reasons: a reader that could not read a build says `build-not-read` in the identity, and [Native build](native.md#what-it-reports) lists the reasons it has.
 
 ### A domain of your own
 

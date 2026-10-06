@@ -13,7 +13,7 @@ It is off by default. Without it, `beacon.transitions` says so, and nothing is c
 The journal keeps its record in storage you provide, as strings under keys. `keyValueJournalStorage` adapts any store with `getItem`, `setItem` and `removeItem`, which is what AsyncStorage, `expo-sqlite/kv-store`, `localStorage` and most stores have, and `browserStorage()` of `@priemskiyyy/beacon-browser` is that over the browser's web storage. [Choosing a storage](#choosing-a-storage) says which one to use.
 
 ```ts
-import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import {
   browserReload,
   browserStorage,
@@ -46,12 +46,10 @@ const manifest = http({
 export const beacon = new Beacon({
   scope,
   running: {
-    boot: { id: createBootId() },
     web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
-      subject: "web",
       source: manifest.select((document) => document.routes.web),
       mechanism: browserReload(),
     }),

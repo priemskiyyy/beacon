@@ -1,6 +1,6 @@
 # @priemskiyyy/beacon-google-play
 
-Google Play in-app updates as a [Beacon](../../core) route, over a native bridge you inject. Play owns eligibility, the flows and the version order; this adapter maps what it says and claims nothing as installed until a later boot shows the running build.
+Google Play for [Beacon](../../core), as two routes for two needs. `playStore` opens the Play Store page of your app, with no native code of your own. `googlePlay({ bridge })` maps Play's in-app updates, and **needs a native bridge you write**: no package ships one, and nothing has run it on a device. Play owns eligibility, the flows and the version order; this adapter maps what it says and claims nothing as installed until a later boot shows the running build.
 
 ## Installation
 
@@ -8,15 +8,41 @@ Google Play in-app updates as a [Beacon](../../core) route, over a native bridge
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play
 ```
 
-## Create a route
+## Open the store page
 
 ```ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
+import {
+  GOOGLE_PLAY_DISTRIBUTION,
+  playStore,
+} from "@priemskiyyy/beacon-google-play";
+import { Linking } from "react-native";
+
+const beacon = new Beacon({
+  scope: {
+    application: "com.example.notes",
+    environment: "production",
+    platform: "android",
+    distribution: GOOGLE_PLAY_DISTRIBUTION,
+  },
+  routes: {
+    store: playStore({ applicationId: "com.example.notes", linking: Linking }),
+  },
+});
+
+await beacon.route("store").openStore();
+```
+
+`openStore` opens `market://details?id=<applicationId>` and, where nothing handles it, the web page of the store. It has the shape the App Store route of [`@priemskiyyy/beacon-app-store`](../app-store) declares, so one route name and one call serve both stores. It answers only for the `google-play` distribution: for a scope that says another it is `unsupported` with the reason `other-distribution` and opens nothing. The route never offers an update, since nobody tells it what the store has.
+
+## In-app updates: needs a native bridge you write
+
+```ts
+import { Beacon } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
 
 const beacon = new Beacon({
   scope, // scope.application is the Android application id
-  running: { boot: { id: createBootId() } },
   routes: { binary: googlePlay({ bridge: playBridge }) },
 });
 ```
@@ -25,7 +51,7 @@ The running native release must be named the way Play names the offer: authority
 
 The bridge is an object over a small native module you own, or an audited existing one, that keeps the `PlayBridge` contract: `AppUpdateInfo`, the Activity and the result launcher stay native, every start reacquires fresh information (Play allows one use of it), and it rejects when no Activity is available. A native module cannot answer the function `addInstallListener` answers, so the object is a few lines of JavaScript over `NativeEventEmitter`; [the guide](../../../docs/google-play.md#the-bridge-in-react-native) has them.
 
-## What a check reports
+## What `googlePlay` reports
 
 | Play says                             | Route observation                                                                       |
 | ------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -36,7 +62,7 @@ The bridge is an object over a small native module you own, or an audited existi
 
 An update Play reports as already downloaded is prepared when the app starts, without any command.
 
-## Commands
+## `googlePlay` commands
 
 | Command    | Needs      | Impacts                                    | Receipt                  |
 | ---------- | ---------- | ------------------------------------------ | ------------------------ |

@@ -44,7 +44,7 @@ export const useUpdateChecks = () => {
 
 `checkOn` checks once each time a session opens, with no trigger to list for it, and then on the moments its triggers name. `foreground` alone is the smallest useful set: `checkOn(beacon, { triggers: [foreground({ appState: AppState })] })`.
 
-`checkOn` answers its stop, which is what `useEffect` wants back as a cleanup. Under Strict Mode the effect runs, stops and runs again, and one set of listeners is left. Call the hook below `BeaconProvider` with `start`: the session it opens is what installs the triggers, so the order of the two effects does not matter. [React Native](react-native.md#when-to-check) has the wiring of the whole app, and `@react-native-community/netinfo` is yours to install if you use `reconnect`.
+`checkOn` answers its stop, which is what `useEffect` wants back as a cleanup. Under Strict Mode the effect runs, stops and runs again, and one set of listeners is left. Call the hook below `BeaconProvider`: the session it opens is what installs the triggers, so the order of the two effects does not matter. [React Native](react-native.md#when-to-check) has the wiring of the whole app, and `@react-native-community/netinfo` is yours to install if you use `reconnect`.
 
 ## On the web
 
@@ -86,7 +86,7 @@ Both listen to the global `window`, reached when a session opens and never when 
 | `reachReconnect({ condition })`         | a Reach condition                         | the condition was unmet, and now is met                            | `reconnect`    |
 | `invalidation({ source })`              | anything with `subscribe(listener)`       | it says so; its payload is never read                              | `invalidation` |
 
-The first two pairs of rows are two imports: the React Native ones come from `@priemskiyyy/beacon-triggers` and the browser ones from `@priemskiyyy/beacon-triggers/browser`. The check at startup is not a trigger: each time a session opens, including the one `replaceScope` starts for a new scope, the gate checks once with the reason `startup`. Pass `startup: false` to `checkOn` where the first check belongs to something else. A retry and an expiry are labelled `interval`, since the core's `CheckReason` has no label for either.
+The first two pairs of rows are two imports: the React Native ones come from `@priemskiyyy/beacon-triggers` and the browser ones from `@priemskiyyy/beacon-triggers/browser`. The check at startup is not a trigger: each time a session opens, including the one `replaceScope` starts for a new scope, the gate checks once with the reason `startup`. Pass `startup: false` to `checkOn` where the first check belongs to something else. A check after a failure is labelled `retry`, and one because evidence expired `expiry`, so the diagnostics tell them from the timer's `interval`.
 
 ### foreground
 
@@ -206,7 +206,7 @@ export const stop = checkOn(beacon, {
 
 ### Freshness
 
-`whileFresh: "skip"` drops a `foreground` or `interval` signal while every route holds evidence that is fresh and can expire: its `expiresAt` is not `null`, and the authority has said the answer still holds. A startup, a reconnect and an invalidation are never skipped, since each says something changed. Evidence that never expires is never fresh, so a driver route, whose report has no `expiresAt`, always checks.
+`whileFresh: "skip"` drops a `foreground` or `interval` signal while every route holds evidence that is fresh and can expire: its `expiresAt` is not `null`, and the authority has said the answer still holds. A startup, a reconnect and an invalidation are never skipped, since each says something changed. Neither is a `retry`, which follows a check that failed to renew the answer, nor an `expiry`. Evidence that never expires is never fresh, so a driver route, whose report has no `expiresAt`, always checks.
 
 `onExpiry: true` checks when a route's evidence goes from fresh to expired. It hears the core's own change of the route's state at the authority's `expiresAt`, so it arms no timer of its own. Together, the two check when the authority said to, and on an event that says something changed.
 

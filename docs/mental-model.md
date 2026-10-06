@@ -41,7 +41,7 @@ A subject is a kind of code that can be executing. They update independently, so
 - A **feed route** takes offers from a release source and commands from an update mechanism. Make one with `targetRoute` or `newerRoute`. The source says what the authority wants, `select` compares it with what runs, and the mechanism carries the commands.
 - A **driver route** belongs to a provider that owns both the question and the answer: Expo Updates, Google Play, a service worker. Adapters return one, and it goes into `routes` as it is.
 
-Each route compares against one subject. A route's methods come from its commands, so `browserReload()` gives `route.reload`, and `expoUpdates` gives `route.download` and `route.reload`. See [routes](routes.md).
+Each route compares against one subject: a feed route against the subject its mechanism names (`browserReload()` replaces the document, so it is `web`, and `appStoreHandoff` opens the store for the binary, so it is `native`), and a driver route against the subject its provider replaces. A route's methods come from its commands, so `browserReload()` gives `route.reload`, and `expoUpdates` gives `route.download` and `route.reload`. See [routes](routes.md).
 
 ## Decisions
 
@@ -59,14 +59,16 @@ A release has an **identity**: `{ status: "known", authority, domain, value }`, 
 
 ## Running facts
 
-`running` holds one local reader per subject. A reader looks at the build, the native module or the browser, never at a remote manifest, so no remote answer can rewrite what runs.
+`running` holds one local reader per subject. A reader looks at the build, the native module or the browser, never at a remote manifest, so no remote answer can rewrite what runs. It is given the scope of the read, `{ scope }`, so it can name the authority and the platform of the build without the application repeating them, and after `replaceScope` it is given the new scope. A function with no parameter is a reader too.
 
-| State          | Meaning                                                    |
-| -------------- | ---------------------------------------------------------- |
-| `unconfigured` | no reader was passed for this subject                      |
-| `pending`      | a reader exists and has not answered yet                   |
-| `known`        | the reader answered: a release and when it was read        |
-| `failed`       | the reader threw, rejected or took too long: an error info |
+A feed route compares an offer with what its subject runs, so `new Beacon` throws for a feed route whose subject has no reader: it could never offer anything. A driver route needs none, and may offer the default reader of its own subject, used only when you pass none: the reader is local like any other, the driver never writes a fact, and the reader you pass always wins. The boot id is optional: every Beacon of one JavaScript runtime shares one that Beacon mints, and `running.boot` is there to choose it.
+
+| State          | Meaning                                                       |
+| -------------- | ------------------------------------------------------------- |
+| `unconfigured` | no reader was passed for this subject, and no route needs one |
+| `pending`      | a reader exists and has not answered yet                      |
+| `known`        | the reader answered: a release and when it was read           |
+| `failed`       | the reader threw, rejected or took too long: an error info    |
 
 A subject that is not `known` is never read as an old version. A route compared against it says `inconclusive`.
 

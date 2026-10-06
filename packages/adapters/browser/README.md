@@ -22,7 +22,6 @@ import {
 declare const BUILD_ID: string;
 
 const web = targetRoute({
-  subject: "web",
   source: manifest.select((document) => document.web),
   mechanism: browserReload(),
 });
@@ -30,7 +29,6 @@ const web = targetRoute({
 const beacon = new Beacon({
   scope,
   running: {
-    boot: { id: BOOT_ID },
     web: webBuild({ authority: scope.application, id: BUILD_ID }),
   },
   routes: { web },

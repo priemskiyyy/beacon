@@ -165,7 +165,6 @@ const manifest = http({
 });
 
 export const web = targetRoute({
-  subject: "web",
   source: manifest.select((document) => document.routes.web),
   mechanism: browserReload(),
 });

@@ -12,10 +12,10 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-browser
 
 ## Create a route
 
-`browserReload()` is a mechanism, so it goes into a feed route. The source says what the deployment should run, and the mechanism carries the reload.
+`browserReload()` is a mechanism, so it goes into a feed route. The source says what the deployment should run, and the mechanism carries the reload. It names the `web` subject, so the route compares the offer with the `web` reader.
 
 ```ts
-import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   ReleaseSource,
@@ -34,12 +34,10 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    boot: { id: createBootId() },
     web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
-      subject: "web",
       source: manifest.select((document) => document.web),
       mechanism: browserReload(),
     }),

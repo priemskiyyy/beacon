@@ -33,11 +33,11 @@ The page walks through four sections, each with a "Try this" hint:
 
 | Utility                    | Where                                                                                                      |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `BeaconProvider`           | `src/Application.svelte`, keyed by document so a boot is a new tree, with `start`.                         |
+| `BeaconProvider`           | `src/Application.svelte`, keyed by document so a boot is a new tree, which starts the session.             |
 | `useRoute("web", select)`  | The route panel and the update banner read the check, the observation and the operation, each on its own.  |
 | `useRunning`, `useSupport` | The application panel and the banner.                                                                      |
 | `useTransitions`           | The transitions panel.                                                                                     |
-| `useStatus`                | The header and the route panel.                                                                            |
+| `useBeaconStatus`          | The header and the route panel.                                                                            |
 | `useDisruption`            | The simulation panel registers a participant that refuses a reload while the draft it shows is unsaved.    |
 | `useBeacon`                | `route("web").reload({ offer })`, `acknowledge()`, `reportReady()` and `clearJournal()` through `current`. |
 | `useObservable`            | The lab's world, draft and boot, and Beacon's diagnostics counters.                                        |

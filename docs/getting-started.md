@@ -60,7 +60,7 @@ One Beacon serves the whole application, so create it in a module of its own.
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
@@ -93,12 +93,10 @@ const manifest = http({
 export const beacon = new Beacon({
   scope,
   running: {
-    boot: { id: createBootId() },
     web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
-      subject: "web",
       source: manifest.select((document) => document.routes.web),
       mechanism: browserReload(),
     }),
@@ -116,7 +114,7 @@ Read it from the top.
 
 - **`scope`** says who the manifest must speak for. A manifest for another environment is refused whole.
 - **`request`** is your client call. It fetches, sends the validator back as `If-None-Match`, and lets `readStandardManifest` turn the response into a validated document. Beacon makes no request of its own.
-- **`boot.id`** names this document. It is minted once per page load, never per build, so the journal can tell one boot from the next. `createBootId()` makes one on every engine, Hermes included, which has no `crypto.randomUUID` without a polyfill.
+- **The boot id** names this document. It is minted once per page load, never per build, so the journal can tell one boot from the next, and Beacon mints it for you, once for the JavaScript runtime, however many Beacons it makes. Pass `running: { boot: { id } }` only to choose it, as a test does.
 - **`running.web`** reads what executes now, from the build and never from the manifest. `webBuild` names the build under your application as authority and the domain `web-artifact`, which is what the manifest's release says, and a build id the bundler never injected is unknown and never a build named `undefined`.
 - **`targetRoute`** offers the release the manifest names when it is a different, comparable release from the one running.
 - **`Register`** tells the React hooks which Beacon you have, so `useRoute("web")` is checked and typed.
@@ -140,13 +138,13 @@ if (container === null) {
 }
 
 createRoot(container).render(
-  <BeaconProvider beacon={beacon} start>
+  <BeaconProvider beacon={beacon}>
     <App />
   </BeaconProvider>,
 );
 ```
 
-With `start`, the provider opens the observation session while it is mounted. That reads the running facts and opens the browser mechanism. It checks nothing and fetches nothing.
+The provider opens the observation session while it is mounted, and ends it when it unmounts. That reads the running facts and opens the browser mechanism. It checks nothing and fetches nothing. `start={false}` leaves the session to you.
 
 ### 4. Check
 
@@ -240,7 +238,7 @@ Expo Updates decides eligibility, fetches assets and picks what starts next. The
 
 ```ts
 // src/beacon.native.ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import { expoApplication } from "@priemskiyyy/beacon-native";
 import * as Application from "expo-application";
@@ -256,8 +254,7 @@ export const beacon = new Beacon({
     distribution: "app-store",
   },
   running: {
-    boot: { id: createBootId() },
-    bundle: expoBundle(Updates),
+    bundle: expoBundle({ updates: Updates }),
     native: expoApplication({
       application: Application,
       platform: Platform.OS === "ios" ? "ios" : "android",
@@ -270,7 +267,7 @@ export const beacon = new Beacon({
 
 `expoBundle` reads the update that launched. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`. `expoApplication` reads the installed binary, its version code on Android or its build number on iOS, in the words the store adapters and the journal compare in, and a binary of another application, such as Expo Go, is unknown and never your build.
 
-Start the session at bootstrap, check when the app starts (`checkOn` does that by itself) and when it returns from the background, and apply an update in two commands: `download` prepares it and `reload` restarts the runtime with it.
+Start the session at bootstrap and check when the app starts (`checkOn` does that by itself) and when it returns from the background.
 
 ```ts
 // src/updates.ts
@@ -292,34 +289,19 @@ export const startUpdates = () => {
     stop();
   };
 };
-
-export const applyUpdate = async () => {
-  const route = beacon.route("ota");
-  const { observation } = route.state.get();
-
-  if (observation.status !== "available") {
-    return "nothing-on-offer";
-  }
-
-  const download = await route.download({ offer: observation.offer.ref });
-
-  if (download.status !== "accepted") {
-    return download.status;
-  }
-
-  const { prepared } = route.state.get();
-
-  if (prepared.status !== "ready") {
-    return "nothing-prepared";
-  }
-
-  const restart = await route.reload({ prepared: prepared.value.ref });
-
-  return restart.status;
-};
 ```
 
-`download` fetches the provider's current selection, which can differ from the update you were shown. Its receipt says `same`, `different` or `unknown`, and a different update gets a prepared reference of its own. `reload` takes that prepared reference and restarts the JavaScript runtime. No code after it is guaranteed to run, and the route stays unresolved until `route.acknowledge()`.
+An update is applied in two commands: `download` prepares it and `reload` restarts the runtime with it. `applyUpdate` of the Expo package runs both, in that order, for the banner's button, and answers where it stopped.
+
+```ts
+import { applyUpdate } from "@priemskiyyy/beacon-expo";
+
+import { beacon } from "src/beacon.native";
+
+export const update = () => applyUpdate(beacon.route("ota"));
+```
+
+`download` fetches the provider's current selection, which can differ from the update you were shown. Its receipt says `same`, `different` or `unknown`, and the `reload` step of the answer carries it. `reload` takes the prepared reference and restarts the JavaScript runtime. No code after it is guaranteed to run, and the route stays unresolved until `route.acknowledge()`. [Expo](expo.md#apply-an-update) says what each step of the answer means.
 
 The React hooks work the same way as above. Register the Beacon in the same fashion, and read the route by its name with `useRoute("ota")`. [React Native](react-native.md) is the whole path for a device: the provider, Fast Refresh, what a reload keeps, guarding unsaved input and what no device has run.
 

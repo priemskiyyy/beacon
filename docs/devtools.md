@@ -1,10 +1,14 @@
 ---
-description: "The Beacon devtools: an inspector for the session, the routes, what runs, support, the journal and the diagnostic events, with a React wrapper."
+description: "The Beacon devtools, for the web: an inspector for the session, the routes, what runs, support, the journal and the diagnostic events, with a React wrapper."
 ---
 
 # Devtools
 
 `@priemskiyyy/beacon-devtools` is an inspector for one Beacon. It shows where the session stands, what every route observed and on what evidence, what is running, whether it is supported, what the journal knows, and a timeline of the diagnostic events. It is framework independent: it renders inside a shadow root, so your styles never leak in or out, and it bundles its own Solid runtime, so you install nothing else. A React wrapper reads the Beacon from the provider.
+
+::: warning Web only
+The inspector renders into a DOM element and keeps its state in `localStorage`, so it runs in a browser and not in React Native, where there is no DOM to mount it into. In a React Native app, log the diagnostic events instead: [Seeing failures in development](react-native.md#seeing-failures-in-development).
+:::
 
 ```sh
 pnpm add -D @priemskiyyy/beacon-devtools
@@ -29,7 +33,7 @@ const Root = ({
   children,
   isDevelopment,
 }: PropsWithChildren<{ isDevelopment: boolean }>) => (
-  <BeaconProvider beacon={beacon} start>
+  <BeaconProvider beacon={beacon}>
     {children}
     {isDevelopment ? <BeaconDevtools initialIsOpen /> : null}
   </BeaconProvider>

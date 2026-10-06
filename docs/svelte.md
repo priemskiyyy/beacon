@@ -4,7 +4,7 @@ description: "Use Beacon from Svelte 5: register your Beacon, publish it with Be
 
 # Svelte
 
-`@priemskiyyy/beacon-svelte` is a provider and a set of utilities for Svelte 5. Each utility returns an object whose `current` property holds the value. Reading never starts a session, checks a route or requests a command. Those stay explicit, so a component that reads a route can be rendered anywhere without a side effect.
+`@priemskiyyy/beacon-svelte` is a provider and a set of utilities for Svelte 5. Each utility returns an object whose `current` property holds the value. The provider holds the observation session while it is mounted, and reading never starts one, checks a route or requests a command. Checks and commands stay explicit, so a component that reads a route can be rendered anywhere without a side effect.
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-svelte
@@ -18,13 +18,13 @@ Register it once, next to where you create it. Every utility then knows the name
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   ReleaseSource,
   TargetDecision,
 } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
@@ -39,21 +39,10 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      boot: { id: createBootId() },
-      web: () => ({
-        identity: {
-          status: "known",
-          authority: "com.example.notes",
-          domain: "web-artifact",
-          value: __BUILD_ID__,
-        },
-        label: __BUILD_ID__,
-        raw: {},
-      }),
+      web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: manifest.select((document) => document.web),
         mechanism: browserReload(),
       }),
@@ -69,11 +58,11 @@ declare module "@priemskiyyy/beacon-svelte" {
 }
 ```
 
-`Register` is an interface so that you can merge into it. Without it, utilities accept any route name and give a loosely typed state, and a Beacon with named routes does not fit the `beacon` prop of `BeaconProvider`, so register.
+Without it, the provider still takes your Beacon and the utilities that name no route (`useBeaconStatus`, `useRunning`, `useSupport`, `useTransitions`, `useDisruption`) work, but a utility that takes a route name fails to compile with the fix as the type it expected: `Register your Beacon: declare module "@priemskiyyy/beacon-svelte" { interface Register { beacon: typeof beacon } }`. `Register` is an interface so that you can merge into it.
 
 ## BeaconProvider
 
-Publish the Beacon once, near the root. The provider is a component. It takes the Beacon and `start` as props and renders its children.
+Publish the Beacon once, near the root. The provider is a component. It takes the Beacon and `start` as props, starts the session, and renders its children.
 
 ```svelte
 <!-- src/Root.svelte -->
@@ -83,17 +72,17 @@ Publish the Beacon once, near the root. The provider is a component. It takes th
 
   import App from "src/App.svelte";
 
-  type Props = { beacon: RegisteredBeacon; start?: boolean };
+  type Props = { beacon: RegisteredBeacon };
 
-  const { beacon, start = false }: Props = $props();
+  const { beacon }: Props = $props();
 </script>
 
-<BeaconProvider {beacon} {start}>
+<BeaconProvider {beacon}>
   <App />
 </BeaconProvider>
 ```
 
-The root takes the Beacon as a prop, so the server and the browser share it and differ only in the Beacon they pass and in `start`.
+The root takes the Beacon as a prop, so the server and the browser share it and differ only in the Beacon they pass.
 
 ```ts
 // src/main.ts
@@ -108,18 +97,18 @@ if (target === null) {
   throw new Error("The page has no #app element.");
 }
 
-mount(Root, { target, props: { beacon, start: true } });
+mount(Root, { target, props: { beacon } });
 ```
 
-| Prop       | Meaning                                                                                      |
-| ---------- | -------------------------------------------------------------------------------------------- |
-| `beacon`   | the registered Beacon to publish to the components below                                     |
-| `start`    | `false` by default. When set, the provider holds the observation session while it is mounted |
-| `children` | the content that reads the Beacon                                                            |
+| Prop       | Meaning                                                                                                              |
+| ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| `beacon`   | the registered Beacon to publish to the components below                                                             |
+| `start`    | `true` by default: the provider holds the observation session while it is mounted. `false` leaves the session to you |
+| `children` | the content that reads the Beacon                                                                                    |
 
-With `start`, a pre effect calls `beacon.start()` and returns its stop as the cleanup. When the provider is destroyed, that ends only that session. It never disposes the Beacon, and it checks nothing. The effect reads both props, so a new `beacon` or `start` ends the old session first, and starts a new one when `start` is still set.
+The provider owns the session. A pre effect calls `beacon.start()` and returns its stop as the cleanup. When the provider is destroyed, that ends only that session. It never disposes the Beacon, and it checks nothing. The effect reads both props, so a new `beacon` or `start` ends the old session first, and starts a new one unless `start` is `false`.
 
-Give `start` to one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider with `start` on the same Beacon shares that session, and the first of them to unmount ends it for both.
+Pass `start={false}` when something else owns the session, such as a service of yours that calls `beacon.start()` itself: the provider then publishes the Beacon and starts and stops nothing. Mount one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
 A pre effect runs before the effects of the children. The session therefore starts before any child's `onMount`, and a check there does not fail with `NOT_STARTED`. Checks are yours:
 
@@ -154,16 +143,16 @@ A pre effect runs before the effects of the children. The session therefore star
 
 Call a utility while a component initializes, as you would call `getContext`, and not in an event handler or an effect. Each one returns a `ReadableValue`: read `current` in a template, in a `$derived` or in an `$effect`, and Svelte tracks the read. You read it and never write it.
 
-| Utility          | Reads                                                                                                                 |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `useRoute`       | a route's state by its name, optionally selected, with the types of its own offer and prepared target                 |
-| `useRunning`     | what is running per subject. A subject that is not read yet is pending, never an old version                          |
-| `useSupport`     | what the support policy says about what runs                                                                          |
-| `useTransitions` | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints            |
-| `useStatus`      | where the session stands: idle, running, stopped or disposed                                                          |
-| `useObservable`  | any other observable of Beacon, such as `beacon.current.route("web").native`                                          |
-| `useDisruption`  | registers a participant while mounted; Beacon asks it as it is, so its closures read your state                       |
-| `useBeacon`      | the provider's Beacon through `current`, for commands (`reload`, `activate`, `download` and the rest) and for `check` |
+| Utility           | Reads                                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `useRoute`        | a route's state by its name, optionally selected, with the types of its own offer and prepared target                 |
+| `useRunning`      | what is running per subject. A subject that is not read yet is pending, never an old version                          |
+| `useSupport`      | what the support policy says about what runs                                                                          |
+| `useTransitions`  | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints            |
+| `useBeaconStatus` | where the session stands: idle, running, stopped or disposed                                                          |
+| `useObservable`   | any other observable of Beacon, such as `beacon.current.route("web").native`                                          |
+| `useDisruption`   | registers a participant while mounted; Beacon asks it as it is, so its closures read your state                       |
+| `useBeacon`       | the provider's Beacon through `current`, for commands (`reload`, `activate`, `download` and the rest) and for `check` |
 
 ### Selectors
 
@@ -175,14 +164,14 @@ Every reading utility takes a selector and an options object: `useRoute(name, se
   import {
     useRoute,
     useRunning,
-    useStatus,
+    useBeaconStatus,
     useSupport,
     useTransitions,
   } from "@priemskiyyy/beacon-svelte";
 
   const checking = useRoute("web", ({ check }) => check.state === "checking");
   const web = useRunning(({ web }) => web);
-  const active = useStatus(({ state }) => state === "running");
+  const active = useBeaconStatus(({ state }) => state === "running");
   const unsupported = useSupport(({ status }) => status === "unsupported");
   const exhausted = useTransitions(({ latest }) => latest?.exhausted === true);
 
@@ -253,10 +242,10 @@ Until the component is mounted, `current` holds the value from before any sessio
 ```svelte
 <!-- src/SessionLabel.svelte -->
 <script lang="ts">
-  import { useBeacon, useStatus } from "@priemskiyyy/beacon-svelte";
+  import { useBeacon, useBeaconStatus } from "@priemskiyyy/beacon-svelte";
 
   const beacon = useBeacon();
-  const state = useStatus(({ state }) => state);
+  const state = useBeaconStatus(({ state }) => state);
 
   // Written after the utility, so both come from the same Beacon.
   $effect(() => {
@@ -327,7 +316,7 @@ A command is an action, so it belongs in an event handler. Take the Beacon with 
 {/if}
 ```
 
-`useBeacon` returns the provider's Beacon through `current`, typed by the one you registered, and it follows a new one. It throws a `BeaconError` with `INVALID_CONFIGURATION` when no provider is above it, and so does every utility that reads the provider's Beacon.
+`useBeacon` returns the provider's Beacon through `current`, typed by the one you registered, and it follows a new one. It throws a `BeaconError` with `INVALID_CONFIGURATION` when no provider is above it, and so does every utility that reads the provider's Beacon: the message names the utility you called and the package that has the provider, such as `useRoute needs a BeaconProvider (from @priemskiyyy/beacon-svelte) above it.`
 
 ### Other observables
 
@@ -408,7 +397,7 @@ A reservation a component holds stays valid after the component is destroyed, as
 
 ## Testing
 
-Mount the component under `BeaconProvider` with a real Beacon over the mock source and the test clock, and drive it the way [the testing guide](testing.md) does: answer, check, advance. Reading in a utility never starts a session, so start the Beacon in the test, or pass `start` to the provider. The root component above takes the Beacon as a prop for this reason.
+Mount the component under `BeaconProvider` with a real Beacon over the mock source and the test clock, and drive it the way [the testing guide](testing.md) does: answer, check, advance. Reading in a utility never starts a session, but the provider does, so a Beacon mounted under it is running. Give the provider `start={false}` in a test that opens the session itself. The root component above takes the Beacon as a prop for this reason.
 
 - Compile the tests with the Svelte plugin of Vite, and resolve the `browser` condition so that you get the client build of Svelte, where effects run. Test a server render in a Node environment without that condition.
 - Call `flushSync()` after `mount` and after a change. The utilities subscribe in an effect, and the provider starts the session in a pre effect, and both run on that flush.
@@ -458,7 +447,6 @@ export const createTestBeacon = () => {
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: mock.source.select((document) => document.web),
         mechanism: browserReload({
           target: { location: { reload: () => {} } },
@@ -486,7 +474,7 @@ test("the banner offers the update once a check finds one", async () => {
 
   mock.answer({ document: deploy("web-build-b") });
 
-  const app = mount(Root, { target, props: { beacon, start: true } });
+  const app = mount(Root, { target, props: { beacon } });
 
   flushSync();
   await beacon.check();
@@ -503,8 +491,8 @@ test("the banner offers the update once a check finds one", async () => {
 The server and the hydrating render read every observable as it stood before any session, through `getInitial`. On the server that is what `render` prints: the route is `unknown` with `not-checked`, and what runs is `pending`. The markup therefore matches whatever the client has learned by the time it hydrates, even when a boundary hydrates late and the live state has moved on. The live value is read right after mount.
 
 - Design the first render for `unknown` and `pending`: show nothing until the observation is `available`.
-- Start the Beacon through the provider, and not before the hydrating render. The provider starts it in a pre effect, before its children mount, so a check in a component's `onMount` does not fail with `NOT_STARTED`.
-- Effects never run on the server, so a server render starts nothing, reads nothing and registers no participant. Create the Beacon for each request, and never start it on the server, so that two requests never share a session or a state. In SvelteKit, that means creating it in the script of the root layout, which runs for each request on the server and once in the browser.
+- Let the provider start the Beacon, and not before the hydrating render. It starts it in a pre effect, before its children mount, so a check in a component's `onMount` does not fail with `NOT_STARTED`.
+- Effects never run on the server, so a server render starts nothing, reads nothing and registers no participant. The provider starts no session on the server. Create the Beacon for each request, and never start it yourself on the server, so that two requests never share a session or a state. In SvelteKit, that means creating it in the script of the root layout, which runs for each request on the server and once in the browser.
 
 ```ts
 // src/render.ts
@@ -521,7 +509,7 @@ export const renderOnTheServer = () => {
 };
 
 export const hydrateOnTheClient = (target: HTMLElement) =>
-  hydrate(Root, { target, props: { beacon, start: true } });
+  hydrate(Root, { target, props: { beacon } });
 ```
 
 `render` from `svelte/server` is lazy. The component runs when you read `body` or `head`, or when you await the result. A check of the Beacon made right after `render(...)` and before that read sees a component that has not run yet, so read the result first, then assert or log what the render did.

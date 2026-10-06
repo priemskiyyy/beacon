@@ -17,10 +17,10 @@ The page has the four sections of the React app, each with a "Try this" hint, an
 | Where                                    | What it shows                                                                                                                                                   |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/beacon.ts`                          | Merges the lab's Beacon into `Register`, so `useRoute("web")` is typed and `useRoute("elsewhere")` does not compile.                                            |
-| `src/Application.tsx`                    | `<BeaconProvider beacon start>` under a keyed `Show`, so a new document is a new tree, as a page load would be.                                                 |
+| `src/Application.tsx`                    | `<BeaconProvider beacon>`, which starts the session, under a keyed `Show`, so a new document is a new tree, as a page load would be.                            |
 | `src/components/Document/Document.tsx`   | The startup check, asked through `useBeacon` from `onMount`, once the provider has started the session.                                                         |
 | `src/components/Banner/UpdateBanner.tsx` | `useRoute("web", selector)` for the check, the observation and the operation, `useSupport`, and `useBeacon` for `route("web").reload({ offer })` and `check()`. |
-| `src/components/Status/`                 | `useStatus`, `useRoute`, `useRunning` with selectors, and `useObservable` on the diagnostics.                                                                   |
+| `src/components/Status/`                 | `useBeaconStatus`, `useRoute`, `useRunning` with selectors, and `useObservable` on the diagnostics.                                                             |
 | `src/components/Transitions/`            | `useTransitions` with a selector per fact, and `reportReady` and `clearJournal` through `useBeacon`.                                                            |
 
 ## How it differs from the React app

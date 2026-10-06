@@ -6,9 +6,10 @@ description: "Test Beacon without a browser or a device: the mock source and the
 
 Everything Beacon does runs in process against fakes, so your tests do too. No browser, no device and no network is needed. Time is a clock you move, and a read is a promise you settle.
 
-Two subpaths help:
+Three subpaths help:
 
 - `@priemskiyyy/beacon/mock` has `createMockSource`, `createTestClock`, `createMockJournalStorage`, and `createGate` and `settle` for faking a provider that answers later.
+- `@priemskiyyy/beacon-expo/mock` has `createFakeUpdates`, a fake `expo-updates` module, for your tests and for seeing a banner in Expo Go. See [testing in an Expo app](#testing-in-an-expo-app).
 - `@priemskiyyy/beacon/testing` has the conformance suites for adapters. They need `vitest`, an optional peer dependency. See [custom adapters](custom-adapters.md#prove-it).
 
 ## The mock source
@@ -104,7 +105,6 @@ export const createTestBeacon = (
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: mock.source.select((document) => document.web),
         mechanism: browserReload({ target }),
       }),
@@ -341,14 +341,15 @@ A storage of your own is held to its contract by `testJournalStorage`, as `brows
 
 ## A running reader
 
-A reader answers what runs, and the journal compares what it answers exactly: a space after a build number is a build that never matches itself. `testRunningReader({ name, create, situations })` holds a reader to the contract over a fake of its host.
+A reader answers what runs, and the journal compares what it answers exactly: a space after a build number is a build that never matches itself. `testRunningReader({ name, create, scope, situations })` holds a reader to the contract over a fake of its host.
 
 - **Cold.** Creating it asks the host for nothing, and reading it does. Give `reads` from the fixture, the number of times the reader asked its host, and the suite checks both. A reader over a constant has no host to count and leaves it out.
 - **A release Beacon can publish.** A known identity has an authority, a domain and a value that are not empty and have no space around them, and an unknown one says why. The label is null or a text, and `raw` holds texts, numbers, booleans and null that survive a copy.
 - **The same on every read.** The same state answers the same release each time, and a reader can be read again.
 - **Never a throw.** A reader that cannot read says so by answering an unknown identity, or by rejecting, which Beacon publishes as a failed fact. Beacon survives a reader that throws, and the suite still fails it, since a throw is neither answer.
+- **Under the scope it is given.** Every read is given a frozen `{ scope }`, as Beacon gives one, so a reader that changes it fails. Pass `scope` when the answer depends on it, such as a reader that takes the authority or the platform from it.
 
-`situations` are the other states of the host, such as one that cannot name the build. Each says what the reader must answer in it: `known`, `unknown` or `rejection`.
+`situations` are the other states of the host, such as one that cannot name the build. Each says what the reader must answer in it: `known`, `unknown` or `rejection`, and gives a `scope` of its own when the scope is what makes the host unable to name the build.
 
 ```ts
 import { testRunningReader } from "@priemskiyyy/beacon/testing";
@@ -383,7 +384,7 @@ const createHost = (updateId: string | null) => {
     },
   });
 
-  return { reader: expoBundle(counted), reads: () => host.asked };
+  return { reader: expoBundle({ updates: counted }), reads: () => host.asked };
 };
 
 testRunningReader({
@@ -443,7 +444,7 @@ test("a draft that cannot be saved blocks the reload, and the platform is never 
 
 ## Faking a provider
 
-An adapter takes the SDK as an argument, typed structurally, so a fake is an object of the same shape. Expo Updates:
+An adapter takes the SDK as an argument, typed structurally, so a fake is an object of the same shape. For Expo Updates the package has one, `createFakeUpdates` of `@priemskiyyy/beacon-expo/mock`, [below](#testing-in-an-expo-app). A fake of your own is the same object written out, which is how a test counts what the route asked of it:
 
 ```ts
 import { Beacon } from "@priemskiyyy/beacon";
@@ -491,7 +492,6 @@ test("an update is checked, downloaded and then restarted with what was prepared
       platform: "android",
       distribution: "store",
     },
-    running: { boot: { id: "boot-1" } },
     routes: { ota: expoUpdates({ updates }) },
     clock: createTestClock(),
   });
@@ -573,10 +573,72 @@ test("a fake that waits at a gate answers only when the test releases it", async
 
 A test with a fake proves how Beacon maps a native result. It never proves that a Play update installed, that a service worker activated or that an Expo update launched. See [limits](limits.md).
 
+## Testing in an Expo app
+
+An Expo app runs its tests under Jest, and `jest-expo` does not compile what is in `node_modules` unless it is told to. Beacon's packages are ES modules, so a test that imports one fails with `SyntaxError: Cannot use import statement outside a module` until the preset's pattern lets `@priemskiyyy` through. Add it to the pattern the preset has:
+
+```js
+// jest.config.cjs
+const preset = require("jest-expo/jest-preset");
+
+module.exports = {
+  preset: "jest-expo",
+  transformIgnorePatterns: [
+    preset.transformIgnorePatterns[0].replace("(?!(", "(?!(@priemskiyyy|"),
+    ...preset.transformIgnorePatterns.slice(1),
+  ],
+};
+```
+
+`jest-expo` 57 also asks for `@react-native/jest-preset`, at the version of your React Native, as a peer. The mock entry of the core has no test-runner import, so `createMockSource`, `createTestClock` and `createGate` run under Jest as they do under Vitest. The conformance suites of `@priemskiyyy/beacon/testing` are Vitest's and stay there.
+
+`createFakeUpdates({ available?, disabled? })` is a fake `expo-updates` module that goes where the real one goes: with `available` the server has one update, which a check offers and a fetch downloads, and with `disabled` updates are off, as in Expo Go. Its `calls` counts what the route asked of it, and `applyUpdate` runs the two commands of a banner's button.
+
+<!-- snippet: fragment -->
+
+```ts
+// tests/updates.test.ts
+import { Beacon } from "@priemskiyyy/beacon";
+import { createTestClock } from "@priemskiyyy/beacon/mock";
+import { applyUpdate, expoUpdates } from "@priemskiyyy/beacon-expo";
+import { createFakeUpdates } from "@priemskiyyy/beacon-expo/mock";
+
+test("an update is checked, downloaded and then restarted with what was prepared", async () => {
+  const updates = createFakeUpdates({ available: true });
+
+  const beacon = new Beacon({
+    scope: {
+      application: "com.example.notes",
+      environment: "production",
+      platform: "android",
+      distribution: "google-play",
+    },
+    routes: { ota: expoUpdates({ updates }) },
+    clock: createTestClock(),
+  });
+
+  beacon.start();
+  await beacon.check();
+
+  expect(beacon.route("ota").state.get().observation.status).toBe("available");
+
+  const applied = await applyUpdate(beacon.route("ota"));
+
+  expect(applied).toMatchObject({
+    step: "reload",
+    outcome: { status: "accepted" },
+    download: { status: "accepted", receipt: { offered: "same" } },
+  });
+  expect(updates.calls).toEqual({ checks: 1, fetches: 1, reloads: 1 });
+});
+```
+
+A method assigned over the fake is what the route meets, so a failing download or a slow one is a line: `updates.fetchUpdateAsync = async () => { throw new Error("offline"); }`. To see the banner in Expo Go, where updates never run, swap the fake in for the module while developing: `expoUpdates({ updates: __DEV__ ? createFakeUpdates({ available: true }) : Updates })`. A test with the fake proves how Beacon maps a result and never that an update launched ([limits](limits.md)).
+
 ## Your own adapters
 
 The conformance suites of `@priemskiyyy/beacon/testing` (`testReleaseSource`, `testVersionStrategy`, `testUpdateMechanism`, `testReleaseDriver`, `testJournalStorage` and `testRunningReader`) register the contract every adapter keeps. [Custom adapters](custom-adapters.md#prove-it) shows how to call them.
 
 ## The framework bindings
 
-Render `BeaconProvider` around your component with a real Beacon over the mock source and the test clock, and drive it the way these tests do: answer, check, advance. Reading in a hook never starts a session, so start the Beacon in the test, or pass `start` to the provider. In React, wrap what changes state in `act`. The pages for [Vue](vue.md#testing), [Solid](solid.md#testing) and [Svelte](svelte.md#testing) show how to flush their own updates.
+Render `BeaconProvider` around your component with a real Beacon over the mock source and the test clock, and drive it the way these tests do: answer, check, advance. Reading in a hook never starts a session, but the provider does, so a Beacon rendered under it is running. Pass `start={false}` to the provider in a test that opens the session itself. In React, wrap what changes state in `act`. The pages for [Vue](vue.md#testing), [Solid](solid.md#testing) and [Svelte](svelte.md#testing) show how to flush their own updates.

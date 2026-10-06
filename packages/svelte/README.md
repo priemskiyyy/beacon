@@ -1,6 +1,6 @@
 # @priemskiyyy/beacon-svelte
 
-Svelte 5 bindings for [Beacon](../core): utilities that read route state and what is running through `current`, and a provider that can hold the observation session. Reading never starts a session, checks a route or requests a command.
+Svelte 5 bindings for [Beacon](../core): utilities that read route state and what is running through `current`, and a provider that holds the observation session while it is mounted. Reading never starts a session, checks a route or requests a command.
 
 ## Installation
 
@@ -25,7 +25,7 @@ declare module "@priemskiyyy/beacon-svelte" {
 }
 ```
 
-Publish it once, near the root. With `start` the provider holds the observation session while mounted:
+Publish it once, near the root. The provider holds the observation session while mounted, and `start={false}` leaves the session to you:
 
 ```svelte
 <!-- App.svelte -->
@@ -35,7 +35,7 @@ Publish it once, near the root. With `start` the provider holds the observation 
   import UpdateBanner from "./UpdateBanner.svelte";
 </script>
 
-<BeaconProvider {beacon} start>
+<BeaconProvider {beacon}>
   <UpdateBanner />
 </BeaconProvider>
 ```
@@ -89,17 +89,17 @@ Call the utilities while a component initializes, as you would `getContext`, and
 
 `useRoute("elsewhere")` fails to compile, and the state it returns has the offer and prepared target types of that route.
 
-| Export           | Does                                                                                                       |
-| ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| `BeaconProvider` | publishes a Beacon; with `start` it holds the session while mounted and ends only that session on unmount  |
-| `useRoute`       | a route's state by its name, optionally selected, with the types of its own offer and prepared target      |
-| `useRunning`     | what is running per subject; a subject that is not read yet is pending, never an old version               |
-| `useSupport`     | what the support policy says about what runs                                                               |
-| `useTransitions` | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints |
-| `useStatus`      | where the session stands: idle, running, stopped or disposed                                               |
-| `useDisruption`  | registers a participant while mounted; Beacon asks it as it is, so its closures read the current state     |
-| `useObservable`  | any other observable of Beacon, such as `beacon.current.route("web").native`                               |
-| `useBeacon`      | the provider's Beacon through `current`, for commands (`reload`, `activate`, `download`, ...) and `check`  |
+| Export            | Does                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| `BeaconProvider`  | publishes a Beacon and holds the session while mounted; `start={false}` opts out                           |
+| `useRoute`        | a route's state by its name, optionally selected, with the types of its own offer and prepared target      |
+| `useRunning`      | what is running per subject; a subject that is not read yet is pending, never an old version               |
+| `useSupport`      | what the support policy says about what runs                                                               |
+| `useTransitions`  | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints |
+| `useBeaconStatus` | where the session stands: idle, running, stopped or disposed                                               |
+| `useDisruption`   | registers a participant while mounted; Beacon asks it as it is, so its closures read the current state     |
+| `useObservable`   | any other observable of Beacon, such as `beacon.current.route("web").native`                               |
+| `useBeacon`       | the provider's Beacon through `current`, for commands (`reload`, `activate`, `download`, ...) and `check`  |
 
 Every selector utility takes `(selector, { isEqual })`: what depends on it runs again only when the selection changes by `isEqual` (`Object.is` by default). The route name, the observable and the selector are read once, when the component initializes; a provider that publishes another Beacon is followed.
 

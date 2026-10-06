@@ -19,7 +19,9 @@ import CodePush from "@revopush/react-native-code-push";
 
 const beacon = new Beacon({
   scope,
-  running: { boot: { id: BOOT_ID }, bundle: codePushBundle(CodePush) },
+  running: {
+    bundle: codePushBundle({ codePush: CodePush }),
+  },
   routes: { update: codePushUpdates({ codePush: CodePush }) },
 });
 ```
@@ -46,7 +48,7 @@ export default CodePush({ checkFrequency: CodePush.CheckFrequency.MANUAL })(
 
 ## Options
 
-`codePushUpdates({ codePush })` takes the module. `codePushBundle(codePush)` takes the same module and is the `bundle` running reader: `known` with authority `code-push`, domain `package-hash` and the package hash, or `unknown` with the reason `embedded-bundle` when CodePush reports no package. The `native` reader is yours: name the installed binary with authority the application id and domain `android-version-code` or `ios-build`, as the store adapters do.
+`codePushUpdates({ codePush })` takes the module. `codePushBundle({ codePush })` takes the same module and is the `bundle` running reader: `known` with authority `code-push`, domain `package-hash` and the package hash, or `unknown` with the reason `embedded-bundle` when CodePush reports no package. The `native` reader is yours: name the installed binary with authority the application id and domain `android-version-code` or `ios-build`, as the store adapters do.
 
 ## What a check reports
 

@@ -11,13 +11,13 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-native
 npx expo install expo-application
 ```
 
-With `react-native-device-info`, install that instead. Both are optional peer dependencies, and the package imports neither: you pass the module in, typed structurally, so a test passes a fake and a server render loads nothing.
+With `react-native-device-info`, install that instead. Both are optional peer dependencies, open ended from the oldest release whose types fit (`expo-application` 1.0.0, `react-native-device-info` 4.0.1) and typechecked up to 58 and 15, and the package imports neither: you pass the module in, typed structurally, so a test passes a fake and a server render loads nothing.
 
 ## Create a reader
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
 import type { PlayBridge } from "@priemskiyyy/beacon-google-play";
 import { expoApplication } from "@priemskiyyy/beacon-native";
@@ -37,7 +37,6 @@ const scope = {
 export const beacon = new Beacon({
   scope,
   running: {
-    boot: { id: createBootId() },
     native: expoApplication({
       application: Application,
       platform: Platform.OS === "ios" ? "ios" : "android",

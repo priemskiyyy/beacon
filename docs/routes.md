@@ -75,11 +75,12 @@ import { browserReload } from "@priemskiyyy/beacon-browser";
 import { deployments } from "src/deployments";
 
 export const web = targetRoute({
-  subject: "web",
   source: deployments.select((document) => document.web),
   mechanism: browserReload(),
 });
 ```
+
+The route compares the offer with the running fact of the subject its mechanism names: `browserReload()` replaces the document, so it is the `web` subject, and `web` is the reader to pass in `running`. A route has no subject option of its own, so a mechanism and a reader cannot disagree about what is replaced.
 
 Its source can only produce `target` and `none` decisions. The selection is pure:
 
@@ -125,7 +126,6 @@ const catalog = createReleaseSource<Catalog>({
 });
 
 export const binary = newerRoute({
-  subject: "native",
   source: catalog.select((document) => document.latest),
   version: semver(),
   current: (release) => {
@@ -151,11 +151,11 @@ The candidate's `order`, the strategy's input and the value `current` returns sh
 6. A candidate with the identity of what runs but a different order is a contradiction. The check fails with `IDENTITY_CONFLICT`.
 7. An older order is `none` with `older-than-current`, and a newer one is an offer.
 
-A strategy that throws fails the check with `SELECTION_FAILED`, or keeps its own `INVALID_VERSION`. Strategies are `semver`, `integer` and `custom` from `@priemskiyyy/beacon/versions`; see [support](support.md#version-strategies).
+The running order is read from the subject of the mechanism: `appStoreHandoff` names `native`, so `current` receives the `native` release. A strategy that throws fails the check with `SELECTION_FAILED`, or keeps its own `INVALID_VERSION`. Strategies are `semver`, `integer` and `custom` from `@priemskiyyy/beacon/versions`; see [support](support.md#version-strategies).
 
 ## Driver routes
 
-`createReleaseDriver` declares a route a provider owns, such as Expo Updates or Google Play. There the provider answers the check, reports what it has prepared and carries the commands. You rarely call it yourself: an adapter returns the route and you put it in `routes`.
+`createReleaseDriver` declares a route a provider owns, such as Expo Updates or Google Play. There the provider answers the check, reports what it has prepared and carries the commands. You rarely call it yourself: an adapter returns the route and you put it in `routes`. A driver route needs no running reader, and may offer the default reader of its own subject with `running`, which is used only when you pass none for that subject.
 
 ```ts
 import { Beacon } from "@priemskiyyy/beacon";
@@ -171,7 +171,6 @@ export const beacon = new Beacon({
     platform: "android",
     distribution: "google-play",
   },
-  running: { boot: { id: "boot-1" } },
   routes: { binary: googlePlay({ bridge }) },
 });
 ```
@@ -250,7 +249,7 @@ The report keeps each route and the policy apart, so a failing policy never hide
 
 `CheckOptions` has three fields:
 
-- `reason` is `startup`, `manual`, `foreground`, `reconnect`, `invalidation` or `interval`. It only labels the diagnostics.
+- `reason` is `startup`, `manual`, `foreground`, `reconnect`, `invalidation`, `interval`, `retry` or `expiry`. It only labels the diagnostics: the `check-started` event carries it.
 - `mode` is `join` by default, which shares a read already under way. `after-current` also asks for at most one trailing read after a read that was under way before the call, and never restarts the current one. One `check()` asks each source once, whatever its mode: the routes and the policy that share a source join the read the call itself started.
 - `signal` ends only your wait. A read that others still wait for goes on.
 

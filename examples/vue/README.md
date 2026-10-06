@@ -14,15 +14,15 @@ The packages are linked from the workspace, so build them first. Open `/?latency
 
 The page walks through four sections, each with a "Try this" hint, and every scenario of the React example applies unchanged: see its README for the list.
 
-| Panel           | Binding                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------- |
-| Route web       | `useStatus` and `useRoute("web", selector)`: one selector per dimension, so a panel reads only its own. |
-| Application     | `useRunning`, `useSupport`, and `useObservable` for the diagnostics counters.                           |
-| Update banner   | `useRoute`, `useSupport` and `useBeacon().value.route("web").reload({ offer })`, `acknowledge()`.       |
-| Transitions     | `useTransitions` and `useBeacon().value` for `reportReady` and `clearJournal`.                          |
-| Simulated world | `useObservable` over the lab's own world and draft stores.                                              |
+| Panel           | Binding                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| Route web       | `useBeaconStatus` and `useRoute("web", selector)`: one selector per dimension, so a panel reads only its own. |
+| Application     | `useRunning`, `useSupport`, and `useObservable` for the diagnostics counters.                                 |
+| Update banner   | `useRoute`, `useSupport` and `useBeacon().value.route("web").reload({ offer })`, `acknowledge()`.             |
+| Transitions     | `useTransitions` and `useBeacon().value` for `reportReady` and `clearJournal`.                                |
+| Simulated world | `useObservable` over the lab's own world and draft stores.                                                    |
 
-`src/Application.vue` publishes the Beacon with `<BeaconProvider :beacon start>`, keyed by document, and asks for the startup check once the provider has started the session.
+`src/Application.vue` publishes the Beacon with `<BeaconProvider :beacon>`, which starts the session, keyed by document, and asks for the startup check once the provider has started the session.
 
 ## How it differs from the React app
 

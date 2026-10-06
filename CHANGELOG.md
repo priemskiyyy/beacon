@@ -10,7 +10,7 @@
 - Each route gets one typed method per command, with the reference, parameters and receipt that command declares. Commands settle as `accepted`, `blocked`, `stale`, `unsupported`, `cancelled`, `failed` or `indeterminate`, and never reject.
 - Disruption coordination: participants reserve, settle and are checked again before a provider is asked; one operation per route and one disruptive operation across routes; an identical call joins, a conflicting call is blocked; a caller's abort after a dispatch is `indeterminate`; a command that replaces the realm leaves its route unresolved until `route.acknowledge()`.
 - Passive diagnostics, and `createMockSource`, `createTestClock` under `./mock`, and `testReleaseSource`, `testVersionStrategy`, `testUpdateMechanism` and `testReleaseDriver` under `./testing`.
-- Errors are `BeaconError`s with a `code`. Only misconfiguration and use after disposal throw.
+- Errors are `BeaconError`s with a `code`. Only misconfiguration and use after disposal throw. `beacon.route(name)` with a name that was never defined throws `INVALID_CONFIGURATION` and lists the routes the Beacon has.
 - Support: `supportPolicy({ source, evaluate })` evaluates the application's own policy against what is running, and `beacon.support` publishes the status, the last evaluation, the routes that would satisfy it and whether each is usable. A policy that lapses is unknown with its last decision kept, a failing evaluation keeps the last valid one in force beside the error, and a route the Beacon does not have cannot be named.
 - Transition journal: off by default, or `best-effort` or `required` over an injected `JournalStorage`. An intent is written before a command that replaces the realm and read back by the next boot as `target-running`, `target-not-running`, `different-target`, `inconclusive` or `same-boot`, with the attempts that left a target unreached and whether the budget is spent. A required write that fails stops the command, a call the storage does not answer within `timeouts.journal` (10 seconds by default) counts as failed, a corrupt or future record is ignored, the history is bounded, and `beacon.reportReady()` and `beacon.clearJournal()` are the application's.
 - `ReleaseScope` can name an account with `partition`, which every source read and journal record is kept apart by.
@@ -21,13 +21,24 @@
 - One `check()` waits once for the running facts it needs and then starts the read of every route and of the support policy in the same turn, so a source they share is read once however fast it answers.
 - `beacon.clearJournal()` also recovers a journal whose first read failed: once the record is removed the journal is `ready` and a command that replaces the realm writes again, without a `stop()` and a `start()`.
 - `createBootId()` makes the boot id: a version 4 UUID from `crypto.randomUUID`, else `crypto.getRandomValues`, else `Math.random`, so it works on Hermes without a polyfill. It never throws and never reads the clock.
+- A route's subject comes from its mechanism: `createUpdateMechanism({ name, subject, open, commands })` names the running subject its commands replace (`browserReload()` is `web`, `appStoreHandoff` is `native`), and `targetRoute` and `newerRoute` take no `subject`, so a mechanism and a reader cannot disagree about what is replaced.
+- `running` is optional, and so is `running.boot`: the default boot id is minted once per JavaScript runtime and shared by every Beacon made in it, so a Fast Refresh that makes the Beacon again is the same boot. `boot: { id }` still chooses it, as a test does.
+- A running reader is given the scope of the read, `(context: { scope }) => ...` (`RunningReaderContext`), and the new scope after `replaceScope`; a reader with no parameter still fits. `testRunningReader` reads under a frozen scope, takes the `scope` the reader is meant for, and a situation may give its own.
+- `RunningReader<"web">` can carry the subject it was made for, so `running: { web: bundleReader }` does not compile, and a function of your own fits any subject.
+- `new Beacon` throws `INVALID_CONFIGURATION` for a feed route whose subject has no reader in `running`, which could never offer anything, and for two driver routes that each supply the reader of one subject.
+- The core exports the three identity domain words the ecosystem agrees on, `ANDROID_VERSION_CODE_DOMAIN`, `IOS_BUILD_DOMAIN` and `WEB_ARTIFACT_DOMAIN`, so an adapter imports them instead of spelling them.
+- `minimumBuild({ source, authority, remediation, level })` is the forced upgrade as a support policy: the native build is `unsupported` below the minimum, with the store route you name, and `unknown`, never a guess, when the `native` fact is not read (`native-build-not-read`), is unknown, named in another domain or of another authority (`native-build-unreadable`). It compares as integers for an Android version code and an iOS build number alike, and a dotted `1.2.0` fails the policy with `INVALID_VERSION`.
+- The `NOT_STARTED` message says what to do: the Beacon has no open session, so call `beacon.start()` or mount a `BeaconProvider` that is not given `start={false}`.
+- A driver route may supply the default reader of its own subject with `createReleaseDriver({ running })`, used only when `running` has none for that subject: the application's reader always wins, and a driver never writes a fact.
 - `beacon.clock` is the `BeaconClock` the Beacon runs on, read only, so an integration that schedules beside it reads the time and arms its timers on the clock a test clock replaces.
 - `parseUtcTimestamp(text)` reads a UTC timestamp such as `2026-09-27T10:00:00.5Z` to epoch milliseconds, or `undefined` for text that is not one or names a date that does not exist, the same on Hermes as on V8.
 - `createGate()` and `settle()` under `./mock` fake a provider that answers later: a gate is open until the test holds it, and `release()` lets every waiter go.
 - `keyValueJournalStorage(store, { verify, key })` adapts any store with `getItem`, `setItem` and `removeItem`, such as AsyncStorage, `expo-sqlite/kv-store`, MMKV through a recipe, `localStorage` and `sessionStorage`, to the journal's storage: a call that throws at once is a rejection, a write is read back, and a journal key can be mapped to the store's own. `createMockJournalStorage()` under `./mock` is an in-memory journal storage with `records`, call counts, and knobs to hold and to refuse reads and writes, and `testJournalStorage({ name, create })` under `./testing` holds a storage to the contract.
 - `testRunningReader({ name, create, situations })` under `./testing` holds a running reader to the contract: it asks its host for nothing until read, answers a release with a known identity that has no empty part or space around it or an unknown one with a reason, answers the same release on every read, and answers an unknown identity or rejects where its host cannot name what runs.
+- `CheckReason` also says `retry`, a check that follows a failed one, and `expiry`, a recheck because evidence expired, and the `check-started` diagnostic carries either.
+- A mechanism's `open` is given `{ scope }`, the scope of its session (`MechanismContext`), so a command can depend on it, as a store handoff does on the distribution.
 - A source read is given `clock`, the `BeaconClock` the Beacon runs on, so a source that dates its answer reads the time from it after the response arrived, and a test clock moves it with everything else.
-- Not built yet: the scheduler. See `docs/decisions.md`.
+- What is not built yet is listed in `docs/decisions.md`.
 
 ## @priemskiyyy/beacon-http 0.1.0 - Unreleased
 
@@ -54,33 +65,40 @@
 
 ## @priemskiyyy/beacon-expo 0.1.0 - Unreleased
 
-- First release. `expoUpdates({ updates })` maps the whole check result, including a rollback to the embedded update, and never reports a rejection or disabled updates as no update. `download` says whether what the provider prepared is the offer, and `reload` restarts the runtime. `expoBundle` reads the running update.
-- Requires `@priemskiyyy/beacon` 0.1 and `expo-updates` 57.
+- First release. `expoUpdates({ updates })` maps the whole check result, including a rollback to the embedded update, and never reports a rejection or disabled updates as no update. `download` says whether what the provider prepared is the offer, and `reload` restarts the runtime. `expoBundle({ updates })` reads the running update, and takes the module in an object as `expoUpdates` does.
+- `applyUpdate(route)` runs `download` and then `reload` for an Expo route, never throws, and answers where it stopped and how that command settled (`none`, `download` or `reload`), with the accepted download beside the reload so its `offered` receipt is visible. It reloads an update that an earlier download prepared when nothing is on offer any more.
+- `@priemskiyyy/beacon-expo/mock` has `createFakeUpdates({ available?, disabled? })`, a fake `expo-updates` module for Jest and for seeing the banner in Expo Go, with a count of the calls it received.
+- Requires `@priemskiyyy/beacon` 0.1 and `expo-updates` 0.24 or later, which its types were checked against up to 58.
 
 ## @priemskiyyy/beacon-google-play 0.1.0 - Unreleased
 
 - First release. `googlePlay({ bridge })` maps Play's four query categories and runs the flexible flow to a prepared download, the immediate flow, and the completion, each reconfirming the offer first.
-- Requires `@priemskiyyy/beacon` 0.1 and a native bridge that keeps the `PlayBridge` contract.
+- `playStore({ applicationId, linking })` is a route with `openStore` and no bridge: it opens `market://details?id=` and, where nothing handles it, the web page of the store. It has the shape of the App Store route's `openStore`, so one route name serves both stores, and it offers nothing.
+- `openStore` of `playStore` is unsupported with the reason `other-distribution`, and opens nothing, for a scope whose `distribution` is not `google-play`, which the package exports as `GOOGLE_PLAY_DISTRIBUTION`.
+- `googlePlay({ bridge })` is documented as needing a native bridge you write, which no package ships.
+- Requires `@priemskiyyy/beacon` 0.1, and a native bridge that keeps the `PlayBridge` contract for `googlePlay` only.
 
 ## @priemskiyyy/beacon-code-push 0.1.0 - Unreleased
 
-- First release. `codePushUpdates({ codePush })` maps the React Native CodePush family (Microsoft, Revopush, Bravemobile and AppZung): no package is `none` with the detail `no-package-for-binary`, never up to date, `download` installs for the next start and is accepted once CodePush lists the package as pending, `reload` only requests a restart, and `codePushBundle` reads the running package. Requires `@priemskiyyy/beacon` 0.1 and one of the four packages.
+- First release. `codePushUpdates({ codePush })` maps the React Native CodePush family (Microsoft, Revopush, Bravemobile and AppZung): no package is `none` with the detail `no-package-for-binary`, never up to date, `download` installs for the next start and is accepted once CodePush lists the package as pending, `reload` only requests a restart, and `codePushBundle({ codePush })` reads the running package, taking the module in an object as the route does. Requires `@priemskiyyy/beacon` 0.1 and one of the four packages, each from the oldest release whose types were checked: `react-native-code-push` 5.5, `@revopush/react-native-code-push` 1.0, `@bravemobile/react-native-code-push` 8.2.3 and `@appzung/react-native-code-push` 10.
 
 ## @priemskiyyy/beacon-app-store 0.1.0 - Unreleased
 
 - First release. `appStoreLookup` reads Apple's lookup shape through your client as an advisory marketing-release source, `appStoreHandoff` opens the store page, and `appleVersion` orders marketing versions.
 - `appStoreLookup` answers no release, with no request, for a scope whose distribution is not `app-store`, and refuses a lookup that breaks its contract as `INVALID_DOCUMENT`, as the standard manifest does.
+- `appStore({ appId, country, bundleId?, linking, fetch? })` is the whole route: the lookup, the order of marketing versions and the handoff. Without a `fetch` it asks Apple's lookup through the global `fetch`, refusing a failing status and a redirect where the response can say it, and reading the JSON into the entries the source needs.
+- `openStore` of the handoff is unsupported with the reason `other-distribution`, and opens nothing, for a scope whose `distribution` is not `app-store`, which the package exports as `APP_STORE_DISTRIBUTION`.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-firebase-remote-config 0.1.0 - Unreleased
 
 - First release. `firebaseRemoteConfig({ remoteConfig, sdk, document })` fetches and activates Remote Config on the web or in React Native and builds a document from what the server sent, dated by the fetch that got it, and never from a default, a missing key or a configuration that never fetched.
-- Requires `@priemskiyyy/beacon` 0.1 and the SDK you pass in: `@react-native-firebase/remote-config` 26 or `firebase` 12.
+- Requires `@priemskiyyy/beacon` 0.1 and the SDK you pass in: `@react-native-firebase/remote-config` 25 or later, or `firebase` 9.8.3 or later, whose types were checked up to 26 and 12.
 
 ## @priemskiyyy/beacon-native 0.1.0 - Unreleased
 
 - First release. `expoApplication({ application, platform, authority })` and `deviceInfo({ deviceInfo, platform, authority })` read the installed binary as the `native` running fact, from `expo-application` and from `react-native-device-info`: an Android build is its version code in the domain `android-version-code` and an iOS build its build number in `ios-build`, the words the Play adapter offers in and the App Store adapter reads (`raw.shortVersion`). A build the SDK did not give, which `react-native-device-info` answers as the text `unknown`, is an unknown identity with the reason `build-not-read` or `application-not-read`, never a build named null, and a binary of another application, such as Expo Go, is unknown as `another-application` and keeps none of its version numbers.
-- Requires `@priemskiyyy/beacon` 0.1. `expo-application` 57 and `react-native-device-info` 15 are optional peer dependencies.
+- Requires `@priemskiyyy/beacon` 0.1. `expo-application` 1 or later and `react-native-device-info` 4.0.1 or later are optional peer dependencies, whose types were checked up to 58 and 15.
 
 ## @priemskiyyy/beacon-triggers 0.1.0 - Unreleased
 
@@ -88,12 +106,17 @@
 - `checkOn` checks once each time a session opens, including the one `replaceScope` starts, with no trigger to list for it; `startup: false` opts out. The `startup()` trigger factory is removed: there is one way to ask for the first check.
 - `@priemskiyyy/beacon-triggers/browser` has `foreground({ target?, minAway? })`, which checks when a hidden tab is shown or the browser restores the page from the back-forward cache and pauses an `interval` while the tab is hidden, and `reconnect({ target? })`, which checks when the window fires `online` and never at startup. Both read the global `window` only when a session opens and install nothing without a browser window, in a server render or in React Native; the `online` event is run in Chromium against a real change of network.
 - `whileFresh`, `onExpiry`, `random` and `backoff.attempts` are documented as advanced options, after the ones most applications set.
+- A check after a failure is labelled `retry` and one because evidence expired `expiry`, and a `retry` is never dropped by `whileFresh: "skip"`, which the evidence it failed to renew would otherwise do.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased
 
-- First release. `BeaconProvider` and the hooks `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useStatus`, `useObservable`, `useDisruption` and `useBeacon`, typed by the `Register`ed Beacon so a route is read by its name. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
-- Requires `@priemskiyyy/beacon` 0.1 and React 19.2.
+- First release. `BeaconProvider` and the hooks `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useBeaconStatus`, `useObservable`, `useDisruption` and `useBeacon`, typed by the `Register`ed Beacon so a route is read by its name. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
+- `BeaconProvider` opens the observation session while it is mounted and ends it on unmount, and `start={false}` leaves the session to the application. The Vue, Solid and Svelte providers do the same.
+- Without a `Register`, the provider takes any Beacon and the hooks that name no route work. A hook that takes a route name fails to compile with the fix as the type it expected, `Register your Beacon: declare module ...`.
+- A hook, composable, primitive or utility used outside a provider throws `INVALID_CONFIGURATION` naming what was called and the package that has the provider, such as `useRoute needs a BeaconProvider (from @priemskiyyy/beacon-react) above it.`
+- `useStatus` is `useBeaconStatus` in all four bindings.
+- Requires `@priemskiyyy/beacon` 0.1 and React 18.3 to 19. The tests also ran against React 18.3.1 and 19.1.0.
 
 ## @priemskiyyy/beacon-solid 0.1.0 - Unreleased
 
@@ -113,4 +136,5 @@
 ## @priemskiyyy/beacon-devtools 0.1.0 - Unreleased
 
 - First release. `BeaconDevtools` is a framework-independent inspector in a shadow root, with its own Solid runtime bundled in: it shows the session, every route with its evidence, what runs, support, the journal and a timeline of the diagnostic events. It starts nothing, calls no command, hides raw values and provider handles until asked, and always redacts secret-looking property names. `@priemskiyyy/beacon-devtools/react` reads the Beacon from the provider.
+- It is for the web: it mounts into a DOM element and keeps its state in `localStorage`, so a React Native app logs `beacon.diagnostics.events` instead.
 - Requires `@priemskiyyy/beacon` 0.1. The React wrapper also needs `@priemskiyyy/beacon-react` 0.1 and React 19.2.

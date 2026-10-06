@@ -23,7 +23,7 @@ The four packages share one JavaScript API, and a test of the types proves the r
 | `@bravemobile/react-native-code-push` | 13.3.1  | Published 2026-09-17. React Native 0.77 to 0.86, on a TurboModule                                                                                                                                   | A release history you host, through your own function |
 | `@appzung/react-native-code-push`     | 11.0.5  | Published 2026-06-29. Its types are checked against the adapter's, and nothing more                                                                                                                 | AppZung's service                                     |
 
-What is checked and what is not, for each, is in [what no device has run](#what-no-device-has-run). AppZung's package has no default export with these members: pass `import * as CodePush from "@appzung/react-native-code-push"`, since its default export is its decorator.
+What is checked and what is not, for each, is in [what no device has run](#what-no-device-has-run). The peers have no upper limit and start at the oldest release whose declarations fit the structural type: `react-native-code-push` 5.5.0, `@revopush/react-native-code-push` 1.0.0, `@bravemobile/react-native-code-push` 8.2.3 and `@appzung/react-native-code-push` 10.0.0 (before it the package has a default export only, which is not a module of these members). That is typechecked by `scripts/verify-peers.mjs` against each of those and the newest in the table, and is a check of declarations, never of a runtime. AppZung's package has no default export with these members: pass `import * as CodePush from "@appzung/react-native-code-push"`, since its default export is its decorator.
 
 ## Before the route
 
@@ -47,46 +47,19 @@ Bravemobile's decorator takes its `releaseHistoryFetcher` beside `checkFrequency
 
 ## Create a route
 
-The running bundle is a `bundle` reader, and the installed binary is a `native` reader. A CodePush package targets one binary version, so a policy that compares the two needs both. An Android build is named by its version code and an iOS build by its build number, in the words the store adapters use.
+The running bundle is a `bundle` reader, and the installed binary is a `native` reader. A CodePush package targets one binary version, so a policy that compares the two needs both. `expoApplication` of [`@priemskiyyy/beacon-native`](native.md) names an Android build by its version code and an iOS build by its build number, in the words the store adapters use.
 
 ```ts
 // src/nativeBuild.ts
-import type { RunningRelease } from "@priemskiyyy/beacon";
+import { expoApplication } from "@priemskiyyy/beacon-native";
 import * as Application from "expo-application";
+import { Platform } from "react-native";
 
-const APPLICATION = "com.example.notes";
-
-export const readNativeBuild =
-  (platform: "android" | "ios") => (): RunningRelease => {
-    const build = Application.nativeBuildVersion?.trim();
-    const version = Application.nativeApplicationVersion;
-
-    if (!build) {
-      return {
-        identity: { status: "unknown", reason: "native-build-not-read" },
-        label: version,
-        raw: { applicationId: APPLICATION, versionName: version },
-      };
-    }
-
-    const domain =
-      platform === "android" ? "android-version-code" : "ios-build";
-
-    return {
-      identity: {
-        status: "known",
-        authority: APPLICATION,
-        domain,
-        value: build,
-      },
-      label: version,
-      raw: {
-        applicationId: APPLICATION,
-        versionName: version,
-        versionCode: build,
-      },
-    };
-  };
+export const nativeBuild = expoApplication({
+  application: Application,
+  platform: Platform.OS === "ios" ? "ios" : "android",
+  authority: "com.example.notes",
+});
 ```
 
 ```ts
@@ -96,7 +69,7 @@ import { codePushBundle, codePushUpdates } from "@priemskiyyy/beacon-code-push";
 import CodePush from "@revopush/react-native-code-push";
 import { Platform } from "react-native";
 
-import { readNativeBuild } from "src/nativeBuild";
+import { nativeBuild } from "src/nativeBuild";
 
 export const beacon = new Beacon({
   scope: {
@@ -106,12 +79,8 @@ export const beacon = new Beacon({
     distribution: "app-store",
   },
   running: {
-    // Hermes has no crypto.randomUUID. The id only has to differ between runtimes.
-    boot: {
-      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-    },
-    native: readNativeBuild(Platform.OS === "ios" ? "ios" : "android"),
-    bundle: codePushBundle(CodePush),
+    native: nativeBuild,
+    bundle: codePushBundle({ codePush: CodePush }),
   },
   routes: { update: codePushUpdates({ codePush: CodePush }) },
 });
@@ -121,7 +90,7 @@ The route is a driver route on the `bundle` subject. It never calls `sync`, `not
 
 ### The running bundle
 
-`codePushBundle(CodePush)` reads `getUpdateMetadata` for the package that runs, and never for one that is pending. Pass it as the `bundle` reader. The route never writes it.
+`codePushBundle({ codePush: CodePush })` reads `getUpdateMetadata` for the package that runs, and never for one that is pending. Pass it as the `bundle` reader. The route never writes it.
 
 | Fact       | Source                                                                                                                                                     |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |

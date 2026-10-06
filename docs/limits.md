@@ -26,4 +26,4 @@ This release coordinates no other tab. There is no simulated global lock: when n
 
 ## What a test proves
 
-The tests run against fakes, in process. A unit test with a fake bridge proves how Beacon maps a native result, never that a Play update installed, that a service worker activated, that an Expo update launched or that a CodePush package was staged. Only a real device with a real distribution proves a provider flow, and the [verification table](verification.md) counts rows with a test, not rows a device passed.
+The tests run against fakes, in process. A unit test with a fake bridge proves how Beacon maps a native result, never that a Play update installed, that a service worker activated, that an Expo update launched, that a CodePush package was staged, that a native reader names the build a store shipped or that Firebase Remote Config fetched over a real network. Only a real device with a real distribution proves a provider flow, and the [verification table](verification.md) counts rows with a test, not rows a device passed.

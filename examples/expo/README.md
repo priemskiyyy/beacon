@@ -8,7 +8,7 @@ pnpm build
 pnpm --filter example-expo dev
 ```
 
-The platform files choose what starts, never a runtime check: `src/lab/startLab.web.ts` runs the scripted lab from `../shared` (Metro and `react-native-web` serve it in a browser), and `src/lab/startLab.native.ts` builds a real Beacon with `expoUpdates({ updates: Updates })` and `expoBundle(Updates)` from `@priemskiyyy/beacon-expo`, where `Updates` is the `expo-updates` module the application imports.
+The platform files choose what starts, never a runtime check: `src/lab/startLab.web.ts` runs the scripted lab from `../shared` (Metro and `react-native-web` serve it in a browser), and `src/lab/startLab.native.ts` builds a real Beacon with `expoUpdates({ updates: Updates })` and `expoBundle({ updates: Updates })` from `@priemskiyyy/beacon-expo`, where `Updates` is the `expo-updates` module the application imports.
 
 ## The web build
 

@@ -1,6 +1,8 @@
 # @priemskiyyy/beacon-devtools
 
-An inspector for [Beacon](../core): where the session stands, what every route has observed and on what evidence, what is running, whether it is supported, what the journal knows, and a timeline of the diagnostic events. It is framework independent and renders inside a shadow root, so host styles never leak in or out, and it bundles its own Solid runtime, so a host needs no Solid install. The React wrapper reads the Beacon from its provider.
+An inspector for [Beacon](../core), for the web: where the session stands, what every route has observed and on what evidence, what is running, whether it is supported, what the journal knows, and a timeline of the diagnostic events. It is framework independent and renders inside a shadow root, so host styles never leak in or out, and it bundles its own Solid runtime, so a host needs no Solid install. The React wrapper reads the Beacon from its provider.
+
+It is web only. The inspector renders into a DOM element and keeps its state in `localStorage`, so it does not run in React Native, where there is no DOM to mount it into. There, log `beacon.diagnostics.events` instead, as the [React Native guide](https://priemskiyyy.github.io/beacon/react-native#seeing-failures-in-development) shows.
 
 ## Installation
 
@@ -23,7 +25,7 @@ declare module "@priemskiyyy/beacon-react" {
 }
 
 const Root = ({ isDevelopment }: { isDevelopment: boolean }) => (
-  <BeaconProvider beacon={beacon} start>
+  <BeaconProvider beacon={beacon}>
     <UpdateBanner />
     {isDevelopment ? <BeaconDevtools initialIsOpen /> : null}
   </BeaconProvider>

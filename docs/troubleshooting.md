@@ -23,32 +23,32 @@ The thrown error keeps whatever a source, driver or listener threw as `cause`. P
 
 ## The codes
 
-| Code                     | You see it as                                                                                 | Usual cause                                                                                                                                                             |
-| ------------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `INVALID_CONFIGURATION`  | a throw                                                                                       | an unknown route name from untyped code, a timeout or journal option that is not a positive whole number, a hook outside its provider, a bad App Store id or storefront |
-| `DISPOSED`               | a throw from `start()`, `replaceScope()` or `reportReady()`; `failed` in a check or a command | the Beacon was disposed. Create a new one                                                                                                                               |
-| `NOT_STARTED`            | `failed` in a check or a command                                                              | no open session. Call `start()`, or wait for the provider to start it                                                                                                   |
-| `DRIVER_FAILED`          | a failed check, a failed command, or a route that stays closed                                | the provider could not open or its check failed; a second Beacon holds the same native manager; the provider is not open                                                |
-| `INVALID_VERSION`        | a throw from `parse`; a failed check                                                          | a version broke the grammar of its strategy, such as `v2.4.0` under `semver()`                                                                                          |
-| `SELECTION_FAILED`       | a failed check                                                                                | a version strategy threw something that is not a `BeaconError`                                                                                                          |
-| `IDENTITY_CONFLICT`      | a failed check                                                                                | a candidate has the identity of what runs but a different order                                                                                                         |
-| `SOURCE_FAILED`          | a failed check                                                                                | your source or client threw, rejected, or refused a status                                                                                                              |
-| `SOURCE_TIMEOUT`         | a failed check                                                                                | a source or a provider took longer than `timeouts.check`                                                                                                                |
-| `INVALID_DOCUMENT`       | a failed check                                                                                | a document broke the contract: its revision, scope or times, or the standard manifest's schema                                                                          |
-| `ABORTED`                | a failed check                                                                                | every caller stopped waiting, or the session ended during the read                                                                                                      |
-| `RUNNING_READ_FAILED`    | `failed` in a running fact                                                                    | a running reader threw, rejected or took longer than `timeouts.running`                                                                                                 |
-| `REVISION_REGRESSION`    | a failed check                                                                                | a decision revision went backwards, or an unversioned decision followed a versioned one                                                                                 |
-| `REVISION_CONFLICT`      | a failed check                                                                                | the same decision revision arrived with different content                                                                                                               |
-| `REVISION_EPOCH_CHANGED` | a failed check                                                                                | a revision came from another domain or epoch, which is never assumed newer                                                                                              |
-| `COMMAND_FAILED`         | `failed` in an outcome                                                                        | a provider command threw, or the provider reported a failure. It did not take effect                                                                                    |
-| `POLICY_FAILED`          | `error` in support state; `support` failed in a check                                         | the policy threw while it was projected or evaluated, or named a route the Beacon does not have                                                                         |
-| `JOURNAL_FAILED`         | `failed` in an outcome                                                                        | a required journal could not persist an intent, so the provider was never asked                                                                                         |
+| Code                     | You see it as                                                                                 | Usual cause                                                                                                                                                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_CONFIGURATION`  | a throw                                                                                       | an unknown route name from untyped code, a feed route whose subject has no reader, a timeout or journal option that is not a positive whole number, a hook outside its provider, a bad App Store id or storefront |
+| `DISPOSED`               | a throw from `start()`, `replaceScope()` or `reportReady()`; `failed` in a check or a command | the Beacon was disposed. Create a new one                                                                                                                                                                         |
+| `NOT_STARTED`            | `failed` in a check or a command                                                              | no open session. Call `start()`, or mount a `BeaconProvider` that is not given `start={false}`                                                                                                                    |
+| `DRIVER_FAILED`          | a failed check, a failed command, or a route that stays closed                                | the provider could not open or its check failed; a second Beacon holds the same native manager; the provider is not open                                                                                          |
+| `INVALID_VERSION`        | a throw from `parse`; a failed check                                                          | a version broke the grammar of its strategy, such as `v2.4.0` under `semver()`                                                                                                                                    |
+| `SELECTION_FAILED`       | a failed check                                                                                | a version strategy threw something that is not a `BeaconError`                                                                                                                                                    |
+| `IDENTITY_CONFLICT`      | a failed check                                                                                | a candidate has the identity of what runs but a different order                                                                                                                                                   |
+| `SOURCE_FAILED`          | a failed check                                                                                | your source or client threw, rejected, or refused a status                                                                                                                                                        |
+| `SOURCE_TIMEOUT`         | a failed check                                                                                | a source or a provider took longer than `timeouts.check`                                                                                                                                                          |
+| `INVALID_DOCUMENT`       | a failed check                                                                                | a document broke the contract: its revision, scope or times, or the standard manifest's schema                                                                                                                    |
+| `ABORTED`                | a failed check                                                                                | every caller stopped waiting, or the session ended during the read                                                                                                                                                |
+| `RUNNING_READ_FAILED`    | `failed` in a running fact                                                                    | a running reader threw, rejected or took longer than `timeouts.running`                                                                                                                                           |
+| `REVISION_REGRESSION`    | a failed check                                                                                | a decision revision went backwards, or an unversioned decision followed a versioned one                                                                                                                           |
+| `REVISION_CONFLICT`      | a failed check                                                                                | the same decision revision arrived with different content                                                                                                                                                         |
+| `REVISION_EPOCH_CHANGED` | a failed check                                                                                | a revision came from another domain or epoch, which is never assumed newer                                                                                                                                        |
+| `COMMAND_FAILED`         | `failed` in an outcome                                                                        | a provider command threw, or the provider reported a failure. It did not take effect                                                                                                                              |
+| `POLICY_FAILED`          | `error` in support state; `support` failed in a check                                         | the policy threw while it was projected or evaluated, or named a route the Beacon does not have                                                                                                                   |
+| `JOURNAL_FAILED`         | `failed` in an outcome                                                                        | a required journal could not persist an intent, so the provider was never asked                                                                                                                                   |
 
 ## Checks
 
 ### A check fails with NOT_STARTED
 
-Nothing asks an authority until a session is open. Call `beacon.start()`, or give `BeaconProvider` the `start` prop. In React, the provider starts the session in a layout effect, so a check in a component's `useEffect` finds it running, and a check in a child's `useLayoutEffect` does not: check once `useStatus` says `running` there. See [getting started](getting-started.md#_4-check).
+Nothing asks an authority until a session is open. Call `beacon.start()`, or mount `BeaconProvider`, which starts the session unless you gave it `start={false}`. In React, the provider starts the session in a layout effect, so a check in a component's `useEffect` finds it running, and a check in a child's `useLayoutEffect` does not: check once `useBeaconStatus` says `running` there. See [getting started](getting-started.md#_4-check).
 
 ### The check succeeded and nothing is offered
 
@@ -66,10 +66,14 @@ The full list is in [routes](routes.md#the-observation).
 
 | Reason                     | Cause                                                                                                                                                                   |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `missing-current-identity` | the running fact is not `known`, or its identity is unknown. Check `beacon.running.get()` for `failed`, `pending` or `unconfigured`, and pass a reader for that subject |
+| `missing-current-identity` | the running fact is not `known`, or its identity is unknown. Check `beacon.running.get()` for `failed` or `pending`, and for an identity the reader answered as unknown |
 | `incomparable-identity`    | the running release and the offered one have a different `authority` or `domain`. Make the reader and the manifest use the same                                         |
 | `missing-current-order`    | the `current` function of a `newerRoute` answered `null`                                                                                                                |
 | `incomparable-order`       | the strategy answered `incomparable` for the two values                                                                                                                 |
+
+### The Beacon throws that a route has no reader
+
+A feed route compares what its source offers with what its mechanism's subject is running, so it needs a reader for that subject, and without one it could never offer anything. `new Beacon` throws `INVALID_CONFIGURATION` and names the route and the subject: `Route "web" compares against the "web" subject, but running.web has no reader.` Pass the reader under that subject in `running`, such as `web: webBuild({ id })`, or a function of your own. A driver route needs none, and two driver routes that each supply a reader for one subject need you to pass the one you want.
 
 ### A running fact is failed or pending
 
@@ -170,25 +174,26 @@ A driver that names an exclusive native manager cannot be opened by two sessions
 
 ## Types
 
-| Compiler says                                                                     | Cause                                                                                                                                       |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Property 'reload' does not exist on type 'RouteHandle<...>'`                     | the route's mechanism or driver does not declare that command. See the command tables in [commands](commands.md#what-each-command-declares) |
-| `Argument of type '"x"' is not assignable to parameter of type '"web"'`           | a route name that was never defined                                                                                                         |
-| `Type 'OfferReference<"a">' is not assignable to type 'OfferReference<"b">'`      | a reference of another route                                                                                                                |
-| `Object literal may only specify known properties, and 'prepared' does not exist` | the command needs an offer, not a prepared reference                                                                                        |
-| `useRoute` accepts any name and the state is loose                                | `Register` is missing, or its module is not part of the program                                                                             |
-| `Type ... is not assignable to type 'never'` on a command name                    | the name is one a route handle already has: `state`, `native`, `capabilities`, `check` or `acknowledge`                                     |
-| `exactOptionalPropertyTypes` errors on `validator` or `signal`                    | leave the property out instead of passing `undefined`                                                                                       |
+| Compiler says                                                                                   | Cause                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Property 'reload' does not exist on type 'RouteHandle<...>'`                                   | the route's mechanism or driver does not declare that command. See the command tables in [commands](commands.md#what-each-command-declares) |
+| `Argument of type '"x"' is not assignable to parameter of type '"web"'`                         | a route name that was never defined                                                                                                         |
+| `Type 'OfferReference<"a">' is not assignable to type 'OfferReference<"b">'`                    | a reference of another route                                                                                                                |
+| `Object literal may only specify known properties, and 'prepared' does not exist`               | the command needs an offer, not a prepared reference                                                                                        |
+| `Argument of type '"web"' is not assignable to parameter of type '"Register your Beacon: ..."'` | `Register` is missing, or its module is not part of the program. Merge your Beacon into it as [React](react.md#register-your-beacon) shows  |
+| `Property 'route' does not exist on type 'UnregisteredBeacon'`                                  | the same cause: a Beacon without a `Register` has no route to read by name                                                                  |
+| `Type ... is not assignable to type 'never'` on a command name                                  | the name is one a route handle already has: `state`, `native`, `capabilities`, `check` or `acknowledge`                                     |
+| `exactOptionalPropertyTypes` errors on `validator` or `signal`                                  | leave the property out instead of passing `undefined`                                                                                       |
 
 ## React
 
-### useBeacon throws INVALID_CONFIGURATION
+### A hook throws INVALID_CONFIGURATION
 
-There is no `BeaconProvider` above the component.
+There is no `BeaconProvider` above the component. The message names the hook that was called and the package that has the provider, such as `useRoute needs a BeaconProvider (from @priemskiyyy/beacon-react) above it.` A route name that is not one of the Beacon's throws the same code and lists the routes it has.
 
 ### The banner never appears
 
-Reading a route never starts a session or a check. Confirm the provider has `start`, that something calls `beacon.check()`, and that the check `succeeded`. Read `useRoute("web", (snapshot) => snapshot.check)` to see it.
+Reading a route never starts a session or a check. Confirm the provider was not given `start={false}`, that something calls `beacon.check()`, and that the check `succeeded`. Read `useRoute("web", (snapshot) => snapshot.check)` to see it.
 
 ### A hydration mismatch
 
@@ -198,7 +203,7 @@ The server and the hydrating render read the state as it stood before any sessio
 
 ### crypto.randomUUID is not a function
 
-Hermes has no `crypto`. Mint the boot id with `createBootId()` from `@priemskiyyy/beacon`, which falls back to `Math.random()`: [the boot id](react-native.md#the-boot-id).
+Hermes has no `crypto`. A Beacon mints its boot id by itself with `createBootId()`, which falls back to `Math.random()`, so leave `running.boot` out: [the boot id](react-native.md#the-boot-id).
 
 ### An async function answers undefined
 

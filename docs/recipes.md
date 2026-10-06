@@ -8,7 +8,7 @@ Each recipe is a complete piece of an application. They share two Beacons. The w
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   ReleaseSource,
@@ -28,12 +28,10 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    boot: { id: createBootId() },
     web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
-      subject: "web",
       source: manifest.select((document) => document.web),
       mechanism: browserReload(),
     }),
@@ -49,7 +47,7 @@ declare module "@priemskiyyy/beacon-react" {
 
 ```ts
 // src/native.ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
 import type { PlayBridge } from "@priemskiyyy/beacon-google-play";
@@ -65,8 +63,7 @@ export const native = new Beacon({
     distribution: "google-play",
   },
   running: {
-    boot: { id: createBootId() },
-    bundle: expoBundle(Updates),
+    bundle: expoBundle({ updates: Updates }),
   },
   routes: {
     ota: expoUpdates({ updates: Updates }),
@@ -310,7 +307,7 @@ export const nextOtaStep = async () => {
 };
 ```
 
-`ready` comes from the provider's report, never from the download call having returned. Because an update that was downloaded can be selected at a later start, tell the user before you download.
+`ready` comes from the provider's report, never from the download call having returned. Because an update that was downloaded can be selected at a later start, tell the user before you download. A banner with one button that downloads and restarts in a row calls `applyUpdate` of `@priemskiyyy/beacon-expo` instead, which runs the two commands in order and answers where it stopped ([Expo](expo.md#apply-an-update)).
 
 ### Google Play
 

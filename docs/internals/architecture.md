@@ -12,7 +12,7 @@ One `Beacon` per application holds named routes. A route is either a feed route,
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Beacon`             | the session (`start`, `stop`, `dispose`), the public handles, and the wiring of the parts below                                                                                   |
 | `BeaconRuntime`      | the status, the current session and the order of cleanup, through a `ResourceScope`                                                                                               |
-| `RunningRegistry`    | what is running per subject (`native`, `bundle`, `web`, `worker`), from readers the application passes                                                                            |
+| `RunningRegistry`    | what is running per subject (`native`, `bundle`, `web`, `worker`), from the readers the application passes or the default of a driver route, each asked with the scope            |
 | `RouteRegistry`      | every route's published state, the shared feeds and the drivers; a source read once selects for all its routes in one transaction                                                 |
 | `FeedRecord`         | one source's accepted document, its evidence, the revision judgement and the expiry timers                                                                                        |
 | `SharedRead`         | one in-flight read per source: joined callers, one trailing read, abort of the transport only when nobody waits, timeouts and session fencing                                     |

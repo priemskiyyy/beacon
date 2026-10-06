@@ -8,8 +8,11 @@ Beacon keeps one model of what your application is running, what its release aut
 
 ```ts
 import { Beacon, targetRoute } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 import { http } from "@priemskiyyy/beacon-http";
+
+// Your bundler replaces this with the id of the build, such as the commit.
+declare const BUILD_ID: string;
 
 const manifest = http({
   fetch: async ({ signal, validator }) =>
@@ -24,12 +27,10 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    boot: { id: createBootId() },
-    web: () => ({ identity: BUILD_IDENTITY, label: BUILD_LABEL, raw: {} }),
+    web: webBuild({ authority: "com.example.notes", id: BUILD_ID }),
   },
   routes: {
     web: targetRoute({
-      subject: "web",
       source: manifest.select((document) => document.web),
       mechanism: browserReload(),
     }),
@@ -71,8 +72,8 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 | [`@priemskiyyy/beacon-browser`](packages/adapters/browser)                               | Reloading the browser document                                               |
 | [`@priemskiyyy/beacon-service-worker`](packages/adapters/service-worker)                 | A waiting service worker as an update that is ready                          |
 | [`@priemskiyyy/beacon-expo`](packages/adapters/expo)                                     | Expo Updates                                                                 |
-| [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)                       | Google Play in-app updates, over a native bridge                             |
-| [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)                           | App Store metadata and store handoff                                         |
+| [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)                       | The Play Store page, and Play in-app updates over a bridge you write         |
+| [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)                           | The App Store route: metadata and store handoff                              |
 | [`@priemskiyyy/beacon-code-push`](packages/adapters/code-push)                           | The React Native CodePush family, over the fork you use                      |
 | [`@priemskiyyy/beacon-native`](packages/adapters/native)                                 | The installed native build as a running fact                                 |
 | [`@priemskiyyy/beacon-triggers`](packages/adapters/triggers)                             | Checks on startup, a return from the background, a reconnect and an interval |
@@ -81,13 +82,13 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 | [`@priemskiyyy/beacon-vue`](packages/vue)                                                | A provider and composables                                                   |
 | [`@priemskiyyy/beacon-solid`](packages/solid)                                            | A provider and primitives                                                    |
 | [`@priemskiyyy/beacon-svelte`](packages/svelte)                                          | A provider and utilities, on Svelte 5 runes                                  |
-| [`@priemskiyyy/beacon-devtools`](packages/devtools)                                      | An inspector for the session, the routes and the diagnostic events           |
+| [`@priemskiyyy/beacon-devtools`](packages/devtools)                                      | A web inspector for the session, the routes and the diagnostic events        |
 
 Every package is ESM only, side-effect free and typed. The core has no dependencies, and no adapter imports a provider SDK: you pass in the one you already use.
 
 ## Status
 
-Everything is tested in process against fakes, and the Expo, CodePush and React Native adapters are typechecked against their real SDK types. The example apps run in Chromium under Playwright against a scripted release lab, in React, Vue, Solid, Svelte and Expo's web build, but nothing has run on a device or against a real provider yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.
+Everything is tested in process against fakes, and the Expo, CodePush, Firebase Remote Config, native build and triggers packages are typechecked against the real types of the SDKs they take. The example apps run in Chromium under Playwright against a scripted release lab, in React, Vue, Solid, Svelte and Expo's web build, but nothing has run on a device or against a real provider yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.
 
 ## Documentation
 

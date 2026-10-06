@@ -18,10 +18,11 @@ The same files run in [the Expo example](https://github.com/priemskiyyy/beacon/t
 | The App Store page of your app and its version  | `@priemskiyyy/beacon-app-store`                                                          |
 | The installed binary as a running fact          | `@priemskiyyy/beacon-native`, with `expo-application`                                    |
 | Checks on start, on a return and on a reconnect | `@priemskiyyy/beacon-triggers`, with `@react-native-community/netinfo` for the reconnect |
-| A provider and hooks for your components        | `@priemskiyyy/beacon-react`, which needs React 19.2 or later                             |
+| A minimum build kept in Firebase                | `@priemskiyyy/beacon-firebase-remote-config`, with React Native Firebase                 |
+| A provider and hooks for your components        | `@priemskiyyy/beacon-react`, which works with React 18.3 to 19                           |
 | A stored journal                                | `expo-sqlite`, or the store you already use                                              |
 
-React Native 0.86 and Expo SDK 57 ship React 19.2, which is the range `@priemskiyyy/beacon-react` asks for. It never imports `react-native`, so one binding serves the web and a device.
+`@priemskiyyy/beacon-react` asks for React 18.3 to 19, which covers React Native 0.86 and Expo SDK 57, where React is 19.2. It never imports `react-native`, so one binding serves the web and a device.
 
 ## The engine and the toolchain
 
@@ -57,7 +58,7 @@ Hermes and React Native are not a browser and not Node. Two Hermes builds were r
 | `response.body`, `response.redirected`                                   | React Native's own `fetch` has neither. See [HTTP](http.md#redirects-on-react-native)      |
 | `window`, `document`, `localStorage`, `location`                         | No document and no browser storage, and `window` is only the global object                 |
 
-Lint forbids each of these in the packages that ship, and `pnpm test:unit` runs the core, the HTTP, Expo, CodePush, Play, App Store and native packages in an environment where they are removed and React Native's own `AbortController`, `URL` and `URLSearchParams` are in their place. A change that reaches for `crypto.randomUUID()` turns a test red.
+Lint forbids each of these in the packages that ship, and `pnpm test:unit` runs the core, the HTTP, Expo, CodePush, Play, App Store, native, triggers and Firebase Remote Config packages in an environment where they are removed and React Native's own `AbortController`, `URL` and `URLSearchParams` are in their place. A change that reaches for `crypto.randomUUID()` turns a test red.
 
 ## Set up the Beacon once
 
@@ -65,7 +66,7 @@ Create the Beacon in a module of its own, outside React. Fast Refresh re-runs a 
 
 ### The boot id
 
-A boot is one JavaScript runtime, and its id only has to differ from the next runtime's. Hermes has no `crypto.randomUUID` without a polyfill, so `createBootId()` from the core falls back to `crypto.getRandomValues` and then to `Math.random`, and never throws. Make one when the Beacon is created, as [the Beacon below](#the-beacon) does.
+A boot is one JavaScript runtime, and its id only has to differ from the next runtime's. Beacon mints it for you, once for the runtime and shared by every Beacon made in it, which is also what a Fast Refresh that makes the Beacon again needs: the new Beacon is the same boot. Hermes has no `crypto.randomUUID` without a polyfill, so `createBootId()` falls back to `crypto.getRandomValues` and then to `Math.random`, and never throws. Call it yourself, and pass the result as `running: { boot: { id } }`, only for an id of your own.
 
 ### What the binary is
 
@@ -88,11 +89,11 @@ export const nativeBuild = expoApplication({
 | -------------------- | --------------------------------------------- | ---------------------------------------------- |
 | `identity.authority` | the application id the binary reports         | the bundle id the binary reports               |
 | `identity.domain`    | `android-version-code`                        | `ios-build`                                    |
-| `identity.value`     | the version code as text                      | the build number (`CFBundleVersion`)           |
+| `identity.value`     | the version code as text                      | the build number (`CFBundleVersion`) as text   |
 | `label`              | the version name                              | the marketing version                          |
 | `raw`                | `applicationId`, `versionName`, `versionCode` | `applicationId`, `shortVersion`, `buildNumber` |
 
-The identity is `unknown` with the reason `build-not-read` where the module gave no build number, `application-not-read` where it gave no application id, and `another-application` for a binary that is not yours. A build is never read as zero, as null or as a build named `unknown`. [Troubleshooting](troubleshooting.md#the-installed-binary-is-unknown) says what to do about each.
+Every `raw` value is text, or null where the module gave none. The identity is `unknown` with the reason `build-not-read` where the module gave no build number, `application-not-read` where it gave no application id, and `another-application` for a binary that is not yours. A build is never read as zero, as null or as a build named `unknown`. [Troubleshooting](troubleshooting.md#the-installed-binary-is-unknown) says what to do about each.
 
 ### The journal's storage
 
@@ -110,7 +111,7 @@ export const journalStorage = keyValueJournalStorage(keyValueStore);
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
@@ -131,8 +132,7 @@ export const beacon = new Beacon({
     }),
   },
   running: {
-    boot: { id: createBootId() },
-    bundle: expoBundle(Updates),
+    bundle: expoBundle({ updates: Updates }),
     native: nativeBuild,
   },
   routes: { ota: expoUpdates({ updates: Updates }) },
@@ -148,7 +148,7 @@ declare module "@priemskiyyy/beacon-react" {
 
 ## The provider
 
-Put `BeaconProvider` with `start` near the root. The session it holds is the one every hook reads from.
+Put `BeaconProvider` near the root. It starts the session while it is mounted, and ends it when it unmounts, and that session is the one every hook reads from.
 
 ```tsx
 // src/App.tsx
@@ -171,7 +171,7 @@ const Screens = () => {
 
 export const App = () => (
   <StrictMode>
-    <BeaconProvider beacon={beacon} start>
+    <BeaconProvider beacon={beacon}>
       <Screens />
     </BeaconProvider>
   </StrictMode>
@@ -183,7 +183,7 @@ With Expo, `registerRootComponent(App)` in the entry file, or the default export
 Two things that happen on a device and not on the web:
 
 - **Strict Mode.** A development build runs effects twice. The provider starts a session, ends it and starts it again, and leaves one running. A `checkOn` in your own effect stops and starts again and leaves one set of listeners, and its first check joins the read already in flight.
-- **Fast Refresh.** Editing a screen re-renders it and leaves the provider alone. Editing `src/beacon.ts` makes a second Beacon, and the provider moves to it: it ends the old session, which releases the native `expo-updates` module, and starts the new one. So start only through the provider. A `beacon.start()` at the top of a module is never ended, and the second Beacon would fail to open the route with `DRIVER_FAILED`. Nothing of the first Beacon's state is carried over, which is development only.
+- **Fast Refresh.** Editing a screen re-renders it and leaves the provider alone. Editing `src/beacon.ts` makes a second Beacon, and the provider moves to it: it ends the old session, which releases the native `expo-updates` module, and starts the new one. So let the provider start it, which it does unless you pass `start={false}`. A `beacon.start()` at the top of a module is never ended, and the second Beacon would fail to open the route with `DRIVER_FAILED`. Nothing of the first Beacon's state is carried over, which is development only.
 
 The hooks render the same in React Native as in `react-dom`: they read a Beacon and start nothing, and the package imports no DOM global when it loads. A selector that builds a new object needs an `isEqual`, as on the web ([React](react.md#selectors)).
 
@@ -229,7 +229,7 @@ export const useUpdateChecks = () => {
 };
 ```
 
-`checkOn` checks once each time the session opens, without a trigger to list, and subscribes to nothing until it is called, and then only to the Beacon's status: each trigger subscribes to its own source while the session that the provider's `start` opened is open, and takes it back when it ends or when the effect's cleanup stops it. So the order of the provider's effect and this one does not matter. `foreground` listens to `AppState`'s `change` event, `reconnect` to NetInfo's state, and `interval` arms one timer that pauses while the app is in the background. NetInfo tells a new listener the state it knows at once, which is not a reconnect, so nothing is checked because of it.
+`checkOn` checks once each time the session opens, without a trigger to list, and subscribes to nothing until it is called, and then only to the Beacon's status: each trigger subscribes to its own source while the session that the provider opened is open, and takes it back when it ends or when the effect's cleanup stops it. So the order of the provider's effect and this one does not matter. `foreground` listens to `AppState`'s `change` event, `reconnect` to NetInfo's state, and `interval` arms one timer that pauses while the app is in the background. NetInfo tells a new listener the state it knows at once, which is not a reconnect, so nothing is checked because of it.
 
 Several signals at once cost one read, signals inside `minInterval` (5 seconds) become one later start, and `backoff` holds the next check off after a failure, so an Expo update server that rate limits is not asked faster than you say. `minAway` skips a return after less than that many milliseconds. [Triggers](triggers.md) has the timing of each, what it does not do and what a device still has to show.
 
@@ -279,6 +279,25 @@ export const DraftInput = () => {
 
 The participant that only answers is advisory: an edit can begin right after it said yes. A screen that must not lose work reserves, as [disruptions](disruptions.md) says.
 
+## Seeing failures in development
+
+The failures of a check, of a read of what is running, of the support policy and of the journal are events on `beacon.diagnostics.events`, and nothing is built for them until someone subscribes. Log the failures in a development build, from a file your entry imports once:
+
+```ts
+// src/logFailures.ts
+import { beacon } from "src/beacon";
+
+if (__DEV__) {
+  beacon.diagnostics.events.subscribe((event) => {
+    if (event.type.endsWith("failed")) {
+      console.warn("[beacon]", event.type, event.route, event.reason);
+    }
+  });
+}
+```
+
+The events that end in `failed` are `route-failed`, `read-failed`, `running-failed`, `policy-failed` and `journal-failed`; `event.route` names the route, when there is one, and `event.reason` says what failed: an error code such as `SOURCE_FAILED`, the subject that could not be read, or what the journal was doing. A failure event also carries the value that was thrown as `event.cause`, which is `null` when nothing was thrown: log it beside the reason to see the provider's own message and stack. It is the raw value, so it can hold whatever the provider put in it, and an event must lose its `cause` before it is forwarded to a crash reporter or any other telemetry. The inspector of [Devtools](devtools.md) shows the same events, but it mounts into a DOM, so it is a web tool: in a React Native app, log them.
+
 ## Expo Go, a development build and a release build
 
 | Where                        | What the route says                                                                                    | What `native` reads                                 |
@@ -288,6 +307,42 @@ The participant that only answers is advisory: an edit can begin right after it 
 | A release build with updates | checks, downloads and reloads are the SDK's                                                            | the build you shipped                               |
 
 In a development client `Updates.isEnabled` is `true`, and `checkForUpdateAsync` and `fetchUpdateAsync` reject with `ERR_NOT_AVAILABLE_IN_DEV_CLIENT`. A debug build refuses from JavaScript with `ERR_UPDATES_DISABLED`. The adapter answers both as an environment that cannot update, and never as a failed check. The SDK's own reference says the same of these methods: they cannot be used in Expo Go or development mode. Test an update with a release build.
+
+## Testing in an Expo app
+
+The default test runner of an Expo app is Jest through `jest-expo`, which leaves what is in `node_modules` uncompiled, and Beacon's packages are ES modules. Until the preset's `transformIgnorePatterns` lets `@priemskiyyy` through, a test that imports one fails with `SyntaxError: Cannot use import statement outside a module`:
+
+```js
+// jest.config.cjs
+const preset = require("jest-expo/jest-preset");
+
+module.exports = {
+  preset: "jest-expo",
+  transformIgnorePatterns: [
+    preset.transformIgnorePatterns[0].replace("(?!(", "(?!(@priemskiyyy|"),
+    ...preset.transformIgnorePatterns.slice(1),
+  ],
+};
+```
+
+`jest-expo` 57 also asks for `@react-native/jest-preset`, at the version of your React Native, as a peer. Nothing of a device is needed once both are in place: `createFakeUpdates` of `@priemskiyyy/beacon-expo/mock` is a fake `expo-updates` module, `createTestClock` moves time, and [Testing](testing.md#testing-in-an-expo-app) has a Jest test that checks, downloads and restarts with them.
+
+The same fake shows the banner where updates never run. Expo Go and a development build report the route as unknown, so swap the fake in for the module while you develop, and the banner, the guard and the restart answer as they would on a release build:
+
+```ts
+// src/routes.ts
+import { expoUpdates } from "@priemskiyyy/beacon-expo";
+import { createFakeUpdates } from "@priemskiyyy/beacon-expo/mock";
+import * as Updates from "expo-updates";
+
+export const routes = {
+  ota: expoUpdates({
+    updates: __DEV__ ? createFakeUpdates({ available: true }) : Updates,
+  }),
+};
+```
+
+A fake update launches nothing, and `reloadAsync` of the fake restarts nothing, so the route is unresolved afterwards as it is on a device. Metro inlines `__DEV__` as `false` in a release build, so the real module is the one it uses, and the fake stays small if the bundler keeps the import.
 
 ## What no device has run
 

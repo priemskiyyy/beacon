@@ -34,7 +34,7 @@ These are the rules that are easiest to break.
 
 ## A mechanism
 
-A mechanism carries commands for a route whose offers come from a source. This one asks the host to relaunch, and the host is looked up lazily, so opening a session is the first time it is touched.
+A mechanism carries commands for a route whose offers come from a source, and names the running subject its commands replace, so the route compares what the source offers with that subject's running fact: a reload of the document is `web`, a store page is `native`, a relaunch of the JavaScript is `bundle`. This one asks the host to relaunch, and the host is looked up lazily, so opening a session is the first time it is touched. `open` is given the scope the session runs under, as `open: ({ scope }) => ...`, for a mechanism whose commands depend on it, such as a store handoff that only answers for its own distribution.
 
 ```ts
 // src/relaunch.ts
@@ -48,6 +48,7 @@ export type RelaunchReceipt = { kind: "relaunch-requested" };
 export const relaunch = (getLauncher: () => Launcher | null) =>
   createUpdateMechanism({
     name: "relaunch",
+    subject: "bundle",
     open: () => ({ native: { launcher: getLauncher() } }),
     commands: {
       relaunch: {
@@ -93,6 +94,7 @@ import { createUpdateMechanism } from "@priemskiyyy/beacon";
 
 export const clash = createUpdateMechanism({
   name: "clash",
+  subject: "bundle",
   open: () => ({ native: {} }),
   commands: {
     // @ts-expect-error A command cannot be named "state".
@@ -218,6 +220,7 @@ export const otaDriver = (sdk: OtaSdk) =>
 The pieces, in the order a session uses them:
 
 - **`name`** labels evidence and diagnostics. **`subject`** is the running subject this provider replaces, so an intent can be read back against it. **`prepares`** says whether the provider can report a prepared target at all. A route that does not prepare has `prepared` as `not-applicable`. One that does starts at `unknown`.
+- **`running`** is optional: the local reader of what its subject runs, such as the update the bundle was made from. Beacon uses it only when the application passes no reader for that subject in `running`, so there is still one reader per subject, and the application's always wins. It is a reader like any other, given `{ scope }`: it reads what the provider's own module says is running, and the driver writes no fact. Two drivers that supply one subject need the application to choose, and Beacon throws `INVALID_CONFIGURATION` until it does.
 - **`exclusive`** names the native manager the provider must have to itself. A second session that would open the same manager fails to open, and its route says `DRIVER_FAILED`, instead of racing the first.
 - **`open(context)`** runs when a session starts. The context has the `scope`, a read-only view of what is running and the emitter. It cannot write running facts. It returns the session: `native`, the `check`, an optional `reconcile` and an optional `dispose`.
 - **`check({ signal })`** asks the provider and answers an `ObservationDraft`: `unknown` (the provider cannot run here), `none` or `available`. A driver compares nothing with what runs, so it never reports an inconclusive selection. Beacon attaches the evidence and mints the reference, so a driver cannot claim a reference it was never given.
@@ -231,14 +234,14 @@ Only a confirmation from the provider may say `ready`. A command that returned i
 
 The conformance suites of `@priemskiyyy/beacon/testing` register the contract every adapter keeps, over a fake of the provider. They need `vitest`. Call them at the top level of `src/conformance.test.ts`.
 
-| Suite                 | Contract                                                                                                                                                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `testReleaseSource`   | it has a name, asks its backend for nothing until read, answers a document with real times and non-empty identifiers, can be read again, and every projection of it belongs to it                                                                       |
-| `testVersionStrategy` | an input compares equal to itself, `newer` and `older` mirror each other along the ascending inputs, and a value that breaks the grammar throws                                                                                                         |
-| `testUpdateMechanism` | it opens nothing and holds nothing until a session opens, can be opened again after it ended, and ending a session releases what it held                                                                                                                |
-| `testReleaseDriver`   | it declares valid commands, opens with a native handle and a check that answers a valid observation, prepares only if it said it does, holds no listener once disposed, and reports nothing after that                                                  |
-| `testRunningReader`   | it asks its host for nothing until read, answers a release whose identity has no empty part or space around it, answers the same release on every read, and answers an unknown identity or rejects where the host cannot name what runs, never throwing |
-| `testJournalStorage`  | a key nothing was written under reads `null`, a write can be read back and overwrites, a remove deletes and never throws, text and kilobyte records come back exactly, and a reopened storage keeps what it was given                                   |
+| Suite                 | Contract                                                                                                                                                                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `testReleaseSource`   | it has a name, asks its backend for nothing until read, answers a document with real times and non-empty identifiers, can be read again, and every projection of it belongs to it                                                                                                                 |
+| `testVersionStrategy` | an input compares equal to itself, `newer` and `older` mirror each other along the ascending inputs, and a value that breaks the grammar throws                                                                                                                                                   |
+| `testUpdateMechanism` | it names the running subject its commands replace, opens nothing and holds nothing until a session opens, can be opened again after it ended, and ending a session releases what it held                                                                                                          |
+| `testReleaseDriver`   | it declares valid commands, opens with a native handle and a check that answers a valid observation, prepares only if it said it does, holds no listener once disposed, and reports nothing after that                                                                                            |
+| `testRunningReader`   | it asks its host for nothing until read, answers a release whose identity has no empty part or space around it, answers the same release on every read, reads under the frozen scope it is given, and answers an unknown identity or rejects where the host cannot name what runs, never throwing |
+| `testJournalStorage`  | a key nothing was written under reads `null`, a write can be read back and overwrites, a remove deletes and never throws, text and kilobyte records come back exactly, and a reopened storage keeps what it was given                                                                             |
 
 ```ts
 import { testUpdateMechanism } from "@priemskiyyy/beacon/testing";

@@ -1,6 +1,6 @@
 # @priemskiyyy/beacon-solid
 
-Solid bindings for [Beacon](../core): primitives that read route state and what is running as accessors, and a provider that can hold the observation session. Reading never starts a session, checks a route or requests a command.
+Solid bindings for [Beacon](../core): primitives that read route state and what is running as accessors, and a provider that holds the observation session while it is mounted. Reading never starts a session, checks a route or requests a command.
 
 ## Installation
 
@@ -25,7 +25,7 @@ declare module "@priemskiyyy/beacon-solid" {
 }
 ```
 
-Publish it once, near the root. With `start` the provider holds the observation session while mounted, and follows a new `beacon` or `start`:
+Publish it once, near the root. The provider holds the observation session while mounted, follows a new `beacon` or `start`, and `start={false}` leaves the session to you:
 
 ```tsx
 import { BeaconProvider } from "@priemskiyyy/beacon-solid";
@@ -33,7 +33,7 @@ import { render } from "solid-js/web";
 
 render(
   () => (
-    <BeaconProvider beacon={beacon} start>
+    <BeaconProvider beacon={beacon}>
       <UpdateBanner />
     </BeaconProvider>
   ),
@@ -88,17 +88,17 @@ const UpdateBanner = () => {
 
 `useRoute("elsewhere")` fails to compile, and the state it returns has the offer and prepared target types of that route.
 
-| Export           | Does                                                                                                       |
-| ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| `BeaconProvider` | publishes a Beacon; with `start` it holds the session while mounted and ends only that session on unmount  |
-| `useRoute`       | a route's state by its name, optionally selected, with the types of its own offer and prepared target      |
-| `useRunning`     | what is running per subject; a subject that is not read yet is pending, never an old version               |
-| `useSupport`     | what the support policy says about what runs                                                               |
-| `useTransitions` | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints |
-| `useStatus`      | where the session stands: idle, running, stopped or disposed                                               |
-| `useDisruption`  | registers a participant on the provider's Beacon while mounted, once                                       |
-| `useObservable`  | any other observable of Beacon, such as `beacon.route("web").native`                                       |
-| `useBeacon`      | an accessor of the provider's Beacon, for commands (`reload`, `activate`, `download`, ...) and for `check` |
+| Export            | Does                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| `BeaconProvider`  | publishes a Beacon and holds the session while mounted; `start={false}` opts out                           |
+| `useRoute`        | a route's state by its name, optionally selected, with the types of its own offer and prepared target      |
+| `useRunning`      | what is running per subject; a subject that is not read yet is pending, never an old version               |
+| `useSupport`      | what the support policy says about what runs                                                               |
+| `useTransitions`  | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints |
+| `useBeaconStatus` | where the session stands: idle, running, stopped or disposed                                               |
+| `useDisruption`   | registers a participant on the provider's Beacon while mounted, once                                       |
+| `useObservable`   | any other observable of Beacon, such as `beacon.route("web").native`                                       |
+| `useBeacon`       | an accessor of the provider's Beacon, for commands (`reload`, `activate`, `download`, ...) and for `check` |
 
 Every selector primitive takes `(selector, { isEqual })`: what depends on it runs again only when the selection changes by `isEqual` (`Object.is` by default), and the selector runs untracked. The route name and the observable are fixed when the primitive is called, and the Beacon they read is the provider's, so they follow a provider whose `beacon` changes. The participant of `useDisruption` is registered once: its closures read your signals at the moment Beacon asks, so there is nothing to keep fresh.
 

@@ -18,7 +18,7 @@ const beacon = new Beacon({
     platform: "web",
     distribution: "public-web",
   },
-  running: { boot: { id: createBootId() }, web: readWebRelease },
+  running: { web: readWebRelease },
   routes: { web },
 });
 
@@ -35,11 +35,11 @@ Constructing, reading and subscribing start nothing: `start()` opens the observa
 - **`newerRoute`** offers only a release that orders newer under a version strategy from `@priemskiyyy/beacon/versions`: `semver()`, `integer()` or `custom()`. Its source answers a candidate with an order.
 - **`createReleaseDriver`** declares a route a provider owns, such as Expo Updates or Google Play. Adapter packages return one.
 
-A route's source is made with `createReleaseSource({ name, read })`, and its commands come from `createUpdateMechanism({ name, open, commands })`. Sources that share one object share one read, so keep one source per authority and `select` a view of it for each route.
+A route's source is made with `createReleaseSource({ name, read })`, and its commands come from `createUpdateMechanism({ name, subject, open, commands })`. Sources that share one object share one read, so keep one source per authority and `select` a view of it for each route.
 
 ## Support
 
-`supportPolicy({ source, evaluate })` is the application's own policy: a view of a source's document and a pure function of it and what is running. `beacon.support` publishes `unknown`, `supported`, `deprecated` or `unsupported` with the reasons and the routes that would satisfy it, and whether each is usable now. A policy that lapses is unknown with its last decision kept, and a failing check never turns `supported` into `unsupported`. A requirement is satisfied only by newly observed running facts or a new accepted policy, never by opening a store or downloading.
+`supportPolicy({ source, evaluate })` is the application's own policy: a view of a source's document and a pure function of it and what is running. `beacon.support` publishes `unknown`, `supported`, `deprecated` or `unsupported` with the reasons and the routes that would satisfy it, and whether each is usable now. A policy that lapses is unknown with its last decision kept, and a failing check never turns `supported` into `unsupported`. A requirement is satisfied only by newly observed running facts or a new accepted policy, never by opening a store or downloading. The forced upgrade is one call, `minimumBuild({ source, remediation })`, which reads the native build of either platform and is unknown, never unsupported, when it cannot.
 
 ## Journal
 

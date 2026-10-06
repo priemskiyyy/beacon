@@ -5,19 +5,22 @@ Expo Updates as a [Beacon](../../core) route. Discovery, eligibility, asset fetc
 ## Installation
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo expo-updates
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo
+npx expo install expo-updates
 ```
+
+`expo-updates` is an optional peer dependency from 0.24 (Expo SDK 50) with no upper limit: the types the adapter reads were typechecked against 0.24.0 and 58.0.11, which says nothing of what an older SDK does when it is called.
 
 ## Create a route
 
 ```ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import * as Updates from "expo-updates";
 
 const beacon = new Beacon({
   scope,
-  running: { boot: { id: createBootId() }, bundle: expoBundle(Updates) },
+  running: { bundle: expoBundle({ updates: Updates }) },
   routes: { ota: expoUpdates({ updates: Updates }) },
 });
 ```

@@ -8,7 +8,7 @@ Firebase Remote Config as a [Beacon](../../core) release source, for React Nativ
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-firebase-remote-config
 ```
 
-You pass in the SDK you already use. `@react-native-firebase/remote-config` (26) or `firebase` (12) is an optional peer dependency, and the adapter never imports either.
+You pass in the SDK you already use. `@react-native-firebase/remote-config` (25 or later) or `firebase` (9.8.3 or later) is an optional peer dependency, and the adapter never imports either. Their types were checked against the oldest release named here and the newest the adapter was run against (26 and 12), and nothing of their runtime was.
 
 ## Create a source
 

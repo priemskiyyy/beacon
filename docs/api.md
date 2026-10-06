@@ -14,20 +14,24 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Runtime
 
-| Export                   | Kind     | What it is                                                                                |
-| ------------------------ | -------- | ----------------------------------------------------------------------------------------- |
-| `Beacon`                 | class    | one application-owned model of release awareness over named routes; inert until `start()` |
-| `BeaconError`            | class    | an error Beacon created, with a `code` to branch on and the original as `cause`           |
-| `compareIdentities`      | function | relates two release identities as `same`, `different` or `incomparable`                   |
-| `createBootId`           | function | a new boot id: a version 4 UUID that works on every engine, for `running.boot.id`         |
-| `createReleaseDriver`    | function | declares a provider-owned route from its driver                                           |
-| `createReleaseSource`    | function | makes a release source from a name and a `read`                                           |
-| `createUpdateMechanism`  | function | declares a mechanism so its native type and commands are inferred together                |
-| `keyValueJournalStorage` | function | the journal's storage over any store with `getItem`, `setItem` and `removeItem`           |
-| `newerRoute`             | function | a route that offers a candidate only when it is admitted and orders newer than what runs  |
-| `parseUtcTimestamp`      | function | epoch milliseconds of a UTC timestamp such as `2026-09-27T10:00:00Z`, or `undefined`      |
-| `supportPolicy`          | function | declares the application's support policy over a view of a source                         |
-| `targetRoute`            | function | a route that offers the release an authority names when it is a different, comparable one |
+| Export                        | Kind     | What it is                                                                                      |
+| ----------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `Beacon`                      | class    | one application-owned model of release awareness over named routes; inert until `start()`       |
+| `BeaconError`                 | class    | an error Beacon created, with a `code` to branch on and the original as `cause`                 |
+| `compareIdentities`           | function | relates two release identities as `same`, `different` or `incomparable`                         |
+| `createBootId`                | function | a new boot id: a version 4 UUID that works on every engine, for a `running.boot.id` of your own |
+| `createReleaseDriver`         | function | declares a provider-owned route from its driver                                                 |
+| `createReleaseSource`         | function | makes a release source from a name and a `read`                                                 |
+| `createUpdateMechanism`       | function | declares a mechanism so its native type and commands are inferred together                      |
+| `keyValueJournalStorage`      | function | the journal's storage over any store with `getItem`, `setItem` and `removeItem`                 |
+| `minimumBuild`                | function | the forced upgrade as a support policy: the native build is unsupported below a minimum         |
+| `newerRoute`                  | function | a route that offers a candidate only when it is admitted and orders newer than what runs        |
+| `parseUtcTimestamp`           | function | epoch milliseconds of a UTC timestamp such as `2026-09-27T10:00:00Z`, or `undefined`            |
+| `supportPolicy`               | function | declares the application's support policy over a view of a source                               |
+| `targetRoute`                 | function | a route that offers the release an authority names when it is a different, comparable one       |
+| `ANDROID_VERSION_CODE_DOMAIN` | constant | the identity domain of an Android build: `android-version-code`                                 |
+| `IOS_BUILD_DOMAIN`            | constant | the identity domain of an iOS build: `ios-build`                                                |
+| `WEB_ARTIFACT_DOMAIN`         | constant | the identity domain of a web build: `web-artifact`                                              |
 
 ### The Beacon
 
@@ -51,19 +55,20 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Options, scope and running facts
 
-| Type                 | What it is                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------ |
-| `BeaconOptions`      | what one Beacon observes: scope, running readers, routes, policy, timeouts, journal, clock |
-| `BeaconClock`        | every time source and timer Beacon uses: `now`, `setTimer`                                 |
-| `BeaconStatus`       | `idle`, `running`, `stopped` or `disposed`                                                 |
-| `ReleaseScope`       | one application in one environment, on one platform, through one distribution              |
-| `ScopeReplacement`   | how `replaceScope` settled: `replaced`, `unchanged` or `blocked`                           |
-| `RunningReaders`     | where the running facts come from: the boot id and one reader per subject                  |
-| `RunningReader`      | the one local authority for a running fact                                                 |
-| `RunningRelease`     | a release that is executing: identity, label and raw platform values                       |
-| `RunningApplication` | the composite of what is executing, with a revision                                        |
-| `RunningFact`        | what is known of one subject: `unconfigured`, `pending`, `known` or `failed`               |
-| `RunningSubject`     | `native`, `bundle`, `web` or `worker`                                                      |
+| Type                   | What it is                                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------------- |
+| `BeaconOptions`        | what one Beacon observes: scope, routes, running readers, policy, timeouts, journal, clock     |
+| `BeaconClock`          | every time source and timer Beacon uses: `now`, `setTimer`                                     |
+| `BeaconStatus`         | `idle`, `running`, `stopped` or `disposed`                                                     |
+| `ReleaseScope`         | one application in one environment, on one platform, through one distribution                  |
+| `ScopeReplacement`     | how `replaceScope` settled: `replaced`, `unchanged` or `blocked`                               |
+| `RunningReaders`       | where the running facts come from: one reader per subject, and the boot id if you choose it    |
+| `RunningReader`        | the one local authority for a running fact, given `{ scope }`, optionally made for one subject |
+| `RunningReaderContext` | what a running reader is given each time: the scope of the read                                |
+| `RunningRelease`       | a release that is executing: identity, label and raw platform values                           |
+| `RunningApplication`   | the composite of what is executing, with a revision                                            |
+| `RunningFact`          | what is known of one subject: `unconfigured`, `pending`, `known` or `failed`                   |
+| `RunningSubject`       | `native`, `bundle`, `web` or `worker`                                                          |
 
 ### Releases, decisions and evidence
 
@@ -137,14 +142,15 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Writing an adapter
 
-| Type               | What it is                                                                     |
-| ------------------ | ------------------------------------------------------------------------------ |
-| `UpdateMechanism`  | the commands of a route whose offers come from a source                        |
-| `MechanismSession` | what a mechanism keeps open while a session runs                               |
-| `ReleaseDriver`    | a route whose provider owns both the question and the answer                   |
-| `DriverContext`    | what a driver is given when its route opens                                    |
-| `DriverEmitter`    | how a driver reports what its provider says between checks                     |
-| `DriverSession`    | a driver's open session: the native handle, `check`, `reconcile` and `dispose` |
+| Type               | What it is                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `UpdateMechanism`  | the commands of a route whose offers come from a source, and the subject they replace                         |
+| `MechanismContext` | what a mechanism is given when its route opens: the scope of the session                                      |
+| `MechanismSession` | what a mechanism keeps open while a session runs                                                              |
+| `ReleaseDriver`    | a route whose provider owns both the question and the answer, and may offer the default reader of its subject |
+| `DriverContext`    | what a driver is given when its route opens                                                                   |
+| `DriverEmitter`    | how a driver reports what its provider says between checks                                                    |
+| `DriverSession`    | a driver's open session: the native handle, `check`, `reconcile` and `dispose`                                |
 
 ### Disruptions
 
@@ -158,17 +164,18 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Support
 
-| Type                   | What it is                                                                  |
-| ---------------------- | --------------------------------------------------------------------------- |
-| `SupportPolicy`        | the application's policy: a view of a source and a pure `evaluate`          |
-| `SupportEvaluation`    | one evaluation: verdict, remediation, the running revision and the evidence |
-| `SupportReason`        | why a policy reached its verdict: a code and the subject                    |
-| `SupportState`         | everything published about support                                          |
-| `SupportStatus`        | `unknown`, `supported`, `deprecated` or `unsupported`                       |
-| `SupportUnknownReason` | why support is unknown when Beacon reached that itself                      |
-| `SupportVerdict`       | what `evaluate` answers: status, reasons and remediation                    |
-| `Remediation`          | a route the policy names as a way to satisfy it, and how much it matters    |
-| `RemediationState`     | a remediation with whether its route is usable now                          |
+| Type                   | What it is                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------- |
+| `SupportPolicy`        | the application's policy: a view of a source and a pure `evaluate`                          |
+| `MinimumBuildOptions`  | the options of `minimumBuild`: the minimum's source and the route to send an older build to |
+| `SupportEvaluation`    | one evaluation: verdict, remediation, the running revision and the evidence                 |
+| `SupportReason`        | why a policy reached its verdict: a code and the subject                                    |
+| `SupportState`         | everything published about support                                                          |
+| `SupportStatus`        | `unknown`, `supported`, `deprecated` or `unsupported`                                       |
+| `SupportUnknownReason` | why support is unknown when Beacon reached that itself                                      |
+| `SupportVerdict`       | what `evaluate` answers: status, reasons and remediation                                    |
+| `Remediation`          | a route the policy names as a way to satisfy it, and how much it matters                    |
+| `RemediationState`     | a remediation with whether its route is usable now                                          |
 
 ### Journal
 
@@ -327,57 +334,81 @@ See [service worker](service-worker.md).
 
 See [Expo](expo.md).
 
-| Export                | Kind     | What it is                                                          |
-| --------------------- | -------- | ------------------------------------------------------------------- |
-| `expoUpdates`         | function | Expo Updates as a route, with `download` and `reload`               |
-| `expoBundle`          | function | the reader of the running bundle, from the `expo-updates` constants |
-| `ExpoOptions`         | type     | the `expo-updates` module to pass in                                |
-| `ExpoNative`          | type     | what `route.native` exposes: the module                             |
-| `ExpoBody`            | type     | what an offer carries: an `update` or a `rollback-to-embedded`      |
-| `ExpoDownloadReceipt` | type     | `update-prepared`, `rollback-prepared` or `no-new-preparation`      |
-| `ExpoReloadReceipt`   | type     | `reload-requested`                                                  |
-| `UpdatesLike`         | type     | the part of the `expo-updates` module the adapter uses              |
-| `CheckResultLike`     | type     | the part of `UpdateCheckResult` the adapter reads                   |
-| `FetchResultLike`     | type     | the part of `UpdateFetchResult` the adapter reads                   |
+| Export                | Kind     | What it is                                                                    |
+| --------------------- | -------- | ----------------------------------------------------------------------------- |
+| `expoUpdates`         | function | Expo Updates as a route, with `download` and `reload`                         |
+| `expoBundle`          | function | the reader of the running bundle, from the `expo-updates` constants           |
+| `applyUpdate`         | function | `download` and then `reload` for an Expo route, and where it stopped          |
+| `AppliedUpdate`       | type     | `none`, `download` or `reload`, with the outcome of the command it stopped at |
+| `ExpoRoute`           | type     | the route `expoUpdates` makes, which `applyUpdate` takes the handle of        |
+| `ExpoOptions`         | type     | the `expo-updates` module to pass in                                          |
+| `ExpoNative`          | type     | what `route.native` exposes: the module                                       |
+| `ExpoBody`            | type     | what an offer carries: an `update` or a `rollback-to-embedded`                |
+| `ExpoDownloadReceipt` | type     | `update-prepared`, `rollback-prepared` or `no-new-preparation`                |
+| `ExpoReloadReceipt`   | type     | `reload-requested`                                                            |
+| `UpdatesLike`         | type     | the part of the `expo-updates` module the adapter uses                        |
+| `CheckResultLike`     | type     | the part of `UpdateCheckResult` the adapter reads                             |
+| `FetchResultLike`     | type     | the part of `UpdateFetchResult` the adapter reads                             |
+
+## @priemskiyyy/beacon-expo/mock
+
+See [Expo](expo.md#a-fake-for-development-and-tests) and [testing](testing.md#testing-in-an-expo-app).
+
+| Export               | Kind     | What it is                                                                             |
+| -------------------- | -------- | -------------------------------------------------------------------------------------- |
+| `createFakeUpdates`  | function | a fake `expo-updates` module: an update available or updates off, and a count of calls |
+| `FakeUpdates`        | type     | the fake: an `UpdatesLike` with `calls`                                                |
+| `FakeUpdatesCalls`   | type     | how many checks, fetches and reloads the fake received                                 |
+| `FakeUpdatesOptions` | type     | `available` and `disabled`                                                             |
 
 ## @priemskiyyy/beacon-google-play
 
 See [Google Play](google-play.md).
 
-| Export              | Kind     | What it is                                                                       |
-| ------------------- | -------- | -------------------------------------------------------------------------------- |
-| `googlePlay`        | function | Play's in-app updates as a route, with `download`, `update` and `restart`        |
-| `PlayOptions`       | type     | the bridge to pass in                                                            |
-| `PlayBridge`        | type     | the contract a native module keeps for the adapter                               |
-| `PlayNative`        | type     | what `route.native` exposes: the bridge                                          |
-| `PlayOffer`         | type     | what an offer carries: flows, priority, staleness and whether one is in progress |
-| `PlayPrepared`      | type     | a flexible update Play reports as downloaded                                     |
-| `PlayReceipt`       | type     | `update-downloaded`, `immediate-flow-started` or `completion-requested`          |
-| `PlayUpdateInfo`    | type     | what a fresh query of Play says, in its four categories                          |
-| `PlayFlowResult`    | type     | how a native consent flow ended: `started`, `cancelled` or `failed`              |
-| `PlayInstallEvent`  | type     | one report of Play's install state, with byte counts or `null`                   |
-| `PlayInstallStatus` | type     | where Play's install of an update stands                                         |
+| Export                     | Kind     | What it is                                                                                    |
+| -------------------------- | -------- | --------------------------------------------------------------------------------------------- |
+| `googlePlay`               | function | Play's in-app updates as a route, over a bridge you write: `download`, `update` and `restart` |
+| `playStore`                | function | the Play Store page as a route with `openStore` and no bridge                                 |
+| `GOOGLE_PLAY_DISTRIBUTION` | constant | `google-play`, the distribution the store route answers for                                   |
+| `PlayStoreOptions`         | type     | the application id and the link opener                                                        |
+| `PlayStoreNative`          | type     | what `route.native` exposes: the link opener and the distribution                             |
+| `PlayStoreReceipt`         | type     | `store-handoff-requested`                                                                     |
+| `LinkingLike`              | type     | the part of React Native's `Linking` the handoff uses                                         |
+| `PlayOptions`              | type     | the bridge to pass in                                                                         |
+| `PlayBridge`               | type     | the contract a native module keeps for the adapter                                            |
+| `PlayNative`               | type     | what `route.native` exposes: the bridge                                                       |
+| `PlayOffer`                | type     | what an offer carries: flows, priority, staleness and whether one is in progress              |
+| `PlayPrepared`             | type     | a flexible update Play reports as downloaded                                                  |
+| `PlayReceipt`              | type     | `update-downloaded`, `immediate-flow-started` or `completion-requested`                       |
+| `PlayUpdateInfo`           | type     | what a fresh query of Play says, in its four categories                                       |
+| `PlayFlowResult`           | type     | how a native consent flow ended: `started`, `cancelled` or `failed`                           |
+| `PlayInstallEvent`         | type     | one report of Play's install state, with byte counts or `null`                                |
+| `PlayInstallStatus`        | type     | where Play's install of an update stands                                                      |
 
 ## @priemskiyyy/beacon-app-store
 
 See [App Store](app-store.md).
 
-| Export                   | Kind     | What it is                                                             |
-| ------------------------ | -------- | ---------------------------------------------------------------------- |
-| `appStoreLookup`         | function | App Store metadata as an advisory release source                       |
-| `appStoreHandoff`        | function | a mechanism that opens the store page, with `openStore`                |
-| `appleVersion`           | function | the version strategy of Apple marketing versions                       |
-| `appleMarketingVersion`  | function | reads the marketing version of what runs, for `newerRoute`'s `current` |
-| `AppStoreLookupOptions`  | type     | the app id, storefront, bundle id, name and `fetch`                    |
-| `AppStoreFetchContext`   | type     | what one lookup hands your client: the URL and a signal                |
-| `AppStoreLookupResponse` | type     | what your client resolves: the lookup's entries                        |
-| `AppStoreLookupEntry`    | type     | one result of Apple's lookup, with the fields the adapter reads        |
-| `AppStoreDocument`       | type     | the document the lookup source answers: one decision                   |
-| `AppStoreMetadata`       | type     | the release date, in epoch milliseconds                                |
-| `AppStoreHandoffOptions` | type     | the app id and the link opener                                         |
-| `LinkingLike`            | type     | the part of React Native's `Linking` the handoff uses                  |
-| `AppStoreHandoffReceipt` | type     | `store-handoff-requested`                                              |
-| `AppleVersion`           | type     | a marketing version as three numbers                                   |
+| Export                   | Kind     | What it is                                                               |
+| ------------------------ | -------- | ------------------------------------------------------------------------ |
+| `appStore`               | function | the whole store route: the lookup, the order of versions and `openStore` |
+| `APP_STORE_DISTRIBUTION` | constant | `app-store`, the distribution the store route answers for                |
+| `AppStoreOptions`        | type     | the app id, storefront, bundle id, link opener and optional `fetch`      |
+| `AppStoreNative`         | type     | what `route.native` exposes: the link opener and the distribution        |
+| `appStoreLookup`         | function | App Store metadata as an advisory release source                         |
+| `appStoreHandoff`        | function | a mechanism that opens the store page, with `openStore`                  |
+| `appleVersion`           | function | the version strategy of Apple marketing versions                         |
+| `appleMarketingVersion`  | function | reads the marketing version of what runs, for `newerRoute`'s `current`   |
+| `AppStoreLookupOptions`  | type     | the app id, storefront, bundle id, name and `fetch`                      |
+| `AppStoreFetchContext`   | type     | what one lookup hands your client: the URL and a signal                  |
+| `AppStoreLookupResponse` | type     | what your client resolves: the lookup's entries                          |
+| `AppStoreLookupEntry`    | type     | one result of Apple's lookup, with the fields the adapter reads          |
+| `AppStoreDocument`       | type     | the document the lookup source answers: one decision                     |
+| `AppStoreMetadata`       | type     | the release date, in epoch milliseconds                                  |
+| `AppStoreHandoffOptions` | type     | the app id and the link opener                                           |
+| `LinkingLike`            | type     | the part of React Native's `Linking` the handoff uses                    |
+| `AppStoreHandoffReceipt` | type     | `store-handoff-requested`                                                |
+| `AppleVersion`           | type     | a marketing version as three numbers                                     |
 
 ## @priemskiyyy/beacon-firebase-remote-config
 
@@ -463,102 +494,102 @@ See [Triggers](triggers.md#on-the-web).
 
 See [React](react.md).
 
-| Export                 | Kind      | What it is                                                          |
-| ---------------------- | --------- | ------------------------------------------------------------------- |
-| `BeaconProvider`       | component | publishes a Beacon; with `start` it holds the session while mounted |
-| `useRoute`             | hook      | a route's state by its name, optionally selected                    |
-| `useRunning`           | hook      | what is running per subject                                         |
-| `useSupport`           | hook      | what the support policy says about what runs                        |
-| `useTransitions`       | hook      | what the journal knows                                              |
-| `useStatus`            | hook      | where the session stands                                            |
-| `useObservable`        | hook      | any other observable of Beacon                                      |
-| `useDisruption`        | hook      | registers a participant while mounted                               |
-| `useBeacon`            | hook      | the provider's Beacon                                               |
-| `Register`             | interface | merge `beacon` into it so the hooks know your routes                |
-| `RegisteredBeacon`     | type      | the Beacon you registered                                           |
-| `RegisteredRoutes`     | type      | the routes of the registered Beacon                                 |
-| `RegisteredRouteName`  | type      | the name of a route of the registered Beacon                        |
-| `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                      |
-| `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
-| `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
-| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the hooks                 |
+| Export                 | Kind      | What it is                                                                       |
+| ---------------------- | --------- | -------------------------------------------------------------------------------- |
+| `BeaconProvider`       | component | publishes a Beacon and holds the session while mounted; `start={false}` opts out |
+| `useRoute`             | hook      | a route's state by its name, optionally selected                                 |
+| `useRunning`           | hook      | what is running per subject                                                      |
+| `useSupport`           | hook      | what the support policy says about what runs                                     |
+| `useTransitions`       | hook      | what the journal knows                                                           |
+| `useBeaconStatus`      | hook      | where the session stands                                                         |
+| `useObservable`        | hook      | any other observable of Beacon                                                   |
+| `useDisruption`        | hook      | registers a participant while mounted                                            |
+| `useBeacon`            | hook      | the provider's Beacon                                                            |
+| `Register`             | interface | merge `beacon` into it so the hooks know your routes                             |
+| `RegisteredBeacon`     | type      | the Beacon you registered; every Beacon without its routes until one is          |
+| `RegisteredRoutes`     | type      | the routes of the registered Beacon                                              |
+| `RegisteredRouteName`  | type      | the name of a route of the registered Beacon                                     |
+| `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                                   |
+| `RegisteredRouteState` | type      | the state of a route of the registered Beacon                                    |
+| `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start it                                   |
+| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the hooks                              |
 
 ## @priemskiyyy/beacon-vue
 
 See [Vue](vue.md).
 
-| Export                 | Kind       | What it is                                                                    |
-| ---------------------- | ---------- | ----------------------------------------------------------------------------- |
-| `BeaconProvider`       | component  | publishes a Beacon; with `start` it holds the session while mounted           |
-| `useRoute`             | composable | a route's state by its name, optionally selected, as a read-only computed ref |
-| `useRunning`           | composable | what is running per subject                                                   |
-| `useSupport`           | composable | what the support policy says about what runs                                  |
-| `useTransitions`       | composable | what the journal knows                                                        |
-| `useStatus`            | composable | where the session stands                                                      |
-| `useObservable`        | composable | any other observable of Beacon                                                |
-| `useDisruption`        | composable | registers a participant while mounted                                         |
-| `useBeacon`            | composable | the provider's Beacon, as a computed ref                                      |
-| `Register`             | interface  | merge `beacon` into it so the composables know your routes                    |
-| `RegisteredBeacon`     | type       | the Beacon you registered                                                     |
-| `RegisteredRoutes`     | type       | the routes of the registered Beacon                                           |
-| `RegisteredRouteName`  | type       | the name of a route of the registered Beacon                                  |
-| `RegisteredRoute`      | type       | the handle of a route of the registered Beacon                                |
-| `RegisteredRouteState` | type       | the state of a route of the registered Beacon                                 |
-| `BeaconProviderProps`  | type       | the Beacon to publish, and whether to start                                   |
-| `SelectorOptions`      | type       | the core's `{ isEqual }`, re-exported for the composables                     |
+| Export                 | Kind       | What it is                                                                       |
+| ---------------------- | ---------- | -------------------------------------------------------------------------------- |
+| `BeaconProvider`       | component  | publishes a Beacon and holds the session while mounted; `start={false}` opts out |
+| `useRoute`             | composable | a route's state by its name, optionally selected, as a read-only computed ref    |
+| `useRunning`           | composable | what is running per subject                                                      |
+| `useSupport`           | composable | what the support policy says about what runs                                     |
+| `useTransitions`       | composable | what the journal knows                                                           |
+| `useBeaconStatus`      | composable | where the session stands                                                         |
+| `useObservable`        | composable | any other observable of Beacon                                                   |
+| `useDisruption`        | composable | registers a participant while mounted                                            |
+| `useBeacon`            | composable | the provider's Beacon, as a computed ref                                         |
+| `Register`             | interface  | merge `beacon` into it so the composables know your routes                       |
+| `RegisteredBeacon`     | type       | the Beacon you registered; every Beacon without its routes until one is          |
+| `RegisteredRoutes`     | type       | the routes of the registered Beacon                                              |
+| `RegisteredRouteName`  | type       | the name of a route of the registered Beacon                                     |
+| `RegisteredRoute`      | type       | the handle of a route of the registered Beacon                                   |
+| `RegisteredRouteState` | type       | the state of a route of the registered Beacon                                    |
+| `BeaconProviderProps`  | type       | the Beacon to publish, and whether to start it                                   |
+| `SelectorOptions`      | type       | the core's `{ isEqual }`, re-exported for the composables                        |
 
 ## @priemskiyyy/beacon-solid
 
 See [Solid](solid.md).
 
-| Export                 | Kind      | What it is                                                          |
-| ---------------------- | --------- | ------------------------------------------------------------------- |
-| `BeaconProvider`       | component | publishes a Beacon; with `start` it holds the session while mounted |
-| `useRoute`             | primitive | a route's state by its name, optionally selected, as an accessor    |
-| `useRunning`           | primitive | what is running per subject                                         |
-| `useSupport`           | primitive | what the support policy says about what runs                        |
-| `useTransitions`       | primitive | what the journal knows                                              |
-| `useStatus`            | primitive | where the session stands                                            |
-| `useObservable`        | primitive | any other observable of Beacon                                      |
-| `useDisruption`        | primitive | registers a participant while mounted                               |
-| `useBeacon`            | primitive | the provider's Beacon, as an accessor                               |
-| `Register`             | interface | merge `beacon` into it so the primitives know your routes           |
-| `RegisteredBeacon`     | type      | the Beacon you registered                                           |
-| `RegisteredRoutes`     | type      | the routes of the registered Beacon                                 |
-| `RegisteredRouteName`  | type      | the name of a route of the registered Beacon                        |
-| `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                      |
-| `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
-| `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
-| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the primitives            |
+| Export                 | Kind      | What it is                                                                       |
+| ---------------------- | --------- | -------------------------------------------------------------------------------- |
+| `BeaconProvider`       | component | publishes a Beacon and holds the session while mounted; `start={false}` opts out |
+| `useRoute`             | primitive | a route's state by its name, optionally selected, as an accessor                 |
+| `useRunning`           | primitive | what is running per subject                                                      |
+| `useSupport`           | primitive | what the support policy says about what runs                                     |
+| `useTransitions`       | primitive | what the journal knows                                                           |
+| `useBeaconStatus`      | primitive | where the session stands                                                         |
+| `useObservable`        | primitive | any other observable of Beacon                                                   |
+| `useDisruption`        | primitive | registers a participant while mounted                                            |
+| `useBeacon`            | primitive | the provider's Beacon, as an accessor                                            |
+| `Register`             | interface | merge `beacon` into it so the primitives know your routes                        |
+| `RegisteredBeacon`     | type      | the Beacon you registered; every Beacon without its routes until one is          |
+| `RegisteredRoutes`     | type      | the routes of the registered Beacon                                              |
+| `RegisteredRouteName`  | type      | the name of a route of the registered Beacon                                     |
+| `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                                   |
+| `RegisteredRouteState` | type      | the state of a route of the registered Beacon                                    |
+| `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start it                                   |
+| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the primitives                         |
 
 ## @priemskiyyy/beacon-svelte
 
 See [Svelte](svelte.md).
 
-| Export                 | Kind      | What it is                                                          |
-| ---------------------- | --------- | ------------------------------------------------------------------- |
-| `BeaconProvider`       | component | publishes a Beacon; with `start` it holds the session while mounted |
-| `useRoute`             | utility   | a route's state by its name, optionally selected, through `current` |
-| `useRunning`           | utility   | what is running per subject                                         |
-| `useSupport`           | utility   | what the support policy says about what runs                        |
-| `useTransitions`       | utility   | what the journal knows                                              |
-| `useStatus`            | utility   | where the session stands                                            |
-| `useObservable`        | utility   | any other observable of Beacon                                      |
-| `useDisruption`        | utility   | registers a participant while mounted                               |
-| `useBeacon`            | utility   | the provider's Beacon through `current`                             |
-| `Register`             | interface | merge `beacon` into it so the utilities know your routes            |
-| `RegisteredBeacon`     | type      | the Beacon you registered                                           |
-| `RegisteredRoutes`     | type      | the routes of the registered Beacon                                 |
-| `RegisteredRouteName`  | type      | the name of a route of the registered Beacon                        |
-| `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                      |
-| `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
-| `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
-| `ReadableValue`        | type      | what a utility returns: an object with a read-only `current`        |
-| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the utilities             |
+| Export                 | Kind      | What it is                                                                       |
+| ---------------------- | --------- | -------------------------------------------------------------------------------- |
+| `BeaconProvider`       | component | publishes a Beacon and holds the session while mounted; `start={false}` opts out |
+| `useRoute`             | utility   | a route's state by its name, optionally selected, through `current`              |
+| `useRunning`           | utility   | what is running per subject                                                      |
+| `useSupport`           | utility   | what the support policy says about what runs                                     |
+| `useTransitions`       | utility   | what the journal knows                                                           |
+| `useBeaconStatus`      | utility   | where the session stands                                                         |
+| `useObservable`        | utility   | any other observable of Beacon                                                   |
+| `useDisruption`        | utility   | registers a participant while mounted                                            |
+| `useBeacon`            | utility   | the provider's Beacon through `current`                                          |
+| `Register`             | interface | merge `beacon` into it so the utilities know your routes                         |
+| `RegisteredBeacon`     | type      | the Beacon you registered; every Beacon without its routes until one is          |
+| `RegisteredRoutes`     | type      | the routes of the registered Beacon                                              |
+| `RegisteredRouteName`  | type      | the name of a route of the registered Beacon                                     |
+| `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                                   |
+| `RegisteredRouteState` | type      | the state of a route of the registered Beacon                                    |
+| `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start it                                   |
+| `ReadableValue`        | type      | what a utility returns: an object with a read-only `current`                     |
+| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the utilities                          |
 
 ## @priemskiyyy/beacon-devtools
 
-See [Devtools](devtools.md). The root exports the inspector for any framework.
+See [Devtools](devtools.md). They are for the web. The root exports the inspector for any framework that renders a DOM.
 
 | Export                  | Kind  | What it is                                             |
 | ----------------------- | ----- | ------------------------------------------------------ |

@@ -66,7 +66,6 @@ const native = new Beacon({
     platform: "android",
     distribution: "google-play",
   },
-  running: { boot: { id: "boot-1" } },
   routes: {
     ota: expoUpdates({ updates: Updates }),
     binary: googlePlay({ bridge }),

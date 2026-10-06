@@ -33,139 +33,46 @@ A default you define for `minimum_build` in `defaultConfig` is the application's
 ```ts
 // src/remoteConfig.ts
 import { firebaseRemoteConfig } from "@priemskiyyy/beacon-firebase-remote-config";
-import { integer } from "@priemskiyyy/beacon/versions";
 import * as RemoteConfig from "@react-native-firebase/remote-config";
-
-export const build = integer();
 
 export const config = firebaseRemoteConfig({
   remoteConfig: RemoteConfig.getRemoteConfig(),
   sdk: RemoteConfig,
-  document: ({ remote }) => ({
-    minimumBuild: build.parse(remote("minimum_build")),
-  }),
+  document: ({ remote }) => ({ minimumBuild: remote("minimum_build") }),
 });
 ```
 
-`integer()` is the parser, and it is the safe one. It rejects an empty text, whitespace, a sign, a fraction and `v120`, where `Number(text)` answers `0` for `""` and `NaN` for `"v120"`, and a `NaN` is never older than any build. A text it rejects fails the read with `INVALID_VERSION`, and support stays `unknown`.
-
-The policy reads the native running fact, and accepts only a release named in the words of a native build, the two domains below:
+The policy is `minimumBuild` of the core. It reads the native running fact, and accepts only a release named in the words of a native build, `android-version-code` or `ios-build`, so one policy serves both platforms:
 
 ```ts
 // src/supportPolicy.ts
-import { supportPolicy } from "@priemskiyyy/beacon";
-import type { SupportVerdict } from "@priemskiyyy/beacon";
+import { minimumBuild } from "@priemskiyyy/beacon";
 
-import { build, config } from "src/remoteConfig";
-
-const NATIVE_DOMAINS = ["android-version-code", "ios-build"];
-
-const unknown = (code: string): SupportVerdict<never> => ({
-  status: "unknown",
-  reasons: [{ code, subject: "native" }],
-  remediation: [],
-});
+import { config } from "src/remoteConfig";
 
 // No store route here: the screen below opens the store itself. Name a route in `remediation` when you have one.
-export const minimumBuild = supportPolicy({
+export const policy = minimumBuild({
   source: config.select((document) => document.minimumBuild),
-  evaluate: (minimum, running): SupportVerdict<never> => {
-    const { native } = running;
-
-    if (native.state !== "known") {
-      return unknown("native-build-not-read");
-    }
-
-    const { identity } = native.release;
-
-    if (
-      identity.status !== "known" ||
-      !NATIVE_DOMAINS.includes(identity.domain)
-    ) {
-      return unknown("native-build-unreadable");
-    }
-
-    if (build.compare(build.parse(identity.value), minimum) === "older") {
-      return {
-        status: "unsupported",
-        reasons: [{ code: "native-build-too-old", subject: "native" }],
-        remediation: [],
-      };
-    }
-
-    return { status: "supported", reasons: [], remediation: [] };
-  },
 });
 ```
 
-A native fact that is `pending`, `unconfigured` or `failed` is `unknown` here, never a build below the minimum. `integer()` takes whole numbers, which an Android version code always is and an iOS `CFBundleVersion` is when you number your builds with integers. A dotted iOS build number makes `build.parse` throw, and a policy that throws keeps the last valid evaluation in force and reports the failure in `error`.
+`minimumBuild` compares with `integer()`, and it is the safe one. It rejects an empty text, whitespace, a sign, a fraction and `v120`, where `Number(text)` answers `0` for `""` and `NaN` for `"v120"`, and a `NaN` is never older than any build. A text it rejects fails the policy with `INVALID_VERSION`, and support stays `unknown`. A native fact that is `pending`, `unconfigured` or `failed` is `unknown` with the reason `native-build-not-read`, never a build below the minimum, and a build it cannot read as a native one is `native-build-unreadable`. `integer()` takes whole numbers, which an Android version code always is and an iOS `CFBundleVersion` is when you number your builds with integers: a dotted iOS build number fails the policy the same way, and the last valid evaluation stays in force beside the error. [Support](support.md#a-minimum-native-build) has the whole table. The reasons of these verdicts are named by `minimumBuild`, and are not the reasons of a reader, which says `build-not-read`.
 
 ### What the binary is
 
-An Expo app reads the installed binary from `expo-application`, and a bare app from a library such as `react-native-device-info`. The release is named in the native words, or the policy above reads it as unknown: an Android build is `android-version-code` with the version code as text, an iOS build is `ios-build` with the build number as text, and the authority is the application id. [React Native](react-native.md#what-the-binary-is) explains each field; this is the reader for both platforms.
+`expoApplication` of [`@priemskiyyy/beacon-native`](native.md) reads the installed binary from `expo-application`, and `deviceInfo` does the same over `react-native-device-info` in a bare app. The release is named in the native words, or the policy above reads it as unknown: an Android build is `android-version-code` with the version code as text, an iOS build is `ios-build` with the build number as text, and the authority is the application id. [React Native](react-native.md#what-the-binary-is) explains each field.
 
 ```ts
 // src/nativeBuild.ts
-import type { RunningRelease } from "@priemskiyyy/beacon";
+import { expoApplication } from "@priemskiyyy/beacon-native";
 import * as Application from "expo-application";
 import { Platform } from "react-native";
 
-const APPLICATION = "com.example.notes";
-
-const readText = (value: string | null) => value?.trim() || null;
-
-export const readNativeBuild = (): RunningRelease => {
-  const build = readText(Application.nativeBuildVersion);
-  const version = readText(Application.nativeApplicationVersion);
-
-  if (Application.applicationId !== APPLICATION) {
-    return {
-      identity: { status: "unknown", reason: "another-application" },
-      label: null,
-      raw: { applicationId: Application.applicationId },
-    };
-  }
-
-  if (build === null) {
-    return {
-      identity: { status: "unknown", reason: "native-build-not-read" },
-      label: version,
-      raw: { applicationId: APPLICATION },
-    };
-  }
-
-  if (Platform.OS === "android") {
-    return {
-      identity: {
-        status: "known",
-        authority: APPLICATION,
-        domain: "android-version-code",
-        value: build,
-      },
-      label: version,
-      raw: {
-        applicationId: APPLICATION,
-        versionName: version,
-        versionCode: build,
-      },
-    };
-  }
-
-  return {
-    identity: {
-      status: "known",
-      authority: APPLICATION,
-      domain: "ios-build",
-      value: build,
-    },
-    label: version,
-    raw: {
-      applicationId: APPLICATION,
-      shortVersion: version,
-      buildNumber: build,
-    },
-  };
-};
+export const nativeBuild = expoApplication({
+  application: Application,
+  platform: Platform.OS === "ios" ? "ios" : "android",
+  authority: "com.example.notes",
+});
 ```
 
 ### The Beacon
@@ -175,8 +82,8 @@ export const readNativeBuild = (): RunningRelease => {
 import { Beacon } from "@priemskiyyy/beacon";
 import { Platform } from "react-native";
 
-import { readNativeBuild } from "src/nativeBuild";
-import { minimumBuild } from "src/supportPolicy";
+import { nativeBuild } from "src/nativeBuild";
+import { policy } from "src/supportPolicy";
 
 export const beacon = new Beacon({
   scope: {
@@ -185,15 +92,9 @@ export const beacon = new Beacon({
     platform: Platform.OS,
     distribution: Platform.OS === "ios" ? "app-store" : "google-play",
   },
-  running: {
-    // Hermes has no crypto.randomUUID. The id only has to differ between runtimes.
-    boot: {
-      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-    },
-    native: readNativeBuild,
-  },
+  running: { native: nativeBuild },
   routes: {},
-  policy: minimumBuild,
+  policy,
 });
 
 declare module "@priemskiyyy/beacon-react" {
@@ -252,7 +153,7 @@ import { beacon } from "src/beacon";
 import { SupportGate } from "src/SupportGate";
 
 export const App = () => (
-  <BeaconProvider beacon={beacon} start>
+  <BeaconProvider beacon={beacon}>
     <SupportGate>
       <Text>Notes</Text>
     </SupportGate>

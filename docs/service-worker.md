@@ -14,7 +14,7 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-service-worker
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { serviceWorker } from "@priemskiyyy/beacon-service-worker";
 
 export const beacon = new Beacon({
@@ -24,7 +24,6 @@ export const beacon = new Beacon({
     platform: "web",
     distribution: "public-web",
   },
-  running: { boot: { id: createBootId() } },
   routes: {
     worker: serviceWorker({
       registration: () => navigator.serviceWorker.getRegistration(),

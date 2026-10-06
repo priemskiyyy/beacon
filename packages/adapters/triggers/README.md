@@ -78,7 +78,7 @@ export const useUpdateChecks = () => {
 | `reachReconnect({ condition })`         | a Reach condition                              | it goes from unmet to met                                            | `reconnect`    |
 | `invalidation({ source })`              | anything with `subscribe(listener)`            | it says so; its payload is never read                                | `invalidation` |
 
-The check at startup is the gate's and has the reason `startup`. A backoff arms one timer while it waits, and a retry and an expiry are labelled `interval`, since the core has no label for them.
+The check at startup is the gate's and has the reason `startup`. A backoff arms one timer while it waits, and `onExpiry` subscribes to each route's state. The reasons are the core's `CheckReason`: a check after a failure is labelled `retry`, and one because evidence expired `expiry`, so the diagnostics tell them from the timer's `interval`.
 
 ### The return from the background
 

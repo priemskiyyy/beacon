@@ -4,7 +4,7 @@ description: "Use Beacon from Solid: register your Beacon, publish it with Beaco
 
 # Solid
 
-`@priemskiyyy/beacon-solid` is a provider and a set of primitives. Reading never starts a session, checks a route or requests a command. Those stay explicit, so a component that reads a route can be rendered anywhere without a side effect.
+`@priemskiyyy/beacon-solid` is a provider and a set of primitives. The provider holds the observation session while it is mounted, and reading never starts one, checks a route or requests a command. Checks and commands stay explicit, so a component that reads a route can be rendered anywhere without a side effect.
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-solid
@@ -18,13 +18,13 @@ Register it once, next to where you create it. Every primitive then knows the na
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   ReleaseSource,
   TargetDecision,
 } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
@@ -39,21 +39,10 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      boot: { id: createBootId() },
-      web: () => ({
-        identity: {
-          status: "known",
-          authority: "com.example.notes",
-          domain: "web-artifact",
-          value: __BUILD_ID__,
-        },
-        label: __BUILD_ID__,
-        raw: {},
-      }),
+      web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: manifest.select((document) => document.web),
         mechanism: browserReload(),
       }),
@@ -69,11 +58,11 @@ declare module "@priemskiyyy/beacon-solid" {
 }
 ```
 
-`Register` is an interface so that you can merge into it. Without it, primitives accept any route name and give a loosely typed state, and a Beacon with named routes does not fit the `beacon` prop of `BeaconProvider`, so register.
+Without it, the provider still takes your Beacon and the primitives that name no route (`useBeaconStatus`, `useRunning`, `useSupport`, `useTransitions`, `useDisruption`) work, but a primitive that takes a route name fails to compile with the fix as the type it expected: `Register your Beacon: declare module "@priemskiyyy/beacon-solid" { interface Register { beacon: typeof beacon } }`. `Register` is an interface so that you can merge into it.
 
 ## BeaconProvider
 
-Publish the Beacon once, near the root.
+Publish the Beacon once, near the root. The provider starts the session and ends it again when it is disposed.
 
 ```tsx
 // src/main.tsx
@@ -91,7 +80,7 @@ if (container === null) {
 
 render(
   () => (
-    <BeaconProvider beacon={beacon} start>
+    <BeaconProvider beacon={beacon}>
       <App />
     </BeaconProvider>
   ),
@@ -99,14 +88,14 @@ render(
 );
 ```
 
-| Prop     | Meaning                                                                                      |
-| -------- | -------------------------------------------------------------------------------------------- |
-| `beacon` | the registered Beacon to publish to the tree below                                           |
-| `start`  | `false` by default. When set, the provider holds the observation session while it is mounted |
+| Prop     | Meaning                                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------------------------- |
+| `beacon` | the registered Beacon to publish to the tree below                                                                   |
+| `start`  | `true` by default: the provider holds the observation session while it is mounted. `false` leaves the session to you |
 
-With `start`, an effect calls `beacon.start()` and returns its stop as the cleanup. When the provider is disposed, that ends only that session. It never disposes the Beacon, and it checks nothing. The effect reads both props, so a new `beacon` or `start` ends the old session, and starts a new one when `start` is still set. It calls `start` untracked: `start` notifies the listeners of the status at once, and whatever such a listener reads, such as a signal, does not become a dependency of the provider's effect and cannot restart the session.
+The provider owns the session. An effect calls `beacon.start()` and returns its stop as the cleanup. When the provider is disposed, that ends only that session. It never disposes the Beacon, and it checks nothing. The effect reads both props, so a new `beacon` or `start` ends the old session, and starts a new one unless `start` is `false`. It calls `start` untracked: `start` notifies the listeners of the status at once, and whatever such a listener reads, such as a signal, does not become a dependency of the provider's effect and cannot restart the session.
 
-Give `start` to one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider with `start` on the same Beacon shares that session, and the first of them to unmount ends it for both.
+Pass `start={false}` when something else owns the session, such as a service of yours that calls `beacon.start()` itself: the provider then publishes the Beacon and starts and stops nothing. Mount one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
 The provider creates its effect before any child exists, and Solid runs effects in the order it created them. The session therefore starts before any child's `onMount`, and a check there does not fail with `NOT_STARTED`. Checks are yours:
 
@@ -143,16 +132,16 @@ export const App = () => (
 
 Every primitive returns an accessor. Read it by calling it, and Solid tracks the read.
 
-| Primitive        | Reads                                                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `useRoute`       | a route's state by its name, optionally selected, with the types of its own offer and prepared target              |
-| `useRunning`     | what is running per subject. A subject that is not read yet is pending, never an old version                       |
-| `useSupport`     | what the support policy says about what runs                                                                       |
-| `useTransitions` | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints         |
-| `useStatus`      | where the session stands: idle, running, stopped or disposed                                                       |
-| `useObservable`  | any other observable of Beacon, such as `beacon().route("web").native`                                             |
-| `useDisruption`  | registers a participant while mounted; it registers once, so its closures read your signals when asked             |
-| `useBeacon`      | an accessor of the provider's Beacon, for commands (`reload`, `activate`, `download` and the rest) and for `check` |
+| Primitive         | Reads                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `useRoute`        | a route's state by its name, optionally selected, with the types of its own offer and prepared target              |
+| `useRunning`      | what is running per subject. A subject that is not read yet is pending, never an old version                       |
+| `useSupport`      | what the support policy says about what runs                                                                       |
+| `useTransitions`  | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints         |
+| `useBeaconStatus` | where the session stands: idle, running, stopped or disposed                                                       |
+| `useObservable`   | any other observable of Beacon, such as `beacon().route("web").native`                                             |
+| `useDisruption`   | registers a participant while mounted; it registers once, so its closures read your signals when asked             |
+| `useBeacon`       | an accessor of the provider's Beacon, for commands (`reload`, `activate`, `download` and the rest) and for `check` |
 
 Call them while a component runs, and not in an event handler.
 
@@ -165,7 +154,7 @@ Every reading primitive takes a selector and an options object: `useRoute(name, 
 import {
   useRoute,
   useRunning,
-  useStatus,
+  useBeaconStatus,
   useSupport,
   useTransitions,
 } from "@priemskiyyy/beacon-solid";
@@ -173,7 +162,7 @@ import {
 export const RoutePrimitives = () => {
   const checking = useRoute("web", ({ check }) => check.state === "checking");
   const web = useRunning(({ web }) => web);
-  const active = useStatus(({ state }) => state === "running");
+  const active = useBeaconStatus(({ state }) => state === "running");
   const unsupported = useSupport(({ status }) => status === "unsupported");
   const exhausted = useTransitions(({ latest }) => latest?.exhausted === true);
 
@@ -249,12 +238,12 @@ An effect that you create before the call, or a read inside a `batch` in that up
 
 ```tsx
 // src/SessionLabel.tsx
-import { useBeacon, useStatus } from "@priemskiyyy/beacon-solid";
+import { useBeacon, useBeaconStatus } from "@priemskiyyy/beacon-solid";
 import { createEffect } from "solid-js";
 
 export const SessionLabel = () => {
   const beacon = useBeacon();
-  const state = useStatus(({ state }) => state);
+  const state = useBeaconStatus(({ state }) => state);
 
   // Created after the primitive, so it runs after the primitive's effect and both come from the same Beacon.
   createEffect(() => {
@@ -309,7 +298,7 @@ export const UpdateBanner = () => {
 };
 ```
 
-`useBeacon` returns an accessor of the provider's Beacon, typed by the one you registered. It throws a `BeaconError` with `INVALID_CONFIGURATION` when no provider is above it, and so does every primitive that reads the provider's Beacon.
+`useBeacon` returns an accessor of the provider's Beacon, typed by the one you registered. It throws a `BeaconError` with `INVALID_CONFIGURATION` when no provider is above it, and so does every primitive that reads the provider's Beacon: the message names the primitive you called and the package that has the provider, such as `useRoute needs a BeaconProvider (from @priemskiyyy/beacon-solid) above it.`
 
 ### Other observables
 
@@ -388,7 +377,7 @@ A reservation an owner holds stays valid after the owner is disposed, as long as
 
 ## Testing
 
-Render the component under `BeaconProvider` with a real Beacon over the mock source and the test clock, and drive it the way [the testing guide](testing.md) does: answer, check, advance. Reading in a primitive never starts a session, so start the Beacon in the test, or pass `start` to the provider.
+Render the component under `BeaconProvider` with a real Beacon over the mock source and the test clock, and drive it the way [the testing guide](testing.md) does: answer, check, advance. Reading in a primitive never starts a session, but the provider does, so a Beacon rendered under it is running. Pass `start={false}` to the provider when a test opens the session itself.
 
 - Run the tests in a DOM environment such as jsdom, with the `browser` and `development` export conditions, and with `solid-js` deduped and inlined (`server.deps.inline`) so that those conditions apply to it. Under plain Node, `solid-js` resolves to its server build, which never runs effects, so no primitive would subscribe.
 - Compile the JSX with `vite-plugin-solid`. Test a server render in a Node environment with the plugin's `ssr` option on.
@@ -438,7 +427,6 @@ export const createTestBeacon = () => {
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: mock.source.select((document) => document.web),
         mechanism: browserReload({
           target: { location: { reload: () => {} } },
@@ -467,7 +455,7 @@ test("the banner offers the update once a check finds one", async () => {
 
   const dispose = render(
     () => (
-      <BeaconProvider beacon={beacon} start>
+      <BeaconProvider beacon={beacon}>
         <UpdateBanner />
       </BeaconProvider>
     ),
@@ -490,8 +478,8 @@ test("the banner offers the update once a check finds one", async () => {
 The server and the hydrating render read every observable as it stood before any session, through `getInitial`. On the server that is what `renderToString` prints: the route is `unknown` with `not-checked`, and what runs is `pending`. The markup therefore matches whatever the client has learned by the time it hydrates, even when a boundary hydrates late and the live state has moved on. The live value is read when a component mounts, and a change of it updates the DOM after hydration.
 
 - Design the first render for `unknown` and `pending`: show nothing until the observation is `available`.
-- Start the Beacon through the provider, and not before the hydrating render. The provider starts it when the tree mounts, before any child's `onMount`, so a check there does not fail with `NOT_STARTED`.
-- A server render mounts nothing, so it starts nothing and reads nothing. Create the Beacon for each request, and never start it on the server, so that two requests never share a session or a state.
+- Let the provider start the Beacon, and not before the hydrating render. It starts it when the tree mounts, before any child's `onMount`, so a check there does not fail with `NOT_STARTED`.
+- A server render mounts nothing, so it starts nothing and reads nothing, and the provider starts no session there. Create the Beacon for each request, and never start it yourself on the server, so that two requests never share a session or a state.
 
 ```tsx
 // src/render.tsx
@@ -511,7 +499,7 @@ export const renderOnTheServer = () =>
 export const hydrateOnTheClient = (container: HTMLElement) =>
   hydrate(
     () => (
-      <BeaconProvider beacon={beacon} start>
+      <BeaconProvider beacon={beacon}>
         <App />
       </BeaconProvider>
     ),

@@ -1,14 +1,76 @@
 ---
-description: "Map Google Play in-app updates onto a Beacon route over a native bridge you inject: the flows, the download, update and restart commands, and what a fake bridge cannot prove."
+description: "Open the Google Play page of your app from a Beacon route with no native code, and map Play's in-app updates onto a route over a native bridge you write: the flows, the download, update and restart commands, and what a fake bridge cannot prove."
 ---
 
 # Google Play
 
-`@priemskiyyy/beacon-google-play` makes Play's in-app updates a route, over a native bridge you inject. Play owns eligibility, the flows and the version order. The adapter maps what it says and claims nothing as installed until a later boot shows the running build.
+`@priemskiyyy/beacon-google-play` has two routes for two needs, and only one of them asks for native code.
+
+| Route                    | For                                                                                      | What it needs                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `playStore`              | sending the user to the Play Store page of your app, such as a forced upgrade            | React Native's `Linking`, and nothing else        |
+| `googlePlay({ bridge })` | Play's in-app updates: the flexible and the immediate flow, the download and the restart | a native module you write, which no package ships |
+
+Start with `playStore`. `googlePlay` is for an application that has written a bridge over Play's in-app update library, and [below](#in-app-updates-needs-a-native-bridge-you-write) says what that takes.
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play @priemskiyyy/beacon-native
 ```
+
+## Open the store page
+
+`playStore({ applicationId, linking })` is a route with one command, `openStore`, and no bridge. It opens `market://details?id=<applicationId>`, which the Play Store app handles, and where nothing handles that link, such as a device without Play services, it opens `https://play.google.com/store/apps/details?id=<applicationId>` in the browser instead. The destination is built from the application id alone, never from a manifest, and an id that is not the dotted name Android gives one throws `INVALID_CONFIGURATION` when the route is made.
+
+```ts
+// src/storeBeacon.ts
+import { Beacon } from "@priemskiyyy/beacon";
+import {
+  GOOGLE_PLAY_DISTRIBUTION,
+  playStore,
+} from "@priemskiyyy/beacon-google-play";
+import { Linking } from "react-native";
+
+const APPLICATION = "com.example.notes";
+
+export const beacon = new Beacon({
+  // scope.application is the Android application id.
+  scope: {
+    application: APPLICATION,
+    environment: "production",
+    platform: "android",
+    distribution: GOOGLE_PLAY_DISTRIBUTION,
+  },
+  routes: {
+    store: playStore({ applicationId: APPLICATION, linking: Linking }),
+  },
+});
+```
+
+| Command     | Needs             | Impact             | Binding             | Receipt                   |
+| ----------- | ----------------- | ------------------ | ------------------- | ------------------------- |
+| `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-requested` |
+
+`openStore` has the shape the App Store route declares, so an application in both stores names one route and calls one method, whichever it is on ([App Store](app-store.md#one-store-route-for-both-platforms)). The route asks nobody what the store has, so it never offers an update: its check is no offer, detail `no-lookup`, which is not proof that no release exists. Beacon's `usable` flag on a remediation counts an offer or a prepared target only, so a policy that names this route reads it as not usable: open the store from your own button rather than gating it on that flag.
+
+```ts
+import { beacon } from "src/storeBeacon";
+
+const outcome = await beacon.route("store").openStore();
+
+if (outcome.status === "unsupported") {
+  console.info("This build is not from Google Play:", outcome.reason);
+}
+```
+
+A resolved call means only that the OS accepted the request: the user can decline or never return, and nothing says an installation began. A link that neither opens is a failed command, `COMMAND_FAILED`, and never an accepted one.
+
+### Which distribution
+
+The store adapters agree on three words for `scope.distribution`: `google-play` for a build Google Play serves, `app-store` for one the App Store serves, and `development` for a build in neither, such as a debug build or an emulator. `GOOGLE_PLAY_DISTRIBUTION` is the first as a constant, and the App Store package exports the second as `APP_STORE_DISTRIBUTION`. `playStore` answers only for `google-play`: in a scope that says another, `openStore` is `unsupported` with the reason `other-distribution` and opens nothing, so a sideloaded or development build is never sent to a store page it did not come from.
+
+## In-app updates: needs a native bridge you write
+
+`googlePlay({ bridge })` makes Play's in-app updates a route, over a native bridge you inject. **No package ships that bridge**: it is a native module over Play's in-app update library that you write or audit, in Kotlin or Java, and nothing in this repository has run it on a device or against a real Play distribution. Use `playStore` unless you need the flows. Play owns eligibility, the flows and the version order. The adapter maps what it says and claims nothing as installed until a later boot shows the running build.
 
 ## The bridge
 
@@ -57,7 +119,7 @@ Make the object once, at module scope. A bridge belongs to one open session at a
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
 import { expoApplication } from "@priemskiyyy/beacon-native";
 import * as Application from "expo-application";
@@ -75,7 +137,6 @@ export const beacon = new Beacon({
     distribution: "google-play",
   },
   running: {
-    boot: { id: createBootId() },
     native: expoApplication({
       application: Application,
       platform: "android",

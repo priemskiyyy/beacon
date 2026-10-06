@@ -9,7 +9,7 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-native
 npx expo install expo-application
 ```
 
-With `react-native-device-info` instead, install that and leave `expo-application` out. Both are optional peer dependencies.
+With `react-native-device-info` instead, install that and leave `expo-application` out. Both are optional peer dependencies, open ended from the oldest release whose types the structural types fit (`expo-application` 1.0.0, `react-native-device-info` 4.0.1), and checked up to 58 and 15: a check of declarations, never of what an older module does when it is called.
 
 ## Create a reader
 
@@ -23,7 +23,6 @@ import { Platform } from "react-native";
 const beacon = new Beacon({
   scope, // scope.application is the application id
   running: {
-    boot: { id: BOOT_ID },
     native: expoApplication({
       application: Application,
       platform: Platform.OS === "ios" ? "ios" : "android",

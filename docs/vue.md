@@ -4,7 +4,7 @@ description: "Use Beacon from Vue: register your Beacon, publish it with BeaconP
 
 # Vue
 
-`@priemskiyyy/beacon-vue` is a provider and a set of composables. Reading never starts a session, checks a route or requests a command. Those stay explicit, so a component that reads a route can be rendered anywhere without a side effect.
+`@priemskiyyy/beacon-vue` is a provider and a set of composables. The provider holds the observation session while it is mounted, and reading never starts one, checks a route or requests a command. Checks and commands stay explicit, so a component that reads a route can be rendered anywhere without a side effect.
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-vue
@@ -18,13 +18,13 @@ Register it once, next to where you create it. Every composable then knows the n
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   ReleaseSource,
   TargetDecision,
 } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
@@ -39,21 +39,10 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      boot: { id: createBootId() },
-      web: () => ({
-        identity: {
-          status: "known",
-          authority: "com.example.notes",
-          domain: "web-artifact",
-          value: __BUILD_ID__,
-        },
-        label: __BUILD_ID__,
-        raw: {},
-      }),
+      web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: manifest.select((document) => document.web),
         mechanism: browserReload(),
       }),
@@ -69,11 +58,11 @@ declare module "@priemskiyyy/beacon-vue" {
 }
 ```
 
-`Register` is an interface so that you can merge into it. Without it, composables accept any route name and give a loosely typed state, and a Beacon with named routes does not fit the `beacon` prop of `BeaconProvider`, so register.
+Without it, the provider still takes your Beacon and the composables that name no route (`useBeaconStatus`, `useRunning`, `useSupport`, `useTransitions`, `useDisruption`) work, but a composable that takes a route name fails to compile with the fix as the type it expected: `Register your Beacon: declare module "@priemskiyyy/beacon-vue" { interface Register { beacon: typeof beacon } }`. `Register` is an interface so that you can merge into it.
 
 ## BeaconProvider
 
-Publish the Beacon once, near the root. The provider is a component. It takes the Beacon and `start` as props and renders its default slot.
+Publish the Beacon once, near the root. The provider is a component. It takes the Beacon and `start` as props, starts the session, and renders its default slot.
 
 ```vue
 <!-- src/Root.vue -->
@@ -83,17 +72,17 @@ import type { RegisteredBeacon } from "@priemskiyyy/beacon-vue";
 
 import App from "src/App.vue";
 
-defineProps<{ beacon: RegisteredBeacon; start?: boolean }>();
+defineProps<{ beacon: RegisteredBeacon }>();
 </script>
 
 <template>
-  <BeaconProvider :beacon="beacon" :start="start">
+  <BeaconProvider :beacon="beacon">
     <App />
   </BeaconProvider>
 </template>
 ```
 
-The root takes the Beacon as a prop, so the server and the browser share one root and differ only in the Beacon they pass and in `start`.
+The root takes the Beacon as a prop, so the server and the browser share one root and differ only in the Beacon they pass.
 
 ```ts
 // src/main.ts
@@ -102,17 +91,17 @@ import { createApp } from "vue";
 import Root from "src/Root.vue";
 import { beacon } from "src/beacon";
 
-createApp(Root, { beacon, start: true }).mount("#app");
+createApp(Root, { beacon }).mount("#app");
 ```
 
-| Prop     | Meaning                                                                                      |
-| -------- | -------------------------------------------------------------------------------------------- |
-| `beacon` | the registered Beacon to publish to the components below                                     |
-| `start`  | `false` by default. When set, the provider holds the observation session while it is mounted |
+| Prop     | Meaning                                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------------------------- |
+| `beacon` | the registered Beacon to publish to the components below                                                             |
+| `start`  | `true` by default: the provider holds the observation session while it is mounted. `false` leaves the session to you |
 
-With `start`, the provider calls `beacon.start()` just before it mounts and ends that session when it unmounts. It never disposes the Beacon, and it checks nothing. A new `beacon` or `start` prop ends the old session, and starts a new one when `start` is still set. Keep a Beacon that you swap in a `shallowRef`, since a deep `ref` would wrap it in a proxy.
+The provider owns the session. It calls `beacon.start()` just before it mounts and ends that session when it unmounts. It never disposes the Beacon, and it checks nothing. A new `beacon` or `start` prop ends the old session, and starts a new one unless `start` is `false`. Keep a Beacon that you swap in a `shallowRef`, since a deep `ref` would wrap it in a proxy.
 
-Give `start` to one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider with `start` on the same Beacon shares that session, and the first of them to unmount ends it for both.
+Pass `:start="false"` when something else owns the session, such as a service of yours that calls `beacon.start()` itself: the provider then publishes the Beacon and starts and stops nothing. A component of yours that forwards `start` to the provider must give it the default `true` (`withDefaults(defineProps<{ start?: boolean }>(), { start: true })`), since Vue reads an absent boolean prop as `false`. Mount one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
 The session starts before any child of the provider is created. A check in a child's `onMounted` therefore finds the session running and does not fail with `NOT_STARTED`. Checks are yours:
 
@@ -150,16 +139,16 @@ useStartupCheck();
 
 Every composable returns a read-only `ComputedRef`. Read `.value` in a script. A template unwraps the ref.
 
-| Composable       | Reads                                                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `useRoute`       | a route's state by its name, optionally selected, with the types of its own offer and prepared target                  |
-| `useRunning`     | what is running per subject. A subject that is not read yet is pending, never an old version                           |
-| `useSupport`     | what the support policy says about what runs                                                                           |
-| `useTransitions` | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints             |
-| `useStatus`      | where the session stands: idle, running, stopped or disposed                                                           |
-| `useObservable`  | any other observable of Beacon, such as `beacon.value.route("web").native`                                             |
-| `useDisruption`  | registers a participant while mounted; it registers once, so its closures read your state when asked                   |
-| `useBeacon`      | a `ComputedRef` of the provider's Beacon, for commands (`reload`, `activate`, `download` and the rest) and for `check` |
+| Composable        | Reads                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `useRoute`        | a route's state by its name, optionally selected, with the types of its own offer and prepared target                  |
+| `useRunning`      | what is running per subject. A subject that is not read yet is pending, never an old version                           |
+| `useSupport`      | what the support policy says about what runs                                                                           |
+| `useTransitions`  | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints             |
+| `useBeaconStatus` | where the session stands: idle, running, stopped or disposed                                                           |
+| `useObservable`   | any other observable of Beacon, such as `beacon.value.route("web").native`                                             |
+| `useDisruption`   | registers a participant while mounted; it registers once, so its closures read your state when asked                   |
+| `useBeacon`       | a `ComputedRef` of the provider's Beacon, for commands (`reload`, `activate`, `download` and the rest) and for `check` |
 
 Call them in `setup`, where Vue can tie them to the component. A component that unmounts lets go of everything it subscribed to.
 
@@ -173,14 +162,14 @@ Every reading composable takes a selector and an options object: `useRoute(name,
 import {
   useRoute,
   useRunning,
-  useStatus,
+  useBeaconStatus,
   useSupport,
   useTransitions,
 } from "@priemskiyyy/beacon-vue";
 
 const checking = useRoute("web", ({ check }) => check.state === "checking");
 const web = useRunning(({ web }) => web);
-const active = useStatus(({ state }) => state === "running");
+const active = useBeaconStatus(({ state }) => state === "running");
 const unsupported = useSupport(({ status }) => status === "unsupported");
 const exhausted = useTransitions(({ latest }) => latest?.exhausted === true);
 
@@ -279,7 +268,7 @@ const update = async () => {
 </template>
 ```
 
-`useBeacon` returns a `ComputedRef` of the provider's Beacon, typed by the one you registered, and it follows a new one. It throws a `BeaconError` with `INVALID_CONFIGURATION` when no provider is above it. Called where Vue has no component, such as in an event handler or a timer, it finds no provider and throws the same error, so take the Beacon in `setup`.
+`useBeacon` returns a `ComputedRef` of the provider's Beacon, typed by the one you registered, and it follows a new one. It throws a `BeaconError` with `INVALID_CONFIGURATION` when no provider is above it, and so does every composable that reads the provider's Beacon: the message names the composable you called and the package that has the provider, such as `useRoute needs a BeaconProvider (from @priemskiyyy/beacon-vue) above it.` Called where Vue has no component, such as in an event handler or a timer, it finds no provider and throws the same error, so take the Beacon in `setup`.
 
 ### Other observables
 
@@ -364,7 +353,7 @@ A reservation a component holds stays valid after the component unmounts, as lon
 
 ## Testing
 
-Mount the component under `BeaconProvider` with a real Beacon over the mock source and the test clock, and drive it the way [the testing guide](testing.md) does: answer, check, advance. Reading in a composable never starts a session, so start the Beacon in the test, or pass `start` to the provider.
+Mount the component under `BeaconProvider` with a real Beacon over the mock source and the test clock, and drive it the way [the testing guide](testing.md) does: answer, check, advance. Reading in a composable never starts a session, but the provider does, so a Beacon mounted under it is running. Pass `:start="false"` to the provider when a test opens the session itself.
 
 - Run the tests in a DOM environment such as jsdom, and test a server render in a Node environment. Keep one copy of `vue` in the test build (`resolve.dedupe`), so that the binding and your components share one reactivity system.
 - Await `nextTick()` after a change, since Vue updates the DOM on the next tick. A ref changes at once, and the DOM follows.
@@ -413,7 +402,6 @@ export const createTestBeacon = () => {
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: mock.source.select((document) => document.web),
         mechanism: browserReload({
           target: { location: { reload: () => {} } },
@@ -441,8 +429,7 @@ test("the banner offers the update once a check finds one", async () => {
   const container = document.createElement("div");
 
   const app = createApp({
-    render: () =>
-      h(BeaconProvider, { beacon, start: true }, () => h(UpdateBanner)),
+    render: () => h(BeaconProvider, { beacon }, () => h(UpdateBanner)),
   });
 
   app.mount(container);
@@ -464,8 +451,8 @@ test("the banner offers the update once a check finds one", async () => {
 The server and the hydrating render read every observable as it stood before any session, through `getInitial`. On the server that is what `renderToString` prints: the route is `unknown` with `not-checked`, and what runs is `pending`. The markup therefore matches whatever the client has learned by the time it hydrates, even when a boundary hydrates late and the live state has moved on. Once a component is mounted, its refs switch to the live value and follow it.
 
 - Design the first render for `unknown` and `pending`: show nothing until the observation is `available`.
-- Start the Beacon through the provider, and not before the hydrating render. The provider starts it before any child mounts, so a check in a component's `onMounted` does not fail with `NOT_STARTED`.
-- A server render starts nothing and reads nothing, since mount hooks never run on the server. Create the Beacon for each request, and never start it on the server, so that two requests never share a session or a state.
+- Let the provider start the Beacon, and not before the hydrating render. It starts it before any child mounts, so a check in a component's `onMounted` does not fail with `NOT_STARTED`.
+- A server render starts nothing and reads nothing, since mount hooks never run on the server. The provider starts no session on the server. Create the Beacon for each request, and never start it yourself on the server, so that two requests never share a session or a state.
 
 ```ts
 // src/render.ts
@@ -479,7 +466,7 @@ export const renderOnTheServer = () =>
   renderToString(createSSRApp(Root, { beacon: createBeacon() }));
 
 export const hydrateOnTheClient = (container: HTMLElement) =>
-  createSSRApp(Root, { beacon, start: true }).mount(container);
+  createSSRApp(Root, { beacon }).mount(container);
 ```
 
 ## Types

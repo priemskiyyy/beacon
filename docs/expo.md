@@ -14,13 +14,15 @@ This page is the adapter. [React Native](react-native.md) is the whole app aroun
 2. Configure updates once with `eas update:configure`. It writes `runtimeVersion` and `updates.url` to `app.json`, and sets a channel on the build profiles of `eas.json`. The adapter changes none of these.
 3. Build the binary with that channel, and publish updates to the same channel: `eas update --channel production --message "..."`.
 
-`expo-updates` does not run in Expo Go. Its own documentation says to test with a development build or a release build; see [Expo Go, a development build and a release build](react-native.md#expo-go-a-development-build-and-a-release-build).
+`expo-updates` does not run in Expo Go. Its own documentation says to test with a development build or a release build; see [Expo Go, a development build and a release build](react-native.md#expo-go-a-development-build-and-a-release-build). To see the banner there anyway, pass [a fake](#a-fake-for-development-and-tests) for the module.
+
+The `expo-updates` peer has no upper limit and starts at 0.24, the release of Expo SDK 50: the structural type the adapter reads was typechecked against 0.24.0 and against 58.0.11, and each release in between that was tried, by `scripts/verify-peers.mjs`. That is a check of declarations. What an older SDK does when the adapter calls it has not been run, and [the decision record](decisions.md) says so.
 
 ## Create a route
 
 ```ts
 // src/beacon.ts
-import { Beacon, createBootId } from "@priemskiyyy/beacon";
+import { Beacon } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import { expoApplication } from "@priemskiyyy/beacon-native";
 import * as Application from "expo-application";
@@ -36,8 +38,7 @@ export const beacon = new Beacon({
     distribution: "app-store",
   },
   running: {
-    boot: { id: createBootId() },
-    bundle: expoBundle(Updates),
+    bundle: expoBundle({ updates: Updates }),
     native: expoApplication({
       application: Application,
       platform: Platform.OS === "ios" ? "ios" : "android",
@@ -54,7 +55,7 @@ The route is a driver route on the `bundle` subject. The module belongs to one o
 
 ### The running bundle
 
-`expoBundle(Updates)` is the reader of the running JavaScript bundle. Pass it as the `bundle` reader. The route never writes it.
+`expoBundle({ updates: Updates })` is the reader of the running JavaScript bundle. Pass it as the `bundle` reader. The route never writes it.
 
 | Fact       | Source                                                                                                                                   |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -97,6 +98,50 @@ The SDK's other reasons for no update are kept as the detail: `updateRejectedByS
 | `reload`   | a prepared | `javascript-restart`         | `provider-current` | `reload-requested`                                           |
 
 Both are `unsupported` with the reason `updates-disabled` while updates are off, and when the SDK refuses the call as unavailable, as [below](#where-updates-cannot-run).
+
+### Apply an update
+
+A banner that says "Update" runs both commands, and `applyUpdate` of the package does that: it downloads what is on offer, then reloads what is prepared. It takes the route handle, never throws, and answers where it stopped and how that command settled.
+
+```ts
+import { applyUpdate } from "@priemskiyyy/beacon-expo";
+
+import { beacon } from "src/beacon";
+
+export const update = async () => {
+  const applied = await applyUpdate(beacon.route("ota"));
+
+  if (applied.step === "none") {
+    return "Nothing to install.";
+  }
+
+  if (applied.step === "download") {
+    if (applied.outcome.status === "accepted") {
+      return "Nothing new was prepared.";
+    }
+
+    return "The update could not be downloaded.";
+  }
+
+  if (applied.outcome.status === "blocked") {
+    return "Save your work, then update.";
+  }
+
+  if (applied.outcome.status === "accepted") {
+    return "Restarting.";
+  }
+
+  return "Try again.";
+};
+```
+
+| `step`     | Where it stopped                                                                                                                                                                                               |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `none`     | nothing was on offer and nothing was prepared, so the SDK was asked for nothing                                                                                                                                |
+| `download` | at the download. Its `outcome` is refused, blocked or failed, or it is accepted and prepared nothing to reload (`no-new-preparation`)                                                                          |
+| `reload`   | at the restart, whatever its `outcome`, with the accepted `download` that came before it. Its receipt says whether what was prepared is what was offered (`offered`). It is `null` when nothing was downloaded |
+
+It is the two commands of the route in their order and nothing more, so every guard applies: a participant that blocks the restart is the `outcome` of the `reload` step with its reasons, the [journal](journal.md) records the intent before it, and an update that an earlier `download` prepared is reloaded when nothing is on offer any more. An accepted reload is a request: the route stays unresolved until `route.acknowledge()`, and a second call meets that and downloads nothing again. A banner that should tell the user before it downloads, since `download` may activate on the next start, calls the two commands itself, as below.
 
 ### Download
 
@@ -151,6 +196,50 @@ if (prepared.status === "ready") {
 `Updates.reloadAsync()` replaces the JavaScript runtime and selects the update the SDK downloaded most recently, not necessarily the one the user was shown. Everything of the old runtime goes with it: `AppState` listeners, timers, module variables and the Beacon with its observations. What stays is the journal's record, in the storage you gave it, which is why a reload of an application that wants to know what it reached needs a journal; [React Native](react-native.md#what-a-reload-keeps) has the wiring. A rollback to the embedded update names no identity, so a journal can only call it `inconclusive`.
 
 `prepared` starts at `unknown` and becomes `ready` only through a `download` of this session. Autonomous downloads that `expo-updates` runs on its own are not observed.
+
+## A fake for development and tests
+
+`@priemskiyyy/beacon-expo/mock` has `createFakeUpdates`, a fake `expo-updates` module for the two places the real one says nothing: Expo Go and a development build, where updates are off, and a test. It goes where the module goes.
+
+```ts
+import { createFakeUpdates } from "@priemskiyyy/beacon-expo/mock";
+import * as Updates from "expo-updates";
+
+import { expoUpdates } from "@priemskiyyy/beacon-expo";
+
+export const routes = {
+  ota: expoUpdates({
+    updates: __DEV__ ? createFakeUpdates({ available: true }) : Updates,
+  }),
+};
+```
+
+| Option      | Default | What the fake is                                                                                                                   |
+| ----------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `available` | `false` | a build whose server has one update: a check offers it, a fetch downloads it, every time. Without it a check says nothing is there |
+| `disabled`  | `false` | a build with updates off, as Expo Go: `isEnabled` is `false`, no update is running, and each call is refused as the SDK refuses it |
+
+The banner then shows in Expo Go, in Storybook and in a screenshot test, and `download` and `reload` answer as they would. `reloadAsync` restarts nothing, so the route stays unresolved after a reload, as it does on a device. `calls` counts what the fake was asked (`checks`, `fetches` and `reloads`), and a method assigned over it is what the route meets, which is how a test scripts a failure or a slow fetch:
+
+```ts
+import { createGate } from "@priemskiyyy/beacon/mock";
+import { createFakeUpdates } from "@priemskiyyy/beacon-expo/mock";
+
+const updates = createFakeUpdates({ available: true });
+const gate = createGate();
+
+gate.hold();
+
+const fetchUpdate = updates.fetchUpdateAsync;
+
+updates.fetchUpdateAsync = async () => {
+  await gate.wait();
+
+  return fetchUpdate();
+};
+```
+
+It is a fake of what the route reads, so it proves how Beacon maps a result and never that an update launched. [Testing](testing.md#testing-in-an-expo-app) has it under Jest.
 
 ## What it does not do
 

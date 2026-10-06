@@ -11,6 +11,7 @@ import { useBeacon } from "src/hooks/useBeacon";
 import { useDisruption } from "src/hooks/useDisruption";
 import { useRoute } from "src/hooks/useRoute";
 import { useRunning } from "src/hooks/useRunning";
+import { useSupport } from "src/hooks/useSupport";
 
 afterEach(cleanup);
 
@@ -249,4 +250,29 @@ test("useDisruption asks the latest participant, without registering again", asy
     status: "accepted",
   });
   expect(registered.count).toBe(1);
+});
+
+test("useSupport reads support as it stands, which is unknown without a policy", () => {
+  const { beacon } = createWebBeacon();
+  const { result } = renderHook(() => useSupport(beacon));
+
+  expect(result.current).toMatchObject({
+    status: "unknown",
+    reason: "no-policy",
+  });
+});
+
+test("useSupport with a selector renders the selection of the provider's Beacon", () => {
+  const { beacon } = createWebBeacon();
+
+  const wrapper = ({ children }: PropsWithChildren) => (
+    <BeaconProvider beacon={beacon}>{children}</BeaconProvider>
+  );
+
+  const { result } = renderHook(
+    () => useSupport(beacon, ({ status }) => status),
+    { wrapper },
+  );
+
+  expect(result.current).toBe("unknown");
 });

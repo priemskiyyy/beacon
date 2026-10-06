@@ -1,5 +1,7 @@
 import type { CommandParameters } from "src/types/CommandParameters";
+import type { CommandDescriptor } from "src/types/CommandDescriptor";
 import type { Impact } from "src/types/Impact";
+import type { TargetBinding } from "src/types/TargetBinding";
 
 /** Another command holds this route, or the runtime's one disruptive slot. */
 export const OPERATION_IN_PROGRESS = "operation-in-progress";
@@ -37,3 +39,27 @@ export const IMPACT_EFFECTS = {
   "external-handoff": { disruptive: true, replacesRealm: false },
   "may-activate-on-next-start": { disruptive: false, replacesRealm: false },
 } satisfies Record<Impact, { disruptive: boolean; replacesRealm: boolean }>;
+
+type Reference = CommandDescriptor<
+  unknown,
+  { release: never },
+  { release: never },
+  CommandParameters,
+  { kind: string }
+>["reference"];
+
+/** Every reference a command can declare. */
+export const COMMAND_REFERENCES = {
+  offer: true,
+  prepared: true,
+  "optional-offer": true,
+  none: true,
+} satisfies Record<Reference, true>;
+
+/** Every binding a command can declare. */
+export const TARGET_BINDINGS = {
+  "unpinned-navigation": true,
+  "provider-current": true,
+  "exact-instance": true,
+  "store-destination": true,
+} satisfies Record<TargetBinding, true>;

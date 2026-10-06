@@ -1,4 +1,5 @@
 export { testReleaseSource } from "src/testing/testReleaseSource";
+export { testUpdateMechanism } from "src/testing/testUpdateMechanism";
 export { testVersionStrategy } from "src/testing/testVersionStrategy";
 
 export type {
@@ -6,3 +7,7 @@ export type {
   ReleaseSourceFixture,
 } from "src/testing/testReleaseSource";
 export type { VersionStrategyConformanceOptions } from "src/testing/testVersionStrategy";
+export type {
+  UpdateMechanismConformanceOptions,
+  UpdateMechanismFixture,
+} from "src/testing/testUpdateMechanism";

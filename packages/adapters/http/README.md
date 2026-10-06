@@ -30,10 +30,12 @@ const manifest = http({
       return { status: "not-modified" };
     }
 
+    const etag = response.headers.get("etag");
+
     return {
       status: "changed",
       document: parseManifest(await response.json()),
-      validator: response.headers.get("etag") ?? undefined,
+      ...(etag === null ? {} : { validator: etag }),
     };
   },
 });
@@ -41,7 +43,7 @@ const manifest = http({
 const web = targetRoute({
   subject: "web",
   source: manifest.select((document) => document.web),
-  mechanism: browserReload,
+  mechanism: browserReload(),
 });
 ```
 

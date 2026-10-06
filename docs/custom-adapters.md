@@ -228,12 +228,12 @@ Only a confirmation from the provider may say `ready`. A command that returned i
 
 The conformance suites of `@priemskiyyy/beacon/testing` register the contract every adapter keeps, over a fake of the provider. They need `vitest`. Call them at the top level of `src/conformance.test.ts`.
 
-| Suite                 | Contract                                                                                                                                                                          |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `testReleaseSource`   | it has a name, asks its backend for nothing until read, answers a document with real times and non-empty identifiers, can be read again, and every projection of it belongs to it |
-| `testVersionStrategy` | an input compares equal to itself, `newer` and `older` mirror each other along the ascending inputs, and a value that breaks the grammar throws                                   |
-| `testUpdateMechanism` | it touches its platform only when a session opens, can be opened again after it ended, and ending a session releases what it held                                                 |
-| `testReleaseDriver`   | it opens with a native handle and a check that answers a valid observation, prepares only if it said it does, holds no listener once disposed, and reports nothing after that     |
+| Suite                 | Contract                                                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `testReleaseSource`   | it has a name, asks its backend for nothing until read, answers a document with real times and non-empty identifiers, can be read again, and every projection of it belongs to it                      |
+| `testVersionStrategy` | an input compares equal to itself, `newer` and `older` mirror each other along the ascending inputs, and a value that breaks the grammar throws                                                        |
+| `testUpdateMechanism` | it opens nothing and holds nothing until a session opens, can be opened again after it ended, and ending a session releases what it held                                                               |
+| `testReleaseDriver`   | it declares valid commands, opens with a native handle and a check that answers a valid observation, prepares only if it said it does, holds no listener once disposed, and reports nothing after that |
 
 ```ts
 import { testUpdateMechanism } from "@priemskiyyy/beacon/testing";
@@ -242,19 +242,11 @@ import { relaunch } from "src/relaunch";
 
 testUpdateMechanism({
   name: "relaunch",
-  create: () => {
-    let opened = 0;
-
-    const mechanism = relaunch(() => {
-      opened += 1;
-
-      return { relaunch: () => {} };
-    });
-
-    return { mechanism, opens: () => opened };
-  },
+  create: () => ({ mechanism: relaunch(() => ({ relaunch: () => {} })) }),
 });
 ```
+
+The suite counts the mechanism's own `open` calls. If the fake platform can say what the mechanism holds on it, such as its listeners, return `held: () => listeners.size` beside the mechanism, and the suite checks that nothing is held before a session opens and that ending one releases what it held.
 
 For a driver, hand the suite the route over a fake SDK, and the fake's way of reporting a change and counting listeners:
 

@@ -190,6 +190,7 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 | `BeaconDiagnosticEventType` | what a diagnostic event records                                       |
 | `BeaconDiagnosticSnapshot`  | what Beacon holds right now: the status, the session and the counters |
 | `ObservableValue`           | a readable snapshot with `get`, `getInitial` and `subscribe`          |
+| `SelectorOptions`           | `{ isEqual }`, how a binding decides that a selection is the same     |
 
 ### Version types
 
@@ -224,19 +225,19 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 These need `vitest`.
 
-| Export                              | Kind     | What it is                                                         |
-| ----------------------------------- | -------- | ------------------------------------------------------------------ |
-| `testReleaseSource`                 | function | the contract every release source keeps                            |
-| `testVersionStrategy`               | function | the contract every version strategy keeps                          |
-| `testUpdateMechanism`               | function | the contract every update mechanism keeps                          |
-| `testReleaseDriver`                 | function | the contract every provider driver keeps                           |
-| `ReleaseSourceFixture`              | type     | a source under test and how many requests it made of its backend   |
-| `ReleaseSourceConformanceOptions`   | type     | what a source's suite is run over                                  |
-| `VersionStrategyConformanceOptions` | type     | what a strategy's suite is run over                                |
-| `UpdateMechanismFixture`            | type     | a mechanism under test, with how many times it opened its platform |
-| `UpdateMechanismConformanceOptions` | type     | what a mechanism's suite is run over                               |
-| `ReleaseDriverFixture`              | type     | a driver route under test and the provider's change events         |
-| `ReleaseDriverConformanceOptions`   | type     | what a driver's suite is run over                                  |
+| Export                              | Kind     | What it is                                                       |
+| ----------------------------------- | -------- | ---------------------------------------------------------------- |
+| `testReleaseSource`                 | function | the contract every release source keeps                          |
+| `testVersionStrategy`               | function | the contract every version strategy keeps                        |
+| `testUpdateMechanism`               | function | the contract every update mechanism keeps                        |
+| `testReleaseDriver`                 | function | the contract every provider driver keeps                         |
+| `ReleaseSourceFixture`              | type     | a source under test and how many requests it made of its backend |
+| `ReleaseSourceConformanceOptions`   | type     | what a source's suite is run over                                |
+| `VersionStrategyConformanceOptions` | type     | what a strategy's suite is run over                              |
+| `UpdateMechanismFixture`            | type     | a mechanism under test, and what it holds on its platform        |
+| `UpdateMechanismConformanceOptions` | type     | what a mechanism's suite is run over                             |
+| `ReleaseDriverFixture`              | type     | a driver route under test and the provider's change events       |
+| `ReleaseDriverConformanceOptions`   | type     | what a driver's suite is run over                                |
 
 ## @priemskiyyy/beacon-http
 
@@ -372,7 +373,7 @@ See [React](react.md).
 | `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                      |
 | `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
 | `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
-| `SelectorOptions`      | type      | `{ isEqual }`, how a hook decides that a selection is the same      |
+| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the hooks                 |
 
 ## @priemskiyyy/beacon-vue
 
@@ -396,7 +397,7 @@ See [Vue](vue.md).
 | `RegisteredRoute`      | type       | the handle of a route of the registered Beacon                                |
 | `RegisteredRouteState` | type       | the state of a route of the registered Beacon                                 |
 | `BeaconProviderProps`  | type       | the Beacon to publish, and whether to start                                   |
-| `SelectorOptions`      | type       | `{ isEqual }`, how a composable decides that a selection is the same          |
+| `SelectorOptions`      | type       | the core's `{ isEqual }`, re-exported for the composables                     |
 
 ## @priemskiyyy/beacon-solid
 
@@ -420,7 +421,7 @@ See [Solid](solid.md).
 | `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                      |
 | `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
 | `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
-| `SelectorOptions`      | type      | `{ isEqual }`, how a primitive decides that a selection is the same |
+| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the primitives            |
 
 ## @priemskiyyy/beacon-svelte
 
@@ -445,7 +446,7 @@ See [Svelte](svelte.md).
 | `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
 | `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
 | `ReadableValue`        | type      | what a utility returns: an object with a read-only `current`        |
-| `SelectorOptions`      | type      | `{ isEqual }`, how a utility decides that a selection is the same   |
+| `SelectorOptions`      | type      | the core's `{ isEqual }`, re-exported for the utilities             |
 
 ## @priemskiyyy/beacon-devtools
 

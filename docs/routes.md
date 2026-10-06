@@ -6,16 +6,16 @@ description: "Declare routes with targetRoute, newerRoute and createReleaseDrive
 
 A route is a named entry of `routes`. It compares what an authority wants with what runs, and it carries the commands that act on the difference. `beacon.route("web")` returns its handle. A name that was never defined does not compile, and throws `INVALID_CONFIGURATION` when it arrives from untyped code.
 
-| Member                      | What it is                                                                        |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| `state`                     | the snapshot: `check`, `observation`, `prepared` and `operation`                  |
-| `native`                    | the provider handle of the open session, or `null` while none is open             |
-| `capabilities`              | what each command declares, as constants                                          |
-| `check(options)`            | asks this route's authority                                                       |
-| `acknowledge()`             | ends an operation a command left unresolved                                       |
-| one method for each command | `reload`, `activate`, `download`, `update`, `restart` or `openStore`, as declared |
+| Member                      | What it is                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| `state`                     | an observable of the snapshot: `check`, `observation`, `prepared` and `operation`      |
+| `native`                    | an observable of the provider handle of the open session, or `null` while none is open |
+| `capabilities`              | what each command declares, as constants                                               |
+| `check(options)`            | asks this route's authority                                                            |
+| `acknowledge()`             | ends an operation a command left unresolved                                            |
+| one method for each command | `reload`, `activate`, `download`, `update`, `restart` or `openStore`, as declared      |
 
-Acquiring a handle or observing it starts nothing. Calling `native` directly bypasses Beacon's admission and journal, so treat it as an escape hatch.
+Acquiring a handle or observing it starts nothing. Using what `native` holds directly bypasses Beacon's admission and journal, so treat it as an escape hatch.
 
 ## Sources
 

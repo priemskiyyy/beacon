@@ -1,3 +1,7 @@
+---
+description: "Where the Beacon implementation departs from its specification and why, what is not built yet, and what nothing has verified on a device."
+---
+
 # Decisions
 
 Beacon follows its specification and departs from it in the places below, each with the reason. What is not built yet, and what nothing has verified on a device, is listed at the end.
@@ -36,7 +40,7 @@ Each item is a specified feature, not a decision to omit it.
 - **Scheduler and triggers**, retries and backoff.
 - **Workbox profile** and the service worker identity handshake. The service worker route reports an update as ready with an unknown build.
 - **Expo hook bridge**: the Expo route is the command profile, and autonomous native startup checks are not observed.
-- **Other framework bindings**, devtools, the documentation site, runnable examples, and the ecosystem bridges to Silo, Pulse, Reach, Porter, Flare and Simulcast.
+- **Other framework bindings**, devtools, runnable examples, and the ecosystem bridges to Silo, Pulse, Reach, Porter, Flare and Simulcast.
 - **Cross-tab coordination** for service workers: activation is a takeover of every tab of the scope, and one tab's guard cannot certify the others.
 - **Optional signatures** on manifests, and the rejection of duplicate JSON keys in the standard manifest, whose decoder keeps the last key.
 - **Retry hints**: a `429` fails the read and `Retry-After` is not honoured, since no scheduler owns a retry budget.

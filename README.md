@@ -2,6 +2,8 @@
 
 **Release awareness and update coordination for TypeScript applications, on the web and in React Native.**
 
+[Documentation](https://priemskiyyy.github.io/beacon/) · [Changelog](CHANGELOG.md)
+
 Beacon keeps one model of what your application is running, what its release authorities want, and which provider actions can be requested, without claiming an installation nobody observed. A reload, a store handoff and a downloaded update are each a request or a preparation, and only the next boot shows what runs.
 
 ```ts
@@ -81,9 +83,43 @@ Everything is tested in process against fakes, and the Expo and React Native ada
 
 ## Documentation
 
-- The README of each package above.
-- [Decisions](docs/decisions.md), the [limits](docs/limits.md), the [runtime architecture](docs/internals/architecture.md) and the [verification table](docs/verification.md).
-- [Contributing](CONTRIBUTING.md), [support](SUPPORT.md) and [security](SECURITY.md).
+The site is at [priemskiyyy.github.io/beacon](https://priemskiyyy.github.io/beacon/), and `pnpm dev:docs` serves it locally. Its source is in [docs](docs).
+
+| Section                | Pages                                                                                                                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start here             | [Getting started][docs-getting-started] · [The mental model][docs-mental-model]                                                                                                                                   |
+| Guides                 | [Routes][docs-routes] · [Commands][docs-commands] · [Support][docs-support] · [Disruptions][docs-disruptions] · [Journal][docs-journal] · [Scopes][docs-scopes] · [Sessions][docs-sessions]                       |
+| Adapters               | [HTTP][docs-http] · [Browser][docs-browser] · [Service worker][docs-service-worker] · [Expo][docs-expo] · [Google Play][docs-google-play] · [App Store][docs-app-store] · [Custom adapters][docs-custom-adapters] |
+| Build your application | [React][docs-react] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]                                                                                                 |
+| Reference              | [API][docs-api] · [Verification][docs-verification] · [Limits][docs-limits] · [Decisions][docs-decisions] · [Architecture][docs-architecture]                                                                     |
+
+Also the README of each package above, and [Contributing](CONTRIBUTING.md), [support](SUPPORT.md) and [security](SECURITY.md).
+
+[docs-getting-started]: https://priemskiyyy.github.io/beacon/getting-started
+[docs-mental-model]: https://priemskiyyy.github.io/beacon/mental-model
+[docs-routes]: https://priemskiyyy.github.io/beacon/routes
+[docs-commands]: https://priemskiyyy.github.io/beacon/commands
+[docs-support]: https://priemskiyyy.github.io/beacon/support
+[docs-disruptions]: https://priemskiyyy.github.io/beacon/disruptions
+[docs-journal]: https://priemskiyyy.github.io/beacon/journal
+[docs-scopes]: https://priemskiyyy.github.io/beacon/scopes
+[docs-sessions]: https://priemskiyyy.github.io/beacon/sessions
+[docs-http]: https://priemskiyyy.github.io/beacon/http
+[docs-browser]: https://priemskiyyy.github.io/beacon/browser
+[docs-service-worker]: https://priemskiyyy.github.io/beacon/service-worker
+[docs-expo]: https://priemskiyyy.github.io/beacon/expo
+[docs-google-play]: https://priemskiyyy.github.io/beacon/google-play
+[docs-app-store]: https://priemskiyyy.github.io/beacon/app-store
+[docs-custom-adapters]: https://priemskiyyy.github.io/beacon/custom-adapters
+[docs-react]: https://priemskiyyy.github.io/beacon/react
+[docs-recipes]: https://priemskiyyy.github.io/beacon/recipes
+[docs-testing]: https://priemskiyyy.github.io/beacon/testing
+[docs-troubleshooting]: https://priemskiyyy.github.io/beacon/troubleshooting
+[docs-api]: https://priemskiyyy.github.io/beacon/api
+[docs-verification]: https://priemskiyyy.github.io/beacon/verification
+[docs-limits]: https://priemskiyyy.github.io/beacon/limits
+[docs-decisions]: https://priemskiyyy.github.io/beacon/decisions
+[docs-architecture]: https://priemskiyyy.github.io/beacon/internals/architecture
 
 ## License
 

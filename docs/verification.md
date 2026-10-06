@@ -1,3 +1,7 @@
+---
+description: "What the tests prove about Beacon, how the scenario table is read from them, and what only a real browser or device can verify."
+---
+
 # Verification
 
 The specification lists 202 required regression scenarios in 14 groups. A test is named after the row it proves, such as `SAFE-03`, and one row can have several tests. A type-level row is proven by a `*.contracts.ts` file that carries the row's marker, and a build-level or documentation row by a script that does; a documentation row is a declared limit that `scripts/verify-limits.mjs` keeps in [the limits](limits.md). `pnpm test:package` checks that a built package imports only what its role allows. The table below is read from the tests, contract files and scripts by `scripts/verify-scenarios.mjs`, which fails when it disagrees with them or when a test names a row that does not exist. It counts rows with a test, not rows a device has passed.

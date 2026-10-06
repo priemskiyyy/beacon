@@ -95,7 +95,7 @@ A route publishes one snapshot in four dimensions that never rewrite each other.
 
 `prepared` is what a provider reports as ready for a later step: a downloaded bundle, an activated worker. It is kept apart from the observation, so a new download never erases an older ready target. A provider that cannot report across a restart starts at `unknown`, never `none`.
 
-Beacon adds two more observables beside the routes. `beacon.running` is the composite of the facts. `beacon.support` is what your policy says about them; see [support](support.md).
+Beside the routes, `beacon.running` is the composite of the running facts, and `beacon.support` is what your policy says about them; see [support](support.md).
 
 ## References
 

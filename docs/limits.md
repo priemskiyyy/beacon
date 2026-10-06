@@ -1,3 +1,7 @@
+---
+description: "What Beacon does not guarantee: navigation outside it, the local scope of disruption safety, cross-tab coordination, and what a test proves."
+---
+
 # Limits
 
 What Beacon does not guarantee, so that no document or type claims more than the code does. Each limit here is checked by `scripts/verify-limits.mjs`, which fails when a statement is removed.

@@ -18,13 +18,13 @@ export const scope: ReleaseScope = {
 };
 ```
 
-| Field          | Meaning                                                                                       |
-| -------------- | --------------------------------------------------------------------------------------------- |
-| `application`  | the application, such as its bundle or package id; the Play adapter reads its Android id here |
-| `environment`  | `production`, `staging` and so on; a manifest for another environment is refused              |
-| `platform`     | `web`, `ios`, `android`                                                                       |
+| Field          | Meaning                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| `application`  | the application, such as its bundle or package id; the Play adapter reads its Android id here        |
+| `environment`  | `production`, `staging` and so on; a manifest for another environment is refused                     |
+| `platform`     | `web`, `ios`, `android`                                                                              |
 | `distribution` | the channel: `public-web`, `app-store`, `google-play`. The App Store adapter serves only `app-store` |
-| `partition`    | optional; names the account when the answers differ by account                                |
+| `partition`    | optional; names the account when the answers differ by account                                       |
 
 The values are yours. Beacon compares them and does not interpret them, except where an adapter says so.
 
@@ -50,10 +50,10 @@ export const switchAccount = (userId: string) => {
 };
 ```
 
-| Result      | Means                                                                                   |
-| ----------- | --------------------------------------------------------------------------------------- |
-| `replaced`  | the next scope is in force and everything the last one taught was forgotten             |
-| `unchanged` | the scope equals the current one, and nothing was touched                               |
+| Result      | Means                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------- |
+| `replaced`  | the next scope is in force and everything the last one taught was forgotten               |
+| `unchanged` | the scope equals the current one, and nothing was touched                                 |
 | `blocked`   | a route has an operation running or unresolved, and the old scope stays entirely in force |
 
 `blocked` names the route. The underlying work cannot be given to another scope, so finish it, or acknowledge it with `route.acknowledge()`, and call again. Stopping the session does not free an operation for another scope.
@@ -65,7 +65,7 @@ After `dispose()`, `replaceScope` throws `DISPOSED`.
 - The documents each source accepted, and the revision high-water marks that came with them. Another scope's evidence is never compared with this one's.
 - Every observation, the offers and the references to them, and what a provider prepared.
 - The support evaluated from those documents.
-- The intents of the journal held in memory, and any intent still queued for writing. The next session reads the record of the next scope.
+- The intents of the journal held in memory. An intent still queued for writing is never written under the next scope's key, and the next session reads the record of the next scope.
 - The results of the old scope's reads. A read still under way is fenced, and a late answer changes nothing and is counted.
 
 ### What it keeps

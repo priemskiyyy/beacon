@@ -150,7 +150,7 @@ const stop = beacon.transitions.subscribe(() => {
 | `dropped`     | intents let go because the capacity or their retention ran out            |
 | `checkpoints` | the readiness checkpoints this boot reported                              |
 
-When the session opens, the journal reads the record once, waits until every running reader has answered, failed or timed out, and judges each intent from an earlier boot against what runs now. It writes the judged record back. An intent from this boot is not judged, since nothing new was observed.
+When the session opens, the journal reads the record once, waits until every running reader has answered, failed or timed out, and judges each intent from an earlier boot against what runs now. It writes the judged record back. An intent is judged once, by the first boot after it, and then keeps its outcome. An intent from this boot is not judged, since nothing new was observed.
 
 | `outcome`            | Means                                                                                         |
 | -------------------- | --------------------------------------------------------------------------------------------- |

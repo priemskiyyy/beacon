@@ -1,3 +1,7 @@
+---
+description: "How the Beacon runtime is built: who owns what, the invariants the tests protect, and the layout of a package."
+---
+
 # Architecture
 
 One `Beacon` per application holds named routes. A route is either a feed route, whose offers come from a release source and whose commands come from a mechanism, or a driver route, where a provider owns both.

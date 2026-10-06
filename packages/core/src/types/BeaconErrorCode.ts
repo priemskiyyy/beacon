@@ -9,6 +9,8 @@
  * - `SELECTION_FAILED`: a version strategy threw while parsing or comparing.
  * - `IDENTITY_CONFLICT`: one release identity was reported with contradictory
  *   order or compatibility.
+ * - `RUNNING_READ_FAILED`: the local reader of a running fact threw, rejected
+ *   or took too long.
  * - `REVISION_REGRESSION`: an authority's decision revision went backwards, or
  *   an unversioned decision followed a versioned one.
  * - `REVISION_CONFLICT`: one decision revision arrived with different content.
@@ -26,6 +28,7 @@ export type BeaconErrorCode =
   | "INVALID_VERSION"
   | "SELECTION_FAILED"
   | "IDENTITY_CONFLICT"
+  | "RUNNING_READ_FAILED"
   | "REVISION_REGRESSION"
   | "REVISION_CONFLICT"
   | "REVISION_EPOCH_CHANGED";

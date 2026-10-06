@@ -261,26 +261,29 @@ These need `vitest`.
 
 See [HTTP](http.md).
 
-| Export                         | Kind     | What it is                                                                          |
-| ------------------------------ | -------- | ----------------------------------------------------------------------------------- |
-| `http`                         | function | your manifest endpoint as a release source, through your client                     |
-| `readStandardManifest`         | function | a standard manifest response as an answer of `http`                                 |
-| `parseStandardManifest`        | function | the text of a standard manifest as a valid read, or an error naming the rule broken |
-| `HttpOptions`                  | type     | the name and the `fetch` of `http()`                                                |
-| `HttpFetchContext`             | type     | what one read hands your client: scope, signal, attempt and validator               |
-| `HttpAnswer`                   | type     | what your client resolves: `changed` with a document, or `not-modified`             |
-| `ManifestLimits`               | type     | the tunable limits of a manifest: bytes, lifetime and skew                          |
-| `ManifestMetadata`             | type     | the short strings a manifest may attach to a release                                |
-| `ManifestResponse`             | type     | the part of a `Response` that reading a manifest needs                              |
-| `OrderKind`                    | type     | how a candidate's order is written: `text` or `integer`                             |
-| `ParseStandardManifestOptions` | type     | the text, scope, routes, time and limits of a parse                                 |
-| `ReadStandardManifestOptions`  | type     | the response, scope, routes, time and limits of a read                              |
-| `RouteDeclaration`             | type     | what the application expects of one route: `target` or `candidate`                  |
-| `RouteDeclarations`            | type     | the routes the application reads from a manifest, by name                           |
-| `StandardDecision`             | type     | the decision a declared route holds once the manifest is read                       |
-| `StandardManifest`             | type     | the document of a valid manifest: one decision for each route, and the support      |
-| `StandardRead`                 | type     | a valid manifest with its evidence                                                  |
-| `StandardSupport`              | type     | the support facts of a manifest: a denylist for your policy                         |
+| Export                          | Kind     | What it is                                                                          |
+| ------------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| `http`                          | function | your manifest endpoint as a release source, through your client                     |
+| `readStandardManifest`          | function | a standard manifest response as an answer of `http`                                 |
+| `standardManifestSource`        | function | a standard manifest at a URL as a release source, over the global `fetch` or yours  |
+| `parseStandardManifest`         | function | the text of a standard manifest as a valid read, or an error naming the rule broken |
+| `HttpOptions`                   | type     | the name and the `fetch` of `http()`                                                |
+| `ManifestFetch`                 | type     | the request `standardManifestSource` makes: a URL and the options of one request    |
+| `StandardManifestSourceOptions` | type     | the URL, routes, client, headers, name and limits of `standardManifestSource`       |
+| `HttpFetchContext`              | type     | what one read hands your client: scope, signal, attempt, clock and validator        |
+| `HttpAnswer`                    | type     | what your client resolves: a document, or `not-modified`                            |
+| `ManifestLimits`                | type     | the tunable limits of a manifest: bytes, lifetime and skew                          |
+| `ManifestMetadata`              | type     | the short strings a manifest may attach to a release                                |
+| `ManifestResponse`              | type     | the part of a `Response` that reading a manifest needs                              |
+| `OrderKind`                     | type     | how a candidate's order is written: `text` or `integer`                             |
+| `ParseStandardManifestOptions`  | type     | the text, scope, routes, time and limits of a parse                                 |
+| `ReadStandardManifestOptions`   | type     | the response, scope, routes, time and limits of a read                              |
+| `RouteDeclaration`              | type     | what the application expects of one route: `target` or `candidate`                  |
+| `RouteDeclarations`             | type     | the routes the application reads from a manifest, by name                           |
+| `StandardDecision`              | type     | the decision a declared route holds once the manifest is read                       |
+| `StandardManifest`              | type     | the document of a valid manifest: one decision for each route, and the support      |
+| `StandardRead`                  | type     | a valid manifest with its evidence                                                  |
+| `StandardSupport`               | type     | the support facts of a manifest: a denylist for your policy                         |
 
 ## @priemskiyyy/beacon-browser
 

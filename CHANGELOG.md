@@ -33,6 +33,8 @@
 
 - First release. `http({ fetch })` turns the application's client call into a release source. The client validates the response and resolves `changed` with the document and its evidence, or `not-modified`, which renews the document held for the scope with the new expiry when the backend gave one.
 - `readStandardManifest` and `parseStandardManifest` are the optional standard manifest: a response or its text becomes a typed document for the routes the application declares, or a `BeaconError` that names the rule it broke. An account's answers stay apart through `partition` in the scope.
+- `standardManifestSource({ url, routes, fetch?, headers? })` reads a standard manifest at a URL as a release source: the global `fetch` (or yours) with `cache: "no-cache"`, the `ETag` sent back as `If-None-Match`, the scope passed, the time read from the Beacon's clock, and a redirect, an error status and a login page refused. `http` hands its client the Beacon's `clock`, and an answer that returns only a `document` is a changed answer.
+- The standard manifest needs only `schemaVersion` and `routes`: `issuedAt`, `expiresAt`, `decisionRevision` and the four scope fields are optional and judged whenever present, and a release's `identity` may be a text, known under `scope.application` and the `domain` its route declares (`web-artifact` for a `target` route). Evidence with no `expiresAt` of its own holds for the client's window, `limits.lifetime` from the read, and a `304` or a fresh read starts it again (`holdsFor`); see `docs/decisions.md` for the departure from the specification.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-browser 0.1.0 - Unreleased

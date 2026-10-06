@@ -468,6 +468,7 @@ test("the minimum build is the server's text, good until the interval lapses", a
     },
     signal: new AbortController().signal,
     attempt: 1,
+    clock,
   });
 
   expect(answer).toEqual({

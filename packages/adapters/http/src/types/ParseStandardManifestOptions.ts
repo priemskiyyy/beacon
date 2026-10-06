@@ -6,7 +6,8 @@ import type { RouteDeclarations } from "src/types/RouteDeclarations";
 /**
  * What parsing a manifest needs: the text, the scope it has to speak for, the
  * routes the application reads, and the local time in epoch milliseconds,
- * which the caller reads after the response arrived.
+ * which the caller reads after the response arrived: inside `http`, from the
+ * `clock` its `fetch` is given, so that the time is the Beacon's.
  *
  * @example
  * ```ts

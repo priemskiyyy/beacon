@@ -29,7 +29,7 @@ const isJson = (contentType: string | null) => {
  * @example
  * ```ts
  * const manifest = http({
- *   fetch: async ({ scope, signal, validator }) =>
+ *   fetch: async ({ scope, signal, validator, clock }) =>
  *     readStandardManifest({
  *       response: await fetch("/releases.json", {
  *         signal,
@@ -37,7 +37,7 @@ const isJson = (contentType: string | null) => {
  *       }),
  *       scope,
  *       routes: { web: { kind: "target" } },
- *       now: Date.now(),
+ *       now: clock.now(),
  *     }),
  * });
  * ```

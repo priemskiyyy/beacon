@@ -12,27 +12,34 @@ import { parseStandardManifest } from "src/parseStandardManifest";
 // Named by a path, since the global `URL` is React Native's under the Hermes project and this reads files.
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-// The manifest a page shows is the one its own declared routes read.
-const readExample = (file: string) => {
-  const fence = /```json\n([\s\S]*?)\n```/.exec(readFileSync(file, "utf8"));
+// The manifests a page shows, in the order it shows them, are the ones its own declared routes read.
+const readExamples = (file: string) => {
+  const fences = [
+    ...readFileSync(file, "utf8").matchAll(/```json\n([\s\S]*?)\n```/g),
+  ];
 
-  if (fence === null || fence[1] === undefined) {
-    throw new Error(`${file} shows no manifest.`);
-  }
-
-  return fence[1];
+  return fences.map((fence) => fence[1] ?? "");
 };
 
-const parseExample = (file: string, order: OrderKind) =>
-  parseStandardManifest({
-    text: readExample(file),
+const parseExample = (text: string | undefined, order: OrderKind) => {
+  if (text === undefined) {
+    throw new Error("The page shows no such manifest.");
+  }
+
+  return parseStandardManifest({
+    text,
     scope: SCOPE,
-    routes: { web: { kind: "target" }, binary: { kind: "candidate", order } },
+    routes: {
+      web: { kind: "target" },
+      binary: { kind: "candidate", order, domain: "android-version-code" },
+    },
     now: NOW,
   });
+};
 
 test("the manifest in the package README is a valid manifest for the routes it declares", () => {
-  const read = parseExample(path.join(here, "../README.md"), "text");
+  const [example] = readExamples(path.join(here, "../README.md"));
+  const read = parseExample(example, "text");
 
   expect(read.document.routes.binary).toMatchObject({
     release: { order: "2.5.0" },
@@ -40,13 +47,38 @@ test("the manifest in the package README is a valid manifest for the routes it d
   expect(read.document.support?.remediationRoute).toBe("web");
 });
 
+test("the file of a static host in the documentation page is a manifest with nothing but the decision", () => {
+  const [example] = readExamples(path.join(here, "../../../../docs/http.md"));
+
+  const read = parseStandardManifest({
+    text: example ?? "",
+    scope: SCOPE,
+    routes: { web: { kind: "target" } },
+    now: NOW,
+  });
+
+  expect(read.document.routes.web).toEqual({
+    kind: "target",
+    release: {
+      identity: {
+        status: "known",
+        authority: SCOPE.application,
+        domain: "web-artifact",
+        value: "a91b44e",
+      },
+    },
+  });
+  expect(read.revision).toBeUndefined();
+});
+
 test("the manifest in the documentation page is a valid manifest for the routes it declares", () => {
-  const read = parseExample(
-    path.join(here, "../../../../docs/http.md"),
-    "integer",
-  );
+  const examples = readExamples(path.join(here, "../../../../docs/http.md"));
+  const read = parseExample(examples[1], "integer");
 
   expect(read.document.routes.binary).toMatchObject({
-    release: { order: 112 },
+    release: {
+      identity: { domain: "android-version-code", value: "112" },
+      order: 112,
+    },
   });
 });

@@ -389,11 +389,23 @@ export class Beacon<
   check = async (
     options: CheckOptions = {},
   ): Promise<CheckReport<keyof TRoutes & string>> => {
+    const ready = await this.#prepareChecks(this.#entries, options);
+
+    if (ready.status === "stopped") {
+      return {
+        routes: mapNames(this.#names, () => ready.outcome()),
+        support: this.#routes.hasPolicy() ? ready.outcome() : null,
+      };
+    }
+
+    // Every read starts in this turn, so routes and policy over one source join one read however fast it answers.
+    const read = { mode: options.mode ?? "join", signal: options.signal };
+
     const [outcomes, support] = await Promise.all([
       Promise.all(
-        this.#entries.map((entry) => this.#checkRoute(entry, options)),
+        this.#entries.map((entry) => entry.runtime.check(ready.session, read)),
       ),
-      this.#checkSupport(options),
+      this.#routes.checkPolicy(ready.session, read),
     ]);
 
     return {
@@ -490,55 +502,57 @@ export class Beacon<
     };
   }
 
-  async #checkSupport(options: CheckOptions): Promise<CheckOutcome | null> {
-    if (!this.#routes.hasPolicy()) {
-      return null;
+  async #checkRoute(
+    entry: RouteEntry,
+    options: CheckOptions,
+  ): Promise<CheckOutcome> {
+    const ready = await this.#prepareChecks([entry], options);
+
+    if (ready.status === "stopped") {
+      return ready.outcome();
     }
 
-    const session = this.#runtime.getSession();
-
-    if (session === null) {
-      return this.#createNotActiveOutcome();
-    }
-
-    return this.#routes.checkPolicy(session, {
+    return entry.runtime.check(ready.session, {
       mode: options.mode ?? "join",
       signal: options.signal,
     });
   }
 
-  async #checkRoute(
-    entry: RouteEntry,
+  // Waits once for the running subjects the checks depend on, or says why none may go on.
+  async #prepareChecks(
+    entries: RouteEntry[],
     options: CheckOptions,
-  ): Promise<CheckOutcome> {
+  ): Promise<PreparedChecks> {
     const session = this.#runtime.getSession();
 
     if (session === null) {
-      return this.#createNotActiveOutcome();
+      return {
+        status: "stopped",
+        outcome: () => this.#createNotActiveOutcome(),
+      };
     }
 
-    this.#diagnostics.record("check-requested", {
-      route: entry.name,
-      ...(options.reason === undefined ? {} : { reason: options.reason }),
-    });
+    for (const { name } of entries) {
+      this.#diagnostics.record("check-requested", {
+        route: name,
+        ...(options.reason === undefined ? {} : { reason: options.reason }),
+      });
+    }
 
     const running = await this.#awaitRunning(
-      getSubjects(entry.definition),
+      entries.flatMap(({ definition }) => getSubjects(definition)),
       options.signal,
     );
 
     if (running === "aborted") {
-      return { status: "cancelled" };
+      return { status: "stopped", outcome: () => ({ status: "cancelled" }) };
     }
 
     if (!this.#isCurrent(session)) {
-      return { status: "superseded" };
+      return { status: "stopped", outcome: () => ({ status: "superseded" }) };
     }
 
-    return entry.runtime.check(session, {
-      mode: options.mode ?? "join",
-      signal: options.signal,
-    });
+    return { status: "ready", session };
   }
 
   // A check waits only for the running subjects it depends on, not for every unrelated reader, and only as long as its caller does.
@@ -585,6 +599,11 @@ export class Beacon<
     });
   }
 }
+
+/** Why no check may go on, or the session whose reads it may start. */
+type PreparedChecks =
+  | { status: "ready"; session: Session }
+  | { status: "stopped"; outcome: () => CheckOutcome };
 
 const SUPERSEDED_OUTCOME: CheckOutcome = Object.freeze({
   status: "superseded",

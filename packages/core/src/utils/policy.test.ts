@@ -8,6 +8,7 @@ import {
   createRoutedBeacon,
   settle,
 } from "src/utils/Beacon.fixture";
+import { createReleaseSource } from "src/utils/createReleaseSource";
 import { supportPolicy } from "src/utils/supportPolicy";
 import {
   answer,
@@ -81,6 +82,39 @@ test("HTTP-01 the routes and the policy of one source share a single read and on
     status: "available",
   });
   expect(context.beacon.support.get()).toMatchObject({ status: "unsupported" });
+});
+
+test("HTTP-01 one check reads a source once, even when the source answers at once", async () => {
+  const state = { reads: 0 };
+
+  const source = createReleaseSource<PolicyManifest>({
+    name: "manifest",
+    read: async () => {
+      state.reads += 1;
+
+      return { document: buildDocument() };
+    },
+  });
+
+  const { beacon } = createRoutedBeacon(createPolicyRoutes(source), {
+    running: {
+      boot: { id: "boot-1" },
+      web: () => buildWebRelease("web-build-b"),
+      native: () => buildNativeRelease(100),
+    },
+    policy: supportPolicy({
+      source: source.select((manifest) => manifest.support),
+      evaluate: evaluateSupport,
+    }),
+  });
+
+  beacon.start();
+
+  const report = await beacon.check();
+
+  expect(state.reads).toBe(1);
+  expect(report.routes.web).toMatchObject({ status: "succeeded", attempt: 1 });
+  expect(report.support).toMatchObject({ status: "succeeded", attempt: 1 });
 });
 
 test("a check reports the routes and the policy apart, and a failing policy never hides a successful route", async () => {
@@ -250,7 +284,10 @@ test("a required route that has an offer is a usable remediation", async () => {
 
 test("POL-10 a policy that names a route the Beacon does not have fails, and creates no command", async () => {
   const mock = createMockSource<PolicyManifest>({ name: "manifest" });
-  const routes: Record<string, RouteDefinition> = createPolicyRoutes(mock);
+
+  const routes: Record<string, RouteDefinition> = createPolicyRoutes(
+    mock.source,
+  );
 
   const policy = supportPolicy({
     source: mock.source.select((manifest) => manifest.support),

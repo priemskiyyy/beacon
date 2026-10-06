@@ -2,6 +2,7 @@ import { createMockSource } from "src/mock/createMockSource";
 import type { CandidateDecision } from "src/types/CandidateDecision";
 import type { NoneDecision } from "src/types/NoneDecision";
 import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
+import type { ReleaseSource } from "src/types/ReleaseSource";
 import type { RunningApplication } from "src/types/RunningApplication";
 import type { RunningRelease } from "src/types/RunningRelease";
 import type { SupportVerdict } from "src/types/SupportVerdict";
@@ -90,9 +91,7 @@ export const buildDocument = (
   ...overrides,
 });
 
-export const createPolicyRoutes = (
-  mock: ReturnType<typeof createMockSource<PolicyManifest>>,
-) => {
+export const createPolicyRoutes = (source: ReleaseSource<PolicyManifest>) => {
   const inert = createUpdateMechanism({
     name: "inert",
     open: () => ({ native: {} }),
@@ -111,13 +110,13 @@ export const createPolicyRoutes = (
 
   const web = targetRoute({
     subject: "web",
-    source: mock.source.select((manifest) => manifest.web),
+    source: source.select((manifest) => manifest.web),
     mechanism: inert,
   });
 
   const binary = newerRoute({
     subject: "native",
-    source: mock.source.select((manifest) => manifest.binary),
+    source: source.select((manifest) => manifest.binary),
     version: integer(),
     current: (release) => Number(release?.raw["build"] ?? Number.NaN),
     mechanism: inert,
@@ -151,7 +150,7 @@ export const createPolicyBeacon = ({
     evaluate,
   });
 
-  const context = createRoutedBeacon(createPolicyRoutes(mock), {
+  const context = createRoutedBeacon(createPolicyRoutes(mock.source), {
     running: {
       boot: { id: "boot-1" },
       web: () => running.web,

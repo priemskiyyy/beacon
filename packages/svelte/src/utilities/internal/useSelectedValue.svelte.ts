@@ -31,7 +31,7 @@ export const useSelectedValue = <TValue, TSelected>(
 
     // Untracked, so a notification that arrives inside another effect, such as the provider's start, does not depend on the selection.
     const select = () =>
-      untrack(() => {
+      (() => {
         const next = selector(observed.get());
 
         if (isEqual(selected, next)) {

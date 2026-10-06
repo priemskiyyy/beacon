@@ -164,6 +164,31 @@ test("without isEqual a new object each time runs its dependents again, which is
   expect(runs.length).toBeGreaterThan(2);
 });
 
+test("a notification that arrives inside another effect does not make that effect depend on the selection", () => {
+  const { beacon } = createWebBeacon();
+  const runs = { count: 0 };
+
+  const { value } = mountView(beacon, () => {
+    const checkpoints = useTransitions(({ checkpoints }) => checkpoints);
+
+    // Reporting notifies the utility from inside this effect.
+    $effect(() => {
+      runs.count += 1;
+      beacon.reportReady({ checkpoint: "primary-screen" });
+    });
+
+    return checkpoints;
+  });
+
+  expect(value.current).toEqual(["primary-screen"]);
+
+  beacon.reportReady({ checkpoint: "settled" });
+  flushSync();
+
+  expect(value.current).toEqual(["primary-screen", "settled"]);
+  expect(runs.count).toBe(1);
+});
+
 test("useObservable subscribes once mounted and lets go on unmount", () => {
   const { beacon } = createWebBeacon();
   const counted = countListeners(beacon.route("web").state);

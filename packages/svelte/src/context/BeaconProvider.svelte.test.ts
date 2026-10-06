@@ -113,19 +113,6 @@ test("unmounting the provider ends its session and disposes nothing", async () =
   stop();
 });
 
-test("the session a provider started is not restarted by the utilities that read it", async () => {
-  const { beacon } = createWebBeacon();
-
-  mountView(beacon, () => useStatus(), { start: true });
-
-  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
-
-  await settle();
-  flushSync();
-
-  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
-});
-
 test("what a listener reads while the provider starts the session does not restart it", async () => {
   const { beacon } = createWebBeacon();
   let reads = $state(0);

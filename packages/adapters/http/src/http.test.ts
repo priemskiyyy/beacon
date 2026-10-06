@@ -153,6 +153,32 @@ test("HTTP-07 not modified with no document to renew fails the read, never as no
   });
 });
 
+test("an answer that is neither changed nor not modified renews nothing, even with a document held", async () => {
+  const backend = fakeBackend();
+  let garbled = false;
+
+  // The types forbid this answer, and a client written in JavaScript can still give it.
+  const garbage = JSON.parse('{"status":"unchanged"}');
+
+  const source = http({
+    fetch: (context) => {
+      if (garbled) {
+        return garbage;
+      }
+
+      return backend.fetch(context);
+    },
+  });
+
+  await source.read(buildRead());
+  garbled = true;
+
+  await expect(source.read(buildRead())).rejects.toMatchObject({
+    code: "SOURCE_FAILED",
+    message: "The client answered neither changed nor not modified.",
+  });
+});
+
 test("another scope never inherits the validator or the document of the first", async () => {
   const backend = fakeBackend();
   const source = http({ fetch: backend.fetch });

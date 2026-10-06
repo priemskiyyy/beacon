@@ -2,8 +2,11 @@ import { BeaconError, createReleaseSource } from "@priemskiyyy/beacon";
 import type { ReleaseSource } from "@priemskiyyy/beacon";
 
 import type { HttpAdapterOptions } from "src/types/HttpAdapterOptions";
-import type { HttpMemory } from "src/types/HttpMemory";
-import { NOT_MODIFIED_WITHOUT_DOCUMENT } from "src/utils/constants/errors";
+import type { HttpMemory } from "src/types/internal/HttpMemory";
+import {
+  NOT_MODIFIED_WITHOUT_DOCUMENT,
+  UNKNOWN_ANSWER,
+} from "src/utils/constants/errors";
 import { renewRead } from "src/utils/renewRead";
 import { toSourceRead } from "src/utils/toSourceRead";
 
@@ -53,6 +56,14 @@ export const http = <TDocument>({
         };
 
         return read;
+      }
+
+      // A client without types can answer anything, and an answer nobody recognizes must not renew what is held.
+      if (answer.status !== "not-modified") {
+        throw new BeaconError({
+          code: "SOURCE_FAILED",
+          message: UNKNOWN_ANSWER,
+        });
       }
 
       if (held === null) {

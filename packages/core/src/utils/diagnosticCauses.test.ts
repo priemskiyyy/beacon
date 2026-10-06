@@ -136,18 +136,36 @@ test("a select function that throws fails its route with a message that names it
   const failure = new TypeError("Cannot read properties of undefined");
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select(() => {
       throw failure;
     }),
     mechanism: createUpdateMechanism({
       name: "inert",
+      subject: "web",
       open: () => ({ native: {} }),
       commands: {},
     }),
   });
 
-  const { beacon } = createRoutedBeacon({ web });
+  const { beacon } = createRoutedBeacon(
+    { web },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => ({
+          identity: {
+            status: "known",
+            authority: "com.example.notes",
+            domain: "web-artifact",
+            value: "web-build-a",
+          },
+          label: null,
+          raw: {},
+        }),
+      },
+    },
+  );
+
   const heard = listen(beacon.diagnostics);
 
   beacon.start();

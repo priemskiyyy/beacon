@@ -921,6 +921,7 @@ test("a source read is given the clock the Beacon runs on, so a source reads no 
   expect(seen).toHaveLength(2);
   expect(times).toEqual([1_000, 6_000]);
   expect(seen[0]?.clock).toBe(beacon.clock);
+});
 
 test("CORE-14 an observation that is inconclusive names why: the reason the running reader gave, and then the identities that could not be compared", async () => {
   const state: { running: RunningRelease } = {

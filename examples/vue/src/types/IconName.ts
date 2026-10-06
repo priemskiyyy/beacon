@@ -1,0 +1,15 @@
+export type IconName =
+  | "broadcast"
+  | "download"
+  | "flag"
+  | "flask"
+  | "hourglass"
+  | "history"
+  | "lightbulb"
+  | "megaphone"
+  | "notebook"
+  | "reset"
+  | "refresh"
+  | "route"
+  | "shield"
+  | "trash";

@@ -174,7 +174,7 @@ if (status === "unsupported" && evaluation !== null) {
 
 ## Version strategies
 
-A version strategy parses, orders and admits one domain of versions. `newerRoute` uses one, and so can a policy. They come from `@priemskiyyy/beacon/versions`.
+A version strategy parses, orders and admits one domain of versions. `newerRoute` uses one, and so can a policy. They come from `@priemskiyyy/beacon/versions`, and so do their types (`VersionStrategy`, `Comparison`, `SemVer`).
 
 | Strategy    | Domain                                                                                                                  |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------- |

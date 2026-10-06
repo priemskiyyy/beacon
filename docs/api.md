@@ -178,17 +178,6 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 | `ObservableValue`           | a readable snapshot with `get`, `getInitial` and `subscribe`          |
 | `SelectorOptions`           | `{ isEqual }`, how a binding decides that a selection is the same     |
 
-### Version types
-
-| Type                   | What it is                                                 |
-| ---------------------- | ---------------------------------------------------------- |
-| `VersionStrategy`      | how one domain of versions is parsed, ordered and admitted |
-| `Comparison`           | `older`, `equal`, `newer` or `incomparable`                |
-| `SemVer`               | a strictly parsed Semantic Versioning 2.0.0 string         |
-| `SemVerIdentifier`     | one dot-separated prerelease identifier                    |
-| `SemVerOptions`        | whether `semver()` admits prereleases                      |
-| `CustomVersionOptions` | a version domain of your own                               |
-
 ## @priemskiyyy/beacon/adapter
 
 What only the author of a release source, an update mechanism or a release driver writes. An application imports from `@priemskiyyy/beacon`; the author of an adapter imports these from here, and the shared vocabulary (`Release`, `ReleaseScope`, `RouteBody`, `BeaconError`...) from the root.
@@ -226,11 +215,17 @@ import { createReleaseDriver } from "@priemskiyyy/beacon/adapter";
 
 ## @priemskiyyy/beacon/versions
 
-| Export    | Kind     | What it is                                                                            |
-| --------- | -------- | ------------------------------------------------------------------------------------- |
-| `semver`  | function | strict Semantic Versioning 2.0.0, with prereleases excluded unless you include them   |
-| `integer` | function | non-negative integers as safe integers or canonical decimal strings, compared exactly |
-| `custom`  | function | a version domain of your own                                                          |
+| Export                 | Kind     | What it is                                                                            |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------- |
+| `semver`               | function | strict Semantic Versioning 2.0.0, with prereleases excluded unless you include them   |
+| `integer`              | function | non-negative integers as safe integers or canonical decimal strings, compared exactly |
+| `custom`               | function | a version domain of your own                                                          |
+| `VersionStrategy`      | type     | how one domain of versions is parsed, ordered and admitted                            |
+| `Comparison`           | type     | `older`, `equal`, `newer` or `incomparable`                                           |
+| `SemVer`               | type     | a strictly parsed Semantic Versioning 2.0.0 string                                    |
+| `SemVerIdentifier`     | type     | one dot-separated prerelease identifier                                               |
+| `SemVerOptions`        | type     | whether `semver()` admits prereleases                                                 |
+| `CustomVersionOptions` | type     | a version domain of your own                                                          |
 
 ## @priemskiyyy/beacon/mock
 

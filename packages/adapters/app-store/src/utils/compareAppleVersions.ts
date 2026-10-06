@@ -1,4 +1,4 @@
-import type { Comparison } from "@priemskiyyy/beacon";
+import type { Comparison } from "@priemskiyyy/beacon/versions";
 
 import type { AppleVersion } from "src/types/AppleVersion";
 

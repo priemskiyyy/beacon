@@ -88,6 +88,6 @@ Register what a disruptive command must not catch with `beacon.disruptions.regis
 ## Subpaths
 
 - `@priemskiyyy/beacon/adapter`: `createReleaseSource`, `createUpdateMechanism`, `createReleaseDriver`, `parseUtcTimestamp`, the identity domain words and the contexts, drafts and results an adapter author writes. An application never needs it.
-- `@priemskiyyy/beacon/versions`: `semver`, `integer`, `custom`.
+- `@priemskiyyy/beacon/versions`: `semver`, `integer`, `custom`, and the types of a strategy (`VersionStrategy`, `Comparison`, `SemVer`).
 - `@priemskiyyy/beacon/mock`: `createMockSource` and `createTestClock`, for tests.
 - `@priemskiyyy/beacon/testing`: `testReleaseSource`, `testVersionStrategy`, `testUpdateMechanism` and `testReleaseDriver`, the conformance suites an adapter runs in its own tests. They need `vitest`.

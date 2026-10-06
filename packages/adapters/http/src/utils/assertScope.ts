@@ -15,11 +15,13 @@ const SCOPE_FIELDS: Record<ManifestScopeField, ManifestScopeField> = {
   distribution: "distribution",
 };
 
-/** The manifest speaks for exactly the scope asked, in every field; one that differs is refused whole. */
+/** The manifest speaks for the scope asked, in every field it echoes; one that differs is refused whole. A field it does not echo is the one the request made, since a manifest is fetched for one scope. */
 export const assertScope = (record: JsonRecord, scope: ReleaseScope): void => {
-  const mismatch = Object.values(SCOPE_FIELDS).find(
-    (key) => readText(readField(record, key), key) !== scope[key],
-  );
+  const mismatch = Object.values(SCOPE_FIELDS).find((key) => {
+    const echoed = readField(record, key);
+
+    return echoed !== undefined && readText(echoed, key) !== scope[key];
+  });
 
   if (mismatch === undefined) {
     return;

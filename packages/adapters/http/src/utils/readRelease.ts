@@ -4,6 +4,7 @@ import type {
   ReleaseIdentity,
 } from "@priemskiyyy/beacon";
 
+import type { IdentityShorthand } from "src/types/internal/IdentityShorthand";
 import type { VariantReader } from "src/types/internal/VariantReader";
 import type { JsonRecord } from "src/types/internal/JsonRecord";
 import type { ManifestMetadata } from "src/types/ManifestMetadata";
@@ -15,6 +16,7 @@ import { invalidManifest } from "src/utils/invalidManifest";
 import { readField } from "src/utils/readField";
 import { readList } from "src/utils/readList";
 import { readRecord } from "src/utils/readRecord";
+import { readShortIdentity } from "src/utils/readShortIdentity";
 import { readText } from "src/utils/readText";
 import { readVariant } from "src/utils/readVariant";
 
@@ -88,18 +90,34 @@ const readMetadata = (value: unknown, field: string): ManifestMetadata => {
   );
 };
 
+// An identity is an object that says which variant it is, or a text that stands for a known one on this route.
+const readIdentity = (
+  record: JsonRecord,
+  field: string,
+  shorthand: IdentityShorthand,
+): ReleaseIdentity => {
+  const value = readField(record, "identity");
+
+  if (typeof value === "string") {
+    return readShortIdentity(value, `${field}.identity`, shorthand);
+  }
+
+  return readVariant({
+    value,
+    field: `${field}.identity`,
+    tag: "status",
+    readers: IDENTITIES,
+  });
+};
+
 /** The release an object describes: its identity, and its label, compatibility and metadata when it has them. */
 export const readRelease = (
   record: JsonRecord,
   field: string,
+  shorthand: IdentityShorthand,
 ): Release<ManifestMetadata> => {
   const release: Release<ManifestMetadata> = {
-    identity: readVariant({
-      value: readField(record, "identity"),
-      field: `${field}.identity`,
-      tag: "status",
-      readers: IDENTITIES,
-    }),
+    identity: readIdentity(record, field, shorthand),
   };
 
   const label = readField(record, "label");

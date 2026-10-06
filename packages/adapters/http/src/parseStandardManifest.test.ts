@@ -138,12 +138,47 @@ describe("a manifest for another scope is refused whole", () => {
     }
   });
 
-  test("HTTP-14 a scope field that is missing", () => {
-    const text = manifestWith((manifest) => {
-      delete manifest["environment"];
+  test("HTTP-14 a scope field that is present and is not a text", () => {
+    for (const environment of [null, 7, "", ["production"]]) {
+      const text = manifestWith((manifest) => {
+        manifest["environment"] = environment;
+      });
+
+      expectRefused(text, /environment must/);
+    }
+  });
+});
+
+describe("the echo of the scope is optional, and judged whenever it is there", () => {
+  const FIELDS = ["application", "environment", "platform", "distribution"];
+
+  const withoutScope = (kept: string[]) =>
+    manifestWith((manifest) => {
+      for (const field of FIELDS.filter((name) => !kept.includes(name))) {
+        delete manifest[field];
+      }
     });
 
-    expectRefused(text, /environment must be a text/);
+  test("a manifest that echoes none of it speaks for the scope that asked for it", () => {
+    expect(parse(withoutScope([])).document).toEqual(parse(VALID).document);
+  });
+
+  test.each(FIELDS)("a manifest that echoes only %s, rightly", (field) => {
+    expect(parse(withoutScope([field])).document).toEqual(
+      parse(VALID).document,
+    );
+  });
+
+  test.each(FIELDS)("a manifest that echoes only %s, wrongly", (field) => {
+    const text = manifestWith((manifest) => {
+      for (const other of FIELDS) {
+        delete manifest[other];
+      }
+
+      manifest[field] = "another";
+    });
+
+    expectRefused(text, new RegExp(`${field} is not the scope's`));
   });
 });
 
@@ -322,6 +357,153 @@ describe("a release", () => {
   });
 });
 
+describe("an identity written as a text", () => {
+  const BINARY_ROUTES = {
+    web: { kind: "target" },
+    binary: {
+      kind: "candidate",
+      order: "integer",
+      domain: "android-version-code",
+    },
+  } satisfies RouteDeclarations;
+
+  const parseShort = <TDeclarations extends RouteDeclarations>(
+    web: unknown,
+    binary: unknown,
+    routes: TDeclarations,
+  ) =>
+    parseStandardManifest({
+      text: withRoutes(
+        { kind: "target", release: { identity: web } },
+        { kind: "candidate", release: { identity: binary, order: 112 } },
+      ),
+      scope: SCOPE,
+      routes,
+      now: NOW,
+    });
+
+  test("on a target route is the build a web reader names: the application's authority, the web artifact word", () => {
+    const read = parseShort("a91b44e", "112", BINARY_ROUTES);
+
+    expect(read.document.routes.web).toEqual({
+      kind: "target",
+      release: {
+        identity: {
+          status: "known",
+          authority: "com.example.notes",
+          domain: "web-artifact",
+          value: "a91b44e",
+        },
+      },
+    });
+  });
+
+  test("on a candidate route is named in the domain the route declared", () => {
+    expect(
+      parseShort("a91b44e", "112", BINARY_ROUTES).document.routes.binary,
+    ).toEqual({
+      kind: "candidate",
+      release: {
+        identity: {
+          status: "known",
+          authority: "com.example.notes",
+          domain: "android-version-code",
+          value: "112",
+        },
+        order: 112,
+      },
+    });
+  });
+
+  test("the domain a route declares is the domain of a target route as well", () => {
+    const routes = {
+      web: { kind: "target", domain: "notes-web" },
+      binary: BINARY_ROUTES.binary,
+    } satisfies RouteDeclarations;
+
+    expect(parseShort("a91b44e", "112", routes).document.routes.web).toEqual({
+      kind: "target",
+      release: {
+        identity: {
+          status: "known",
+          authority: "com.example.notes",
+          domain: "notes-web",
+          value: "a91b44e",
+        },
+      },
+    });
+  });
+
+  test("on a candidate route that declares no domain is refused, since no domain is a safe guess for a binary", () => {
+    const routes = {
+      web: { kind: "target" },
+      binary: { kind: "candidate", order: "integer" },
+    } satisfies RouteDeclarations;
+
+    expect(() => parseShort("a91b44e", "112", routes)).toThrow(
+      expect.objectContaining({
+        code: "INVALID_DOCUMENT",
+        message: expect.stringMatching(
+          /routes\.binary\.release\.identity is a text, which needs the route to declare the domain of its ids/,
+        ),
+      }),
+    );
+  });
+
+  test("says what the long form says: the same document and the same fingerprint", () => {
+    const long = parseStandardManifest({
+      text: withRoutes(
+        {
+          kind: "target",
+          release: {
+            identity: {
+              status: "known",
+              authority: "com.example.notes",
+              domain: "web-artifact",
+              value: "a91b44e",
+            },
+          },
+        },
+        { kind: "none", reason: "up-to-date" },
+      ),
+      scope: SCOPE,
+      routes: ROUTES,
+      now: NOW,
+    });
+
+    const short = parseStandardManifest({
+      text: withRoutes(
+        { kind: "target", release: { identity: "a91b44e" } },
+        { kind: "none", reason: "up-to-date" },
+      ),
+      scope: SCOPE,
+      routes: ROUTES,
+      now: NOW,
+    });
+
+    expect(short.document).toEqual(long.document);
+    expect(short.digest).toBe(long.digest);
+  });
+
+  test.each([
+    ["an empty text", "", /identity must have 1 to 256 characters/],
+    [
+      "a text of 257 characters",
+      "x".repeat(257),
+      /identity must have 1 to 256 characters/,
+    ],
+    ["a number", 7, /identity must be an object/],
+    ["null", null, /identity must be an object/],
+  ])("%s is not an identity", (_name, identity, message) => {
+    expect(() => parseShort(identity, "112", BINARY_ROUTES)).toThrow(
+      expect.objectContaining({
+        code: "INVALID_DOCUMENT",
+        message: expect.stringMatching(message),
+      }),
+    );
+  });
+});
+
 describe("a manifest beyond its bounds is refused", () => {
   const parseWithin = (text: string, bytes: number) =>
     parseStandardManifest({
@@ -455,6 +637,22 @@ describe("the revision", () => {
       manifest["decisionRevision"] = revision;
     });
 
+  test("is optional: a manifest without one claims no revision, and the read says none", () => {
+    const text = manifestWith((manifest) => {
+      delete manifest["decisionRevision"];
+    });
+
+    const read = parse(text);
+
+    expect(read.revision).toBeUndefined();
+    expect(Object.keys(read)).toEqual(["document", "digest", "expiresAt"]);
+    expect(read.document).toEqual(parse(VALID).document);
+  });
+
+  test("is judged when it is there, and null is not a revision", () => {
+    expectRefused(withRevision(null), /decisionRevision must be an object/);
+  });
+
   test("can be opaque", () => {
     const revision = { kind: "opaque", value: "rollout-7" };
 
@@ -567,6 +765,88 @@ describe("the times of a manifest hold or the manifest is refused", () => {
     });
 
     expect(read.expiresAt).toBe(NOW + 660_000);
+  });
+});
+
+describe("a manifest that dates itself less than a host's manifest does", () => {
+  const LIFETIME = 86_400_000;
+
+  const withoutTimes = (keep: Record<string, unknown>) =>
+    manifestWith((manifest) => {
+      delete manifest["issuedAt"];
+      delete manifest["expiresAt"];
+      Object.assign(manifest, keep);
+    });
+
+  test("with neither time, the evidence holds for the client's window and no longer", () => {
+    expect(parse(withoutTimes({})).expiresAt).toBe(NOW + LIFETIME);
+  });
+
+  test("the window is also said in the read, so that a not modified renews it, and only a manifest that claimed no expiry has one", () => {
+    expect(parse(withoutTimes({})).holdsFor).toBe(LIFETIME);
+    expect(
+      parse(withoutTimes({ issuedAt: "2026-09-27T10:00:00Z" })).holdsFor,
+    ).toBe(LIFETIME);
+
+    expect(Object.keys(parse(VALID))).toEqual([
+      "document",
+      "digest",
+      "expiresAt",
+      "revision",
+    ]);
+    expect(
+      Object.keys(parse(withoutTimes({ expiresAt: "2027-09-27T10:10:00Z" }))),
+    ).not.toContain("holdsFor");
+  });
+
+  test("the client's window is the limit the application set", () => {
+    const read = parseStandardManifest({
+      text: withoutTimes({}),
+      scope: SCOPE,
+      routes: ROUTES,
+      now: NOW,
+      limits: { lifetime: 600_000 },
+    });
+
+    expect(read.expiresAt).toBe(NOW + 600_000);
+    expect(read.holdsFor).toBe(600_000);
+  });
+
+  test("with only an expiry, nothing is ordered or measured against an issue, and the expiry is still bounded and never already past", () => {
+    expect(
+      parse(withoutTimes({ expiresAt: "2026-09-27T10:10:00Z" })).expiresAt,
+    ).toBe(Date.parse("2026-09-27T10:10:00Z"));
+
+    expect(
+      parse(withoutTimes({ expiresAt: "2027-09-27T10:10:00Z" })).expiresAt,
+    ).toBe(NOW + LIFETIME);
+
+    expectRefused(
+      withoutTimes({ expiresAt: "2026-09-27T10:05:00Z" }),
+      /already expired/,
+    );
+  });
+
+  test("with only an issue, the evidence holds for the client's window, and an issue ahead of the clock is still refused", () => {
+    expect(
+      parse(withoutTimes({ issuedAt: "2026-09-27T10:00:00Z" })).expiresAt,
+    ).toBe(NOW + LIFETIME);
+
+    expectRefused(
+      withoutTimes({ issuedAt: "2026-09-27T10:10:01Z" }),
+      /issued more than 300000 milliseconds ahead of the local clock/,
+    );
+  });
+
+  test("a time that is there is a timestamp, and null is not an absent one", () => {
+    expectRefused(
+      withoutTimes({ expiresAt: null }),
+      /expiresAt must be a timestamp/,
+    );
+    expectRefused(
+      withoutTimes({ issuedAt: 7 }),
+      /issuedAt must be a timestamp/,
+    );
   });
 });
 

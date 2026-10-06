@@ -43,8 +43,16 @@ http({
   fetch: () => ({ status: "unchanged" }),
 });
 
+// A document is a changed answer, so the status is spelled only for "not-modified".
+http({
+  fetch: () => ({ document: { web: { kind: "none", reason: "up-to-date" } } }),
+});
+
 // @ts-expect-error -- a changed answer carries its document.
 http({ fetch: () => ({ status: "changed" }) });
+
+// @ts-expect-error -- an answer with neither a document nor a not-modified status says nothing.
+http({ fetch: () => ({ validator: '"208"' }) });
 
 http({
   // @ts-expect-error -- an expiry is epoch milliseconds, not a date string.

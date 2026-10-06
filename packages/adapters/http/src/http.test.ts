@@ -1,9 +1,10 @@
 import { BeaconError } from "@priemskiyyy/beacon";
 import { createTestClock } from "@priemskiyyy/beacon/mock";
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { buildRead, fakeBackend, SCOPE } from "src/fakeBackend.fixture";
 import { http } from "src/http";
+import type { HttpAnswer } from "src/types/HttpAnswer";
 
 test("creating the source asks the client for nothing", () => {
   const backend = fakeBackend();
@@ -69,6 +70,25 @@ test("a changed answer is the read: the document and its evidence, without the c
     issuer: "release-service",
     expiresAt: 601_000,
   });
+});
+
+test("an answer that returns only a document is a changed one, and its validator is kept for the next read", async () => {
+  const validators: Array<string | null> = [];
+
+  const source = http({
+    fetch: ({ validator }) => {
+      validators.push(validator);
+
+      return { document: { web: "web-build-a" }, validator: '"1"' };
+    },
+  });
+
+  await expect(source.read(buildRead())).resolves.toEqual({
+    document: { web: "web-build-a" },
+  });
+  await source.read(buildRead());
+
+  expect(validators).toEqual([null, '"1"']);
 });
 
 test("a changed answer that proves nothing about itself is a bare document", async () => {
@@ -152,6 +172,108 @@ test("a new document replaces the held one and its validator", async () => {
     '"208"',
     '"209"',
   ]);
+});
+
+// An answer that claimed no expiry of its own holds for a window the client sets. A not modified is the backend confirming it now, so it renews that window, and only that one.
+describe("a not modified that renews the window of an answer the backend gave no expiry", () => {
+  const read = (clock: ReturnType<typeof createTestClock>) => ({
+    ...buildRead(),
+    clock,
+  });
+
+  test("holds the document for the same window again, counted from when it was confirmed", async () => {
+    const clock = createTestClock({ now: 10_000 });
+
+    const answers: Array<HttpAnswer<string>> = [
+      {
+        document: "manifest",
+        validator: '"1"',
+        expiresAt: 610_000,
+        holdsFor: 600_000,
+      },
+      { status: "not-modified" },
+    ];
+
+    const source = http({ fetch: () => answers.shift() ?? { document: "" } });
+
+    const first = await source.read(read(clock));
+
+    clock.advance(700_000);
+
+    const renewed = await source.read(read(clock));
+
+    expect(first).toEqual({ document: "manifest", expiresAt: 610_000 });
+    expect(renewed).toEqual({ document: "manifest", expiresAt: 1_310_000 });
+  });
+
+  test("gives way to an expiry the backend says with the not modified", async () => {
+    const clock = createTestClock({ now: 10_000 });
+
+    const answers: Array<HttpAnswer<string>> = [
+      {
+        document: "manifest",
+        validator: '"1"',
+        expiresAt: 610_000,
+        holdsFor: 600_000,
+      },
+      { status: "not-modified", expiresAt: 5_000_000 },
+    ];
+
+    const source = http({ fetch: () => answers.shift() ?? { document: "" } });
+
+    await source.read(read(clock));
+    clock.advance(700_000);
+
+    await expect(source.read(read(clock))).resolves.toEqual({
+      document: "manifest",
+      expiresAt: 5_000_000,
+    });
+  });
+
+  test("is never asked of an answer whose backend claimed its own expiry, which a not modified keeps", async () => {
+    const clock = createTestClock({ now: 10_000 });
+
+    const answers: Array<HttpAnswer<string>> = [
+      { document: "manifest", validator: '"1"', expiresAt: 610_000 },
+      { status: "not-modified" },
+    ];
+
+    const source = http({ fetch: () => answers.shift() ?? { document: "" } });
+
+    await source.read(read(clock));
+    clock.advance(700_000);
+
+    await expect(source.read(read(clock))).resolves.toEqual({
+      document: "manifest",
+      expiresAt: 610_000,
+    });
+  });
+
+  test("ends with the answer it came with, so a later answer that claimed an expiry is not renewed by it", async () => {
+    const clock = createTestClock({ now: 10_000 });
+
+    const answers: Array<HttpAnswer<string>> = [
+      {
+        document: "first",
+        validator: '"1"',
+        expiresAt: 610_000,
+        holdsFor: 600_000,
+      },
+      { document: "second", validator: '"2"', expiresAt: 620_000 },
+      { status: "not-modified" },
+    ];
+
+    const source = http({ fetch: () => answers.shift() ?? { document: "" } });
+
+    await source.read(read(clock));
+    await source.read(read(clock));
+    clock.advance(700_000);
+
+    await expect(source.read(read(clock))).resolves.toEqual({
+      document: "second",
+      expiresAt: 620_000,
+    });
+  });
 });
 
 test("HTTP-07 not modified with no document to renew fails the read, never as no offer", async () => {

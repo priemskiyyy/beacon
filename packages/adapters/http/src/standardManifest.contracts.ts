@@ -6,7 +6,7 @@ import {
   newerRoute,
   targetRoute,
 } from "@priemskiyyy/beacon";
-import type { ReleaseScope } from "@priemskiyyy/beacon";
+import type { DecisionRevision, ReleaseScope } from "@priemskiyyy/beacon";
 import { integer, semver } from "@priemskiyyy/beacon/versions";
 import { expectTypeOf } from "vitest";
 
@@ -63,12 +63,13 @@ export const build = newerRoute({
 // The response of any `fetch` is what a manifest is read from.
 expectTypeOf<Response>().toExtend<ManifestResponse>();
 
-// A parse gives the evidence a source needs, all of it present.
+// A parse gives the evidence a source needs. The digest and the expiry are always there, and the revision only when the manifest numbers its decisions.
 const read = parseStandardManifest({ text: "", scope, routes, now: 0 });
 
 expectTypeOf(read).toEqualTypeOf<StandardRead<typeof routes>>();
 expectTypeOf(read.digest).toBeString();
 expectTypeOf(read.expiresAt).toBeNumber();
+expectTypeOf(read.revision).toEqualTypeOf<DecisionRevision | undefined>();
 
 // And it is an answer of `http` as it stands.
 export const answer: HttpAnswer<StandardManifest<typeof routes>> = {
@@ -126,6 +127,24 @@ parseStandardManifest({
   scope,
   // @ts-expect-error -- a candidate route declares the kind of its order.
   routes: { web: { kind: "candidate" } },
+  now: 0,
+});
+
+parseStandardManifest({
+  text: "",
+  scope,
+  // @ts-expect-error -- the domain of the ids a route names is a text.
+  routes: { web: { kind: "target", domain: 7 } },
+  now: 0,
+});
+
+// A route may spell the domain of its ids, which a text identity then names.
+export const binaries = parseStandardManifest({
+  text: "",
+  scope,
+  routes: {
+    binary: { kind: "candidate", order: "integer", domain: "ios-build" },
+  },
   now: 0,
 });
 

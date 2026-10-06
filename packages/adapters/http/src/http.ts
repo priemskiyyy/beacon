@@ -11,8 +11,9 @@ import { toSourceRead } from "src/utils/toSourceRead";
 /**
  * The application's own release manifest endpoint as a Beacon release source.
  * `fetch` is the application's client call, which validates the response
- * and answers `changed` with the document or `not-modified`; this adapter
- * makes no request and parses nothing. It remembers the last answer it
+ * and answers the document, or `not-modified`; this adapter makes no request
+ * and parses nothing. For a manifest at a URL, `standardManifestSource` makes
+ * the request and the parse for you. It remembers the last answer it
  * accepted for the scope, so `not-modified` renews that document instead of
  * inventing one, and sends the validator back on the next read. A thrown
  * `BeaconError` keeps its code; any other error fails the read.
@@ -35,6 +36,8 @@ export const http = <TDocument>({
     scope: ReleaseScope;
     validator: string | null;
     read: SourceRead<TDocument>;
+    // What the answer holds for when its backend claimed no expiry, which a not modified counts again from its own time.
+    holdsFor: number | null;
   } | null = null;
 
   return createReleaseSource<TDocument>({
@@ -51,13 +54,14 @@ export const http = <TDocument>({
         validator: held?.validator ?? null,
       });
 
-      if (answer.status === "changed") {
+      if (answer.status === undefined || answer.status === "changed") {
         const read = toSourceRead(answer);
 
         memory = {
           scope,
           validator: answer.validator ?? null,
           read,
+          holdsFor: answer.holdsFor ?? null,
         };
 
         return read;
@@ -79,15 +83,18 @@ export const http = <TDocument>({
         });
       }
 
-      // Without a new expiry the old one stays, so an answer is never fresher than the backend said.
+      // Without a new expiry the old one stays, so an answer is never fresher than the backend said. The exception is an answer that claimed none: its window is the client's, and the backend confirming it now starts the window again.
+      const confirmedFor =
+        held.holdsFor === null ? undefined : clock.now() + held.holdsFor;
+
+      const expiresAt = answer.expiresAt ?? confirmedFor;
+
       const read = {
         ...held.read,
-        ...(answer.expiresAt === undefined
-          ? {}
-          : { expiresAt: answer.expiresAt }),
+        ...(expiresAt === undefined ? {} : { expiresAt }),
       };
 
-      memory = { scope, validator: held.validator, read };
+      memory = { ...held, read };
 
       return read;
     },

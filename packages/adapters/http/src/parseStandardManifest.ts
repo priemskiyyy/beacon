@@ -64,25 +64,28 @@ export const parseStandardManifest = <TDeclarations extends RouteDeclarations>({
 
   assertScope(record, scope);
 
-  const revision = readRevision(
-    readField(record, "decisionRevision"),
-    "decisionRevision",
-  );
+  const claimed = readField(record, "decisionRevision");
 
-  const expiresAt = readExpiry({ record, now, limits: bounds });
+  const expiry = readExpiry({ record, now, limits: bounds });
 
-  const decisions = readRoutes(record, routes);
+  const decisions = readRoutes(record, routes, scope);
 
   const document = {
     routes: decisions,
     support: readSupport(record, routes),
   };
 
-  return {
+  const read = {
     document,
-    revision,
     // The support facts carry a revision of their own, so a policy update under the same decision is a renewal, not a conflict.
     digest: fingerprint(JSON.stringify(decisions)),
-    expiresAt,
+    ...expiry,
   };
+
+  // A manifest that numbers nothing claims no revision, and the core then has none to judge it by.
+  if (claimed === undefined) {
+    return read;
+  }
+
+  return { ...read, revision: readRevision(claimed, "decisionRevision") };
 };

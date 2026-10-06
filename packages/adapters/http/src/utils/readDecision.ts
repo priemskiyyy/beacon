@@ -1,5 +1,6 @@
 import type { NoneDecision } from "@priemskiyyy/beacon";
 
+import type { IdentityShorthand } from "src/types/internal/IdentityShorthand";
 import type { VariantReader } from "src/types/internal/VariantReader";
 import type { JsonRecord } from "src/types/internal/JsonRecord";
 import type { OrderKind } from "src/types/OrderKind";
@@ -48,6 +49,7 @@ export const readDecision = (
   value: unknown,
   field: string,
   declaration: RouteDeclaration,
+  shorthand: IdentityShorthand,
 ): StandardDecision<RouteDeclaration> =>
   readVariant<StandardDecision<RouteDeclaration>>({
     value,
@@ -64,7 +66,7 @@ export const readDecision = (
 
         return {
           kind: "target",
-          release: readRelease(release, `${path}.release`),
+          release: readRelease(release, `${path}.release`, shorthand),
         };
       },
       candidate: (record, path) => {
@@ -77,7 +79,7 @@ export const readDecision = (
         return {
           kind: "candidate",
           release: {
-            ...readRelease(release, `${path}.release`),
+            ...readRelease(release, `${path}.release`, shorthand),
             order: ORDERS[declaration.order](
               readField(release, "order"),
               `${path}.release.order`,

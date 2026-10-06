@@ -1,7 +1,10 @@
+import type { ReleaseScope } from "@priemskiyyy/beacon";
+
 import type { JsonRecord } from "src/types/internal/JsonRecord";
 import type { RouteDeclaration } from "src/types/RouteDeclaration";
 import type { RouteDeclarations } from "src/types/RouteDeclarations";
 import type { StandardDecision } from "src/types/StandardDecision";
+import { createIdentityShorthand } from "src/utils/createIdentityShorthand";
 import { invalidManifest } from "src/utils/invalidManifest";
 import { readDecision } from "src/utils/readDecision";
 import { readField } from "src/utils/readField";
@@ -14,6 +17,7 @@ import { readRecord } from "src/utils/readRecord";
 export function readRoutes<TDeclarations extends RouteDeclarations>(
   record: JsonRecord,
   declarations: TDeclarations,
+  scope: ReleaseScope,
 ): {
   [TName in keyof TDeclarations]: StandardDecision<TDeclarations[TName]>;
 };
@@ -22,6 +26,7 @@ export function readRoutes<TDeclarations extends RouteDeclarations>(
 export function readRoutes(
   record: JsonRecord,
   declarations: RouteDeclarations,
+  scope: ReleaseScope,
 ): Record<string, StandardDecision<RouteDeclaration>> {
   const decisions = readRecord(readField(record, "routes"), "routes");
 
@@ -33,7 +38,15 @@ export function readRoutes(
         throw invalidManifest(`routes.${name} is missing.`);
       }
 
-      return [name, readDecision(decision, `routes.${name}`, declaration)];
+      return [
+        name,
+        readDecision(
+          decision,
+          `routes.${name}`,
+          declaration,
+          createIdentityShorthand(declaration, scope),
+        ),
+      ];
     }),
   );
 }

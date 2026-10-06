@@ -55,6 +55,10 @@ jobs:
       - name: Scenario coverage
         run: pnpm test:scenarios
 
+      # The limits a document must state, so none is claimed away.
+      - name: Documented limits
+        run: pnpm test:limits
+
       # A built package imports only what its role allows.
       - name: Package imports
         run: pnpm test:package

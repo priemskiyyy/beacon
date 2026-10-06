@@ -82,7 +82,7 @@ Everything is tested in process against fakes, and the Expo and React Native ada
 ## Documentation
 
 - The README of each package above.
-- [Decisions](docs/decisions.md), the [runtime architecture](docs/internals/architecture.md) and the [verification table](docs/verification.md).
+- [Decisions](docs/decisions.md), the [limits](docs/limits.md), the [runtime architecture](docs/internals/architecture.md) and the [verification table](docs/verification.md).
 - [Contributing](CONTRIBUTING.md), [support](SUPPORT.md) and [security](SECURITY.md).
 
 ## License

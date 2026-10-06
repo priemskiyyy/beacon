@@ -42,7 +42,7 @@
   "peerDependencies": {
     "@priemskiyyy/beacon": ">=0.1.0 <0.2",
     "@priemskiyyy/beacon-react": ">=0.1.0 <0.2",
-    "react": ">=19.2.0 <20"
+    "react": ">=18.3.0 <20"
   },
   "peerDependenciesMeta": {
     "@priemskiyyy/beacon-react": {

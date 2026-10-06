@@ -18,7 +18,7 @@ Register it once, next to where you create it. Every primitive then knows the na
 
 ```ts
 // src/beacon.ts
-import { Beacon, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   ReleaseSource,
@@ -39,7 +39,7 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      boot: { id: crypto.randomUUID() },
+      boot: { id: createBootId() },
       web: () => ({
         identity: {
           status: "known",

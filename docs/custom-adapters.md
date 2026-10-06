@@ -231,12 +231,14 @@ Only a confirmation from the provider may say `ready`. A command that returned i
 
 The conformance suites of `@priemskiyyy/beacon/testing` register the contract every adapter keeps, over a fake of the provider. They need `vitest`. Call them at the top level of `src/conformance.test.ts`.
 
-| Suite                 | Contract                                                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `testReleaseSource`   | it has a name, asks its backend for nothing until read, answers a document with real times and non-empty identifiers, can be read again, and every projection of it belongs to it                      |
-| `testVersionStrategy` | an input compares equal to itself, `newer` and `older` mirror each other along the ascending inputs, and a value that breaks the grammar throws                                                        |
-| `testUpdateMechanism` | it opens nothing and holds nothing until a session opens, can be opened again after it ended, and ending a session releases what it held                                                               |
-| `testReleaseDriver`   | it declares valid commands, opens with a native handle and a check that answers a valid observation, prepares only if it said it does, holds no listener once disposed, and reports nothing after that |
+| Suite                 | Contract                                                                                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `testReleaseSource`   | it has a name, asks its backend for nothing until read, answers a document with real times and non-empty identifiers, can be read again, and every projection of it belongs to it                                                                       |
+| `testVersionStrategy` | an input compares equal to itself, `newer` and `older` mirror each other along the ascending inputs, and a value that breaks the grammar throws                                                                                                         |
+| `testUpdateMechanism` | it opens nothing and holds nothing until a session opens, can be opened again after it ended, and ending a session releases what it held                                                                                                                |
+| `testReleaseDriver`   | it declares valid commands, opens with a native handle and a check that answers a valid observation, prepares only if it said it does, holds no listener once disposed, and reports nothing after that                                                  |
+| `testRunningReader`   | it asks its host for nothing until read, answers a release whose identity has no empty part or space around it, answers the same release on every read, and answers an unknown identity or rejects where the host cannot name what runs, never throwing |
+| `testJournalStorage`  | a key nothing was written under reads `null`, a write can be read back and overwrites, a remove deletes and never throws, text and kilobyte records come back exactly, and a reopened storage keeps what it was given                                   |
 
 ```ts
 import { testUpdateMechanism } from "@priemskiyyy/beacon/testing";

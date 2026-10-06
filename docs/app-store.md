@@ -14,7 +14,7 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-app-store
 
 ```ts
 // src/beacon.ts
-import { Beacon, newerRoute } from "@priemskiyyy/beacon";
+import { Beacon, createBootId, newerRoute } from "@priemskiyyy/beacon";
 import {
   appleMarketingVersion,
   appleVersion,
@@ -46,10 +46,7 @@ export const beacon = new Beacon({
     distribution: "app-store",
   },
   running: {
-    // Hermes has no crypto.randomUUID. The id only has to differ between runtimes.
-    boot: {
-      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-    },
+    boot: { id: createBootId() },
     native: () => {
       const { nativeBuildVersion, nativeApplicationVersion } = Application;
 

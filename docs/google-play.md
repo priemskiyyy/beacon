@@ -57,7 +57,7 @@ Make the object once, at module scope. A bridge belongs to one open session at a
 
 ```ts
 // src/beacon.ts
-import { Beacon } from "@priemskiyyy/beacon";
+import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
 
 import { playBridge } from "src/playBridge";
@@ -76,10 +76,7 @@ export const beacon = new Beacon({
     distribution: "google-play",
   },
   running: {
-    // Hermes has no crypto.randomUUID. The id only has to differ between runtimes.
-    boot: {
-      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-    },
+    boot: { id: createBootId() },
     native: () => ({
       identity: {
         status: "known",
@@ -100,6 +97,14 @@ export const beacon = new Beacon({
 ```
 
 The running native release is yours to read, and it must be named the way Play names the offer, or the two are incomparable and nothing is reported as running the offered build:
+
+| Field                | Value                                                       |
+| -------------------- | ----------------------------------------------------------- |
+| `identity.authority` | `scope.application`, the Android application id             |
+| `identity.domain`    | `android-version-code`                                      |
+| `identity.value`     | the version code as text                                    |
+| `label`              | the version name                                            |
+| `raw`                | `applicationId`, `versionName` and `versionCode` (a number) |
 
 The route is a driver route on the `native` subject. A bridge belongs to one open session at a time: a second Beacon that opens a route on the same bridge fails to open it, and that route says `DRIVER_FAILED`. A hot reload that makes the Beacon again is no second Beacon while the provider follows it: the old session ends first ([React Native](react-native.md#the-provider)).
 

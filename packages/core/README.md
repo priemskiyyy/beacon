@@ -18,7 +18,7 @@ const beacon = new Beacon({
     platform: "web",
     distribution: "public-web",
   },
-  running: { boot: { id: BOOT_ID }, web: readWebRelease },
+  running: { boot: { id: createBootId() }, web: readWebRelease },
   routes: { web },
 });
 

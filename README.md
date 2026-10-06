@@ -24,7 +24,7 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    boot: { id: BOOT_ID },
+    boot: { id: createBootId() },
     web: () => ({ identity: BUILD_IDENTITY, label: BUILD_LABEL, raw: {} }),
   },
   routes: {

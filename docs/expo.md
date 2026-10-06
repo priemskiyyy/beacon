@@ -20,7 +20,7 @@ This page is the adapter. [React Native](react-native.md) is the whole app aroun
 
 ```ts
 // src/beacon.ts
-import { Beacon } from "@priemskiyyy/beacon";
+import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
@@ -34,10 +34,7 @@ export const beacon = new Beacon({
     distribution: "app-store",
   },
   running: {
-    // Hermes has no crypto.randomUUID. The id only has to differ between runtimes.
-    boot: {
-      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-    },
+    boot: { id: createBootId() },
     bundle: expoBundle(Updates),
   },
   routes: { ota: expoUpdates({ updates: Updates }) },

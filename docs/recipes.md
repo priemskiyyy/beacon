@@ -8,7 +8,7 @@ Each recipe is a complete piece of an application. They share two Beacons. The w
 
 ```ts
 // src/beacon.ts
-import { Beacon, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   ReleaseSource,
@@ -28,7 +28,7 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    boot: { id: crypto.randomUUID() },
+    boot: { id: createBootId() },
     web: () => ({
       identity: {
         status: "known",
@@ -58,7 +58,7 @@ declare module "@priemskiyyy/beacon-react" {
 
 ```ts
 // src/native.ts
-import { Beacon } from "@priemskiyyy/beacon";
+import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
 import type { PlayBridge } from "@priemskiyyy/beacon-google-play";
@@ -74,7 +74,7 @@ export const native = new Beacon({
     distribution: "google-play",
   },
   running: {
-    boot: { id: `${Date.now()}-${Math.random().toString(36).slice(2)}` },
+    boot: { id: createBootId() },
     bundle: expoBundle(Updates),
   },
   routes: {

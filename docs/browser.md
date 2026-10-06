@@ -15,7 +15,7 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-browser
 `browserReload()` is a mechanism, so it goes into a feed route. The source says what the deployment should run, and the mechanism carries the reload.
 
 ```ts
-import { Beacon, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
 import type {
   NoneDecision,
   ReleaseSource,
@@ -34,7 +34,7 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    boot: { id: crypto.randomUUID() },
+    boot: { id: createBootId() },
     web: () => ({
       identity: {
         status: "known",

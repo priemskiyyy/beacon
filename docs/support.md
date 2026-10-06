@@ -13,7 +13,12 @@ Beacon does not decide it. You write the policy, Beacon evaluates it against wha
 `supportPolicy({ source, evaluate })` takes a view of a source's document and a pure function of that view and the running facts. The standard manifest of the [HTTP adapter](http.md) carries a denylist for this purpose, and the example reads it.
 
 ```ts
-import { Beacon, supportPolicy, targetRoute } from "@priemskiyyy/beacon";
+import {
+  Beacon,
+  createBootId,
+  supportPolicy,
+  targetRoute,
+} from "@priemskiyyy/beacon";
 import { browserReload } from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
@@ -76,7 +81,7 @@ const policy = supportPolicy({
 export const beacon = new Beacon({
   scope,
   running: {
-    boot: { id: crypto.randomUUID() },
+    boot: { id: createBootId() },
     web: () => ({
       identity: {
         status: "known",

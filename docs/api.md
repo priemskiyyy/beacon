@@ -14,17 +14,20 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Runtime
 
-| Export                  | Kind     | What it is                                                                                |
-| ----------------------- | -------- | ----------------------------------------------------------------------------------------- |
-| `Beacon`                | class    | one application-owned model of release awareness over named routes; inert until `start()` |
-| `BeaconError`           | class    | an error Beacon created, with a `code` to branch on and the original as `cause`           |
-| `compareIdentities`     | function | relates two release identities as `same`, `different` or `incomparable`                   |
-| `createReleaseDriver`   | function | declares a provider-owned route from its driver                                           |
-| `createReleaseSource`   | function | makes a release source from a name and a `read`                                           |
-| `createUpdateMechanism` | function | declares a mechanism so its native type and commands are inferred together                |
-| `newerRoute`            | function | a route that offers a candidate only when it is admitted and orders newer than what runs  |
-| `supportPolicy`         | function | declares the application's support policy over a view of a source                         |
-| `targetRoute`           | function | a route that offers the release an authority names when it is a different, comparable one |
+| Export                   | Kind     | What it is                                                                                |
+| ------------------------ | -------- | ----------------------------------------------------------------------------------------- |
+| `Beacon`                 | class    | one application-owned model of release awareness over named routes; inert until `start()` |
+| `BeaconError`            | class    | an error Beacon created, with a `code` to branch on and the original as `cause`           |
+| `compareIdentities`      | function | relates two release identities as `same`, `different` or `incomparable`                   |
+| `createBootId`           | function | a new boot id: a version 4 UUID that works on every engine, for `running.boot.id`         |
+| `createReleaseDriver`    | function | declares a provider-owned route from its driver                                           |
+| `createReleaseSource`    | function | makes a release source from a name and a `read`                                           |
+| `createUpdateMechanism`  | function | declares a mechanism so its native type and commands are inferred together                |
+| `keyValueJournalStorage` | function | the journal's storage over any store with `getItem`, `setItem` and `removeItem`           |
+| `newerRoute`             | function | a route that offers a candidate only when it is admitted and orders newer than what runs  |
+| `parseUtcTimestamp`      | function | epoch milliseconds of a UTC timestamp such as `2026-09-27T10:00:00Z`, or `undefined`      |
+| `supportPolicy`          | function | declares the application's support policy over a view of a source                         |
+| `targetRoute`            | function | a route that offers the release an authority names when it is a different, comparable one |
 
 ### The Beacon
 
@@ -44,6 +47,7 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 | `transitions`          | what the journal knows                                                                       |
 | `diagnostics`          | a passive snapshot and event stream                                                          |
 | `disruptions`          | where participants register                                                                  |
+| `clock`                | the `BeaconClock` the Beacon runs on, for what must share its time and timers                |
 
 ### Options, scope and running facts
 
@@ -168,15 +172,17 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Journal
 
-| Type                    | What it is                                                                                |
-| ----------------------- | ----------------------------------------------------------------------------------------- |
-| `JournalOptions`        | turns the journal on: mode, storage, budget and retention                                 |
-| `JournalStorage`        | the minimal storage a journal needs: `read`, `write` and `remove`                         |
-| `TransitionIntent`      | what Beacon recorded before it asked a provider to replace the realm                      |
-| `TransitionState`       | what the journal knows: its status, latest intent, dropped count and checkpoints          |
-| `Reconciliation`        | an intent, what the running facts say about it, and the attempts                          |
-| `ReconciliationOutcome` | `same-boot`, `target-running`, `target-not-running`, `different-target` or `inconclusive` |
-| `ReadyReport`           | what `reportReady` answers: `recorded` or `already-recorded`                              |
+| Type                     | What it is                                                                                |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `JournalOptions`         | turns the journal on: mode, storage, budget and retention                                 |
+| `JournalStorage`         | the minimal storage a journal needs: `read`, `write` and `remove`                         |
+| `KeyValueStoreLike`      | the three calls of a key-value store: `getItem`, `setItem` and `removeItem`               |
+| `KeyValueJournalOptions` | whether a write is read back, and how a journal key maps to the store's own               |
+| `TransitionIntent`       | what Beacon recorded before it asked a provider to replace the realm                      |
+| `TransitionState`        | what the journal knows: its status, latest intent, dropped count and checkpoints          |
+| `Reconciliation`         | an intent, what the running facts say about it, and the attempts                          |
+| `ReconciliationOutcome`  | `same-boot`, `target-running`, `target-not-running`, `different-target` or `inconclusive` |
+| `ReadyReport`            | what `reportReady` answers: `recorded` or `already-recorded`                              |
 
 ### Errors, diagnostics and observables
 
@@ -213,13 +219,18 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ## @priemskiyyy/beacon/mock
 
-| Export             | Kind     | What it is                                                                   |
-| ------------------ | -------- | ---------------------------------------------------------------------------- |
-| `createMockSource` | function | a scriptable release source whose reads are held until the test settles them |
-| `createTestClock`  | function | a manual `BeaconClock` that runs its timers only when a test advances it     |
-| `MockSource`       | type     | the mock source and how to answer, hold, resolve and reject its reads        |
-| `MockSourceStats`  | type     | reads started, reads held and reads aborted                                  |
-| `TestClock`        | type     | a `BeaconClock` with `advance`, `suspend`, `setNow` and `pendingTimers`      |
+| Export                     | Kind     | What it is                                                                   |
+| -------------------------- | -------- | ---------------------------------------------------------------------------- |
+| `createMockSource`         | function | a scriptable release source whose reads are held until the test settles them |
+| `createTestClock`          | function | a manual `BeaconClock` that runs its timers only when a test advances it     |
+| `createGate`               | function | a gate a fake provider waits at, held and released by the test               |
+| `createMockJournalStorage` | function | an in-memory journal storage that a test can hold, refuse and look into      |
+| `settle`                   | function | lets every queued promise continuation run before the test goes on           |
+| `Gate`                     | type     | the gate: `hold`, `release` and `wait`                                       |
+| `MockJournalStorage`       | type     | a journal storage with `records`, call counts and hold and fail knobs        |
+| `MockSource`               | type     | the mock source and how to answer, hold, resolve and reject its reads        |
+| `MockSourceStats`          | type     | reads started, reads held and reads aborted                                  |
+| `TestClock`                | type     | a `BeaconClock` with `advance`, `suspend`, `setNow` and `pendingTimers`      |
 
 ## @priemskiyyy/beacon/testing
 
@@ -227,10 +238,17 @@ These need `vitest`.
 
 | Export                              | Kind     | What it is                                                       |
 | ----------------------------------- | -------- | ---------------------------------------------------------------- |
+| `testJournalStorage`                | function | the contract every journal storage keeps                         |
+| `testRunningReader`                 | function | the contract every running reader keeps                          |
 | `testReleaseSource`                 | function | the contract every release source keeps                          |
 | `testVersionStrategy`               | function | the contract every version strategy keeps                        |
 | `testUpdateMechanism`               | function | the contract every update mechanism keeps                        |
 | `testReleaseDriver`                 | function | the contract every provider driver keeps                         |
+| `JournalStorageFixture`             | type     | a journal storage under test, and how to open it again           |
+| `RunningReaderFixture`              | type     | a running reader under test, and how often it asked its host     |
+| `RunningReaderSituation`            | type     | a state of the fake host, and what the reader must answer in it  |
+| `RunningReaderConformanceOptions`   | type     | what a running reader's suite is run over                        |
+| `JournalStorageConformanceOptions`  | type     | what a journal storage's suite is run over                       |
 | `ReleaseSourceFixture`              | type     | a source under test and how many requests it made of its backend |
 | `ReleaseSourceConformanceOptions`   | type     | what a source's suite is run over                                |
 | `VersionStrategyConformanceOptions` | type     | what a strategy's suite is run over                              |

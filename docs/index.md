@@ -56,7 +56,7 @@ Every package is ESM only, side-effect free and typed. The core has no dependenc
 A web application, a manifest at `/releases.json`, and a reload the user asks for.
 
 ```ts
-import { Beacon, targetRoute } from "@priemskiyyy/beacon";
+import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
 import { browserReload } from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
@@ -88,7 +88,7 @@ const manifest = http({
 export const beacon = new Beacon({
   scope,
   running: {
-    boot: { id: crypto.randomUUID() },
+    boot: { id: createBootId() },
     web: () => ({
       identity: {
         status: "known",

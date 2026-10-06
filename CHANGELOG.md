@@ -19,6 +19,13 @@
 - `SelectorOptions` is the core's `{ isEqual }` type, which every framework binding re-exports.
 - Every observable has `getInitial()`, its value before any session, which is what a server renders and what a hydrating render must read. `beacon.routeNames` lists the routes, and `RouteSnapshotOf` names a route's state type.
 - One `check()` waits once for the running facts it needs and then starts the read of every route and of the support policy in the same turn, so a source they share is read once however fast it answers.
+- `beacon.clearJournal()` also recovers a journal whose first read failed: once the record is removed the journal is `ready` and a command that replaces the realm writes again, without a `stop()` and a `start()`.
+- `createBootId()` makes the boot id: a version 4 UUID from `crypto.randomUUID`, else `crypto.getRandomValues`, else `Math.random`, so it works on Hermes without a polyfill. It never throws and never reads the clock.
+- `beacon.clock` is the `BeaconClock` the Beacon runs on, read only, so an integration that schedules beside it reads the time and arms its timers on the clock a test clock replaces.
+- `parseUtcTimestamp(text)` reads a UTC timestamp such as `2026-09-27T10:00:00.5Z` to epoch milliseconds, or `undefined` for text that is not one or names a date that does not exist, the same on Hermes as on V8.
+- `createGate()` and `settle()` under `./mock` fake a provider that answers later: a gate is open until the test holds it, and `release()` lets every waiter go.
+- `keyValueJournalStorage(store, { verify, key })` adapts any store with `getItem`, `setItem` and `removeItem`, such as AsyncStorage, `expo-sqlite/kv-store`, MMKV through a recipe, `localStorage` and `sessionStorage`, to the journal's storage: a call that throws at once is a rejection, a write is read back, and a journal key can be mapped to the store's own. `createMockJournalStorage()` under `./mock` is an in-memory journal storage with `records`, call counts, and knobs to hold and to refuse reads and writes, and `testJournalStorage({ name, create })` under `./testing` holds a storage to the contract.
+- `testRunningReader({ name, create, situations })` under `./testing` holds a running reader to the contract: it asks its host for nothing until read, answers a release with a known identity that has no empty part or space around it or an unknown one with a reason, answers the same release on every read, and answers an unknown identity or rejects where its host cannot name what runs.
 - Not built yet: the scheduler. See `docs/decisions.md`.
 
 ## @priemskiyyy/beacon-http 0.1.0 - Unreleased

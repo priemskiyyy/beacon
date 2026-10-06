@@ -607,6 +607,11 @@ describe("a manifest is JSON of the shape the schema names", () => {
     }
   });
 
+  test("HTTP-08 a byte order mark in front of the document is not part of it", () => {
+    // A file saved by a Windows tool starts with one, and a React Native fetch hands the text over as it is.
+    expect(parse(`\uFEFF${VALID}`).document).toEqual(parse(VALID).document);
+  });
+
   test.each(["null", "[]", '"text"', "7"])("%s is not an object", (text) => {
     expectRefused(text, /must be an object/);
   });

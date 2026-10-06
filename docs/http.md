@@ -290,7 +290,7 @@ The whole manifest or none of it. `standardManifestSource`, `readStandardManifes
 | An unknown `schemaVersion`, another scope, a route missing, or a decision of the wrong kind                                             | `INVALID_DOCUMENT`                                             |
 | A date that does not exist, a lifetime over the limit, a future issue, or an expired manifest                                           | `INVALID_DOCUMENT`                                             |
 
-The `ETag` is the validator for the next read and never the revision. A field the schema does not name is ignored and never reaches the document. A repeated JSON key keeps its last value, because the text is decoded as JSON.
+The `ETag` is the validator for the next read and never the revision. A field the schema does not name is ignored and never reaches the document. A repeated JSON key keeps its last value, because the text is decoded as JSON. A byte order mark in front of the text, which a file saved by a Windows tool starts with and a React Native fetch hands over as it is, is not part of the document.
 
 ### Redirects on React Native
 

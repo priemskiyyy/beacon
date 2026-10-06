@@ -14,9 +14,11 @@ import { readRoutes } from "src/utils/readRoutes";
 import { readSupport } from "src/utils/readSupport";
 import { resolveLimits } from "src/utils/resolveLimits";
 
+const BYTE_ORDER_MARK = "\uFEFF";
+
 const parseJson = (text: string): unknown => {
   try {
-    return JSON.parse(text);
+    return JSON.parse(text.startsWith(BYTE_ORDER_MARK) ? text.slice(1) : text);
   } catch {
     throw invalidManifest("The manifest is not JSON.");
   }

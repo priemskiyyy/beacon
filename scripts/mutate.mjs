@@ -1954,6 +1954,13 @@ const MUTANTS = [
     project: "http",
     describes: "a manifest limit set to undefined turned off",
   },
+  {
+    file: `${http}/parseStandardManifest.ts`,
+    find: "text.startsWith(BYTE_ORDER_MARK) ? text.slice(1) : text",
+    replace: "text",
+    project: "http",
+    describes: "a manifest saved with a byte order mark refused",
+  },
 ];
 
 const run = (project) => {

@@ -43,6 +43,7 @@ Each item is a specified feature, not a decision to omit it.
 - **Scheduler and triggers**, retries and backoff.
 - **Workbox profile** and the service worker identity handshake. The service worker route reports an update as ready with an unknown build.
 - **Expo hook bridge**: the Expo route is the command profile, and autonomous native startup checks are not observed.
+- **More than one registered Beacon** in one program: `Register` names one, and the hooks read that one. Any other Beacon is read with `useObservable(other.route("name").state)`.
 - **Devtools**, and the ecosystem bridges to Silo, Pulse, Reach, Porter, Flare and Simulcast.
 - **Cross-tab coordination** for service workers: activation is a takeover of every tab of the scope, and one tab's guard cannot certify the others.
 - **Optional signatures** on manifests, and the rejection of duplicate JSON keys in the standard manifest, whose decoder keeps the last key.

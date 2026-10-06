@@ -5,7 +5,7 @@ import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import type { StaleReason } from "src/types/StaleReason";
 
 /** What the runtime gives a command besides its references. */
-export type CommandBase = CommandRunContext<object, CommandParameters>;
+type CommandBase = CommandRunContext<object, CommandParameters>;
 
 /**
  * A command whose references are still what they were shown to be: the

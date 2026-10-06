@@ -1,7 +1,7 @@
 import { BeaconError } from "@priemskiyyy/beacon";
-import type { DisruptionParticipant } from "@priemskiyyy/beacon";
+import type { DisruptionParticipant, Impact } from "@priemskiyyy/beacon";
 import { act, cleanup, render, renderHook } from "@testing-library/react";
-import { StrictMode, useEffect } from "react";
+import { Activity, StrictMode, useEffect, useLayoutEffect } from "react";
 import type { PropsWithChildren } from "react";
 import { afterEach, expect, test } from "vitest";
 
@@ -9,6 +9,7 @@ import { BeaconProvider } from "src/context/BeaconProvider";
 import { countListeners, createWebBeacon, target } from "src/beacon.fixture";
 import type { WebBeacon } from "src/beacon.fixture";
 import { useBeacon } from "src/hooks/useBeacon";
+import type { RegisteredRouteState } from "src/types/Register";
 import { useDisruption } from "src/hooks/useDisruption";
 import { useObservable } from "src/hooks/useObservable";
 import { useRoute } from "src/hooks/useRoute";
@@ -116,6 +117,45 @@ test("BIND-06 useRoute with a selector renders again only when the selection cha
   expect(renders.count).toBe(settled);
 });
 
+test("an equal selection keeps its reference across renders, whatever new functions a render passes", () => {
+  const { beacon } = createWebBeacon();
+
+  const { result, rerender } = renderHook(
+    () =>
+      useRoute("web", ({ observation }) => ({ status: observation.status }), {
+        isEqual: (previous, next) => previous.status === next.status,
+      }),
+    { wrapper: providerOf(beacon) },
+  );
+
+  const first = result.current;
+
+  rerender();
+  rerender();
+
+  expect(result.current).toBe(first);
+});
+
+test("a selector that changes selects again from the same value", () => {
+  const { beacon } = createWebBeacon();
+
+  type Pick = (snapshot: RegisteredRouteState<"web">) => string;
+
+  const byCheck: Pick = ({ check }) => check.state;
+  const byObservation: Pick = ({ observation }) => observation.status;
+
+  const { result, rerender } = renderHook(
+    ({ pick }: { pick: Pick }) => useRoute("web", pick),
+    { initialProps: { pick: byCheck }, wrapper: providerOf(beacon) },
+  );
+
+  expect(result.current).toBe("idle");
+
+  rerender({ pick: byObservation });
+
+  expect(result.current).toBe("unknown");
+});
+
 test("useObservable subscribes while mounted and lets go on unmount", () => {
   const { beacon } = createWebBeacon();
   const counted = countListeners(beacon.route("web").state);
@@ -212,6 +252,117 @@ test("the provider without start leaves the Beacon idle", () => {
   expect(beacon.status.get()).toEqual({ state: "idle" });
 });
 
+test("the provider follows start: it holds the session only while start is true", () => {
+  const { beacon } = createWebBeacon();
+
+  const view = (start: boolean) => (
+    <BeaconProvider beacon={beacon} start={start}>
+      <span />
+    </BeaconProvider>
+  );
+
+  const { rerender } = render(view(false));
+
+  expect(beacon.status.get()).toEqual({ state: "idle" });
+
+  rerender(view(true));
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+
+  rerender(view(false));
+
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+
+  rerender(view(true));
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 2 });
+});
+
+test("the provider follows a new beacon: the old session ends and a new one starts", () => {
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+
+  const view = (beacon: WebBeacon) => (
+    <BeaconProvider beacon={beacon} start>
+      <span />
+    </BeaconProvider>
+  );
+
+  const { rerender, unmount } = render(view(first.beacon));
+
+  expect(first.beacon.status.get()).toEqual({ state: "running", session: 1 });
+
+  rerender(view(second.beacon));
+
+  expect(first.beacon.status.get()).toEqual({ state: "stopped" });
+  expect(second.beacon.status.get()).toEqual({ state: "running", session: 1 });
+  expect(second.mock.stats().reads).toBe(0);
+
+  unmount();
+
+  expect(second.beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("a second provider with start shares the session, and the first of them to unmount ends it for both", () => {
+  const { beacon } = createWebBeacon();
+
+  const view = (inner: boolean) => (
+    <BeaconProvider beacon={beacon} start>
+      <BeaconProvider beacon={beacon} start={inner}>
+        <span />
+      </BeaconProvider>
+    </BeaconProvider>
+  );
+
+  const { rerender } = render(view(true));
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+
+  rerender(view(false));
+
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("the hooks read the provider's Beacon and follow a new one", async () => {
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+
+  await act(async () => {
+    second.beacon.start();
+    await Promise.resolve();
+  });
+
+  const Probe = () => {
+    const state = useStatus(({ state }) => state);
+    const route = useRoute("web", ({ check }) => check.state);
+    const running = useRunning(({ web }) => web.state);
+
+    return <span>{`${state}/${route}/${running}`}</span>;
+  };
+
+  const view = (beacon: WebBeacon) => (
+    <BeaconProvider beacon={beacon}>
+      <Probe />
+    </BeaconProvider>
+  );
+
+  const { container, rerender } = render(view(first.beacon));
+
+  expect(container.textContent).toBe("idle/idle/pending");
+
+  rerender(view(second.beacon));
+
+  expect(container.textContent).toBe("running/idle/known");
+
+  // The first Beacon is let go: it says nothing anymore, and the second is heard.
+  act(() => {
+    second.beacon.stop();
+    first.beacon.start();
+  });
+
+  expect(container.textContent).toBe("stopped/idle/known");
+});
+
 test("BIND-07 strict mode starts, stops and starts again, and leaves one session running with no check or command", () => {
   const { beacon, mock } = createWebBeacon();
 
@@ -225,6 +376,48 @@ test("BIND-07 strict mode starts, stops and starts again, and leaves one session
 
   expect(beacon.status.get()).toMatchObject({ state: "running" });
   expect(mock.stats().reads).toBe(0);
+});
+
+test("strict mode leaves one subscription and one registration for a hook that reads and one that guards", async () => {
+  const { beacon } = createWebBeacon();
+  const counted = countListeners(beacon.status);
+  const asked = { count: 0 };
+
+  const View = () => {
+    useObservable(counted.observable);
+
+    useDisruption(
+      draftEditor({
+        reserve: () => {
+          asked.count += 1;
+
+          return { status: "reserved", release: () => {} };
+        },
+      }),
+    );
+
+    return null;
+  };
+
+  const { unmount } = render(
+    <StrictMode>
+      <BeaconProvider beacon={beacon} start>
+        <View />
+      </BeaconProvider>
+    </StrictMode>,
+  );
+
+  expect(counted.listeners()).toBe(1);
+
+  await act(async () => {
+    await beacon.route("web").prefetch();
+  });
+
+  expect(asked.count).toBe(1);
+
+  unmount();
+
+  expect(counted.listeners()).toBe(0);
 });
 
 test("a child that checks when it mounts finds the session already started", async () => {
@@ -250,6 +443,31 @@ test("a child that checks when it mounts finds the session already started", asy
   await flush();
 
   expect(outcomes).not.toContain("failed");
+});
+
+test("the session starts after a child's layout effect and before its passive effect", () => {
+  const { beacon } = createWebBeacon();
+  const seen: string[] = [];
+
+  const Child = () => {
+    useLayoutEffect(() => {
+      seen.push(`layout ${beacon.status.get().state}`);
+    }, []);
+
+    useEffect(() => {
+      seen.push(`passive ${beacon.status.get().state}`);
+    }, []);
+
+    return null;
+  };
+
+  render(
+    <BeaconProvider beacon={beacon} start>
+      <Child />
+    </BeaconProvider>,
+  );
+
+  expect(seen).toEqual(["layout idle", "passive running"]);
 });
 
 const draftEditor = (
@@ -324,6 +542,128 @@ test("useDisruption asks the latest participant, without registering again", asy
   });
   // One registration is asked once per command: two would have been asked twice.
   expect(asked.count).toBe(2);
+});
+
+test("a participant in a subtree that Activity hides is unregistered while it is hidden, and registered again when it is shown", async () => {
+  const { beacon } = createWebBeacon();
+
+  const Editor = () => {
+    useDisruption(
+      draftEditor({
+        reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+      }),
+    );
+
+    return null;
+  };
+
+  const view = (mode: "visible" | "hidden") => (
+    <BeaconProvider beacon={beacon}>
+      <Activity mode={mode}>
+        <Editor />
+      </Activity>
+    </BeaconProvider>
+  );
+
+  const { rerender } = render(view("visible"));
+
+  beacon.start();
+
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "blocked",
+  });
+
+  rerender(view("hidden"));
+
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "accepted",
+  });
+
+  beacon.route("web").acknowledge();
+  rerender(view("visible"));
+
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "blocked",
+  });
+});
+
+test("useDisruption asks the latest name and impacts too", async () => {
+  const { beacon } = createWebBeacon();
+
+  const { rerender } = renderHook(
+    ({ name, impacts }: { name: string; impacts: Impact[] }) =>
+      useDisruption(
+        draftEditor({
+          name,
+          impacts,
+          reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+        }),
+      ),
+    {
+      initialProps: {
+        name: "draft-editor",
+        impacts: ["javascript-restart"],
+      },
+      wrapper: providerOf(beacon),
+    },
+  );
+
+  beacon.start();
+
+  // The command replaces the document, which this participant does not care about yet.
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "accepted",
+  });
+
+  beacon.route("web").acknowledge();
+  rerender({ name: "renamed", impacts: ["document-replacement"] });
+
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "blocked",
+    reasons: [{ code: "unsaved-draft", participant: { name: "renamed" } }],
+  });
+});
+
+test("useDisruption follows the provider's Beacon: it leaves the old one and joins the new one", async () => {
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+
+  const Editor = () => {
+    useDisruption(
+      draftEditor({
+        reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+      }),
+    );
+
+    return null;
+  };
+
+  const view = (beacon: WebBeacon) => (
+    <BeaconProvider beacon={beacon}>
+      <Editor />
+    </BeaconProvider>
+  );
+
+  const { rerender } = render(view(first.beacon));
+
+  first.beacon.start();
+  second.beacon.start();
+
+  await expect(first.beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "blocked",
+  });
+  await expect(second.beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "accepted",
+  });
+
+  rerender(view(second.beacon));
+
+  await expect(first.beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "accepted",
+  });
+  await expect(second.beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "blocked",
+  });
 });
 
 test("useSupport reads support as it stands, which is unknown without a policy", () => {

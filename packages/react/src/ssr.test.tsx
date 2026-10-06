@@ -4,7 +4,9 @@ import { renderToString } from "react-dom/server";
 import { expect, test } from "vitest";
 
 import { BeaconProvider } from "src/context/BeaconProvider";
-import { createWebBeacon } from "src/beacon.fixture";
+import { countListeners, createWebBeacon } from "src/beacon.fixture";
+import { useDisruption } from "src/hooks/useDisruption";
+import { useObservable } from "src/hooks/useObservable";
 import { useRoute } from "src/hooks/useRoute";
 import { useRunning } from "src/hooks/useRunning";
 
@@ -37,6 +39,38 @@ test("the server renders the route as not checked and what runs as pending, and 
   expect(renderToString(view)).toContain("unknown/pending");
   expect(beacon.status.get()).toEqual({ state: "idle" });
   expect(mock.stats().reads).toBe(0);
+});
+
+test("the server subscribes to nothing and registers no participant", async () => {
+  const { beacon } = createWebBeacon();
+  const counted = countListeners(beacon.route("web").state);
+
+  const View = () => {
+    const state = useObservable(counted.observable);
+
+    useDisruption({
+      name: "draft-editor",
+      impacts: ["document-replacement"],
+      reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+    });
+
+    return <span>{state.observation.status}</span>;
+  };
+
+  expect(
+    renderToString(
+      <BeaconProvider beacon={beacon} start>
+        <View />
+      </BeaconProvider>,
+    ),
+  ).toBe("<span>unknown</span>");
+  expect(counted.listeners()).toBe(0);
+
+  beacon.start();
+
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "accepted",
+  });
 });
 
 test("BIND-08 hydrating the server markup does not mismatch, and the session starts after hydration", async () => {

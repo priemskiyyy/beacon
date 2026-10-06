@@ -1,9 +1,12 @@
 import { renderToString } from "solid-js/web";
 import { expect, test } from "vitest";
 
-import { createWebBeacon } from "src/beacon.fixture";
+import { countListeners, createWebBeacon } from "src/beacon.fixture";
+import { BeaconProvider } from "src/context/BeaconProvider";
 import { STATUS_MARKUP } from "src/context/serverMarkup.fixture";
 import { StatusView } from "src/context/View.fixture";
+import { useDisruption } from "src/primitives/useDisruption";
+import { useObservable } from "src/primitives/useObservable";
 import { settle } from "src/settle.fixture";
 
 test("the server renders the route as not checked and what runs as pending, and starts nothing", () => {
@@ -29,6 +32,38 @@ test("BIND-08 a server render reads the Beacon as it was before any session, wha
   expect(renderToString(() => <StatusView beacon={beacon} />)).toBe(
     STATUS_MARKUP,
   );
+});
+
+test("the server subscribes to nothing and registers no participant", async () => {
+  const { beacon } = createWebBeacon();
+  const counted = countListeners(beacon.route("web").state);
+
+  const View = () => {
+    const state = useObservable(counted.observable);
+
+    useDisruption({
+      name: "draft-editor",
+      impacts: ["document-replacement"],
+      reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+    });
+
+    return <span>{state().observation.status}</span>;
+  };
+
+  expect(
+    renderToString(() => (
+      <BeaconProvider beacon={beacon} start>
+        <View />
+      </BeaconProvider>
+    )),
+  ).toMatch(/^<span data-hk="\d+">unknown<\/span>$/);
+  expect(counted.listeners()).toBe(0);
+
+  beacon.start();
+
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "accepted",
+  });
 });
 
 test("BIND-09 two server requests for different accounts share no session and no state", () => {

@@ -89,6 +89,32 @@ test("useDisruption registers once, and Beacon asks the participant's closures f
   expect(counted.registrations).toEqual({ live: 0, total: 1 });
 });
 
+test("a provider whose beacon expression yields the same Beacon again does not register the participant again", () => {
+  const counted = countBeacon(createWebBeacon().beacon);
+  const [tick, setTick] = createSignal(0);
+
+  const { dispose } = mountWithProvider(
+    {
+      beacon: () => {
+        tick();
+
+        return counted.beacon;
+      },
+    },
+    () => {
+      useDisruption(draftEditor());
+    },
+  );
+
+  expect(counted.registrations).toEqual({ live: 1, total: 1 });
+
+  setTick(1);
+
+  expect(counted.registrations).toEqual({ live: 1, total: 1 });
+
+  dispose();
+});
+
 test("useDisruption follows the provider's Beacon: it leaves the old one and joins the new one", async () => {
   const first = createWebBeacon();
   const second = createWebBeacon();

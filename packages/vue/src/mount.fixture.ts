@@ -4,7 +4,7 @@ import type { MaybeRefOrGetter } from "vue";
 import type { WebBeacon } from "src/beacon.fixture";
 import { BeaconProvider } from "src/context/BeaconProvider";
 
-export type Provision = {
+type Provision = {
   beacon: MaybeRefOrGetter<WebBeacon>;
   start?: MaybeRefOrGetter<boolean>;
 };

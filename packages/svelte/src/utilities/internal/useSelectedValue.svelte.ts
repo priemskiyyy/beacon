@@ -11,11 +11,6 @@ import type { SelectorOptions } from "../../types/SelectorOptions.js";
  * to the last one is not assigned, so what depends on it does not run again.
  * `resolve` is followed, so a provider that publishes a new Beacon moves the
  * subscription.
- *
- * @example
- * ```ts
- * const state = useSelectedValue(() => beacon.current.route("web").state, selectValue, {});
- * ```
  */
 export const useSelectedValue = <TValue, TSelected>(
   resolve: () => ObservableValue<TValue>,

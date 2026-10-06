@@ -133,6 +133,31 @@ test("the provider follows a new beacon: the old session ends and a new one star
   expect(second.beacon.status.get()).toEqual({ state: "stopped" });
 });
 
+test("what a listener reads while the provider starts the session does not restart it", async () => {
+  const { beacon } = createWebBeacon();
+  const [reads, setReads] = createSignal(0);
+  const seen: number[] = [];
+
+  const stop = beacon.status.subscribe(() => {
+    seen.push(reads());
+  });
+
+  const { dispose } = mountWithProvider(
+    { beacon: () => beacon, start: () => true },
+    () => {},
+  );
+
+  expect(seen).toEqual([0]);
+
+  setReads(1);
+  await settle();
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+
+  dispose();
+  stop();
+});
+
 test("the nearest provider publishes its Beacon to the tree below it", () => {
   const outer = createWebBeacon().beacon;
   const inner = createWebBeacon().beacon;

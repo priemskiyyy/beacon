@@ -3,6 +3,7 @@ import { createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 
 import { countListeners, createWebBeacon, settle } from "src/beacon.fixture";
+import { useDisruption } from "src/composables/useDisruption";
 import { useObservable } from "src/composables/useObservable";
 import { BeaconProvider } from "src/context/BeaconProvider";
 import { createView } from "src/context/view.fixture";
@@ -47,6 +48,31 @@ test("the server subscribes to nothing", async () => {
     "<!--[--><span>unknown</span><!--]-->",
   );
   expect(counted.listeners()).toBe(0);
+});
+
+test("the server registers no disruption participant", async () => {
+  const { beacon } = createWebBeacon();
+
+  const View = defineComponent(() => {
+    useDisruption({
+      name: "draft-editor",
+      impacts: ["document-replacement"],
+      reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+    });
+
+    return () => h("span");
+  });
+
+  const app = createSSRApp(() =>
+    h(BeaconProvider, { beacon, start: true }, () => h(View)),
+  );
+
+  await renderToString(app);
+  beacon.start();
+
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "accepted",
+  });
 });
 
 test("BIND-09 two server requests for different accounts share no session and no state", async () => {

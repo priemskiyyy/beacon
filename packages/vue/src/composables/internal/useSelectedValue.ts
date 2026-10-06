@@ -10,11 +10,6 @@ import type { SelectorOptions } from "src/types/SelectorOptions";
  * hydrating render has to read, and once mounted it switches to the live value
  * and follows it until unmount. `resolve` is read again when what it reads
  * changes, such as a provider's Beacon, and the subscription follows it.
- *
- * @example
- * ```ts
- * const state = useSelectedValue(() => beacon.value.route("web").state, selectValue, {});
- * ```
  */
 export const useSelectedValue = <TValue, TSelected>(
   resolve: () => ObservableValue<TValue>,

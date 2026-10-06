@@ -425,6 +425,35 @@ test("the composables follow a provider that publishes another Beacon", async ()
   expect(value.route.value).toBe("available");
 });
 
+test("an effect that reads the provider's Beacon and a selection sees the new Beacon with its selection, never a mix", async () => {
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+
+  second.beacon.start();
+
+  const beacon = shallowRef(first.beacon);
+  const seen: string[] = [];
+
+  mount(
+    () => {
+      const provided = useBeacon();
+      const state = useStatus(({ state }) => state);
+
+      watchEffect(() => {
+        seen.push(`${provided.value.status.get().state}/${state.value}`);
+      });
+    },
+    { beacon },
+  );
+
+  expect(seen).toEqual(["idle/idle"]);
+
+  beacon.value = second.beacon;
+  await nextTick();
+
+  expect(seen).toEqual(["idle/idle", "running/running"]);
+});
+
 test("the provider starts the session while mounted and ends it on unmount", () => {
   const { beacon } = createWebBeacon();
   const { unmount, warnings } = mount(() => null, { beacon, start: true });
@@ -506,6 +535,32 @@ test("the provider follows its beacon prop: the old session ends and the new one
   unmount();
 
   expect(second.beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("an effect that sees the provider's new Beacon finds its session started", async () => {
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+  const beacon = shallowRef(first.beacon);
+  const seen: string[] = [];
+
+  mount(
+    () => {
+      const provided = useBeacon();
+
+      watchEffect(
+        () => {
+          seen.push(provided.value.status.get().state);
+        },
+        { flush: "sync" },
+      );
+    },
+    { beacon, start: true },
+  );
+
+  beacon.value = second.beacon;
+  await nextTick();
+
+  expect(seen).toEqual(["running", "running"]);
 });
 
 test("the provider ends only its own session and never disposes the Beacon", () => {
@@ -635,6 +690,53 @@ test("useDisruption moves to the Beacon a provider publishes next", async () => 
   await expect(second.beacon.route("web").prefetch()).resolves.toMatchObject({
     status: "blocked",
   });
+});
+
+test("a command dispatched the moment the provider's new Beacon is seen finds the participant", async () => {
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+
+  first.beacon.start();
+  second.beacon.start();
+
+  const beacon = shallowRef(first.beacon);
+  const asked = { count: 0 };
+  const outcomes: Array<Promise<unknown>> = [];
+
+  mount(
+    () => {
+      const provided = useBeacon();
+
+      // Created before the composable, so it runs first unless the registration moves at once.
+      watchEffect(() => {
+        const current = provided.value;
+
+        if (current !== second.beacon) {
+          return;
+        }
+
+        outcomes.push(current.route("web").prefetch());
+      });
+
+      useDisruption(
+        draftEditor({
+          reserve: () => {
+            asked.count += 1;
+
+            return { status: "reserved", release: () => {} };
+          },
+        }),
+      );
+    },
+    { beacon },
+  );
+
+  beacon.value = second.beacon;
+  await nextTick();
+  await Promise.all(outcomes);
+
+  expect(outcomes).toHaveLength(1);
+  expect(asked.count).toBe(1);
 });
 
 test("SAFE-14 a reservation a component held is released when the command ends, not when the component unmounts", async () => {

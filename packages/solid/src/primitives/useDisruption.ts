@@ -1,5 +1,5 @@
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
-import { createEffect, onCleanup, onMount } from "solid-js";
+import { createEffect, onCleanup } from "solid-js";
 
 import { useBeacon } from "src/primitives/useBeacon";
 
@@ -17,17 +17,21 @@ import { useBeacon } from "src/primitives/useBeacon";
  * useDisruption({
  *   name: "draft-editor",
  *   impacts: ["document-replacement"],
- *   reserve: () => (dirty() ? { status: "blocked", code: "unsaved-draft" } : { status: "reserved", release: resume }),
+ *   reserve: () => {
+ *     if (dirty()) {
+ *       return { status: "blocked", code: "unsaved-draft" };
+ *     }
+ *
+ *     return { status: "reserved", release: resume };
+ *   },
  * });
  * ```
  */
 export const useDisruption = (participant: DisruptionParticipant) => {
   const beacon = useBeacon();
 
-  // A provider's Beacon can change, so the registration follows it.
-  onMount(() => {
-    createEffect(() => {
-      onCleanup(beacon().disruptions.register(participant));
-    });
+  // An effect never runs on the server, and a provider's Beacon can change, so the registration follows it.
+  createEffect(() => {
+    onCleanup(beacon().disruptions.register(participant));
   });
 };

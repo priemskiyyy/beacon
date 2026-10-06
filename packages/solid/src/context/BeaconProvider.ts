@@ -1,4 +1,10 @@
-import { createComponent, createEffect, createMemo, onCleanup } from "solid-js";
+import {
+  createComponent,
+  createEffect,
+  createMemo,
+  onCleanup,
+  untrack,
+} from "solid-js";
 
 import { BeaconContext } from "src/context/BeaconContext";
 import type { BeaconProviderProps } from "src/types/BeaconProviderProps";
@@ -23,7 +29,10 @@ export const BeaconProvider = (props: BeaconProviderProps) => {
       return;
     }
 
-    onCleanup(props.beacon.start());
+    const { beacon } = props;
+
+    // Listeners run inside start, and what they read must not become a dependency of this effect.
+    onCleanup(untrack(() => beacon.start()));
   });
 
   return createComponent(BeaconContext.Provider, {

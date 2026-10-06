@@ -1,7 +1,8 @@
 import { render } from "svelte/server";
 import { expect, test } from "vitest";
-import { createWebBeacon, settle } from "../beacon.fixture.js";
+import { countListeners, createWebBeacon, settle } from "../beacon.fixture.js";
 import { useDisruption } from "../utilities/useDisruption.svelte.js";
+import { useObservable } from "../utilities/useObservable.js";
 import ViewHarness from "../utilities/ViewHarness.fixture.svelte";
 import { STATUS_MARKUP } from "./serverMarkup.fixture.js";
 import StatusHarness from "./StatusHarness.fixture.svelte";
@@ -46,6 +47,18 @@ test("a server render registers no disruption participant, since nothing is moun
   await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
     status: "accepted",
   });
+});
+
+test("a server render subscribes to nothing, since nothing is mounted", async () => {
+  const { beacon } = createWebBeacon();
+  const counted = countListeners(beacon.route("web").state);
+
+  // The render runs when its result is read or awaited.
+  await render(ViewHarness, {
+    props: { beacon, read: () => useObservable(counted.observable) },
+  });
+
+  expect(counted.listeners()).toBe(0);
 });
 
 test("BIND-09 two server requests for different accounts share no session and no state", () => {

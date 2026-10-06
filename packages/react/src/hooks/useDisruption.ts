@@ -8,14 +8,22 @@ import { useBeacon } from "src/hooks/useBeacon";
  * on unmount. Beacon always calls the latest participant you passed, so a
  * closure over current state never goes stale and a render never registers
  * again. A reservation the participant already holds stays valid after the
- * component unmounts, as long as the service behind it lives.
+ * component unmounts, as long as the service behind it lives. A subtree that
+ * `<Activity mode="hidden">` hides runs its effect cleanups, so the participant
+ * is unregistered while it is hidden.
  *
  * @example
  * ```ts
  * useDisruption({
  *   name: "draft-editor",
  *   impacts: ["document-replacement"],
- *   reserve: () => (dirty ? { status: "blocked", code: "unsaved-draft" } : { status: "reserved", release: resume }),
+ *   reserve: () => {
+ *     if (dirty) {
+ *       return { status: "blocked", code: "unsaved-draft" };
+ *     }
+ *
+ *     return { status: "reserved", release: resume };
+ *   },
  * });
  * ```
  */

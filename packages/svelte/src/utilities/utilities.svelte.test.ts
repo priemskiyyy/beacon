@@ -319,6 +319,32 @@ test("a utility without a provider above it is misused", () => {
   expect(read(() => useRoute("web"))).toThrow(BeaconError);
 });
 
+test("an effect that reads the provider's Beacon and a selection sees the new Beacon with its selection, never a mix", async () => {
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+  const seen: string[] = [];
+
+  second.beacon.start();
+
+  const view = mountView(first.beacon, () => {
+    const provided = useBeacon();
+    const state = useStatus(({ state }) => state);
+
+    $effect(() => {
+      seen.push(`${provided.current.status.get().state}/${state.current}`);
+    });
+
+    return state;
+  });
+
+  expect(seen).toEqual(["idle/idle"]);
+
+  await view.rerender({ beacon: second.beacon });
+  flushSync();
+
+  expect(seen).toEqual(["idle/idle", "running/running"]);
+});
+
 test("a provider that publishes another Beacon moves what useRoute, useRunning and useStatus read", async () => {
   const first = createWebBeacon();
   const second = createWebBeacon();

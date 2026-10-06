@@ -16,7 +16,13 @@ import { useBeacon } from "./useBeacon.js";
  * useDisruption({
  *   name: "draft-editor",
  *   impacts: ["document-replacement"],
- *   reserve: () => (dirty ? { status: "blocked", code: "unsaved-draft" } : { status: "reserved", release: resume }),
+ *   reserve: () => {
+ *     if (dirty) {
+ *       return { status: "blocked", code: "unsaved-draft" };
+ *     }
+ *
+ *     return { status: "reserved", release: resume };
+ *   },
  * });
  * ```
  */

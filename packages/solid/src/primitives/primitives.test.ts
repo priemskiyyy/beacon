@@ -396,6 +396,32 @@ test("BIND-08 the primitives read the provider's Beacon and follow a new one, wi
   expect(second.listeners().status).toBe(0);
 });
 
+test("an effect that reads the provider's Beacon and a selection sees the new Beacon with its selection, never a mix", () => {
+  const first = createWebBeacon();
+  const second = createWebBeacon();
+  const [beacon, setBeacon] = createSignal<WebBeacon>(first.beacon);
+  const seen: string[] = [];
+
+  second.beacon.start();
+
+  const { dispose } = mountWithProvider({ beacon }, () => {
+    const provided = useBeacon();
+    const state = useStatus(({ state }) => state);
+
+    createEffect(() => {
+      seen.push(`${provided().status.get().state}/${state()}`);
+    });
+  });
+
+  expect(seen).toEqual(["idle/idle"]);
+
+  setBeacon(second.beacon);
+
+  expect(seen).toEqual(["idle/idle", "running/running"]);
+
+  dispose();
+});
+
 test("useBeacon returns the provider's Beacon, and its commands are the Beacon's own", async () => {
   const { beacon } = createWebBeacon();
 

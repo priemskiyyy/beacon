@@ -12,14 +12,14 @@ import type {
 } from "@priemskiyyy/beacon";
 import { createMockSource, createTestClock } from "@priemskiyyy/beacon/mock";
 
-export const SCOPE: ReleaseScope = {
+const SCOPE: ReleaseScope = {
   application: "com.example.notes",
   environment: "production",
   platform: "web",
   distribution: "public-web",
 };
 
-export const buildIdentity = (value: string): ReleaseIdentity => ({
+const buildIdentity = (value: string): ReleaseIdentity => ({
   status: "known",
   authority: "com.example.notes",
   domain: "web-artifact",

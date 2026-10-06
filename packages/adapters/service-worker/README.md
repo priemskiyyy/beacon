@@ -23,7 +23,7 @@ const beacon = new Beacon({
 
 The route reads `navigator.serviceWorker` only when a session starts, so creating it in a server render is safe. Pass `registration` to use a registration you already hold, or a function that finds it later, and `container`, `target` or `message` to use another container, window or skip-waiting message.
 
-## What it reports
+## What a check reports
 
 | State of the registration                    | Route observation                                             |
 | -------------------------------------------- | ------------------------------------------------------------- |
@@ -58,3 +58,7 @@ addEventListener("pageshow", (event) => {
   beacon.start();
 });
 ```
+
+## What it does not do
+
+It names no build: the release of an update stays unknown, and nothing is claimed as activated until the route says the takeover happened. It registers, unregisters and replaces no worker, and it coordinates no other tab.

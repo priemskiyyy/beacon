@@ -44,6 +44,6 @@ An update Play reports as already downloaded is prepared when the app starts, wi
 
 Each flow is its own command, so its impacts are its own and a participant is asked only about what the flow does. Every start reconfirms the offer against Play and refuses a changed one as stale. `download` answers when Play says the download ended, with Play's own progress and no invented total, and prepares the update without restarting the app. `restart` is the separate, guarded restart.
 
-## What it does not prove
+## What it does not do
 
-Fake bridge tests verify state handling, not installation. A stable claim needs a real device with a real Play distribution, signing and version codes. A JavaScript abort only ends the local wait: it leaves the command `indeterminate`, since Play may still finish.
+It installs nothing and proves no installation: an accepted command is a request. Fake bridge tests verify state handling, not installation. A stable claim needs a real device with a real Play distribution, signing and version codes. A JavaScript abort only ends the local wait: it leaves the command `indeterminate`, since Play may still finish.

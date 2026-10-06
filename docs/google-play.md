@@ -151,6 +151,6 @@ export const applyBinaryUpdate = async () => {
 
 `restart` is the separate, guarded restart of a downloaded update. `accepted` is the native call made, and the restart belongs to Play. It replaces the realm, so the route stays unresolved until `route.acknowledge()`.
 
-## What it does not prove
+## What it does not do
 
-Fake bridge tests verify state handling, not installation. A stable claim needs a real device with a real Play distribution, signing and version codes. A JavaScript abort only ends the local wait: it leaves the command `indeterminate`, because Play may still finish. Nothing has run against Play yet; see [verification](verification.md).
+It installs nothing and proves no installation: an accepted command is a request. Fake bridge tests verify state handling, not installation. A stable claim needs a real device with a real Play distribution, signing and version codes. A JavaScript abort only ends the local wait: it leaves the command `indeterminate`, because Play may still finish. Nothing has run against Play yet; see [verification](verification.md).

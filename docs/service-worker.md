@@ -44,7 +44,7 @@ The route is a driver route: the browser owns both the question and the answer, 
 
 The registration is yours. The route finds a registration you make after the session started, because it asks again on every check.
 
-## What it reports
+## What a check reports
 
 A check asks the browser to fetch the worker script again, then reads the workers.
 
@@ -138,6 +138,6 @@ addEventListener("pageshow", (event) => {
 });
 ```
 
-## Not built yet
+## What it does not do
 
-A Workbox profile, and the identity handshake that would let a worker say which build it is. Until then the route reports an update as ready with an unknown build. See [decisions](decisions.md).
+It names no build. Without an identity handshake the release of an update stays unknown, and the interface can say that an update is ready and nothing more. It registers, unregisters and replaces no worker, and it coordinates no other tab. See [decisions](decisions.md).

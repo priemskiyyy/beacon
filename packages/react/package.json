@@ -41,7 +41,9 @@
     "react": ">=19.2.0 <20"
   },
   "devDependencies": {
-    "@priemskiyyy/beacon": "workspace:*"
+    "@priemskiyyy/beacon": "workspace:*",
+    "@types/react-test-renderer": "19.1.0",
+    "react-test-renderer": "19.2.8"
   },
   "keywords": [
     "react",

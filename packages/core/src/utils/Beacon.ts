@@ -414,12 +414,12 @@ export class Beacon<
    * ```
    */
   check = async (
-    options: CheckOptions = {},
+    options?: CheckOptions,
   ): Promise<CheckReport<keyof TRoutes & string>> => {
     const ready = await this.#prepareChecks(
       this.#entries,
       this.#getCheckedSubjects(),
-      options,
+      options ?? {},
     );
 
     if (ready.status === "stopped") {

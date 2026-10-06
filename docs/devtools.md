@@ -1,0 +1,79 @@
+---
+description: "The Beacon devtools: an inspector for the session, the routes, what runs, support, the journal and the diagnostic events, with a React wrapper."
+---
+
+# Devtools
+
+`@priemskiyyy/beacon-devtools` is an inspector for one Beacon. It shows where the session stands, what every route observed and on what evidence, what is running, whether it is supported, what the journal knows, and a timeline of the diagnostic events. It is framework independent: it renders inside a shadow root, so your styles never leak in or out, and it bundles its own Solid runtime, so you install nothing else. A React wrapper reads the Beacon from the provider.
+
+```sh
+pnpm add -D @priemskiyyy/beacon-devtools
+```
+
+## With React
+
+Register your Beacon as [the React binding](react.md) asks, and mount the inspector next to the provider that holds it. The wrapper takes no `beacon` prop: it reads the registered Beacon from the nearest `BeaconProvider`, follows it if the provider's Beacon changes, renders an empty host element on the server and removes the inspector on unmount.
+
+```tsx
+import { BeaconProvider } from "@priemskiyyy/beacon-react";
+import { BeaconDevtools } from "@priemskiyyy/beacon-devtools/react";
+import type { PropsWithChildren } from "react";
+
+declare module "@priemskiyyy/beacon-react" {
+  interface Register {
+    beacon: typeof beacon;
+  }
+}
+
+const Root = ({
+  children,
+  isDevelopment,
+}: PropsWithChildren<{ isDevelopment: boolean }>) => (
+  <BeaconProvider beacon={beacon} start>
+    {children}
+    {isDevelopment ? <BeaconDevtools initialIsOpen /> : null}
+  </BeaconProvider>
+);
+```
+
+Render it only in development. The inspector is not part of the release awareness your users rely on, and it costs the size of a small application.
+
+## Without a framework
+
+The class at the package root mounts into any element, so it works with Vue, Solid, Svelte or no framework at all:
+
+```ts
+import { BeaconDevtools } from "@priemskiyyy/beacon-devtools";
+
+const devtools = new BeaconDevtools({ beacon });
+
+devtools.mount(document.body.appendChild(document.createElement("div")));
+```
+
+| Option          | Default | Meaning                                                                       |
+| --------------- | ------- | ----------------------------------------------------------------------------- |
+| `beacon`        |         | The Beacon to inspect. The React wrapper takes it from the provider.          |
+| `initialIsOpen` | `false` | Opens the panel on the first visit. Later visits restore the last open state. |
+| `maxEvents`     | `200`   | Events kept in memory, clamped to 1 to 1000.                                  |
+
+The class has `mount(element)`, `unmount()`, `setBeacon(beacon)` for an application that replaces its Beacon, and `setMaxEvents(count)`. Mounting twice throws a `BeaconError`, unmounting twice does nothing, and the recorded events survive an unmount and appear again on the next mount.
+
+## What it shows
+
+- **The header.** The session (idle, running with its number, stopped or disposed), the diagnostic counters of what Beacon dropped or contained, and a Check now button.
+- **The routes.** One row per name in `beacon.routeNames`: the observation, the last check with its error code, the operation and what is prepared. Selecting one shows its observation with its evidence (source, origin, freshness, when it was received and when it expires, issuer and revision), its offer, its prepared target, its last check, its operation and what each of its commands declares.
+- **The overview.** What runs per subject (pending, known with its identity and label, or unreadable), the support state with its reasons, remediation and evaluation evidence, and the journal with the latest intent, what the running facts say about it, its attempts and this boot's readiness checkpoints.
+- **The timeline.** The local time, the type, the session, the route, the command, the attempt, the operation and the reason of each event. A chip filters one type at a time, a search box filters the rest, and Pause and Clear affect only the inspector. A row expands into the whole record, with a copy button. Selecting a route narrows the timeline to that route and to the events that belong to no route.
+
+The launcher turns red when a failure event arrives while the panel is closed: `route-failed`, `policy-failed`, `journal-failed`, `running-failed`, `read-failed`, `listener-error`, `cleanup-error` and `late-callback`. The panel docks to the bottom or the right edge and resizes by dragging its edge or with the arrow keys. The open state, the dock position and the size persist in `localStorage`, and a value that is missing, corrupt or out of range is ignored.
+
+## What it never does
+
+- It never starts a session, never reads what the application has not reached, and never calls a command. Its only action is `beacon.check({ reason: "manual" })`, and only while a session runs. The Beacon it takes is typed down to the snapshots, the diagnostics and `check`, so it has no `start`, `stop`, `dispose`, `replaceScope` or route command to call.
+- Mounting it changes nothing about how the Beacon behaves. Subscribing to `beacon.diagnostics.events` builds events only while someone listens, which is by design, and pausing releases that subscription.
+- It shows no raw value by default. What a platform reported for what is running (`RunningRelease.raw`) and a provider's `native` handle stay hidden until Show raw values is ticked. The handle is not even read until then, and the choice is never stored.
+- Whatever is shown, a property named like `token`, `authorization`, `password`, `secret`, `cookie`, `credential` or `api key` is replaced at any depth. Values are copied into plain, bounded data by reading property descriptors, so no getter, `toJSON` or proxy trap of yours runs. An object that is not plain, such as a `window` or a provider client, is named by its class and not walked. Events are copied the same way, cut to a limit, and keep nothing but their own fields.
+
+## Limits
+
+Only Chromium has run it, and only through a scratch page: pointer dragging is tested with a stubbed pointer capture in jsdom, and no device has run it. A failure that arrives while recording is paused does not turn the launcher red.

@@ -155,6 +155,8 @@ const entries = [
   "packages/vue/src/index.ts",
   "packages/solid/src/index.ts",
   "packages/svelte/src/index.ts",
+  "packages/devtools/src/index.ts",
+  "packages/devtools/src/react.ts",
   ...listAdapterEntries(),
 ];
 

@@ -16,6 +16,8 @@
 - `ReleaseScope` can name an account with `partition`, which every source read and journal record is kept apart by.
 - `beacon.replaceScope(next)` puts another scope in force: results of the old scope are fenced, what it taught is forgotten, running facts stay, and a route with an operation running or unresolved blocks it.
 - A driver can name the native manager it holds with `exclusive`, so a second session cannot open it. `testReleaseSource` takes the scope a source speaks for.
+- Every observable has `getInitial()`, its value before any session, which is what a server renders and what a hydrating render must read. `beacon.routeNames` lists the routes, and `RouteSnapshotOf` names a route's state type.
+- One `check()` waits once for the running facts it needs and then starts the read of every route and of the support policy in the same turn, so a source they share is read once however fast it answers.
 - Not built yet: the scheduler. See `docs/decisions.md`.
 
 ## @priemskiyyy/beacon-http 0.1.0 - Unreleased
@@ -70,3 +72,8 @@
 
 - First release. The same `BeaconProvider` and utilities as the React binding, read through `current` on Svelte 5 runes: a route is read by its name from the `Register`ed Beacon, and the server and the hydrating render read state as it stands before any session.
 - Requires `@priemskiyyy/beacon` 0.1 and Svelte 5.7.
+
+## @priemskiyyy/beacon-devtools 0.1.0 - Unreleased
+
+- First release. `BeaconDevtools` is a framework-independent inspector in a shadow root, with its own Solid runtime bundled in: it shows the session, every route with its evidence, what runs, support, the journal and a timeline of the diagnostic events. It starts nothing, calls no command, hides raw values and provider handles until asked, and always redacts secret-looking property names. `@priemskiyyy/beacon-devtools/react` reads the Beacon from the provider.
+- Requires `@priemskiyyy/beacon` 0.1. The React wrapper also needs `@priemskiyyy/beacon-react` 0.1 and React 19.2.

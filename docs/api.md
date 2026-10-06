@@ -1,5 +1,5 @@
 ---
-description: "Every public export of every Beacon package with one line each: the core and its subpaths, the adapters and the React, Vue, Solid and Svelte bindings."
+description: "Every public export of every Beacon package with one line each: the core and its subpaths, the adapters and the React, Vue, Solid and Svelte bindings and the devtools."
 ---
 
 # API
@@ -446,3 +446,22 @@ See [Svelte](svelte.md).
 | `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
 | `ReadableValue`        | type      | what a utility returns: an object with a read-only `current`        |
 | `SelectorOptions`      | type      | `{ isEqual }`, how a utility decides that a selection is the same   |
+
+## @priemskiyyy/beacon-devtools
+
+See [Devtools](devtools.md). The root exports the inspector for any framework.
+
+| Export                  | Kind  | What it is                                             |
+| ----------------------- | ----- | ------------------------------------------------------ |
+| `BeaconDevtools`        | class | mounts the inspector into an element                   |
+| `BeaconDevtoolsOptions` | type  | the Beacon to inspect, `initialIsOpen` and `maxEvents` |
+| `BeaconDevtoolsProps`   | type  | the options without the Beacon, for a wrapper          |
+
+## @priemskiyyy/beacon-devtools/react
+
+The wrapper for React, which reads the Beacon from the nearest `BeaconProvider`.
+
+| Export                | Kind      | What it is                                     |
+| --------------------- | --------- | ---------------------------------------------- |
+| `BeaconDevtools`      | component | mounts the inspector for the provider's Beacon |
+| `BeaconDevtoolsProps` | type      | `initialIsOpen` and `maxEvents`                |

@@ -74,12 +74,16 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 | [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)       | Google Play in-app updates, over a native bridge                          |
 | [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)           | App Store metadata and store handoff                                      |
 | [`@priemskiyyy/beacon-react`](packages/react)                            | A provider and hooks                                                      |
+| [`@priemskiyyy/beacon-vue`](packages/vue)                                | A provider and composables                                                |
+| [`@priemskiyyy/beacon-solid`](packages/solid)                            | A provider and primitives                                                 |
+| [`@priemskiyyy/beacon-svelte`](packages/svelte)                          | A provider and utilities, on Svelte 5 runes                               |
+| [`@priemskiyyy/beacon-devtools`](packages/devtools)                      | An inspector for the session, the routes and the diagnostic events        |
 
 Every package is ESM only, side-effect free and typed. The core has no dependencies, and no adapter imports a provider SDK: you pass in the one you already use.
 
 ## Status
 
-Everything is tested in process against fakes, and the Expo and React Native adapters are typechecked against their real SDK types. Nothing has run on a device or in a real browser yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.
+Everything is tested in process against fakes, and the Expo and React Native adapters are typechecked against their real SDK types. The example apps run in Chromium under Playwright against a scripted release lab, in React, Vue, Solid, Svelte and Expo's web build, but nothing has run on a device or against a real provider yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.
 
 ## Documentation
 
@@ -90,7 +94,7 @@ The site is at [priemskiyyy.github.io/beacon](https://priemskiyyy.github.io/beac
 | Start here             | [Getting started][docs-getting-started] · [The mental model][docs-mental-model]                                                                                                                                   |
 | Guides                 | [Routes][docs-routes] · [Commands][docs-commands] · [Support][docs-support] · [Disruptions][docs-disruptions] · [Journal][docs-journal] · [Scopes][docs-scopes] · [Sessions][docs-sessions]                       |
 | Adapters               | [HTTP][docs-http] · [Browser][docs-browser] · [Service worker][docs-service-worker] · [Expo][docs-expo] · [Google Play][docs-google-play] · [App Store][docs-app-store] · [Custom adapters][docs-custom-adapters] |
-| Build your application | [React][docs-react] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]                                                                                                 |
+| Build your application | [React][docs-react] · [Vue][docs-vue] · [Solid][docs-solid] · [Svelte][docs-svelte] · [Devtools][docs-devtools] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]     |
 | Reference              | [API][docs-api] · [Verification][docs-verification] · [Limits][docs-limits] · [Decisions][docs-decisions] · [Architecture][docs-architecture]                                                                     |
 
 Also the README of each package above, and [Contributing](CONTRIBUTING.md), [support](SUPPORT.md) and [security](SECURITY.md).
@@ -112,6 +116,10 @@ Also the README of each package above, and [Contributing](CONTRIBUTING.md), [sup
 [docs-app-store]: https://priemskiyyy.github.io/beacon/app-store
 [docs-custom-adapters]: https://priemskiyyy.github.io/beacon/custom-adapters
 [docs-react]: https://priemskiyyy.github.io/beacon/react
+[docs-vue]: https://priemskiyyy.github.io/beacon/vue
+[docs-solid]: https://priemskiyyy.github.io/beacon/solid
+[docs-svelte]: https://priemskiyyy.github.io/beacon/svelte
+[docs-devtools]: https://priemskiyyy.github.io/beacon/devtools
 [docs-recipes]: https://priemskiyyy.github.io/beacon/recipes
 [docs-testing]: https://priemskiyyy.github.io/beacon/testing
 [docs-troubleshooting]: https://priemskiyyy.github.io/beacon/troubleshooting

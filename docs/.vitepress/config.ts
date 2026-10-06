@@ -82,6 +82,7 @@ export default defineConfig({
           { text: "Vue", link: "/vue" },
           { text: "Solid", link: "/solid" },
           { text: "Svelte", link: "/svelte" },
+          { text: "Devtools", link: "/devtools" },
           { text: "Recipes", link: "/recipes" },
           { text: "Testing", link: "/testing" },
           { text: "Troubleshooting", link: "/troubleshooting" },

@@ -174,6 +174,8 @@ A decision is `{ kind: "target", release }`, `{ kind: "candidate", release }` wh
 
 Every text is 1 to 256 characters, a list has at most 256 items, and `metadata` has at most 16 entries of short strings. A key that could corrupt a registry (`__proto__`, `constructor`, `prototype`) is refused.
 
+The release's identity has to be named the way the page or the binary names what it runs, or the route says `inconclusive`. `webBuild` of `@priemskiyyy/beacon-browser` reads the running web build under the domain `web-artifact`, and `expoApplication` and `deviceInfo` of `@priemskiyyy/beacon-native` read the installed binary under `android-version-code` and `ios-build`, each under the application id as authority: see [browser](browser.md#what-the-running-fact-must-say) and [native build](native.md).
+
 ### What is accepted
 
 The whole manifest or none of it. `readStandardManifest` (the response) and `parseStandardManifest` (the text) throw a `BeaconError` that says which rule broke, and a source that throws keeps the last document it accepted.

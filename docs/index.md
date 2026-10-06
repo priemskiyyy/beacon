@@ -41,6 +41,7 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 | `@priemskiyyy/beacon-google-play`            | Google Play in-app updates, over a native bridge you inject |
 | `@priemskiyyy/beacon-app-store`              | App Store metadata and store handoff                        |
 | `@priemskiyyy/beacon-code-push`              | The React Native CodePush family, over the fork you use     |
+| `@priemskiyyy/beacon-native`                 | The installed native build as a running fact                |
 | `@priemskiyyy/beacon-firebase-remote-config` | Firebase Remote Config as a source, such as a minimum build |
 | `@priemskiyyy/beacon-react`                  | A provider and hooks, typed by the Beacon you register      |
 | `@priemskiyyy/beacon-vue`                    | A provider and composables for Vue, typed the same way      |
@@ -59,7 +60,7 @@ A web application, a manifest at `/releases.json`, and a reload the user asks fo
 
 ```ts
 import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
 
@@ -91,16 +92,7 @@ export const beacon = new Beacon({
   scope,
   running: {
     boot: { id: createBootId() },
-    web: () => ({
-      identity: {
-        status: "known",
-        authority: scope.application,
-        domain: "web-artifact",
-        value: __BUILD_ID__,
-      },
-      label: null,
-      raw: {},
-    }),
+    web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
@@ -137,7 +129,7 @@ It is not an installer, a cache, a scheduler or a policy engine. It never claims
 - [Getting started](getting-started.md): the browser with HTTP and a framework binding, then React Native with Expo.
 - [The mental model](mental-model.md): subjects, routes, decisions, evidence, references and outcomes.
 - Guides: [routes](routes.md), [commands](commands.md), [support](support.md), [disruptions](disruptions.md), [journal](journal.md), [scopes](scopes.md) and [sessions](sessions.md).
-- Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [Google Play](google-play.md), [App Store](app-store.md), [CodePush](code-push.md), [Firebase Remote Config](firebase-remote-config.md) and [custom adapters](custom-adapters.md).
+- Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [Google Play](google-play.md), [App Store](app-store.md), [CodePush](code-push.md), [native build](native.md), [Firebase Remote Config](firebase-remote-config.md) and [custom adapters](custom-adapters.md).
 - Bindings: [React](react.md), [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
 - [Recipes](recipes.md), [testing](testing.md) and [troubleshooting](troubleshooting.md).
 - [API](api.md), [verification](verification.md), [limits](limits.md), [decisions](decisions.md) and [architecture](internals/architecture.md).

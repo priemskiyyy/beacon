@@ -286,13 +286,19 @@ See [HTTP](http.md).
 
 See [browser](browser.md).
 
-| Export                 | Kind     | What it is                                                   |
-| ---------------------- | -------- | ------------------------------------------------------------ |
-| `browserReload`        | function | a mechanism with one command, `reload`, bound to nothing     |
-| `BrowserReloadOptions` | type     | the window whose document is reloaded                        |
-| `BrowserNative`        | type     | what `route.native` exposes: the window, or `null`           |
-| `BrowserWindowLike`    | type     | the part of a window the mechanism uses: `location.reload()` |
-| `BrowserReloadReceipt` | type     | `reload-requested`                                           |
+| Export                     | Kind     | What it is                                                                                        |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `browserReload`            | function | a mechanism with one command, `reload`, bound to nothing                                          |
+| `browserStorage`           | function | the journal's storage in the tab's `sessionStorage`, or `localStorage` with `area: "local"`       |
+| `webBuild`                 | function | the reader of the running web build, from the id the bundler injects; an id nobody set is unknown |
+| `BrowserReloadOptions`     | type     | the window whose document is reloaded                                                             |
+| `BrowserNative`            | type     | what `route.native` exposes: the window, or `null`                                                |
+| `BrowserWindowLike`        | type     | the part of a window the mechanism uses: `location.reload()`                                      |
+| `BrowserReloadReceipt`     | type     | `reload-requested`                                                                                |
+| `BrowserStorageArea`       | type     | `session` or `local`                                                                              |
+| `BrowserStorageOptions`    | type     | the area, the window and whether a write is read back                                             |
+| `BrowserStorageWindowLike` | type     | the part of a window the storage uses: its two areas of web storage                               |
+| `WebBuildOptions`          | type     | the authority, the injected id, an optional label and the domain                                  |
 
 ## @priemskiyyy/beacon-service-worker
 
@@ -399,6 +405,21 @@ See [CodePush](code-push.md).
 | `RemotePackageLike`       | type     | the part of a `RemotePackage` the adapter uses                                           |
 | `LocalPackageLike`        | type     | the part of a `LocalPackage` the adapter uses                                            |
 | `DownloadProgressLike`    | type     | the bytes received and the bytes expected of a download                                  |
+
+## @priemskiyyy/beacon-native
+
+See [Native build](native.md).
+
+| Export                   | Kind     | What it is                                                                              |
+| ------------------------ | -------- | --------------------------------------------------------------------------------------- |
+| `expoApplication`        | function | the reader of the installed binary, from the constants of `expo-application`            |
+| `deviceInfo`             | function | the reader of the installed binary, from `react-native-device-info`                     |
+| `ExpoApplicationOptions` | type     | the `expo-application` module and the options every native reader takes                 |
+| `DeviceInfoOptions`      | type     | the `react-native-device-info` default export and the options every native reader takes |
+| `NativeReaderOptions`    | type     | the platform, the authority and the domain                                              |
+| `NativePlatform`         | type     | `android` or `ios`                                                                      |
+| `ApplicationLike`        | type     | the part of the `expo-application` module the reader uses                               |
+| `DeviceInfoLike`         | type     | the part of `react-native-device-info` the reader uses                                  |
 
 ## @priemskiyyy/beacon-react
 

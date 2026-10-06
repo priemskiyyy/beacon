@@ -19,7 +19,7 @@ import {
   supportPolicy,
   targetRoute,
 } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
 
@@ -82,16 +82,7 @@ export const beacon = new Beacon({
   scope,
   running: {
     boot: { id: createBootId() },
-    web: () => ({
-      identity: {
-        status: "known",
-        authority: scope.application,
-        domain: "web-artifact",
-        value: __BUILD_ID__,
-      },
-      label: __BUILD_ID__,
-      raw: {},
-    }),
+    web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({

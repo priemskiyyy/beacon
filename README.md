@@ -74,6 +74,7 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 | [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)                       | Google Play in-app updates, over a native bridge                          |
 | [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)                           | App Store metadata and store handoff                                      |
 | [`@priemskiyyy/beacon-code-push`](packages/adapters/code-push)                           | The React Native CodePush family, over the fork you use                   |
+| [`@priemskiyyy/beacon-native`](packages/adapters/native)                                 | The installed native build as a running fact                              |
 | [`@priemskiyyy/beacon-firebase-remote-config`](packages/adapters/firebase-remote-config) | Firebase Remote Config as a source, such as a minimum build               |
 | [`@priemskiyyy/beacon-react`](packages/react)                                            | A provider and hooks                                                      |
 | [`@priemskiyyy/beacon-vue`](packages/vue)                                                | A provider and composables                                                |
@@ -91,13 +92,13 @@ Everything is tested in process against fakes, and the Expo, CodePush and React 
 
 The site is at [priemskiyyy.github.io/beacon](https://priemskiyyy.github.io/beacon/), and `pnpm dev:docs` serves it locally. Its source is in [docs](docs).
 
-| Section                | Pages                                                                                                                                                                                                                                                                     |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start here             | [Getting started][docs-getting-started] · [The mental model][docs-mental-model]                                                                                                                                                                                           |
-| Guides                 | [Routes][docs-routes] · [Commands][docs-commands] · [Support][docs-support] · [Disruptions][docs-disruptions] · [Journal][docs-journal] · [Scopes][docs-scopes] · [Sessions][docs-sessions]                                                                               |
-| Adapters               | [HTTP][docs-http] · [Browser][docs-browser] · [Service worker][docs-service-worker] · [Expo][docs-expo] · [Google Play][docs-google-play] · [App Store][docs-app-store] · [Firebase Remote Config][docs-firebase-remote-config] · [Custom adapters][docs-custom-adapters] |
-| Build your application | [React][docs-react] · [Vue][docs-vue] · [Solid][docs-solid] · [Svelte][docs-svelte] · [Devtools][docs-devtools] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]                                                             |
-| Reference              | [API][docs-api] · [Verification][docs-verification] · [Limits][docs-limits] · [Decisions][docs-decisions] · [Architecture][docs-architecture]                                                                                                                             |
+| Section                | Pages                                                                                                                                                                                                                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Start here             | [Getting started][docs-getting-started] · [The mental model][docs-mental-model]                                                                                                                                                                                                                                                      |
+| Guides                 | [Routes][docs-routes] · [Commands][docs-commands] · [Support][docs-support] · [Disruptions][docs-disruptions] · [Journal][docs-journal] · [Scopes][docs-scopes] · [Sessions][docs-sessions]                                                                                                                                          |
+| Adapters               | [HTTP][docs-http] · [Browser][docs-browser] · [Service worker][docs-service-worker] · [Expo][docs-expo] · [Google Play][docs-google-play] · [App Store][docs-app-store] · [CodePush][docs-code-push] · [Native build][docs-native] · [Firebase Remote Config][docs-firebase-remote-config] · [Custom adapters][docs-custom-adapters] |
+| Build your application | [React][docs-react] · [Vue][docs-vue] · [Solid][docs-solid] · [Svelte][docs-svelte] · [Devtools][docs-devtools] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]                                                                                                                        |
+| Reference              | [API][docs-api] · [Verification][docs-verification] · [Limits][docs-limits] · [Decisions][docs-decisions] · [Architecture][docs-architecture]                                                                                                                                                                                        |
 
 Also the README of each package above, and [Contributing](CONTRIBUTING.md), [support](SUPPORT.md) and [security](SECURITY.md).
 
@@ -116,7 +117,9 @@ Also the README of each package above, and [Contributing](CONTRIBUTING.md), [sup
 [docs-expo]: https://priemskiyyy.github.io/beacon/expo
 [docs-google-play]: https://priemskiyyy.github.io/beacon/google-play
 [docs-app-store]: https://priemskiyyy.github.io/beacon/app-store
+[docs-code-push]: https://priemskiyyy.github.io/beacon/code-push
 [docs-firebase-remote-config]: https://priemskiyyy.github.io/beacon/firebase-remote-config
+[docs-native]: https://priemskiyyy.github.io/beacon/native
 [docs-custom-adapters]: https://priemskiyyy.github.io/beacon/custom-adapters
 [docs-react]: https://priemskiyyy.github.io/beacon/react
 [docs-vue]: https://priemskiyyy.github.io/beacon/vue

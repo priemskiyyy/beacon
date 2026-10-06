@@ -7,7 +7,7 @@ description: "Map Google Play in-app updates onto a Beacon route over a native b
 `@priemskiyyy/beacon-google-play` makes Play's in-app updates a route, over a native bridge you inject. Play owns eligibility, the flows and the version order. The adapter maps what it says and claims nothing as installed until a later boot shows the running build.
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-google-play @priemskiyyy/beacon-native
 ```
 
 ## The bridge
@@ -59,11 +59,10 @@ Make the object once, at module scope. A bridge belongs to one open session at a
 // src/beacon.ts
 import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
+import { expoApplication } from "@priemskiyyy/beacon-native";
+import * as Application from "expo-application";
 
 import { playBridge } from "src/playBridge";
-
-// The running build, from your native constants, such as `expo-application` or `react-native-device-info`.
-declare const nativeBuild: { versionName: string; versionCode: number };
 
 const APPLICATION = "com.example.notes";
 
@@ -77,38 +76,29 @@ export const beacon = new Beacon({
   },
   running: {
     boot: { id: createBootId() },
-    native: () => ({
-      identity: {
-        status: "known",
-        authority: APPLICATION,
-        domain: "android-version-code",
-        value: String(nativeBuild.versionCode),
-      },
-      label: nativeBuild.versionName,
-      raw: {
-        applicationId: APPLICATION,
-        versionName: nativeBuild.versionName,
-        versionCode: nativeBuild.versionCode,
-      },
+    native: expoApplication({
+      application: Application,
+      platform: "android",
+      authority: APPLICATION,
     }),
   },
   routes: { binary: googlePlay({ bridge: playBridge }) },
 });
 ```
 
-The running native release is yours to read, and it must be named the way Play names the offer, or the two are incomparable and nothing is reported as running the offered build:
+The running native release is read by `expoApplication` of `@priemskiyyy/beacon-native`, or by `deviceInfo` over `react-native-device-info`, and it is named the way Play names the offer, or the two would be incomparable and nothing would be reported as running the offered build:
 
-| Field                | Value                                                       |
-| -------------------- | ----------------------------------------------------------- |
-| `identity.authority` | `scope.application`, the Android application id             |
-| `identity.domain`    | `android-version-code`                                      |
-| `identity.value`     | the version code as text                                    |
-| `label`              | the version name                                            |
-| `raw`                | `applicationId`, `versionName` and `versionCode` (a number) |
+| Field                | Value                                                      |
+| -------------------- | ---------------------------------------------------------- |
+| `identity.authority` | `scope.application`, the Android application id            |
+| `identity.domain`    | `android-version-code`                                     |
+| `identity.value`     | the version code as text                                   |
+| `label`              | the version name                                           |
+| `raw`                | `applicationId`, `versionName` and `versionCode` (as text) |
 
 The route is a driver route on the `native` subject. A bridge belongs to one open session at a time: a second Beacon that opens a route on the same bridge fails to open it, and that route says `DRIVER_FAILED`. A hot reload that makes the Beacon again is no second Beacon while the provider follows it: the old session ends first ([React Native](react-native.md#the-provider)).
 
-What runs is the installed build, which a `native` running reader says. `expo-application` gives `nativeBuildVersion`, the version code as text, and [React Native](react-native.md#what-the-binary-is) has the reader that names it in the words this adapter uses: authority the application id, domain `android-version-code`.
+What runs is the installed build, which the `native` running reader says. `expo-application` gives `nativeBuildVersion`, the version code as text, and [React Native](react-native.md#what-the-binary-is) says what the reader reports and when it says unknown: a binary of another application, such as Expo Go, is never named as your build.
 
 The bridge is not read until a session opens, and the adapter never enables asset-pack deletion or any other destructive option.
 

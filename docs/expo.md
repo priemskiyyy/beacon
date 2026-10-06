@@ -10,7 +10,7 @@ This page is the adapter. [React Native](react-native.md) is the whole app aroun
 
 ## Before the route
 
-1. Install the SDK with `npx expo install expo-updates`, which picks the version of your SDK, and the packages with `pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo`.
+1. Install the SDK with `npx expo install expo-updates`, which picks the version of your SDK, and the packages with `pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo`. To read the installed binary as well, which the store routes and the journal compare against, add `npx expo install expo-application` and `pnpm add @priemskiyyy/beacon-native`.
 2. Configure updates once with `eas update:configure`. It writes `runtimeVersion` and `updates.url` to `app.json`, and sets a channel on the build profiles of `eas.json`. The adapter changes none of these.
 3. Build the binary with that channel, and publish updates to the same channel: `eas update --channel production --message "..."`.
 
@@ -22,6 +22,8 @@ This page is the adapter. [React Native](react-native.md) is the whole app aroun
 // src/beacon.ts
 import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
+import { expoApplication } from "@priemskiyyy/beacon-native";
+import * as Application from "expo-application";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 
@@ -36,6 +38,11 @@ export const beacon = new Beacon({
   running: {
     boot: { id: createBootId() },
     bundle: expoBundle(Updates),
+    native: expoApplication({
+      application: Application,
+      platform: Platform.OS === "ios" ? "ios" : "android",
+      authority: "com.example.notes",
+    }),
   },
   routes: { ota: expoUpdates({ updates: Updates }) },
 });
@@ -54,6 +61,10 @@ The route is a driver route on the `bundle` subject. The module belongs to one o
 | `identity` | `known` with authority `expo-updates`, domain `update`, the update id; `unknown` with the reason `updates-disabled` when updates are off |
 | `label`    | `null`                                                                                                                                   |
 | `raw`      | `channel`, `runtimeVersion`, `embedded` and `emergency`                                                                                  |
+
+### The installed binary
+
+`expoUpdates` and `expoBundle` say which update runs, which an over-the-air update changes without changing the binary. The binary itself, its version code or build number, is the `native` running fact, which `expoApplication` of `@priemskiyyy/beacon-native` reads from `expo-application`. It is named the way the Play and App Store adapters name their releases, and a binary of another application, such as Expo Go, is unknown and never your build. [React Native](react-native.md#what-the-binary-is) has the fields and the reasons.
 
 ## What a check reports
 

@@ -1,6 +1,6 @@
 # @priemskiyyy/beacon-browser
 
-Reloading the browser document as a [Beacon](../../core) update mechanism. It requests a navigation and claims nothing more: the next document may be the same build, another one, or never arrive, and only the next boot can show what runs.
+Reloading the browser document as a [Beacon](../../core) update mechanism. It requests a navigation and claims nothing more: the next document may be the same build, another one, or never arrive, and only the next boot can show what runs. It also has the two pieces that let the next boot judge a reload: `webBuild`, the reader of the running web build, and `browserStorage`, the journal's storage in the tab.
 
 ## Installation
 
@@ -12,7 +12,14 @@ pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-browser
 
 ```ts
 import { Beacon, targetRoute } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import {
+  browserReload,
+  browserStorage,
+  webBuild,
+} from "@priemskiyyy/beacon-browser";
+
+// Your bundler replaces this with the id of the build, such as the commit.
+declare const BUILD_ID: string;
 
 const web = targetRoute({
   subject: "web",
@@ -22,8 +29,12 @@ const web = targetRoute({
 
 const beacon = new Beacon({
   scope,
-  running: { boot: { id: BOOT_ID }, web: readWebRelease },
+  running: {
+    boot: { id: BOOT_ID },
+    web: webBuild({ authority: scope.application, id: BUILD_ID }),
+  },
   routes: { web },
+  journal: { mode: "required", storage: browserStorage() },
 });
 ```
 
@@ -51,6 +62,16 @@ An accepted reload leaves the route unresolved, because the old document may sta
 
 `browserReload({ target })` reloads the document of `target`, the global `window` by default. Without either, such as in a server render, opening does nothing, `native.window` is `null` and `reload` settles as `unsupported`.
 
+## The running build
+
+`webBuild({ authority, id, label, domain })` is the `web` reader. `id` is the constant your bundler writes into the code, such as `import.meta.env.VITE_BUILD_ID` or `process.env.NEXT_PUBLIC_BUILD_ID`, named under `authority` (which is `scope.application`) and the domain `web-artifact`, the words the standard manifest uses. The label is the id unless you give one. An id nobody defined is not a build: an unset define compiles to `undefined` (Vite 8 writes `void 0`), an empty one to an empty string, and one written into a string to the text `undefined`. Each makes the identity unknown, with the reason `build-id-not-injected`, never a known build named `undefined`. An `authority` or a `domain` that is empty or has a space around it is refused with `INVALID_CONFIGURATION`. It reads nothing from the document, so a server render can create and read it.
+
+## The journal's storage
+
+`browserStorage({ area, target, verify })` keeps the journal in web storage, over `keyValueJournalStorage`. The default area is `session`: `location.reload()` keeps the tab and its `sessionStorage`, so the next boot reads what this one wrote, and no other tab can overwrite it. `area: "local"` is `localStorage`, shared by every tab: a fresh tab can judge another tab's intent, and the last write wins. `target` is the window whose storage is used, the global `window` by default, and `verify` reads a record back after a write, on by default.
+
+It reaches the storage at each call and touches nothing when it is made. A server render, where there is no window, rejects the call with its own error. A frame that blocks site data, where reading the property throws a `SecurityError`, rejects it with that error as the `cause`. A full storage rejects the write with the browser's `QuotaExceededError`. A `required` journal stops the reload on each of them, and `best-effort` goes on and says `degraded`.
+
 ## A page restored from the back-forward cache
 
 A page the browser kept and shows again is the same boot: nothing loaded, so nothing reports an update boot. When it comes back, release the reload that was requested and start the session again, which reads what runs once more and reconciles without a new boot ID:
@@ -66,3 +87,15 @@ addEventListener("pageshow", (event) => {
   beacon.start();
 });
 ```
+
+## Verification
+
+| Claim                                                                                                                                                                                                                                      | Status                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| The reload is a request, bound to nothing, and the intent is written before it                                                                                                                                                             | Tested against a fake window                                                                 |
+| `webBuild` follows the running-reader contract, and an id nobody defined is unknown in every spelling                                                                                                                                      | Tested with `testRunningReader`, through a Beacon and its journal                            |
+| A real Vite 8.3 build that defines nothing, an empty id or the text `undefined` compiles to something `webBuild` calls unknown                                                                                                             | Tested in Chromium 153 by `examples/browser-storage.spec.ts`, which `pnpm test:browser` runs |
+| `browserStorage` follows the journal-storage contract, in both areas                                                                                                                                                                       | Tested with `testJournalStorage` over a Web Storage fake and over jsdom's `Storage`          |
+| A real `location.reload()` keeps the tab's `sessionStorage`, a new tab has none and shares `localStorage`; a full `localStorage` throws `QuotaExceededError` and stops a required reload; a sandboxed frame rejects with a `SecurityError` | Tested in Chromium 153 by `examples/browser-storage.spec.ts`, against the built package      |
+| Safari, Firefox, the private browsing modes, the eviction of site data and intelligent tracking prevention                                                                                                                                 | UNVERIFIED: needs each real browser                                                          |
+| The real `window` satisfies the structural types                                                                                                                                                                                           | Typechecked in `browser.contracts.ts`                                                        |

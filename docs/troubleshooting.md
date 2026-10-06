@@ -158,7 +158,11 @@ The server answers with the most recent update for the runtime version and the c
 
 ### The installed binary is unknown
 
-A `native` running fact that says `unknown` names its reason. `another-application` means the native module answered for a different application id than `scope.application`, which is what Expo Go does, since it is its own app. `native-build-not-read` means the module gave no build number. No store or Play route compares against a binary it cannot name. See [what the binary is](react-native.md#what-the-binary-is).
+A `native` running fact that says `unknown` names its reason. `another-application` means the native module answered for a different application id than the `authority` you gave the reader, which is `scope.application`, and that is what Expo Go does, since it is its own app: none of its version numbers is kept. `build-not-read` means the module gave no build number, or `react-native-device-info` answered its text `unknown`. `application-not-read` means it gave no application id. No store or Play route compares against a binary it cannot name. See [what the binary is](react-native.md#what-the-binary-is).
+
+### The web build is unknown
+
+A `web` running fact that says `unknown` with the reason `build-id-not-injected` means the id that `webBuild` reads was missing, empty or the text `undefined` when the code was built: the define or the environment variable, such as `VITE_BUILD_ID` or `NEXT_PUBLIC_BUILD_ID`, was not set where the build ran. The journal then says `inconclusive` and the route compares nothing. See [what the running fact must say](browser.md#what-the-running-fact-must-say).
 
 ### DRIVER_FAILED when opening
 
@@ -207,7 +211,7 @@ Classic Hermes compiles no class and no `async`. The preset has to transform `@p
 ## Journal
 
 - `journal: "degraded"`: a read, a write or a remove of the storage failed or did not answer within `timeouts.journal`. With `mode: "required"` the next command that replaces the realm settles as `failed` with `JOURNAL_FAILED`.
-- `latest.outcome` is `inconclusive`: an identity is unknown or of another domain. Use the same authority and domain for what runs and what the intent aimed at.
+- `latest.outcome` is `inconclusive`: an identity is unknown or of another domain. Use the same authority and domain for what runs and what the intent aimed at. `webBuild`, `expoApplication` and `deviceInfo` name what runs in the words the adapters and the standard manifest use.
 - `latest.outcome` stays `same-boot`: no new boot has been observed. A page restored from the back-forward cache is the same boot. See [browser](browser.md#a-page-restored-from-the-back-forward-cache).
 - A corrupt or future record is ignored, and the diagnostics say `journal-ignored`.
 

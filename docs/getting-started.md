@@ -61,7 +61,7 @@ One Beacon serves the whole application, so create it in a module of its own.
 ```ts
 // src/beacon.ts
 import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
 
@@ -94,16 +94,7 @@ export const beacon = new Beacon({
   scope,
   running: {
     boot: { id: createBootId() },
-    web: () => ({
-      identity: {
-        status: "known",
-        authority: scope.application,
-        domain: "web-artifact",
-        value: __BUILD_ID__,
-      },
-      label: __BUILD_ID__,
-      raw: {},
-    }),
+    web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
@@ -126,7 +117,7 @@ Read it from the top.
 - **`scope`** says who the manifest must speak for. A manifest for another environment is refused whole.
 - **`request`** is your client call. It fetches, sends the validator back as `If-None-Match`, and lets `readStandardManifest` turn the response into a validated document. Beacon makes no request of its own.
 - **`boot.id`** names this document. It is minted once per page load, never per build, so the journal can tell one boot from the next. `createBootId()` makes one on every engine, Hermes included, which has no `crypto.randomUUID` without a polyfill.
-- **`running.web`** reads what executes now, from the build and never from the manifest.
+- **`running.web`** reads what executes now, from the build and never from the manifest. `webBuild` names the build under your application as authority and the domain `web-artifact`, which is what the manifest's release says, and a build id the bundler never injected is unknown and never a build named `undefined`.
 - **`targetRoute`** offers the release the manifest names when it is a different, comparable release from the one running.
 - **`Register`** tells the React hooks which Beacon you have, so `useRoute("web")` is checked and typed.
 
@@ -242,7 +233,7 @@ Nothing here says which build the next document runs. The reload binds to no bui
 ## React Native and Expo
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo expo-updates
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo @priemskiyyy/beacon-native expo-updates expo-application
 ```
 
 Expo Updates decides eligibility, fetches assets and picks what starts next. The adapter maps what it says. The module goes in as an argument, so the adapter imports no SDK.
@@ -251,6 +242,8 @@ Expo Updates decides eligibility, fetches assets and picks what starts next. The
 // src/beacon.native.ts
 import { Beacon, createBootId } from "@priemskiyyy/beacon";
 import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
+import { expoApplication } from "@priemskiyyy/beacon-native";
+import * as Application from "expo-application";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 
@@ -265,12 +258,17 @@ export const beacon = new Beacon({
   running: {
     boot: { id: createBootId() },
     bundle: expoBundle(Updates),
+    native: expoApplication({
+      application: Application,
+      platform: Platform.OS === "ios" ? "ios" : "android",
+      authority: "com.example.notes",
+    }),
   },
   routes: { ota: expoUpdates({ updates: Updates }) },
 });
 ```
 
-`expoBundle` reads the update that launched. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`.
+`expoBundle` reads the update that launched. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`. `expoApplication` reads the installed binary, its version code on Android or its build number on iOS, in the words the store adapters and the journal compare in, and a binary of another application, such as Expo Go, is unknown and never your build.
 
 Start the session at bootstrap, check when the app returns from the background, and apply an update in two commands: `download` prepares it and `reload` restarts the runtime with it.
 

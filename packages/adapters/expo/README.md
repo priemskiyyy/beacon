@@ -22,7 +22,7 @@ const beacon = new Beacon({
 });
 ```
 
-You pass the `expo-updates` module in: the adapter never imports it, so a test passes a fake and a server render loads nothing. It changes none of its configuration, whatever a remote manifest says.
+You pass the `expo-updates` module in: the adapter never imports it, so a test passes a fake and a server render loads nothing. It changes none of its configuration, whatever a remote manifest says. `expoBundle` says which update runs. The installed binary, which the store routes and the journal compare against, is the `native` running fact that `expoApplication` of [`@priemskiyyy/beacon-native`](../native) reads from `expo-application`.
 
 ## What a check reports
 

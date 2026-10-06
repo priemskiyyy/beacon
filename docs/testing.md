@@ -337,7 +337,7 @@ test("a reload is not requested when its intent cannot be written", async () => 
 });
 ```
 
-A storage of your own is held to its contract by `testJournalStorage`. See [custom adapters](custom-adapters.md#prove-it).
+A storage of your own is held to its contract by `testJournalStorage`, as `browserStorage` of `@priemskiyyy/beacon-browser` is, over a fake of web storage. See [custom adapters](custom-adapters.md#prove-it).
 
 ## A running reader
 
@@ -399,7 +399,7 @@ testRunningReader({
 });
 ```
 
-It cannot check that the identity is the one the host reports, or that it is written in the domain the route paired with it compares. Keep those in the reader's own tests.
+It cannot check that the identity is the one the host reports, or that it is written in the domain the route paired with it compares. Keep those in the reader's own tests. `webBuild` of `@priemskiyyy/beacon-browser`, and `expoApplication` and `deviceInfo` of `@priemskiyyy/beacon-native`, are run through it over fakes of what they read, and the native readers are also run with the real Play and App Store adapters to keep the words they write the words those read.
 
 ## Disruptions
 

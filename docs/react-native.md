@@ -4,20 +4,21 @@ description: "Use Beacon in a React Native or Expo app: the engine and toolchain
 
 # React Native
 
-Beacon runs in a React Native app on Hermes, the engine of React Native, on iOS and Android, with Expo or without it. This page is the whole path for that app: what to install, what the engine does and does not have, how the pieces are wired, and what to do about the parts that differ from a browser. The adapters have their own pages: [Expo](expo.md), [CodePush](code-push.md), [Google Play](google-play.md) and [App Store](app-store.md).
+Beacon runs in a React Native app on Hermes, the engine of React Native, on iOS and Android, with Expo or without it. This page is the whole path for that app: what to install, what the engine does and does not have, how the pieces are wired, and what to do about the parts that differ from a browser. The adapters have their own pages: [Expo](expo.md), [CodePush](code-push.md), [Google Play](google-play.md), [App Store](app-store.md) and [Native build](native.md).
 
 The same files run in [the Expo example](https://github.com/priemskiyyy/beacon/tree/main/examples/expo), which is bundled for both platforms by `pnpm --filter example-expo build:native` and whose wiring its tests exercise against a fake `expo-updates`.
 
 ## What to install
 
-| You want                                           | Install                                                           |
-| -------------------------------------------------- | ----------------------------------------------------------------- |
-| Expo Updates as a route                            | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-expo`, `expo-updates` |
-| CodePush, through the fork you use                 | `@priemskiyyy/beacon-code-push` and a CodePush fork               |
-| Play in-app updates, through a native bridge       | `@priemskiyyy/beacon-google-play`                                 |
-| The App Store page of your app and its version     | `@priemskiyyy/beacon-app-store`                                   |
-| A provider and hooks for your components           | `@priemskiyyy/beacon-react`, which needs React 19.2 or later      |
-| What the installed binary is, and a stored journal | `expo-application` and `expo-sqlite`, or the libraries you use    |
+| You want                                       | Install                                                           |
+| ---------------------------------------------- | ----------------------------------------------------------------- |
+| Expo Updates as a route                        | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-expo`, `expo-updates` |
+| CodePush, through the fork you use             | `@priemskiyyy/beacon-code-push` and a CodePush fork               |
+| Play in-app updates, through a native bridge   | `@priemskiyyy/beacon-google-play`                                 |
+| The App Store page of your app and its version | `@priemskiyyy/beacon-app-store`                                   |
+| The installed binary as a running fact         | `@priemskiyyy/beacon-native`, with `expo-application`             |
+| A provider and hooks for your components       | `@priemskiyyy/beacon-react`, which needs React 19.2 or later      |
+| A stored journal                               | `expo-sqlite`, or the store you already use                       |
 
 React Native 0.86 and Expo SDK 57 ship React 19.2, which is the range `@priemskiyyy/beacon-react` asks for. It never imports `react-native`, so one binding serves the web and a device.
 
@@ -55,7 +56,7 @@ Hermes and React Native are not a browser and not Node. Two Hermes builds were r
 | `response.body`, `response.redirected`                                   | React Native's own `fetch` has neither. See [HTTP](http.md#redirects-on-react-native)      |
 | `window`, `document`, `localStorage`, `location`                         | No document and no browser storage, and `window` is only the global object                 |
 
-Lint forbids each of these in the packages that ship, and `pnpm test:unit` runs the core, the HTTP, Expo, CodePush, Play and App Store packages in an environment where they are removed and React Native's own `AbortController`, `URL` and `URLSearchParams` are in their place. A change that reaches for `crypto.randomUUID()` turns a test red.
+Lint forbids each of these in the packages that ship, and `pnpm test:unit` runs the core, the HTTP, Expo, CodePush, Play, App Store and native packages in an environment where they are removed and React Native's own `AbortController`, `URL` and `URLSearchParams` are in their place. A change that reaches for `crypto.randomUUID()` turns a test red.
 
 ## Set up the Beacon once
 
@@ -67,57 +68,30 @@ A boot is one JavaScript runtime, and its id only has to differ from the next ru
 
 ### What the binary is
 
-An Expo app reads the installed binary from `expo-application`. An Android build is named by its version code and an iOS build by its build number, in the words the store adapters use, so a journal and a support policy compare like with like. A value the module did not give is unknown, and so is a binary of another application: Expo Go, running your code, describes itself.
+An Expo app reads the installed binary from `expo-application` with `expoApplication` of `@priemskiyyy/beacon-native`. An Android build is named by its version code and an iOS build by its build number, in the words the store adapters use, so a journal and a support policy compare like with like. A value the module did not give is unknown, and so is a binary of another application: Expo Go, running your code, describes itself. `authority: scope.application` is what makes that say `another-application` and keeps its numbers out of your facts. An app on `react-native-device-info` uses `deviceInfo` the same way, which also takes the text `unknown` that library answers for a value it could not read.
 
 ```ts
 // src/nativeBuild.ts
-import type { RunningRelease } from "@priemskiyyy/beacon";
+import { expoApplication } from "@priemskiyyy/beacon-native";
 import * as Application from "expo-application";
+import { Platform } from "react-native";
 
-const APPLICATION = "com.example.notes";
-
-const readText = (value: string | null) => value?.trim() || null;
-
-export const readNativeBuild =
-  (platform: "android" | "ios") => (): RunningRelease => {
-    const build = readText(Application.nativeBuildVersion);
-    const version = readText(Application.nativeApplicationVersion);
-
-    if (Application.applicationId !== APPLICATION) {
-      return {
-        identity: { status: "unknown", reason: "another-application" },
-        label: null,
-        raw: { applicationId: Application.applicationId },
-      };
-    }
-
-    if (build === null) {
-      return {
-        identity: { status: "unknown", reason: "native-build-not-read" },
-        label: version,
-        raw: { applicationId: APPLICATION, versionName: version },
-      };
-    }
-
-    const domain =
-      platform === "android" ? "android-version-code" : "ios-build";
-
-    return {
-      identity: {
-        status: "known",
-        authority: APPLICATION,
-        domain,
-        value: build,
-      },
-      label: version,
-      raw: {
-        applicationId: APPLICATION,
-        versionName: version,
-        versionCode: build,
-      },
-    };
-  };
+export const nativeBuild = expoApplication({
+  application: Application,
+  platform: Platform.OS === "ios" ? "ios" : "android",
+  authority: "com.example.notes",
+});
 ```
+
+| Field                | Android                                       | iOS                                            |
+| -------------------- | --------------------------------------------- | ---------------------------------------------- |
+| `identity.authority` | the application id the binary reports         | the bundle id the binary reports               |
+| `identity.domain`    | `android-version-code`                        | `ios-build`                                    |
+| `identity.value`     | the version code as text                      | the build number (`CFBundleVersion`)           |
+| `label`              | the version name                              | the marketing version                          |
+| `raw`                | `applicationId`, `versionName`, `versionCode` | `applicationId`, `shortVersion`, `buildNumber` |
+
+The identity is `unknown` with the reason `build-not-read` where the module gave no build number, `application-not-read` where it gave no application id, and `another-application` for a binary that is not yours. A build is never read as zero, as null or as a build named `unknown`. [Troubleshooting](troubleshooting.md#the-installed-binary-is-unknown) says what to do about each.
 
 ### The journal's storage
 
@@ -141,7 +115,7 @@ import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 
 import { journalStorage } from "src/journalStorage";
-import { readNativeBuild } from "src/nativeBuild";
+import { nativeBuild } from "src/nativeBuild";
 
 export const beacon = new Beacon({
   scope: {
@@ -158,7 +132,7 @@ export const beacon = new Beacon({
   running: {
     boot: { id: createBootId() },
     bundle: expoBundle(Updates),
-    native: readNativeBuild(Platform.OS === "ios" ? "ios" : "android"),
+    native: nativeBuild,
   },
   routes: { ota: expoUpdates({ updates: Updates }) },
   journal: { mode: "best-effort", storage: journalStorage },
@@ -318,7 +292,7 @@ Everything here is tested in process, and the packages were also run on the two 
 - `expo-updates` downloading, selecting and launching an update, and the next boot reading the journal.
 - `Updates.reloadAsync()` replacing the runtime, and what an `AppState` listener does as it goes.
 - `AppState` on a device: a system dialog taking iOS to `inactive` and back, and any pause taking Android to `background`. The check on return follows what React Native documents, not what a device was seen to send.
-- What `expo-application` gives in Expo Go, in a development build and in a release build, in particular that Expo Go answers with its own application id, and that `nativeBuildVersion` is the version code on Android.
+- What `expo-application` gives in Expo Go, in a development build and in a release build, in particular that Expo Go answers with its own application id, and that `nativeBuildVersion` is the version code on Android and the build number on iOS for each flavor, and what `react-native-device-info` gives on a device.
 - The journal's storage under a kill during a write.
 - Play's flows through a real bridge, and the install events of a flexible update.
 - A CodePush package downloaded, installed for the next start and listed as pending by a real module, `restartApp(true)` replacing the runtime, the rollback when `notifyAppReady()` is missing, and each fork's server giving one hash to a package throughout. [CodePush](code-push.md#what-no-device-has-run) has the list.

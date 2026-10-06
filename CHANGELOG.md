@@ -37,6 +37,8 @@
 ## @priemskiyyy/beacon-browser 0.1.0 - Unreleased
 
 - First release. `browserReload()` is a mechanism with one command, `reload`, bound to nothing: the next navigation receives whatever is deployed. Without a window it is unsupported.
+- `webBuild({ authority, id, label, domain })` reads the running web build from the id a bundler injects, such as `import.meta.env.VITE_BUILD_ID`, in the domain `web-artifact`: an id that was never defined, which compiles to `undefined` or an empty string or is written as the text `undefined`, is an unknown identity with the reason `build-id-not-injected`, never a build named `undefined`.
+- `browserStorage({ area, target, verify })` keeps the journal in the tab's `sessionStorage`, or in `localStorage` with `area: "local"`, over `keyValueJournalStorage`. It reaches the storage at each call and touches nothing when it is made: a server render, a frame that blocks site data (the `SecurityError` is the cause) and a full storage each reject that call.
 - Requires `@priemskiyyy/beacon` 0.1.
 
 ## @priemskiyyy/beacon-service-worker 0.1.0 - Unreleased
@@ -69,6 +71,11 @@
 
 - First release. `firebaseRemoteConfig({ remoteConfig, sdk, document })` fetches and activates Remote Config on the web or in React Native and builds a document from what the server sent, dated by the fetch that got it, and never from a default, a missing key or a configuration that never fetched.
 - Requires `@priemskiyyy/beacon` 0.1 and the SDK you pass in: `@react-native-firebase/remote-config` 26 or `firebase` 12.
+
+## @priemskiyyy/beacon-native 0.1.0 - Unreleased
+
+- First release. `expoApplication({ application, platform, authority })` and `deviceInfo({ deviceInfo, platform, authority })` read the installed binary as the `native` running fact, from `expo-application` and from `react-native-device-info`: an Android build is its version code in the domain `android-version-code` and an iOS build its build number in `ios-build`, the words the Play adapter offers in and the App Store adapter reads (`raw.shortVersion`). A build the SDK did not give, which `react-native-device-info` answers as the text `unknown`, is an unknown identity with the reason `build-not-read` or `application-not-read`, never a build named null, and a binary of another application, such as Expo Go, is unknown as `another-application` and keeps none of its version numbers.
+- Requires `@priemskiyyy/beacon` 0.1. `expo-application` 57 and `react-native-device-info` 15 are optional peer dependencies.
 
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased
 

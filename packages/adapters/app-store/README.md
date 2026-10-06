@@ -18,6 +18,8 @@ import {
   appStoreHandoff,
   appStoreLookup,
 } from "@priemskiyyy/beacon-app-store";
+import { expoApplication } from "@priemskiyyy/beacon-native";
+import * as Application from "expo-application";
 import { Linking } from "react-native";
 
 const store = appStoreLookup({
@@ -36,23 +38,14 @@ const binary = newerRoute({
   mechanism: appStoreHandoff({ appId: APP_STORE_ID, linking: Linking }),
 });
 
-// Your native constants, such as from expo-application or react-native-device-info.
-declare const shortVersion: string;
-declare const buildNumber: string;
-
 const beacon = new Beacon({
   scope, // scope.application is the bundle id
   running: {
     boot: { id: createBootId() },
-    native: () => ({
-      identity: {
-        status: "known",
-        authority: scope.application,
-        domain: "ios-build",
-        value: buildNumber,
-      },
-      label: shortVersion,
-      raw: { applicationId: scope.application, shortVersion, buildNumber },
+    native: expoApplication({
+      application: Application,
+      platform: "ios",
+      authority: scope.application,
     }),
   },
   routes: { binary },
@@ -73,7 +66,7 @@ On React Native, `linking` is `Linking` from `react-native`.
 | a scope that is not `app-store` | `none`, detail `other-distribution`, with no request                                  |
 | no `shortVersion` running       | `inconclusive`: nothing claims a newer version without knowing the order of what runs |
 
-The running native release is named by the build number (`CFBundleVersion`) as text, under the domain `ios-build` and the authority `scope.application`. It keeps `raw.applicationId`, `raw.shortVersion` (`CFBundleShortVersionString`, which `appleMarketingVersion` reads) and `raw.buildNumber`. A marketing version can never satisfy a build-level minimum.
+The running native release is read by `expoApplication` of [`@priemskiyyy/beacon-native`](../native), or by `deviceInfo` over `react-native-device-info`. It is named by the build number (`CFBundleVersion`) as text, under the domain `ios-build` and the authority `scope.application`. It keeps `raw.applicationId`, `raw.shortVersion` (`CFBundleShortVersionString`, which `appleMarketingVersion` reads) and `raw.buildNumber`. A marketing version can never satisfy a build-level minimum.
 
 ## Handoff
 

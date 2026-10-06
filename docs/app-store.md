@@ -7,7 +7,7 @@ description: "Read App Store metadata as an advisory marketing-release source, o
 `@priemskiyyy/beacon-app-store` offers two separate capabilities: an advisory source of marketing releases, and a mechanism that opens the store page. Neither installs anything. A marketing version is never presented as the exact native build a device will receive.
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-app-store
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-app-store @priemskiyyy/beacon-native
 ```
 
 ## Create a route
@@ -22,6 +22,7 @@ import {
   appStoreLookup,
 } from "@priemskiyyy/beacon-app-store";
 import type { AppStoreLookupResponse } from "@priemskiyyy/beacon-app-store";
+import { expoApplication } from "@priemskiyyy/beacon-native";
 import * as Application from "expo-application";
 import { Linking } from "react-native";
 
@@ -47,36 +48,11 @@ export const beacon = new Beacon({
   },
   running: {
     boot: { id: createBootId() },
-    native: () => {
-      const { nativeBuildVersion, nativeApplicationVersion } = Application;
-
-      // A build the native module did not give is unknown, never a build named null.
-      if (nativeBuildVersion === null) {
-        return {
-          identity: { status: "unknown", reason: "native-build-not-read" },
-          label: nativeApplicationVersion,
-          raw: {
-            applicationId: APPLICATION,
-            shortVersion: nativeApplicationVersion,
-          },
-        };
-      }
-
-      return {
-        identity: {
-          status: "known",
-          authority: APPLICATION,
-          domain: "ios-build",
-          value: nativeBuildVersion,
-        },
-        label: nativeApplicationVersion,
-        raw: {
-          applicationId: APPLICATION,
-          shortVersion: nativeApplicationVersion,
-          buildNumber: nativeBuildVersion,
-        },
-      };
-    },
+    native: expoApplication({
+      application: Application,
+      platform: "ios",
+      authority: APPLICATION,
+    }),
   },
   routes: {
     binary: newerRoute({
@@ -90,7 +66,7 @@ export const beacon = new Beacon({
 });
 ```
 
-On React Native, `linking` is `Linking` from `react-native`. The running native release is yours to read, and its names are fixed so that readers and adapters agree:
+On React Native, `linking` is `Linking` from `react-native`. The running native release is read by `expoApplication` of `@priemskiyyy/beacon-native`, or by `deviceInfo` over `react-native-device-info`, and its names are fixed so that readers and adapters agree:
 
 | Field                | Value                                                                                  |
 | -------------------- | -------------------------------------------------------------------------------------- |

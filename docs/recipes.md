@@ -14,7 +14,7 @@ import type {
   ReleaseSource,
   TargetDecision,
 } from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+import { browserReload, webBuild } from "@priemskiyyy/beacon-browser";
 
 // Your source of the deployment decision; see the HTTP page.
 declare const manifest: ReleaseSource<{ web: TargetDecision | NoneDecision }>;
@@ -29,16 +29,7 @@ export const beacon = new Beacon({
   },
   running: {
     boot: { id: createBootId() },
-    web: () => ({
-      identity: {
-        status: "known",
-        authority: "com.example.notes",
-        domain: "web-artifact",
-        value: __BUILD_ID__,
-      },
-      label: __BUILD_ID__,
-      raw: {},
-    }),
+    web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({

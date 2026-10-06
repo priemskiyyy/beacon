@@ -156,6 +156,8 @@ const web = targetRoute({
 }
 ```
 
+The release's identity has to be named the way the page or the binary names what it runs, or the route says `inconclusive`. `webBuild` of [`@priemskiyyy/beacon-browser`](../browser) reads the running web build under the domain `web-artifact`, and `expoApplication` and `deviceInfo` of [`@priemskiyyy/beacon-native`](../native) read the installed binary under `android-version-code` and `ios-build`, each under the application id as authority.
+
 ### What is accepted
 
 The whole manifest or none of it. `parseStandardManifest` (the text) and `readStandardManifest` (the response) throw a `BeaconError` that says which rule broke, and a source that throws keeps the last document it accepted.

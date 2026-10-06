@@ -10,27 +10,19 @@ It is off by default. Without it, `beacon.transitions` says so, and nothing is c
 
 ## Turn it on
 
-The journal keeps its record in storage you provide, as strings under keys. `keyValueJournalStorage` adapts any store with `getItem`, `setItem` and `removeItem`, which is what AsyncStorage, `expo-sqlite/kv-store`, `localStorage` and most stores have. [Choosing a storage](#choosing-a-storage) says which one to use.
+The journal keeps its record in storage you provide, as strings under keys. `keyValueJournalStorage` adapts any store with `getItem`, `setItem` and `removeItem`, which is what AsyncStorage, `expo-sqlite/kv-store`, `localStorage` and most stores have, and `browserStorage()` of `@priemskiyyy/beacon-browser` is that over the browser's web storage. [Choosing a storage](#choosing-a-storage) says which one to use.
 
 ```ts
+import { Beacon, createBootId, targetRoute } from "@priemskiyyy/beacon";
 import {
-  Beacon,
-  createBootId,
-  keyValueJournalStorage,
-  targetRoute,
-} from "@priemskiyyy/beacon";
-import { browserReload } from "@priemskiyyy/beacon-browser";
+  browserReload,
+  browserStorage,
+  webBuild,
+} from "@priemskiyyy/beacon-browser";
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
 import type { RouteDeclarations } from "@priemskiyyy/beacon-http";
 
 declare const __BUILD_ID__: string;
-
-// `localStorage` is reached at each call, so a page without it fails the journal and not the import.
-const storage = keyValueJournalStorage({
-  getItem: (key) => localStorage.getItem(key),
-  setItem: (key, value) => localStorage.setItem(key, value),
-  removeItem: (key) => localStorage.removeItem(key),
-});
 
 const scope = {
   application: "com.example.notes",
@@ -55,16 +47,7 @@ export const beacon = new Beacon({
   scope,
   running: {
     boot: { id: createBootId() },
-    web: () => ({
-      identity: {
-        status: "known",
-        authority: scope.application,
-        domain: "web-artifact",
-        value: __BUILD_ID__,
-      },
-      label: __BUILD_ID__,
-      raw: {},
-    }),
+    web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
@@ -73,7 +56,12 @@ export const beacon = new Beacon({
       mechanism: browserReload(),
     }),
   },
-  journal: { mode: "required", storage, budget: 3, retention: 86_400_000 },
+  journal: {
+    mode: "required",
+    storage: browserStorage(),
+    budget: 3,
+    retention: 86_400_000,
+  },
 });
 ```
 
@@ -105,14 +93,14 @@ A budget that is not a positive whole number, and a retention that is not a posi
 
 The journal wants one whole record, read, written and removed under one key, and a write that resolves only once the record can be read back. Every store below has the three calls `keyValueJournalStorage` takes, at once or later, so each is one line.
 
-| Store                  | For the journal  | Why                                                                                                                                |
-| ---------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `expo-sqlite/kv-store` | Yes, on Expo     | The Expo SDK's own drop-in for AsyncStorage over SQLite, so the choice that adds no third-party native module.                     |
-| AsyncStorage           | Yes              | The same three calls in version 2 and in version 3, on the device, asynchronous.                                                   |
-| MMKV                   | Yes, with recipe | Synchronous and on the device. Version 4 names `remove` what version 3 calls `delete`, and it needs a native build.                |
-| `sessionStorage`       | Yes, on the web  | Survives a reload in the same tab, which is the boot the journal reads the intent back in, and is gone when the tab closes.        |
-| `localStorage`         | Yes, on the web  | Survives the tab too, so a fresh tab can judge another tab's intent. Tabs share the one record, and the last write wins.           |
-| SecureStore, keychain  | No               | Keys must match `[\w.-]+`, which the journal's do not. Large values are rejected on iOS, and what they hold outlives an uninstall. |
+| Store                  | For the journal  | Why                                                                                                                                                           |
+| ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `expo-sqlite/kv-store` | Yes, on Expo     | The Expo SDK's own drop-in for AsyncStorage over SQLite, so the choice that adds no third-party native module.                                                |
+| AsyncStorage           | Yes              | The same three calls in version 2 and in version 3, on the device, asynchronous.                                                                              |
+| MMKV                   | Yes, with recipe | Synchronous and on the device. Version 4 names `remove` what version 3 calls `delete`, and it needs a native build.                                           |
+| `sessionStorage`       | Yes, on the web  | `browserStorage()`. Survives a reload in the same tab, which is the boot the journal reads the intent back in, and is gone when the tab closes.               |
+| `localStorage`         | Yes, on the web  | `browserStorage({ area: "local" })`. Survives the tab too, so a fresh tab can judge another tab's intent. Tabs share the one record, and the last write wins. |
+| SecureStore, keychain  | No               | Keys must match `[\w.-]+`, which the journal's do not. Large values are rejected on iOS, and what they hold outlives an uninstall.                            |
 
 ### React Native
 
@@ -158,19 +146,16 @@ MMKV 3 makes its instance with `new MMKV({ id: "beacon" })`, and the rest does n
 
 ### React on the web
 
-Reach `localStorage` or `sessionStorage` at each call, so a page that has neither, such as a sandboxed frame or a server render, fails the journal and not the import.
+`browserStorage()` of `@priemskiyyy/beacon-browser` keeps the record in the tab's `sessionStorage`. The next boot after `location.reload()` is the same tab, so it reads what the last boot wrote, and no other tab can overwrite it. `area: "local"` uses `localStorage`, so a fresh tab can judge another tab's intent, and every tab then shares the one record.
 
 ```ts
-import { keyValueJournalStorage } from "@priemskiyyy/beacon";
+import { browserStorage } from "@priemskiyyy/beacon-browser";
 
-export const storage = keyValueJournalStorage({
-  getItem: (key) => sessionStorage.getItem(key),
-  setItem: (key, value) => sessionStorage.setItem(key, value),
-  removeItem: (key) => sessionStorage.removeItem(key),
-});
+export const storage = browserStorage();
+export const shared = browserStorage({ area: "local" });
 ```
 
-A full storage throws at once, and `keyValueJournalStorage` turns that into a rejected write: a `required` journal stops the command, and `best-effort` goes on with the intent in memory.
+It reaches the storage at each call and touches nothing when it is made, so a page that has none, such as a sandboxed frame or a server render, fails the journal and not the import. A full storage throws at once, and the journal turns that into a rejected write: a `required` journal stops the command, and `best-effort` goes on with the intent in memory. [Browser](browser.md#journal-storage) has the options. Safari's private browsing and the eviction of site data are the browser's and have not been run.
 
 ### What to know
 
@@ -282,7 +267,7 @@ It also recovers a journal that could not read its record. That journal says `de
 
 ## Limits
 
-- Two tabs, or two runtimes, share no atomic counter. The last write wins and is what a later boot reads.
+- Two tabs, or two runtimes, share no atomic counter. The last write wins and is what a later boot reads. `browserStorage()` keeps one tab's record apart from the others by default.
 - A corrupt record, and a record of a future schema, are ignored with a diagnostic and never executed.
 - Storage that lies about a write defeats a `required` journal, unless the record is read back, which `keyValueJournalStorage` does unless told not to. Neither mode proves storage survives a device failure or tampering.
 - A page restored from the back-forward cache is the same boot. See [browser](browser.md#a-page-restored-from-the-back-forward-cache).

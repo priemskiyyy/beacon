@@ -74,12 +74,6 @@ export const createWebBeacon = () => {
   return { beacon, mock };
 };
 
-// Lets every queued promise continuation run before the test goes on.
-export const settle = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
-
 export type WebBeacon = ReturnType<typeof createWebBeacon>["beacon"];
 
 // A copy of an observable that counts its live listeners, which is what a leak looks like.

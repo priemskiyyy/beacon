@@ -1,8 +1,8 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { afterEach, expect, test, vi } from "vitest";
 import { nextTick } from "vue";
 import { renderToString } from "vue/server-renderer";
 
-import { settle } from "src/beacon.fixture";
 import { createView } from "src/context/view.fixture";
 
 afterEach(() => {

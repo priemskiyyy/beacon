@@ -1,8 +1,9 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 import { createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 
-import { countListeners, createWebBeacon, settle } from "src/beacon.fixture";
+import { countListeners, createWebBeacon } from "src/beacon.fixture";
 import { useDisruption } from "src/composables/useDisruption";
 import { useObservable } from "src/composables/useObservable";
 import { BeaconProvider } from "src/context/BeaconProvider";

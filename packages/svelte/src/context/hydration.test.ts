@@ -1,6 +1,7 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { flushSync, hydrate, unmount } from "svelte";
 import { afterEach, expect, test, vi } from "vitest";
-import { createWebBeacon, settle } from "../beacon.fixture.js";
+import { createWebBeacon } from "../beacon.fixture.js";
 import { STATUS_MARKUP } from "./serverMarkup.fixture.js";
 import StatusHarness from "./StatusHarness.fixture.svelte";
 

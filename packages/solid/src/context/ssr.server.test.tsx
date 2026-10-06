@@ -1,3 +1,4 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { renderToString } from "solid-js/web";
 import { expect, test } from "vitest";
 
@@ -7,7 +8,6 @@ import { STATUS_MARKUP } from "src/context/serverMarkup.fixture";
 import { StatusView } from "src/context/View.fixture";
 import { useDisruption } from "src/primitives/useDisruption";
 import { useObservable } from "src/primitives/useObservable";
-import { settle } from "src/settle.fixture";
 
 test("the server renders the route as not checked and what runs as pending, and starts nothing", () => {
   expect(typeof window).toBe("undefined");

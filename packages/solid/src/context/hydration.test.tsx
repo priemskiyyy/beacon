@@ -1,10 +1,10 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { hydrate } from "solid-js/web";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { createWebBeacon } from "src/beacon.fixture";
 import { STATUS_MARKUP } from "src/context/serverMarkup.fixture";
 import { StatusView } from "src/context/View.fixture";
-import { settle } from "src/settle.fixture";
 
 afterEach(() => {
   document.body.replaceChildren();

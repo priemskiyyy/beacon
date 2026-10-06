@@ -1,5 +1,6 @@
 import { BeaconError } from "@priemskiyyy/beacon";
 import type { BeaconStatus } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { expect, test, vi } from "vitest";
 
@@ -14,7 +15,6 @@ import { useRunning } from "src/primitives/useRunning";
 import { useStatus } from "src/primitives/useStatus";
 import { useSupport } from "src/primitives/useSupport";
 import { useTransitions } from "src/primitives/useTransitions";
-import { settle } from "src/settle.fixture";
 
 const answer = (context: ReturnType<typeof createWebBeacon>, build: string) => {
   context.mock.resolve({

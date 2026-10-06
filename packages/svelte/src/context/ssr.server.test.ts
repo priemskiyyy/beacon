@@ -1,6 +1,7 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { render } from "svelte/server";
 import { expect, test } from "vitest";
-import { countListeners, createWebBeacon, settle } from "../beacon.fixture.js";
+import { countListeners, createWebBeacon } from "../beacon.fixture.js";
 import { useDisruption } from "../utilities/useDisruption.svelte.js";
 import { useObservable } from "../utilities/useObservable.js";
 import ViewHarness from "../utilities/ViewHarness.fixture.svelte";

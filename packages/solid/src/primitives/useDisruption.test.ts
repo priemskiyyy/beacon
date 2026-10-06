@@ -1,4 +1,5 @@
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { createRoot, createSignal } from "solid-js";
 import { expect, test } from "vitest";
 
@@ -7,7 +8,6 @@ import type { WebBeacon } from "src/beacon.fixture";
 import { countBeacon } from "src/counted.fixture";
 import { mountWithProvider } from "src/mount.fixture";
 import { useDisruption } from "src/primitives/useDisruption";
-import { settle } from "src/settle.fixture";
 
 const draftEditor = (
   overrides: Partial<DisruptionParticipant> = {},

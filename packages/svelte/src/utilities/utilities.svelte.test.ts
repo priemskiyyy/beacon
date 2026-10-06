@@ -1,13 +1,9 @@
 import { BeaconError } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { cleanup, render } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { afterEach, expect, test } from "vitest";
-import {
-  countListeners,
-  createWebBeacon,
-  settle,
-  target,
-} from "../beacon.fixture.js";
+import { countListeners, createWebBeacon, target } from "../beacon.fixture.js";
 import { mountBareView } from "./mountBareView.fixture.js";
 import { mountView } from "./mountView.fixture.js";
 import { useBeacon } from "./useBeacon.js";

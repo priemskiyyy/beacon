@@ -1,8 +1,9 @@
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { cleanup, render } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { afterEach, expect, test } from "vitest";
-import { createWebBeacon, settle } from "../beacon.fixture.js";
+import { createWebBeacon } from "../beacon.fixture.js";
 import type { WebBeacon } from "../beacon.fixture.js";
 import { useDisruption } from "./useDisruption.svelte.js";
 import ViewHarness from "./ViewHarness.fixture.svelte";

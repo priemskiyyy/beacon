@@ -1,15 +1,11 @@
 import { BeaconError } from "@priemskiyyy/beacon";
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
+import { settle } from "@priemskiyyy/beacon/mock";
 import { expect, test, vi } from "vitest";
 import { nextTick, onMounted, ref, shallowRef, watch, watchEffect } from "vue";
 import type { Ref } from "vue";
 
-import {
-  countListeners,
-  createWebBeacon,
-  settle,
-  target,
-} from "src/beacon.fixture";
+import { countListeners, createWebBeacon, target } from "src/beacon.fixture";
 import { useBeacon } from "src/composables/useBeacon";
 import { useDisruption } from "src/composables/useDisruption";
 import { useObservable } from "src/composables/useObservable";

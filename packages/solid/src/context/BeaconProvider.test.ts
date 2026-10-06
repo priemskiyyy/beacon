@@ -1,3 +1,4 @@
+import { settle } from "@priemskiyyy/beacon/mock";
 import { createComponent, createRoot, createSignal, onMount } from "solid-js";
 import { expect, test } from "vitest";
 
@@ -6,7 +7,6 @@ import type { WebBeacon } from "src/beacon.fixture";
 import { BeaconProvider } from "src/context/BeaconProvider";
 import { mountWithProvider } from "src/mount.fixture";
 import { useBeacon } from "src/primitives/useBeacon";
-import { settle } from "src/settle.fixture";
 
 test("the provider without start leaves the Beacon idle, and checks nothing", async () => {
   const { beacon, mock } = createWebBeacon();

@@ -1,13 +1,13 @@
 {
-  "name": "@priemskiyyy/beacon-native",
+  "name": "@priemskiyyy/beacon-device-info",
   "version": "0.1.0",
-  "description": "The installed native build as a Beacon running reader, from expo-application or react-native-device-info, named the way the store adapters name their releases.",
+  "description": "The installed native build as a Beacon running reader, from react-native-device-info, named the way the store adapters name their releases.",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/priemskiyyy/beacon.git",
-    "directory": "packages/adapters/native"
+    "directory": "packages/adapters/device-info"
   },
   "bugs": {
     "url": "https://github.com/priemskiyyy/beacon/issues"
@@ -34,23 +34,18 @@
     "build": "tsdown",
     "lint:typescript": "tsc --noEmit -p .",
     "lint:eslint": "eslint src",
-    "test:unit": "vitest run --root ../../.. --project native"
+    "test:unit": "vitest run --root ../../.. --project device-info"
   },
   "peerDependencies": {
     "@priemskiyyy/beacon": ">=0.1.0 <0.2",
-    "expo-application": ">=1.0.0",
-    "react-native-device-info": ">=4.0.1"
+    "react-native-device-info": ">=10.0.0"
   },
   "devDependencies": {
-    "@priemskiyyy/beacon": "workspace:*",
-    "@priemskiyyy/beacon-app-store": "workspace:*",
-    "@priemskiyyy/beacon-google-play": "workspace:*"
+    "@priemskiyyy/beacon": "workspace:*"
   },
   "keywords": [
     "native",
     "react-native",
-    "expo",
-    "expo-application",
     "react-native-device-info",
     "version-code",
     "build-number",
@@ -60,9 +55,6 @@
     "adapter"
   ],
   "peerDependenciesMeta": {
-    "expo-application": {
-      "optional": true
-    },
     "react-native-device-info": {
       "optional": true
     }

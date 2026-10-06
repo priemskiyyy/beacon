@@ -5,10 +5,8 @@ import type {
   RunningReaders,
 } from "@priemskiyyy/beacon";
 import { createMockSource } from "@priemskiyyy/beacon/mock";
-import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
-import type { UpdatesLike } from "@priemskiyyy/beacon-expo";
-import { expoApplication } from "@priemskiyyy/beacon-native";
-import type { ApplicationLike } from "@priemskiyyy/beacon-native";
+import { expoApplication, expoUpdates } from "@priemskiyyy/beacon-expo";
+import type { ApplicationLike, UpdatesLike } from "@priemskiyyy/beacon-expo";
 
 import { evaluateNativeSupport } from "src/lab/evaluateNativeSupport";
 import type { NativeManifest } from "src/lab/types/NativeManifest";
@@ -27,30 +25,16 @@ type NativeBeaconOptions = {
   application?: ApplicationLike;
 };
 
+// The route reads the bundle itself, and the binary is read under the platform and the application of the scope.
 const readRunning = ({
-  updates,
-  platform,
   boot,
   application,
 }: NativeBeaconOptions): RunningReaders => {
-  const running: RunningReaders = { boot, bundle: expoBundle({ updates }) };
-
   if (application === undefined) {
-    return running;
+    return { boot };
   }
 
-  if (platform !== "android" && platform !== "ios") {
-    return running;
-  }
-
-  return {
-    ...running,
-    native: expoApplication({
-      application,
-      platform,
-      authority: NATIVE_APPLICATION,
-    }),
-  };
+  return { boot, native: expoApplication({ application }) };
 };
 
 const readJournal = (storage: JournalStorage | undefined) => {

@@ -1,5 +1,16 @@
-import { APPLICATION } from "src/fakeApplication.fixture";
+import type { ReleaseScope } from "@priemskiyyy/beacon";
+
 import type { DeviceInfoLike } from "src/types/DeviceInfoLike";
+
+/** The application id of the binary under test, which is also `scope.application` and the authority of what the Play adapter offers. */
+export const APPLICATION = "com.example.notes";
+
+export const SCOPE: ReleaseScope = {
+  application: APPLICATION,
+  environment: "production",
+  platform: "android",
+  distribution: "google-play",
+};
 
 type Answers = { bundleId?: string; version?: string; build?: string };
 

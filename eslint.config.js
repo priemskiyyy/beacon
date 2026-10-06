@@ -515,7 +515,7 @@ export default tseslint.config(
     {
       // The adapters of what a React Native app runs.
       files: [
-        "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config,code-push,native,triggers}/src/**/*.ts",
+        "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config,code-push,device-info,triggers}/src/**/*.ts",
       ],
       // The browser triggers of the triggers package are the one part of it that reads a window.
       ignores: ["packages/adapters/triggers/src/browser/**"],

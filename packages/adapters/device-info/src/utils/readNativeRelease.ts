@@ -9,7 +9,7 @@ import type { NativeFacts } from "src/types/internal/NativeFacts";
 import type { NativePlatform } from "src/types/NativePlatform";
 import type { NativeReaderOptions } from "src/types/internal/NativeReaderOptions";
 import { cleanText } from "src/utils/cleanText";
-import { DOMAINS } from "src/utils/constants/authority";
+import { BUILD_DOMAINS } from "src/utils/constants/authority";
 import {
   ANOTHER_APPLICATION_IDENTITY,
   APPLICATION_NOT_READ_IDENTITY,
@@ -21,7 +21,7 @@ import { readPlatform } from "src/utils/readPlatform";
 const readIdentity = (
   { applicationId, build }: CleanFacts,
   platform: NativePlatform,
-  domain: string = DOMAINS[platform],
+  domain: string = BUILD_DOMAINS[platform],
 ): ReleaseIdentity => {
   if (build === null) {
     return BUILD_NOT_READ_IDENTITY;

@@ -1357,28 +1357,109 @@ const MUTANTS = [
       "a package downloaded again after it was installed, which deletes the folder CodePush runs from",
   },
   {
-    file: "packages/adapters/native/src/utils/readNativeRelease.ts",
-    find: "facts.applicationId !== options.authority",
+    file: "packages/adapters/expo/src/utils/readNativeRelease.ts",
+    find: "facts.applicationId !== (options.authority ?? scope.application)",
     replace: "false",
-    project: "native",
+    project: "expo",
     describes:
       "Expo Go's build number named under this application's authority",
   },
   {
-    file: "packages/adapters/native/src/utils/readDeviceInfoText.ts",
+    file: "packages/adapters/expo/src/utils/readNativeRelease.ts",
+    find: "facts.applicationId !== (options.authority ?? scope.application)",
+    replace:
+      "facts.applicationId !== (options.authority ?? facts.applicationId)",
+    project: "expo",
+    describes:
+      "the authority of a binary taken from the binary itself, where the scope names the application",
+  },
+  {
+    file: "packages/adapters/expo/src/utils/readNativeRelease.ts",
+    find: "if (platform === null) {",
+    replace: "if (false) {",
+    project: "expo",
+    describes:
+      "a build number of the web or a desktop shell named as an Android build",
+  },
+  {
+    file: "packages/adapters/expo/src/utils/readNativeRelease.ts",
+    find: "options.platform ?? readPlatform(scope.platform)",
+    replace: 'options.platform ?? "android"',
+    project: "expo",
+    describes:
+      "an iOS build named by its version code, whatever the scope says",
+  },
+  {
+    file: "packages/adapters/expo/src/utils/constants/authority.ts",
+    find: "android: ANDROID_VERSION_CODE_DOMAIN,",
+    replace: 'android: "native-android-build",',
+    project: "expo",
+    describes:
+      "an Android build named in other words than the Play route offers in",
+  },
+  {
+    file: "packages/adapters/device-info/src/utils/readNativeRelease.ts",
+    find: "facts.applicationId !== (options.authority ?? scope.application)",
+    replace: "false",
+    project: "device-info",
+    describes:
+      "Expo Go's build number named under this application's authority",
+  },
+  {
+    file: "packages/adapters/device-info/src/utils/readNativeRelease.ts",
+    find: "if (platform === null) {",
+    replace: "if (false) {",
+    project: "device-info",
+    describes:
+      "a build number of the web or a desktop shell named as an Android build",
+  },
+  {
+    file: "packages/adapters/device-info/src/utils/readNativeRelease.ts",
+    find: "options.platform ?? readPlatform(scope.platform)",
+    replace: 'options.platform ?? "android"',
+    project: "device-info",
+    describes:
+      "an iOS build named by its version code, whatever the scope says",
+  },
+  {
+    file: "packages/adapters/device-info/src/utils/readDeviceInfoText.ts",
     find: "if (text === DEVICE_INFO_NOT_READ) {",
     replace: "if (false) {",
-    project: "native",
+    project: "device-info",
     describes:
       "the text unknown from react-native-device-info taken for a build",
   },
   {
-    file: "packages/adapters/native/src/utils/constants/authority.ts",
+    file: "packages/adapters/device-info/src/utils/constants/authority.ts",
     find: "android: ANDROID_VERSION_CODE_DOMAIN,",
     replace: 'android: "native-android-build",',
-    project: "native",
+    project: "device-info",
     describes:
       "an Android build named in other words than the Play route offers in",
+  },
+  {
+    file: "packages/adapters/expo/src/expoUpdates.ts",
+    find: "running: expoBundle({ updates }),",
+    replace: "",
+    project: "expo",
+    describes:
+      "a route that leaves the journal with no bundle to read a reload back against",
+  },
+  {
+    file: "packages/adapters/code-push/src/codePushUpdates.ts",
+    find: "running: codePushBundle({ codePush }),",
+    replace: "",
+    project: "code-push",
+    describes:
+      "a route that leaves the journal with no bundle to read a reload back against",
+  },
+  {
+    file: "packages/adapters/browser/src/webBuild.ts",
+    find: "authority: authority ?? scope.application,",
+    replace: 'authority: authority ?? "",',
+    project: "browser",
+    describes:
+      "a web build named under no application, so it is never the one a manifest names",
   },
   {
     file: "packages/adapters/browser/src/utils/readBuildText.ts",

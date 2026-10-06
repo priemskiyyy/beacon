@@ -40,7 +40,8 @@
     "@priemskiyyy/beacon": ">=0.1.0 <0.2"
   },
   "devDependencies": {
-    "@priemskiyyy/beacon": "workspace:*"
+    "@priemskiyyy/beacon": "workspace:*",
+    "@priemskiyyy/beacon-app-store": "workspace:*"
   },
   "keywords": [
     "google-play",

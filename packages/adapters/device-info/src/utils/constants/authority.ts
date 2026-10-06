@@ -13,7 +13,7 @@ import type { NativePlatform } from "src/types/NativePlatform";
  * words are the core's, so this package and the adapters that read them cannot
  * drift apart.
  */
-export const DOMAINS: Record<NativePlatform, string> = {
+export const BUILD_DOMAINS: Record<NativePlatform, string> = {
   android: ANDROID_VERSION_CODE_DOMAIN,
   ios: IOS_BUILD_DOMAIN,
 };

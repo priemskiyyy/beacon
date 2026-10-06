@@ -15,7 +15,6 @@
     "@expo/metro-runtime": "57.0.16",
     "@priemskiyyy/beacon": "workspace:*",
     "@priemskiyyy/beacon-expo": "workspace:*",
-    "@priemskiyyy/beacon-native": "workspace:*",
     "@priemskiyyy/beacon-react": "workspace:*",
     "@priemskiyyy/beacon-triggers": "workspace:*",
     "example-shared": "workspace:*",

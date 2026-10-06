@@ -4,8 +4,7 @@ import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 
 import { deviceInfo } from "src/deviceInfo";
-import { APPLICATION, SCOPE } from "src/fakeApplication.fixture";
-import { fakeDeviceInfo } from "src/fakeDeviceInfo.fixture";
+import { APPLICATION, fakeDeviceInfo, SCOPE } from "src/fakeDeviceInfo.fixture";
 
 const IOS_SCOPE: ReleaseScope = { ...SCOPE, platform: "ios" };
 

@@ -1,7 +1,7 @@
 {
   "name": "@priemskiyyy/beacon-expo",
   "version": "0.1.0",
-  "description": "Expo Updates as a Beacon route: checks, downloads and reloads delegated to expo-updates, with results mapped in full and nothing claimed as running until a later boot shows it.",
+  "description": "Expo Updates as a Beacon route, and the installed native build as a running reader: checks, downloads and reloads delegated to expo-updates, with results mapped in full and nothing claimed as running until a later boot shows it.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -43,23 +43,32 @@
   },
   "peerDependencies": {
     "@priemskiyyy/beacon": ">=0.1.0 <0.2",
+    "expo-application": ">=5.0.0",
     "expo-updates": ">=0.24.0"
   },
   "devDependencies": {
-    "@priemskiyyy/beacon": "workspace:*"
+    "@priemskiyyy/beacon": "workspace:*",
+    "@priemskiyyy/beacon-app-store": "workspace:*",
+    "@priemskiyyy/beacon-google-play": "workspace:*"
   },
   "keywords": [
     "expo",
     "expo-updates",
+    "expo-application",
     "eas-update",
     "ota",
     "react-native",
+    "version-code",
+    "build-number",
     "release",
     "typescript",
     "beacon",
     "adapter"
   ],
   "peerDependenciesMeta": {
+    "expo-application": {
+      "optional": true
+    },
     "expo-updates": {
       "optional": true
     }

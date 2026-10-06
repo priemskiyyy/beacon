@@ -1,12 +1,19 @@
+import type { ReleaseScope } from "@priemskiyyy/beacon";
 import {
   testReleaseDriver,
   testRunningReader,
 } from "@priemskiyyy/beacon/testing";
 
+import { expoApplication } from "src/expoApplication";
 import { expoBundle } from "src/expoBundle";
 import { expoUpdates } from "src/expoUpdates";
+import {
+  fakeApplication,
+  SCOPE as ANDROID_SCOPE,
+} from "src/fakeApplication.fixture";
 import { EMBEDDED, fakeUpdates, UPDATE_A } from "src/fakeUpdates.fixture";
 import { createFakeUpdates } from "src/mock/createFakeUpdates";
+import type { NativePlatform } from "src/types/NativePlatform";
 
 testReleaseDriver({
   name: "expo-updates",
@@ -66,3 +73,51 @@ testRunningReader({
     },
   ],
 });
+
+const PLATFORMS: NativePlatform[] = ["android", "ios"];
+
+for (const platform of PLATFORMS) {
+  const scope: ReleaseScope = { ...ANDROID_SCOPE, platform };
+
+  const createApplication = (
+    facts: Parameters<typeof fakeApplication>[0] = {},
+  ) => {
+    const { application, reads } = fakeApplication(facts);
+
+    return { reader: expoApplication({ application }), reads };
+  };
+
+  testRunningReader({
+    name: `expo-application on ${platform}`,
+    create: () => createApplication(),
+    scope,
+    situations: [
+      {
+        name: "the scope is a web application's",
+        answers: "unknown",
+        scope: { ...scope, platform: "web" },
+        create: () => createApplication(),
+      },
+      {
+        name: "the module gave no build number",
+        answers: "unknown",
+        create: () => createApplication({ build: null }),
+      },
+      {
+        name: "the module gave no application id",
+        answers: "unknown",
+        create: () => createApplication({ applicationId: null }),
+      },
+      {
+        name: "the binary is another application",
+        answers: "unknown",
+        create: () => createApplication({ applicationId: "host.exp.Exponent" }),
+      },
+      {
+        name: "the module gave no marketing version",
+        answers: "known",
+        create: () => createApplication({ version: null }),
+      },
+    ],
+  });
+}

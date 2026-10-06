@@ -27,7 +27,7 @@ const PACKAGES = [
   "packages/adapters/app-store",
   "packages/adapters/firebase-remote-config",
   "packages/adapters/code-push",
-  "packages/adapters/native",
+  "packages/adapters/device-info",
   "packages/adapters/triggers",
 ];
 

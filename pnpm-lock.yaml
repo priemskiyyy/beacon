@@ -179,9 +179,6 @@ importers:
       '@priemskiyyy/beacon-expo':
         specifier: workspace:*
         version: link:../../packages/adapters/expo
-      '@priemskiyyy/beacon-native':
-        specifier: workspace:*
-        version: link:../../packages/adapters/native
       '@priemskiyyy/beacon-react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -417,8 +414,21 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
+  packages/adapters/device-info:
+    dependencies:
+      react-native-device-info:
+        specifier: '>=10.0.0'
+        version: 15.0.2(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
+    devDependencies:
+      '@priemskiyyy/beacon':
+        specifier: workspace:*
+        version: link:../../core
+
   packages/adapters/expo:
     dependencies:
+      expo-application:
+        specifier: '>=5.0.0'
+        version: 57.0.3(expo@57.0.25)
       expo-updates:
         specifier: '>=0.24.0'
         version: 57.0.24(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8)
@@ -426,6 +436,12 @@ importers:
       '@priemskiyyy/beacon':
         specifier: workspace:*
         version: link:../../core
+      '@priemskiyyy/beacon-app-store':
+        specifier: workspace:*
+        version: link:../app-store
+      '@priemskiyyy/beacon-google-play':
+        specifier: workspace:*
+        version: link:../google-play
 
   packages/adapters/firebase-remote-config:
     dependencies:
@@ -445,31 +461,15 @@ importers:
       '@priemskiyyy/beacon':
         specifier: workspace:*
         version: link:../../core
+      '@priemskiyyy/beacon-app-store':
+        specifier: workspace:*
+        version: link:../app-store
 
   packages/adapters/http:
     devDependencies:
       '@priemskiyyy/beacon':
         specifier: workspace:*
         version: link:../../core
-
-  packages/adapters/native:
-    dependencies:
-      expo-application:
-        specifier: '>=1.0.0'
-        version: 57.0.3(expo@57.0.25)
-      react-native-device-info:
-        specifier: '>=4.0.1'
-        version: 15.0.2(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
-    devDependencies:
-      '@priemskiyyy/beacon':
-        specifier: workspace:*
-        version: link:../../core
-      '@priemskiyyy/beacon-app-store':
-        specifier: workspace:*
-        version: link:../app-store
-      '@priemskiyyy/beacon-google-play':
-        specifier: workspace:*
-        version: link:../google-play
 
   packages/adapters/service-worker:
     devDependencies:

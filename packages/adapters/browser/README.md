@@ -50,3 +50,19 @@ An accepted reload leaves the route unresolved, because the old document may sta
 ## Options
 
 `browserReload({ target })` reloads the document of `target`, the global `window` by default. Without either, such as in a server render, opening does nothing, `native.window` is `null` and `requestReload` settles as `unsupported`.
+
+## A page restored from the back-forward cache
+
+A page the browser kept and shows again is the same boot: nothing loaded, so nothing reports an update boot. When it comes back, release the reload that was requested and start the session again, which reads what runs once more and reconciles without a new boot ID:
+
+```ts
+addEventListener("pageshow", (event) => {
+  if (!event.persisted) {
+    return;
+  }
+
+  beacon.route("web").acknowledge();
+  beacon.stop();
+  beacon.start();
+});
+```

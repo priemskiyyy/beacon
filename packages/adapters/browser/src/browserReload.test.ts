@@ -242,3 +242,31 @@ test("WEB-11 a required journal that cannot persist blocks the reload", async ()
   });
   expect(context.window.reloads()).toBe(0);
 });
+
+test("WEB-10 a document restored from the back-forward cache is the same boot, and starting the session again reports no update boot", async () => {
+  const storage = fakeStorage();
+
+  const context = createWebBeacon(fakeWindow(), {
+    mode: "best-effort",
+    storage,
+  });
+
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+
+  await web.requestReload({ offer });
+
+  // The reload was requested, but the page was kept and shown again: nothing booted.
+  web.acknowledge();
+  context.beacon.stop();
+  context.beacon.start();
+  await settle();
+
+  expect(context.beacon.transitions.get().latest).toMatchObject({
+    intent: { boot: { id: "boot-1" } },
+    outcome: "same-boot",
+  });
+  expect(context.beacon.running.get().web).toMatchObject({
+    release: { label: "Build web-build-b" },
+  });
+});

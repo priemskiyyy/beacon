@@ -10,8 +10,8 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | VER     | Identity, ordering, and revision    | 18        | 18     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 |
 | HTTP    | HTTP, manifests, and shared feeds   | 18        | 17     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15, 16, 17, 18     |
 | POL     | Support policy                      | 14        | 13     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 13, 14                     |
-| WEB     | Browser reload and deployment       | 12        | 10     | 01, 02, 03, 04, 05, 06, 07, 09, 11, 12                                 |
-| SW      | Service-worker and Workbox          | 16        | 12     | 01, 02, 03, 04, 05, 07, 08, 09, 12, 13, 14, 16                         |
+| WEB     | Browser reload and deployment       | 12        | 11     | 01, 02, 03, 04, 05, 06, 07, 09, 10, 11, 12                             |
+| SW      | Service-worker and Workbox          | 16        | 13     | 01, 02, 03, 04, 05, 07, 08, 09, 12, 13, 14, 15, 16                     |
 | EXPO    | Expo Updates                        | 20        | 16     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 16, 17, 18, 19, 20         |
 | PLAY    | Google Play native flows            | 18        | 17     | 01, 02, 03, 04, 05, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18     |
 | STORE   | App Store metadata and handoff      | 10        | 9      | 01, 02, 03, 04, 05, 06, 07, 08, 09                                     |
@@ -20,7 +20,7 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | LIFE    | Sessions and resource ownership     | 12        | 12     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12                         |
 | SEC     | Security and diagnostics            | 12        | 11     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12                             |
 | BIND    | Types, React, and SSR               | 10        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10                                 |
-| Total   |                                     | 202       | 187    |                                                                        |
+| Total   |                                     | 202       | 189    |                                                                        |
 
 <!-- scenarios:end -->
 

@@ -498,3 +498,34 @@ test("LIFE-10 a registration the application owns keeps its own listeners when t
 
   expect(registration.listeners()).toBe(1);
 });
+
+test("SW-15 a page restored with another worker in control reconciles from the registration, and replays nothing", async () => {
+  const registration = updateReady();
+  const staleWaiting = registration.waiting;
+  const { beacon, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+
+  const { observation } = worker.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  // The page is frozen, and the browser changes the workers without a word to it.
+  registration.waiting = null;
+  registration.active = fakeWorker("activated");
+
+  // Restored from the back-forward cache, the application starts the session again.
+  beacon.stop();
+  beacon.start();
+  await settle();
+
+  expect(worker.state.get().observation).toMatchObject({ status: "none" });
+
+  await expect(
+    worker.activateWaiting({ offer: observation.offer.ref }),
+  ).resolves.toMatchObject({ status: "stale" });
+  expect(staleWaiting?.messages).toEqual([]);
+});

@@ -42,3 +42,18 @@ The release is unknown because the bytes behind a script URL can change: without
 | `requestReload`   | a prepared | `document-replacement` | `provider-current` | `reload-requested`     |
 
 `activateWaiting` posts `{ type: "SKIP_WAITING" }`, or your `message`, to the worker the offer is about. The worker must implement that protocol and claim its clients; without a handler nothing happens, and nothing is reported as activated. Activation reaches every tab of the scope: one tab's guard cannot certify the others.
+
+## A page restored from the back-forward cache
+
+While a page is frozen the browser can change the workers without telling it. When the page is shown again, start the session again: the route reads the registration once more, so the controller and the document are reconciled independently, and an offer from before the freeze is refused as stale instead of being replayed against a worker that is no longer waiting.
+
+```ts
+addEventListener("pageshow", (event) => {
+  if (!event.persisted) {
+    return;
+  }
+
+  beacon.stop();
+  beacon.start();
+});
+```

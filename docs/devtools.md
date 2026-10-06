@@ -36,7 +36,7 @@ const Root = ({
 );
 ```
 
-Render it only in development. The inspector is not part of the release awareness your users rely on, and it costs the size of a small application.
+Render it only in development. The inspector is not part of the release awareness your users rely on, and it costs about 18 KB gzipped, its own copy of Solid included.
 
 ## Without a framework
 
@@ -62,18 +62,21 @@ The class has `mount(element)`, `unmount()`, `setBeacon(beacon)` for an applicat
 
 - **The header.** The session (idle, running with its number, stopped or disposed), the diagnostic counters of what Beacon dropped or contained, and a Check now button.
 - **The routes.** One row per name in `beacon.routeNames`: the observation, the last check with its error code, the operation and what is prepared. Selecting one shows its observation with its evidence (source, origin, freshness, when it was received and when it expires, issuer and revision), its offer, its prepared target, its last check, its operation and what each of its commands declares.
-- **The overview.** What runs per subject (pending, known with its identity and label, or unreadable), the support state with its reasons, remediation and evaluation evidence, and the journal with the latest intent, what the running facts say about it, its attempts and this boot's readiness checkpoints.
+- **The overview.** What runs per subject (not configured, pending, known with its identity and label, or failed), the support state with its reasons, remediation and evaluation evidence, and the journal with the latest intent, what the running facts say about it, its attempts and this boot's readiness checkpoints.
 - **The timeline.** The local time, the type, the session, the route, the command, the attempt, the operation and the reason of each event. A chip filters one type at a time, a search box filters the rest, and Pause and Clear affect only the inspector. A row expands into the whole record, with a copy button. Selecting a route narrows the timeline to that route and to the events that belong to no route.
 
-The launcher turns red when a failure event arrives while the panel is closed: `route-failed`, `policy-failed`, `journal-failed`, `running-failed`, `read-failed`, `listener-error`, `cleanup-error` and `late-callback`. The panel docks to the bottom or the right edge and resizes by dragging its edge or with the arrow keys. The open state, the dock position and the size persist in `localStorage`, and a value that is missing, corrupt or out of range is ignored.
+The launcher turns red when a failure event arrives while the panel is closed: `route-failed`, `policy-failed`, `journal-failed`, `running-failed`, `read-failed`, `listener-error`, `cleanup-error` and `late-callback`. The panel docks to the bottom or the right edge and resizes by dragging its edge or with the arrow keys. The open state, the dock position and the size persist in `localStorage` under `@priemskiyyy/beacon-devtools`, and a value that is missing, corrupt or out of range (a size under 240 pixels) is ignored.
 
 ## What it never does
 
 - It never starts a session, never reads what the application has not reached, and never calls a command. Its only action is `beacon.check({ reason: "manual" })`, and only while a session runs. The Beacon it takes is typed down to the snapshots, the diagnostics and `check`, so it has no `start`, `stop`, `dispose`, `replaceScope` or route command to call.
 - Mounting it changes nothing about how the Beacon behaves. Subscribing to `beacon.diagnostics.events` builds events only while someone listens, which is by design, and pausing releases that subscription.
 - It shows no raw value by default. What a platform reported for what is running (`RunningRelease.raw`) and a provider's `native` handle stay hidden until Show raw values is ticked. The handle is not even read until then, and the choice is never stored.
-- Whatever is shown, a property named like `token`, `authorization`, `password`, `secret`, `cookie`, `credential` or `api key` is replaced at any depth. Values are copied into plain, bounded data by reading property descriptors, so no getter, `toJSON` or proxy trap of yours runs. An object that is not plain, such as a `window` or a provider client, is named by its class and not walked. Events are copied the same way, cut to a limit, and keep nothing but their own fields.
+- Whatever is shown, a property whose name contains `token`, `authorization`, `password`, `passwd`, `pwd`, `secret`, `cookie`, `credential`, `api key` (`apiKey`, `api_key` or `api-key`), `private key`, `bearer` or `jwt`, in any case, is replaced at any depth. Values are copied into plain, bounded data by reading property descriptors, so no getter, `toJSON` or `get` trap of yours runs, and a proxy is read through its key and descriptor traps only. An object that is not plain, such as a `window` or a provider client, is named by its class and not walked. Events are copied field by field, their text cut to a limit, and keep nothing but their own fields.
+- The inspector cannot know that a text you wrote yourself, such as a release label, holds a secret. Keep those out of labels.
 
 ## Limits
+
+What it copies is bounded. A text on one line of the panel, such as an event field or a release identity, is cut at 200 characters. A raw value or a provider handle is cut at 6 levels deep, 200 values in all, 50 entries of one object or list and 2,000 characters of one text, and a copied or expanded record at 12,000 characters. A cut says `[Truncated]`.
 
 Only Chromium has run it, and only through a scratch page: pointer dragging is tested with a stubbed pointer capture in jsdom, and no device has run it. A failure that arrives while recording is paused does not turn the launcher red.

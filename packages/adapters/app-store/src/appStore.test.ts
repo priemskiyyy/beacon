@@ -34,7 +34,10 @@ const nativeRelease = (shortVersion: string | null): RunningRelease => ({
     shortVersion === null ? { build: "412" } : { shortVersion, build: "412" },
 });
 
-const create = (running: string | null = "3.2.0") => {
+const create = (
+  running: string | null = "3.2.0",
+  distribution = "app-store",
+) => {
   const store = fakeStore();
   const link = fakeLinking();
 
@@ -54,7 +57,7 @@ const create = (running: string | null = "3.2.0") => {
   });
 
   const beacon = new Beacon({
-    scope: SCOPE,
+    scope: { ...SCOPE, distribution },
     running: { boot: { id: "boot-1" }, native: () => nativeRelease(running) },
     routes: { binary },
     clock: createTestClock({ now: 1_000 }),
@@ -181,6 +184,20 @@ test("STORE-01 a lookup that matched nothing is no offer in that storefront", as
     reason: "no-decision",
     detail: "no-match",
   });
+});
+
+test("STORE-09 a build outside the store is offered nothing by it, and the store is never asked", async () => {
+  const { beacon, binary, store } = create("3.2.0", "testflight");
+
+  beacon.start();
+  await binary.check();
+
+  expect(binary.state.get().observation).toMatchObject({
+    status: "none",
+    reason: "no-decision",
+    detail: "other-distribution",
+  });
+  expect(store.fetches).toEqual([]);
 });
 
 test("an ambiguous lookup fails the check as a source failure, never resolved by guessing", async () => {

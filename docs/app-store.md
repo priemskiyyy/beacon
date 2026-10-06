@@ -98,7 +98,7 @@ The source then checks that the entry is your app. It refuses several entries, a
 | a scope that is not `app-store` | `none`, detail `other-distribution`, with no request                                  |
 | no `shortVersion` running       | `inconclusive`: nothing claims a newer version without knowing the order of what runs |
 
-The candidate is named by the marketing version, under your application id as authority and the domain `apple-marketing-version`. Its metadata is `{ releasedAt }` in epoch milliseconds. The source carries no expiry, so each check asks again.
+The candidate is named by the marketing version, under your App Store id as authority and the domain `apple-marketing-version`. Its metadata is `{ releasedAt }` in epoch milliseconds. The source carries no expiry, so each check asks again.
 
 ## Marketing versions
 

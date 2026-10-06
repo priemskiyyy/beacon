@@ -1,5 +1,10 @@
+import type { DriverEmitter } from "@priemskiyyy/beacon";
+
+import type { ExpoBody } from "src/types/ExpoBody";
 import type { ExpoNative } from "src/types/ExpoNative";
-import type { Reporter } from "src/types/internal/Reporter";
+
+// How a command tells its route what it prepared, for as long as the session that owns the route lives.
+type Reporter = DriverEmitter<ExpoBody, ExpoBody>;
 
 const reporters = new WeakMap<ExpoNative, Reporter>();
 

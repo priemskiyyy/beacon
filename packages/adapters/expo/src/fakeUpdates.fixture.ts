@@ -63,6 +63,8 @@ export const fakeUpdates = ({
   const checks: Array<CheckResultLike | Error> = [];
   const fetches: Array<FetchResultLike | Error> = [];
   const reloads: Array<Error | null> = [];
+  const held: Array<() => void> = [];
+  const state = { holding: false };
 
   const next = <TResult>(script: Array<TResult | Error>, fallback: TResult) => {
     const answer = script.shift() ?? fallback;
@@ -89,6 +91,12 @@ export const fakeUpdates = ({
     fetchUpdateAsync: async () => {
       calls.fetches += 1;
 
+      if (state.holding) {
+        await new Promise<void>((resolve) => {
+          held.push(resolve);
+        });
+      }
+
       return next(fetches, fetchedNothing());
     },
     reloadAsync: async () => {
@@ -110,5 +118,15 @@ export const fakeUpdates = ({
     willCheck: (result: CheckResultLike | Error) => checks.push(result),
     willFetch: (result: FetchResultLike | Error) => fetches.push(result),
     willReload: (failure: Error | null) => reloads.push(failure),
+    holdFetches: () => {
+      state.holding = true;
+    },
+    releaseFetches: () => {
+      state.holding = false;
+
+      for (const resolve of held.splice(0)) {
+        resolve();
+      }
+    },
   };
 };

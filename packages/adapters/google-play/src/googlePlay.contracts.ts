@@ -10,6 +10,7 @@ import { expectTypeOf } from "vitest";
 import { googlePlay } from "src/googlePlay";
 import type { PlayBridge } from "src/types/PlayBridge";
 import type { PlayNative } from "src/types/PlayNative";
+import type { PlayReceipt } from "src/types/PlayReceipt";
 
 declare const bridge: PlayBridge;
 
@@ -54,6 +55,25 @@ handle.update({ offer, allowAssetPackDeletion: true });
 googlePlay({ bridge, source: bridge });
 
 expectTypeOf(handle.native.get()).toEqualTypeOf<PlayNative | null>();
+
+type Accepted<TOutcome> =
+  TOutcome extends Promise<infer TSettled>
+    ? TSettled extends { status: "accepted"; receipt: infer TReceipt }
+      ? TReceipt
+      : never
+    : never;
+
+// The exported receipt is what the three commands answer, no more and no less.
+expectTypeOf<
+  | Accepted<typeof flexible>
+  | Accepted<typeof immediate>
+  | Accepted<typeof complete>
+>().toEqualTypeOf<PlayReceipt>();
+
+// Each command answers its own receipt, not the union.
+expectTypeOf<Accepted<typeof flexible>>().toEqualTypeOf<{
+  kind: "update-downloaded";
+}>();
 
 export const receipt = async () => {
   const settled = await handle.restart({ prepared });

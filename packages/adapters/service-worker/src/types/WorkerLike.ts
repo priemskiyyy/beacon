@@ -1,8 +1,10 @@
 import type { WorkerMessage } from "src/types/WorkerMessage";
 
 /**
- * The part of a `ServiceWorker` the adapter uses. The real one satisfies it,
- * so a test can pass its own without a browser.
+ * The part of a `ServiceWorker` the adapter uses: it posts a message to one
+ * and listens to its state changes. `state` is not read by the adapter; it is
+ * here because the registration that `route.native` hands out exposes it. The
+ * real one satisfies it, so a test can pass its own without a browser.
  *
  * @example
  * ```ts

@@ -1,7 +1,6 @@
 import type { DriverEmitter } from "@priemskiyyy/beacon";
 
 import type { ContainerLike } from "src/types/ContainerLike";
-import type { WorkerReading } from "src/types/internal/WorkerReading";
 import type { RegistrationLike } from "src/types/RegistrationLike";
 import type { WorkerBody } from "src/types/WorkerBody";
 import type { WorkerLike } from "src/types/WorkerLike";
@@ -42,22 +41,17 @@ export class WorkerSession {
 
   /** Reads the registration and the workers again, as after a restart or a return to the page, and reports them. */
   reconcile = async () => {
-    const registration = await this.#resolve();
-
-    if (this.#disposed) {
-      return;
-    }
-
-    this.#attach(registration);
-    this.#report(this.#read());
+    this.#attach(await this.#resolve());
+    this.#refresh();
   };
 
   /** Asks the browser for a newer worker script, then answers what the workers say. */
   check = async () => {
     const registration = await this.#resolve();
 
-    await registration?.update();
+    // Watched before it is asked: the worker the update finds is heard as it installs, and a registration whose update fails is still known.
     this.#attach(registration);
+    await registration?.update();
 
     const reading = this.#read();
 
@@ -69,10 +63,6 @@ export class WorkerSession {
   };
 
   dispose = () => {
-    if (this.#disposed) {
-      return;
-    }
-
     this.#disposed = true;
 
     for (const stop of this.#stops.splice(0).reverse()) {
@@ -80,26 +70,37 @@ export class WorkerSession {
     }
   };
 
-  #read(): WorkerReading {
-    // The first worker to be active is the baseline, whether it was there when observation began or came from the first installation.
-    if (this.#baseline === null && this.#registration?.active) {
-      this.#baseline = this.#registration.active;
-    }
+  #read() {
+    this.#noteBaseline();
 
     return readWorkers(this.#registration, this.#baseline);
   }
 
-  #report({ observation, prepared }: WorkerReading) {
+  // The first worker to be active is the baseline, whether it was there when observation began or came from the first installation.
+  #noteBaseline() {
+    if (this.#baseline !== null) {
+      return;
+    }
+
+    this.#baseline = this.#registration?.active ?? null;
+  }
+
+  #refresh = () => {
+    if (this.#disposed) {
+      return;
+    }
+
+    const { observation, prepared } = this.#read();
+
+    // The two are reported one after the other. The target goes first, so that after an activation an observer sees the offer beside the target for a moment, and never a route with neither.
+    this.#emit.prepared(prepared);
+
+    // A listener told of the target can stop the session before the observation is reported.
     if (this.#disposed) {
       return;
     }
 
     this.#emit.observation(observation);
-    this.#emit.prepared(prepared);
-  }
-
-  #refresh = () => {
-    this.#report(this.#read());
   };
 
   // A registration that is gone is gone: what was read from it is not offered any more.
@@ -109,6 +110,7 @@ export class WorkerSession {
     }
 
     this.#registration = registration;
+    this.#noteBaseline();
 
     if (registration === undefined || this.#attached.has(registration)) {
       return;

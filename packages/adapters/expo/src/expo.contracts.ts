@@ -12,7 +12,9 @@ import { expectTypeOf } from "vitest";
 
 import { expoBundle } from "src/expoBundle";
 import { expoUpdates } from "src/expoUpdates";
+import type { ExpoDownloadReceipt } from "src/types/ExpoDownloadReceipt";
 import type { ExpoNative } from "src/types/ExpoNative";
+import type { ExpoReloadReceipt } from "src/types/ExpoReloadReceipt";
 import type { UpdatesLike } from "src/types/UpdatesLike";
 
 declare const sdk: typeof Updates;
@@ -59,8 +61,23 @@ export const receipt = async () => {
   const settled = await handle.download({ offer });
 
   if (settled.status === "accepted") {
+    expectTypeOf(settled.receipt).toEqualTypeOf<ExpoDownloadReceipt>();
+
     // @ts-expect-error -- an accepted download claims no installation.
     return settled.receipt.installed;
+  }
+
+  return null;
+};
+
+export const reloadReceipt = async () => {
+  const settled = await handle.reload({ prepared });
+
+  if (settled.status === "accepted") {
+    expectTypeOf(settled.receipt).toEqualTypeOf<ExpoReloadReceipt>();
+
+    // @ts-expect-error -- an accepted reload claims no update is running.
+    return settled.receipt.updated;
   }
 
   return null;

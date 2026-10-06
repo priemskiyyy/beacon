@@ -21,7 +21,7 @@ export const observeWorkers = (
     worker.addEventListener("statechange", onChange);
   };
 
-  const handleUpdateFound = () => {
+  const followInstalling = () => {
     observe(registration.installing);
     onChange();
   };
@@ -29,10 +29,10 @@ export const observeWorkers = (
   observe(registration.installing);
   observe(registration.waiting);
   observe(registration.active);
-  registration.addEventListener("updatefound", handleUpdateFound);
+  registration.addEventListener("updatefound", followInstalling);
 
   return () => {
-    registration.removeEventListener("updatefound", handleUpdateFound);
+    registration.removeEventListener("updatefound", followInstalling);
 
     for (const worker of observed) {
       worker.removeEventListener("statechange", onChange);

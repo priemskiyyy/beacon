@@ -295,7 +295,14 @@ test("ending the session while a download is awaited leaves the outcome unknown"
   await settle();
   context.beacon.stop();
 
-  await expect(starting).resolves.toMatchObject({ status: "indeterminate" });
+  await expect(starting).resolves.toMatchObject({
+    status: "indeterminate",
+    reason: "aborted-after-dispatch",
+  });
+  expect(context.binary.state.get().operation).toMatchObject({
+    state: "indeterminate",
+    reason: "session-ended",
+  });
 });
 
 test("a query that fails fails the check and keeps what was observed", async () => {
@@ -526,6 +533,68 @@ test("LIFE-11 a second Beacon on the same bridge cannot open the route, and says
   expect(second.route("binary").native.get()).not.toBeNull();
 });
 
+// Runs the action after the given number of turns of the microtask queue.
+const afterTurns = (turns: number, action: () => void) => {
+  if (turns === 0) {
+    action();
+
+    return;
+  }
+
+  queueMicrotask(() => {
+    afterTurns(turns - 1, action);
+  });
+};
+
+test("SEC-10 a session that ends at any turn after Play answered starts no flow", async () => {
+  const commands: Array<"download" | "update"> = ["download", "update"];
+  const startedAfterStop: string[] = [];
+
+  for (const command of commands) {
+    for (let turns = 0; turns < 8; turns += 1) {
+      const context = create();
+      const offer = await checkOffer(context);
+      const { getUpdateInfo, startFlexible, startImmediate } = context.bridge;
+
+      const noteStart = (name: string) => {
+        if (context.beacon.status.get().state !== "stopped") {
+          return;
+        }
+
+        startedAfterStop.push(`${command} after ${turns} turns: ${name}`);
+      };
+
+      context.bridge.getUpdateInfo = async () => {
+        afterTurns(turns, () => {
+          context.beacon.stop();
+        });
+
+        return getUpdateInfo();
+      };
+
+      context.bridge.startFlexible = async () => {
+        noteStart("flexible");
+
+        return startFlexible();
+      };
+
+      context.bridge.startImmediate = async () => {
+        noteStart("immediate");
+
+        return startImmediate();
+      };
+
+      const pending = context.binary[command]({ offer: offer.ref });
+
+      await settle();
+      context.install(installEvent("downloaded"));
+      await pending;
+    }
+  }
+
+  expect(startedAfterStop).toEqual([]);
+});
+
 test("SEC-10 a session that ends while Play is asked again starts no flow", async () => {
   const context = create();
   const offer = await checkOffer(context);
@@ -585,4 +654,213 @@ test("PLAY-01 a flow Play no longer allows when it is asked again is unsupported
     context.binary.download({ offer: offer.ref }),
   ).resolves.toMatchObject({ status: "unsupported" });
   expect(context.calls.flexible).toBe(0);
+});
+
+test("PLAY-01 a download of an offer that allowed only the immediate flow is unsupported, and no flow starts", async () => {
+  const context = create(availableInfo(412, { flexible: false }));
+  const offer = await checkOffer(context);
+
+  await expect(context.binary.download({ offer: offer.ref })).resolves.toEqual({
+    status: "unsupported",
+    reason: "flow-not-allowed",
+  });
+  expect(context.calls.flexible).toBe(0);
+});
+
+test("PLAY-01 an immediate flow Play no longer allows when it is asked again is unsupported, and no flow starts", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setInfo(availableInfo(412, { immediate: false }));
+
+  await expect(context.binary.update({ offer: offer.ref })).resolves.toEqual({
+    status: "unsupported",
+    reason: "flow-not-allowed",
+  });
+  expect(context.calls.immediate).toBe(0);
+});
+
+test("an immediate flow for an offer Play no longer makes is stale, and no flow starts", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setInfo(availableInfo(413));
+
+  await expect(context.binary.update({ offer: offer.ref })).resolves.toEqual({
+    status: "stale",
+    reason: "provider-changed",
+  });
+  expect(context.calls.immediate).toBe(0);
+});
+
+test("an offer is stale when Play now offers nothing, or cannot say", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setInfo({ availability: "not-available" });
+  await expect(context.binary.download({ offer: offer.ref })).resolves.toEqual({
+    status: "stale",
+    reason: "provider-changed",
+  });
+
+  context.setInfo({ availability: "unknown" });
+  await expect(context.binary.download({ offer: offer.ref })).resolves.toEqual({
+    status: "stale",
+    reason: "provider-changed",
+  });
+  expect(context.calls.flexible).toBe(0);
+});
+
+test("PLAY-12 an offer is stale when Play holds a flow now that it did not before, or no longer holds the one it did", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setInfo({
+    availability: "in-progress",
+    installStatus: "downloading",
+  });
+  await expect(context.binary.update({ offer: offer.ref })).resolves.toEqual({
+    status: "stale",
+    reason: "provider-changed",
+  });
+
+  const held = create({
+    availability: "in-progress",
+    installStatus: "downloading",
+  });
+
+  const continuation = await checkOffer(held);
+
+  held.setInfo(availableInfo(412));
+  await expect(
+    held.binary.update({ offer: continuation.ref }),
+  ).resolves.toEqual({ status: "stale", reason: "provider-changed" });
+  expect(context.calls.immediate + held.calls.immediate).toBe(0);
+});
+
+test("an immediate flow Play reports as failed at the consent step is a failed command", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setFlow("immediate", "failed");
+
+  await expect(
+    context.binary.update({ offer: offer.ref }),
+  ).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "COMMAND_FAILED" },
+  });
+  expect(context.binary.state.get().operation).toEqual({ state: "idle" });
+});
+
+test("PLAY-13 a download Play reports before any version was named is prepared under no version", async () => {
+  const context = create({ availability: "not-available" });
+
+  context.beacon.start();
+  await settle();
+  context.install(installEvent("downloaded"));
+
+  expect(context.binary.state.get().prepared).toMatchObject({
+    status: "ready",
+    value: {
+      flow: "flexible",
+      release: {
+        identity: { status: "unknown", reason: "play-update-downloaded" },
+      },
+    },
+  });
+});
+
+test("PLAY-05 a flexible start with no Activity to launch from fails, and a download that follows is not named by it", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.bridge.startFlexible = async () => {
+    throw new Error("no current Activity");
+  };
+
+  await expect(
+    context.binary.download({ offer: offer.ref }),
+  ).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "COMMAND_FAILED" },
+  });
+
+  context.install(installEvent("downloaded"));
+
+  expect(context.binary.state.get().prepared).toMatchObject({
+    status: "ready",
+    value: {
+      release: {
+        identity: { status: "unknown", reason: "play-update-downloaded" },
+      },
+    },
+  });
+});
+
+test("PLAY-13 a download that no flow of Beacon's started is prepared under no version, not under the last one a query named", async () => {
+  const context = create();
+
+  await checkOffer(context);
+  context.install(installEvent("downloaded"));
+
+  expect(context.binary.state.get().prepared).toMatchObject({
+    status: "ready",
+    value: {
+      release: {
+        identity: { status: "unknown", reason: "play-update-downloaded" },
+      },
+    },
+  });
+});
+
+test("a session that ends while Play is asked at its start reports nothing", async () => {
+  const context = create();
+
+  context.holdQueries();
+  context.beacon.start();
+  await settle();
+  context.beacon.stop();
+
+  const before = context.binary.state.get();
+
+  context.releaseQueries();
+  await settle();
+
+  expect(context.binary.state.get()).toBe(before);
+  expect(context.beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
+});
+
+test("a check that ends with its session prepares nothing late", async () => {
+  const context = create(availableInfo(412, { installStatus: "downloaded" }));
+
+  context.beacon.start();
+  await settle();
+  context.holdQueries();
+
+  const checking = context.binary.check();
+
+  await settle();
+  context.beacon.stop();
+  context.releaseQueries();
+  await checking;
+
+  expect(context.beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
+});
+
+test("an install event a bridge still delivers after the session ended changes nothing", async () => {
+  const context = create();
+
+  context.beacon.start();
+  await settle();
+
+  const before = context.binary.state.get();
+
+  context.ignoreRemoval();
+  context.beacon.stop();
+  context.install(installEvent("downloaded"));
+  context.install(downloading(1_024, 4_096));
+
+  expect(context.binary.state.get()).toBe(before);
+  expect(context.beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
 });

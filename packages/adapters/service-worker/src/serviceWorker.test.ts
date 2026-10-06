@@ -71,6 +71,23 @@ const createWorkerBeacon = (
 const updateReady = () =>
   fakeRegistration({ active: fakeWorker("activated"), waiting: fakeWorker() });
 
+// A registration lookup that answers only when the test lets it.
+const holdLookup = () => {
+  const held: Array<(value: RegistrationLike | undefined) => void> = [];
+
+  return {
+    find: () =>
+      new Promise<RegistrationLike | undefined>((resolve) => {
+        held.push(resolve);
+      }),
+    release: (value: RegistrationLike | undefined) => {
+      for (const resolve of held.splice(0)) {
+        resolve(value);
+      }
+    },
+  };
+};
+
 test("creating the route touches neither the container nor the registration", () => {
   const { container, state } = createWorkerBeacon(updateReady());
 
@@ -226,6 +243,35 @@ test("SW-03 a waiting worker that changed without the route hearing of it is ref
   expect(registration.waiting.messages).toEqual([]);
 });
 
+test("SW-03 an offer for a worker that a newer one replaced is refused as stale, though the route heard of the change", async () => {
+  const registration = updateReady();
+  const { beacon, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+
+  const { observation } = worker.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  const replaced = registration.waiting;
+
+  registration.found(fakeWorker());
+  registration.install();
+  replaced?.transition("redundant");
+
+  expect(worker.state.get().observation).toMatchObject({
+    status: "available",
+  });
+
+  await expect(
+    worker.activate({ offer: observation.offer.ref }),
+  ).resolves.toEqual({ status: "stale", reason: "replaced" });
+  expect(registration.waiting?.messages).toEqual([]);
+});
+
 test("once the active worker is replaced the route has a prepared target, and a reload replaces the document", async () => {
   const registration = updateReady();
   const { beacon, worker, reloads } = createWorkerBeacon(registration);
@@ -302,6 +348,24 @@ test("a registration the application makes later is found by the next check", as
   await worker.check();
 
   expect(worker.state.get().observation).toMatchObject({ status: "available" });
+});
+
+test("a registration found by a check whose update fails is still observed", async () => {
+  const { beacon, worker, state } = createWorkerBeacon(undefined);
+
+  beacon.start();
+  await settle();
+
+  const registration = updateReady();
+
+  state.registration = registration;
+  registration.failNextUpdate(new Error("offline"));
+
+  await expect(worker.check()).resolves.toMatchObject({ status: "failed" });
+
+  registration.activate();
+
+  expect(worker.state.get().prepared).toMatchObject({ status: "ready" });
 });
 
 test("a registration the application passes in is used without the container's", async () => {
@@ -465,6 +529,26 @@ test("SW-07 a worker that activated has not reloaded the document, so the runnin
   });
 });
 
+test("SW-07 while a worker activates, no observer sees a route with neither an update to activate nor a target to reload", async () => {
+  const registration = updateReady();
+  const { beacon, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+
+  const seen: string[] = [];
+
+  worker.state.subscribe(() => {
+    const { observation, prepared } = worker.state.get();
+
+    seen.push(`${observation.status} and ${prepared.status}`);
+  });
+  registration.activate();
+
+  expect(seen).not.toHaveLength(0);
+  expect(seen).not.toContain("none and none");
+});
+
 test("SW-14 reading the route, its capabilities and the diagnostics registers, updates and activates nothing", async () => {
   const registration = updateReady();
   const { beacon, worker, container } = createWorkerBeacon(registration);
@@ -530,30 +614,79 @@ test("SW-15 a page restored with another worker in control reconciles from the r
   expect(staleWaiting?.messages).toEqual([]);
 });
 
-test("SEC-10 a session that ends while the registration is resolved posts no message to a worker", async () => {
-  const registration = updateReady();
+// Runs the action after the given number of turns of the microtask queue.
+const afterTurns = (turns: number, action: () => void) => {
+  if (turns === 0) {
+    action();
 
-  const held: { release: (value: RegistrationLike | undefined) => void } = {
-    release: () => {},
-  };
+    return;
+  }
 
-  let calls = 0;
+  queueMicrotask(() => {
+    afterTurns(turns - 1, action);
+  });
+};
 
-  const { beacon, worker } = createWorkerBeacon(registration, {
-    registration: () => {
-      calls += 1;
+test("SEC-10 a session that ends at any turn while the registration is found posts no message after it ended", async () => {
+  const postedAfterStop: string[] = [];
 
-      if (calls === 1) {
-        return Promise.resolve(registration);
+  for (let turns = 0; turns < 8; turns += 1) {
+    const registration = updateReady();
+    const lookup = holdLookup();
+
+    const { beacon, worker } = createWorkerBeacon(undefined, {
+      registration: lookup.find,
+    });
+
+    beacon.start();
+    lookup.release(registration);
+    await settle();
+
+    const { observation } = worker.state.get();
+
+    if (observation.status !== "available") {
+      throw new Error("The route has no offer.");
+    }
+
+    const { waiting } = registration;
+
+    if (waiting === null) {
+      throw new Error("The registration has no waiting worker.");
+    }
+
+    const { postMessage } = waiting;
+
+    waiting.postMessage = (message) => {
+      if (beacon.status.get().state === "stopped") {
+        postedAfterStop.push(`after ${turns} turns`);
       }
 
-      return new Promise<RegistrationLike | undefined>((resolve) => {
-        held.release = resolve;
-      });
-    },
+      postMessage(message);
+    };
+
+    const activating = worker.activate({ offer: observation.offer.ref });
+
+    await settle();
+    afterTurns(turns, () => {
+      beacon.stop();
+    });
+    lookup.release(registration);
+    await activating;
+  }
+
+  expect(postedAfterStop).toEqual([]);
+});
+
+test("SEC-10 a session that ends while the registration is resolved posts no message to a worker, and its wait ends unresolved", async () => {
+  const registration = updateReady();
+  const lookup = holdLookup();
+
+  const { beacon, worker } = createWorkerBeacon(undefined, {
+    registration: lookup.find,
   });
 
   beacon.start();
+  lookup.release(registration);
   await settle();
 
   const { observation } = worker.state.get();
@@ -566,10 +699,16 @@ test("SEC-10 a session that ends while the registration is resolved posts no mes
 
   await settle();
   beacon.stop();
-  held.release(registration);
-  await activating;
+  lookup.release(registration);
+
+  await expect(activating).resolves.toMatchObject({
+    status: "indeterminate",
+    reason: "aborted-after-dispatch",
+  });
+  await settle();
 
   expect(registration.waiting?.messages).toEqual([]);
+  expect(worker.state.get().operation).toEqual({ state: "idle" });
 });
 
 test("a first installation that activates is no update, and the next real update prepares a target", async () => {
@@ -616,4 +755,82 @@ test("a registration that vanished takes its offer with it", async () => {
   await expect(
     worker.activate({ offer: observation.offer.ref }),
   ).resolves.toMatchObject({ status: "stale" });
+});
+
+test("SW-13 a session that ends while the registration is being found listens to nothing and reports nothing", async () => {
+  const registration = updateReady();
+  const lookup = holdLookup();
+
+  const { beacon, worker, container } = createWorkerBeacon(undefined, {
+    registration: lookup.find,
+  });
+
+  beacon.start();
+  await settle();
+  beacon.stop();
+
+  const before = worker.state.get();
+
+  lookup.release(registration);
+  await settle();
+
+  expect(countListeners(registration, container)).toBe(0);
+  expect(worker.state.get()).toBe(before);
+  expect(beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
+});
+
+test("SW-13 a check that ends with its session reports nothing and leaves no listener", async () => {
+  const registration = updateReady();
+  const { beacon, worker, container } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+  registration.holdUpdates();
+
+  const checking = worker.check();
+
+  await settle();
+  beacon.stop();
+  registration.releaseUpdates();
+  await checking;
+
+  expect(countListeners(registration, container)).toBe(0);
+  expect(beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
+});
+
+test("SW-13 a registration found for a check after its session ended is not listened to", async () => {
+  const registration = updateReady();
+  const lookup = holdLookup();
+
+  const { beacon, worker, container } = createWorkerBeacon(undefined, {
+    registration: lookup.find,
+  });
+
+  beacon.start();
+  lookup.release(undefined);
+  await settle();
+
+  const checking = worker.check();
+
+  await settle();
+  beacon.stop();
+  lookup.release(registration);
+  await checking;
+
+  expect(countListeners(registration, container)).toBe(0);
+});
+
+test("a listener that stops the session while a change is reported leaves no late report", async () => {
+  const registration = fakeRegistration({ active: fakeWorker("activated") });
+  const { beacon, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+  worker.state.subscribe(() => {
+    beacon.stop();
+  });
+  registration.found(fakeWorker());
+
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+  expect(beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
 });

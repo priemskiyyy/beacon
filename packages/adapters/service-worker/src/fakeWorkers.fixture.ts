@@ -52,6 +52,9 @@ export type FakeRegistration = RegistrationLike & {
   /** The waiting worker takes over as the active one. */
   activate: () => void;
   failNextUpdate: (error: Error) => void;
+  /** The browser's update check answers only once `releaseUpdates` is called. */
+  holdUpdates: () => void;
+  releaseUpdates: () => void;
 };
 
 export const fakeRegistration = ({
@@ -64,6 +67,8 @@ export const fakeRegistration = ({
   const listeners = new Set<() => void>();
   const counts = { updates: 0 };
   const failures: Error[] = [];
+  const held: Array<() => void> = [];
+  const state = { holding: false };
 
   const announce = () => {
     for (const listener of [...listeners]) {
@@ -77,6 +82,12 @@ export const fakeRegistration = ({
     active,
     update: async () => {
       counts.updates += 1;
+
+      if (state.holding) {
+        await new Promise<void>((resolve) => {
+          held.push(resolve);
+        });
+      }
 
       const failure = failures.shift();
 
@@ -116,6 +127,16 @@ export const fakeRegistration = ({
     },
     failNextUpdate: (error) => {
       failures.push(error);
+    },
+    holdUpdates: () => {
+      state.holding = true;
+    },
+    releaseUpdates: () => {
+      state.holding = false;
+
+      for (const resolve of held.splice(0)) {
+        resolve();
+      }
     },
   };
 

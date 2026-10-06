@@ -335,6 +335,53 @@ test("a command in an environment with updates disabled is unsupported", async (
   expect(context.calls.fetches).toBe(0);
 });
 
+test("a reload in an environment with updates disabled is unsupported, and restarts nothing", async () => {
+  const context = create();
+
+  context.willCheck(available(UPDATE_A));
+  context.willFetch(fetchedNew(UPDATE_A));
+
+  const offer = await checkOffer(context);
+
+  await context.ota.download({ offer: offer.ref });
+
+  const { prepared } = context.ota.state.get();
+
+  if (prepared.status !== "ready") {
+    throw new Error("The route has nothing prepared.");
+  }
+
+  context.updates.isEnabled = false;
+
+  await expect(
+    context.ota.reload({ prepared: prepared.value.ref }),
+  ).resolves.toEqual({ status: "unsupported", reason: "updates-disabled" });
+  expect(context.calls.reloads).toBe(0);
+});
+
+test("a download that ends with its session prepares nothing in the route and reports nothing late", async () => {
+  const context = create();
+
+  context.willCheck(available(UPDATE_A));
+  context.willFetch(fetchedNew(UPDATE_A));
+
+  const offer = await checkOffer(context);
+
+  context.holdFetches();
+
+  const downloading = context.ota.download({ offer: offer.ref });
+
+  await settle();
+  context.beacon.stop();
+  context.releaseFetches();
+  await downloading;
+  await settle();
+
+  expect(context.calls.fetches).toBe(1);
+  expect(context.ota.state.get().prepared).toEqual({ status: "unknown" });
+  expect(context.beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
+});
+
 test("the running bundle is read from the constants, and never written by the route", async () => {
   const context = create();
 

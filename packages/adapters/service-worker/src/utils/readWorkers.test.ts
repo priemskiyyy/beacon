@@ -40,6 +40,7 @@ test("SW-12 a waiting worker next to an active one is an update that is ready, w
     offer: {
       release: {
         identity: { status: "unknown", reason: "worker-build-unknown" },
+        metadata: { worker: { id: getWorkerId(waiting) } },
       },
       worker: { id: getWorkerId(waiting) },
     },
@@ -81,13 +82,20 @@ test("a skip-waiting request alone prepares nothing until the active worker was 
 
   registration.activate();
 
+  const { active } = registration;
+
+  if (active === null) {
+    throw new Error("The registration has no active worker.");
+  }
+
   expect(readWorkers(registration, initial).prepared).toEqual({
     status: "ready",
     value: {
       release: {
         identity: { status: "unknown", reason: "worker-build-unknown" },
+        metadata: { worker: { id: getWorkerId(active) } },
       },
-      worker: { id: getWorkerId(registration.active ?? fakeWorker()) },
+      worker: { id: getWorkerId(active) },
     },
   });
 });

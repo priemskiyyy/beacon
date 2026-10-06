@@ -1,8 +1,8 @@
 import type { PlayReading } from "src/types/internal/PlayReading";
 import type { PlayOffer } from "src/types/PlayOffer";
 import type { PlayUpdateInfo } from "src/types/PlayUpdateInfo";
+import { VERSION_CODE_DOMAIN } from "src/utils/constants/authority";
 import { IN_PROGRESS_IDENTITY } from "src/utils/constants/reasons";
-import { createVersionIdentity } from "src/utils/createVersionIdentity";
 
 const readFlows = (info: { flexible: boolean; immediate: boolean }) => {
   const flows: PlayOffer["flows"] = [];
@@ -18,34 +18,32 @@ const readFlows = (info: { flexible: boolean; immediate: boolean }) => {
   return flows;
 };
 
+// An answer that names no release and says nothing of an install.
+const readNoRelease = (
+  observation: PlayReading["observation"],
+): PlayReading => ({
+  observation,
+  release: null,
+  installStatus: null,
+});
+
 /**
  * What a query of Play means, in its four categories. A version, its priority
  * and its staleness are read only where Play defines them; anything Play does
- * not say becomes unknown, never a synthetic version. Not available is no
- * offer here, not proof that no release exists.
+ * not say becomes unknown, never a synthetic version, and so does a category
+ * a native module invents. Not available is no offer here, not proof that no
+ * release exists.
  */
 export const readUpdateInfo = (
   info: PlayUpdateInfo,
   application: string,
 ): PlayReading => {
   if (info.availability === "not-available") {
-    return {
-      observation: {
-        status: "none",
-        reason: "no-decision",
-        detail: "not-available",
-      },
-      release: null,
-      installStatus: null,
-    };
-  }
-
-  if (info.availability === "unknown") {
-    return {
-      observation: { status: "unknown", reason: "unsupported-environment" },
-      release: null,
-      installStatus: null,
-    };
+    return readNoRelease({
+      status: "none",
+      reason: "no-decision",
+      detail: "not-available",
+    });
   }
 
   if (info.availability === "in-progress") {
@@ -59,6 +57,7 @@ export const readUpdateInfo = (
         offer: {
           release,
           flows: ["immediate"],
+          // The bridge says nothing of a continuation's priority, so this is Play's default and not a reading.
           priority: 0,
           stalenessDays: null,
           inProgress: true,
@@ -69,22 +68,35 @@ export const readUpdateInfo = (
     };
   }
 
-  const release = {
-    identity: createVersionIdentity(application, info.versionCode),
-  } satisfies PlayOffer["release"];
-
-  return {
-    observation: {
-      status: "available",
-      offer: {
-        release,
-        flows: readFlows(info),
-        priority: info.priority,
-        stalenessDays: info.stalenessDays,
-        inProgress: false,
+  if (info.availability === "available") {
+    // A published build is named by the version code Play orders builds with, under the application that publishes it.
+    const release = {
+      identity: {
+        status: "known",
+        authority: application,
+        domain: VERSION_CODE_DOMAIN,
+        value: String(info.versionCode),
       },
-    },
-    release,
-    installStatus: info.installStatus,
-  };
+    } satisfies PlayOffer["release"];
+
+    return {
+      observation: {
+        status: "available",
+        offer: {
+          release,
+          flows: readFlows(info),
+          priority: info.priority,
+          stalenessDays: info.stalenessDays,
+          inProgress: false,
+        },
+      },
+      release,
+      installStatus: info.installStatus,
+    };
+  }
+
+  return readNoRelease({
+    status: "unknown",
+    reason: "unsupported-environment",
+  });
 };

@@ -1,9 +1,11 @@
 import { createReleaseDriver } from "@priemskiyyy/beacon";
-import type { CommandMap } from "@priemskiyyy/beacon";
+import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon";
 
+import type { ActivationReceipt } from "src/types/ActivationReceipt";
 import type { ServiceWorkerNative } from "src/types/ServiceWorkerNative";
 import type { ServiceWorkerOptions } from "src/types/ServiceWorkerOptions";
 import type { WorkerBody } from "src/types/WorkerBody";
+import type { WorkerReloadReceipt } from "src/types/WorkerReloadReceipt";
 import { SKIP_WAITING_MESSAGE } from "src/utils/constants/messages";
 import { NO_DOCUMENT, NO_REGISTRATION } from "src/utils/constants/reasons";
 import { getContainer } from "src/utils/getContainer";
@@ -21,10 +23,14 @@ const createCommands = ({
       reference: "offer",
       impacts: ["worker-takeover"],
       binding: "exact-instance",
-      run: async ({ native, offer, signal }) => {
+      run: async ({
+        native,
+        offer,
+        signal,
+      }): Promise<ProviderResult<ActivationReceipt>> => {
         const registration = await native.registration();
 
-        // A takeover reaches every tab, so it is never started for a session that has ended.
+        // The wait ended while the registration was found, by the caller's abort or the end of the session. A takeover reaches every tab, so it is not started then, and cancelled releases the route that the ended wait left unresolved.
         if (signal.aborted) {
           return { status: "cancelled", stage: "session-ended" };
         }
@@ -55,7 +61,7 @@ const createCommands = ({
       reference: "prepared",
       impacts: ["document-replacement"],
       binding: "provider-current",
-      run: async () => {
+      run: async (): Promise<ProviderResult<WorkerReloadReceipt>> => {
         const window = getWindow(target);
 
         if (window === null) {

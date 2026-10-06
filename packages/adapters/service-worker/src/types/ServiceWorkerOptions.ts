@@ -4,10 +4,10 @@ import type { ServiceWorkerWindow } from "src/types/ServiceWorkerWindow";
 import type { WorkerMessage } from "src/types/WorkerMessage";
 
 /**
- * Options for `serviceWorker()`. Every one is optional and read only when a
- * session opens, so creating the route touches no browser API. The adapter
- * never registers, unregisters or replaces a worker: the registration is the
- * application's.
+ * Options for `serviceWorker()`. Every one is optional, and the browser is
+ * reached only when a session opens or a command runs, so creating the route
+ * touches no browser API. The adapter never registers, unregisters or replaces
+ * a worker: the registration is the application's.
  *
  * @example
  * ```ts

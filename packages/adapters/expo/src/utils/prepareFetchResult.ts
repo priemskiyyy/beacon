@@ -3,7 +3,7 @@ import type { PreparedDraft, ReleaseIdentity } from "@priemskiyyy/beacon";
 import type { ExpoBody } from "src/types/ExpoBody";
 import type { ExpoDownloadReceipt } from "src/types/ExpoDownloadReceipt";
 import type { FetchResultLike } from "src/types/FetchResultLike";
-import { createRollbackIdentity } from "src/utils/createRollbackIdentity";
+import { ROLLBACK_IDENTITY } from "src/utils/constants/identities";
 import { createUpdateIdentity } from "src/utils/createUpdateIdentity";
 import { relateToOffer } from "src/utils/relateToOffer";
 
@@ -41,16 +41,17 @@ export const prepareFetchResult = (
   }
 
   if (result.isRollBackToEmbedded) {
-    const identity = createRollbackIdentity();
-
     return {
       prepared: {
         status: "ready",
-        value: { release: { identity }, kind: "rollback-to-embedded" },
+        value: {
+          release: { identity: ROLLBACK_IDENTITY },
+          kind: "rollback-to-embedded",
+        },
       },
       receipt: {
         kind: "rollback-prepared",
-        offered: relateToOffer(identity, offered),
+        offered: relateToOffer(ROLLBACK_IDENTITY, offered),
       },
     };
   }

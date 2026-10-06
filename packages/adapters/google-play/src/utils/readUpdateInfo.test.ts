@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import { availableInfo } from "src/fakeBridge.fixture";
+import type { PlayUpdateInfo } from "src/types/PlayUpdateInfo";
 import { readUpdateInfo } from "src/utils/readUpdateInfo";
 
 const APPLICATION = "com.example.notes";
@@ -79,4 +80,17 @@ test("a flow Play still holds is offered as a continuation with no version to na
     },
   });
   expect(installStatus).toBe("downloading");
+});
+
+test("PLAY-02 an answer outside Play's four categories is an environment that cannot say, never an offer", () => {
+  // What a native module can hand over, though its type says otherwise.
+  const stray: PlayUpdateInfo = JSON.parse(
+    '{"availability":"maybe","versionCode":412}',
+  );
+
+  expect(readUpdateInfo(stray, APPLICATION)).toEqual({
+    observation: { status: "unknown", reason: "unsupported-environment" },
+    release: null,
+    installStatus: null,
+  });
 });

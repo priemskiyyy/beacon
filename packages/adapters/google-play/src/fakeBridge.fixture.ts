@@ -48,10 +48,12 @@ export const fakeBridge = (
     info: PlayUpdateInfo;
     failure: Error | null;
     holding: boolean;
+    ignoringRemoval: boolean;
   } = {
     info: initial,
     failure: null,
     holding: false,
+    ignoringRemoval: false,
   };
 
   const held: Array<() => void> = [];
@@ -89,6 +91,10 @@ export const fakeBridge = (
       listeners.add(listener);
 
       return () => {
+        if (state.ignoringRemoval) {
+          return;
+        }
+
         listeners.delete(listener);
       };
     },
@@ -113,6 +119,10 @@ export const fakeBridge = (
     },
     failQueries: (error: Error | null) => {
       state.failure = error;
+    },
+    // A bridge whose native side keeps delivering after the listener was removed.
+    ignoreRemoval: () => {
+      state.ignoringRemoval = true;
     },
     setFlow: (flow: "flexible" | "immediate", result: PlayFlowResult) => {
       flows[flow] = result;

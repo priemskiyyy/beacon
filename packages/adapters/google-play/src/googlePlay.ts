@@ -1,45 +1,33 @@
 import { createReleaseDriver } from "@priemskiyyy/beacon";
-import type { CommandMap } from "@priemskiyyy/beacon";
+import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon";
 
 import type { PlayNative } from "src/types/PlayNative";
 import type { PlayOffer } from "src/types/PlayOffer";
 import type { PlayOptions } from "src/types/PlayOptions";
 import type { PlayPrepared } from "src/types/PlayPrepared";
-import { FLOW_NOT_ALLOWED } from "src/utils/constants/reasons";
+import type { PlayReceipt } from "src/types/PlayReceipt";
 import { PlaySession } from "src/utils/PlaySession";
 import { bindSession, getSession } from "src/utils/sessions";
+
+// A command answers its own receipt, and annotating it keeps the receipt's `kind` a literal.
+type Answer<TKind extends PlayReceipt["kind"]> = Promise<
+  ProviderResult<Extract<PlayReceipt, { kind: TKind }>>
+>;
 
 const commands = {
   download: {
     reference: "offer",
     impacts: ["may-activate-on-next-start"],
     binding: "provider-current",
-    run: async ({ native, offer, signal }) => {
+    run: async ({ native, offer, signal }): Answer<"update-downloaded"> => {
       const session = getSession(native);
+      const refusal = await session.confirmFlow(offer, "flexible");
 
-      if (session === undefined) {
-        return { status: "cancelled", stage: "session-ended" };
+      if (refusal !== null) {
+        return refusal;
       }
 
-      if (!offer.flows.includes("flexible")) {
-        return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
-      }
-
-      const fresh = await session.confirm(offer);
-
-      if (fresh === null) {
-        return { status: "stale" };
-      }
-
-      if (signal.aborted) {
-        return { status: "cancelled", stage: "session-ended" };
-      }
-
-      if (!fresh.flows.includes("flexible")) {
-        return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
-      }
-
-      const result = await session.downloadFlexible();
+      const result = await session.downloadFlexible(offer.release, signal);
 
       if (result.status === "downloaded") {
         return { status: "accepted", receipt: { kind: "update-downloaded" } };
@@ -66,29 +54,20 @@ const commands = {
     reference: "offer",
     impacts: ["native-update-flow", "javascript-restart"],
     binding: "provider-current",
-    run: async ({ native, offer, signal }) => {
-      const session = getSession(native);
+    run: async ({
+      native,
+      offer,
+      signal,
+    }): Answer<"immediate-flow-started"> => {
+      const refusal = await getSession(native).confirmFlow(offer, "immediate");
 
-      if (session === undefined) {
-        return { status: "cancelled", stage: "session-ended" };
+      if (refusal !== null) {
+        return refusal;
       }
 
-      if (!offer.flows.includes("immediate")) {
-        return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
-      }
-
-      const fresh = await session.confirm(offer);
-
-      if (fresh === null) {
-        return { status: "stale" };
-      }
-
+      // The wait may have ended while Play was asked, and the check shares its turn with the start. The caller has been told already; this releases the route that wait left unresolved.
       if (signal.aborted) {
         return { status: "cancelled", stage: "session-ended" };
-      }
-
-      if (!fresh.flows.includes("immediate")) {
-        return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
       }
 
       const flow = await native.bridge.startImmediate();
@@ -117,7 +96,7 @@ const commands = {
     reference: "prepared",
     impacts: ["javascript-restart"],
     binding: "provider-current",
-    run: async ({ native }) => {
+    run: async ({ native }): Answer<"completion-requested"> => {
       await native.bridge.completeUpdate();
 
       return { status: "accepted", receipt: { kind: "completion-requested" } };
@@ -133,7 +112,7 @@ const commands = {
  * says the download ended and prepares the update without restarting the app;
  * `restart` is a separate, guarded command. `update` is
  * disruptive from the moment the flow starts, and resumes one Play still
- * holds. Every command reconfirms the offer against Play first. Nothing here
+ * holds. Every start reconfirms the offer against Play first. Nothing here
  * is proof of an installation: only a later boot shows the running build, and
  * only a real device with a real Play distribution validates the flow. A
  * bridge belongs to one open session at a time: a second Beacon that opens a

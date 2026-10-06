@@ -1,7 +1,8 @@
 import type { WorkerReading } from "src/types/internal/WorkerReading";
 import type { RegistrationLike } from "src/types/RegistrationLike";
+import type { WorkerBody } from "src/types/WorkerBody";
 import type { WorkerLike } from "src/types/WorkerLike";
-import { UNKNOWN_WORKER_RELEASE } from "src/utils/constants/release";
+import { UNKNOWN_WORKER_IDENTITY } from "src/utils/constants/release";
 import {
   FIRST_INSTALL,
   INSTALLING,
@@ -9,14 +10,24 @@ import {
 } from "src/utils/constants/reasons";
 import { getWorkerId } from "src/utils/getWorkerId";
 
-const NOTHING: WorkerReading["prepared"] = { status: "none" };
+const NOTHING_PREPARED: WorkerReading["prepared"] = { status: "none" };
 
-const describe = (worker: WorkerLike) => ({
-  release: UNKNOWN_WORKER_RELEASE,
-  worker: { id: getWorkerId(worker) },
-});
+// The core keeps a reference while the release is the same data, and an unknown identity is the same for every worker, so the instance is part of the release: another worker is another offer.
+const createWorkerBody = (worker: WorkerLike): WorkerBody => {
+  const id = getWorkerId(worker);
 
-const none = (detail: string | null): WorkerReading["observation"] => ({
+  return {
+    release: {
+      identity: UNKNOWN_WORKER_IDENTITY,
+      metadata: { worker: { id } },
+    },
+    worker: { id },
+  };
+};
+
+const createNoOffer = (
+  detail: string | null,
+): WorkerReading["observation"] => ({
   status: "none",
   reason: "no-decision",
   detail,
@@ -28,10 +39,10 @@ const readPrepared = (
   baseline: WorkerLike | null,
 ): WorkerReading["prepared"] => {
   if (baseline === null || active === null || active === baseline) {
-    return NOTHING;
+    return NOTHING_PREPARED;
   }
 
-  return { status: "ready", value: describe(active) };
+  return { status: "ready", value: createWorkerBody(active) };
 };
 
 /**
@@ -46,7 +57,10 @@ export const readWorkers = (
   baseline: WorkerLike | null,
 ): WorkerReading => {
   if (registration === undefined) {
-    return { observation: none(NO_REGISTRATION), prepared: NOTHING };
+    return {
+      observation: createNoOffer(NO_REGISTRATION),
+      prepared: NOTHING_PREPARED,
+    };
   }
 
   const prepared = readPrepared(registration, baseline);
@@ -54,18 +68,18 @@ export const readWorkers = (
 
   if (waiting !== null && active !== null) {
     return {
-      observation: { status: "available", offer: describe(waiting) },
+      observation: { status: "available", offer: createWorkerBody(waiting) },
       prepared,
     };
   }
 
   if (waiting !== null) {
-    return { observation: none(FIRST_INSTALL), prepared };
+    return { observation: createNoOffer(FIRST_INSTALL), prepared };
   }
 
   if (installing !== null) {
-    return { observation: none(INSTALLING), prepared };
+    return { observation: createNoOffer(INSTALLING), prepared };
   }
 
-  return { observation: none(null), prepared };
+  return { observation: createNoOffer(null), prepared };
 };

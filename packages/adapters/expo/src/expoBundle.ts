@@ -28,15 +28,13 @@ const readIdentity = ({ updateId }: UpdatesLike): ReleaseIdentity => {
  * });
  * ```
  */
-export const expoBundle = (updates: UpdatesLike) => (): RunningRelease => {
-  return {
-    identity: readIdentity(updates),
-    label: null,
-    raw: {
-      channel: updates.channel,
-      runtimeVersion: updates.runtimeVersion,
-      embedded: updates.isEmbeddedLaunch,
-      emergency: updates.isEmergencyLaunch,
-    },
-  };
-};
+export const expoBundle = (updates: UpdatesLike) => (): RunningRelease => ({
+  identity: readIdentity(updates),
+  label: null,
+  raw: {
+    channel: updates.channel,
+    runtimeVersion: updates.runtimeVersion,
+    embedded: updates.isEmbeddedLaunch,
+    emergency: updates.isEmergencyLaunch,
+  },
+});

@@ -1,9 +1,11 @@
 import { createReleaseDriver } from "@priemskiyyy/beacon";
-import type { CommandMap } from "@priemskiyyy/beacon";
+import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon";
 
 import type { ExpoBody } from "src/types/ExpoBody";
+import type { ExpoDownloadReceipt } from "src/types/ExpoDownloadReceipt";
 import type { ExpoNative } from "src/types/ExpoNative";
 import type { ExpoOptions } from "src/types/ExpoOptions";
+import type { ExpoReloadReceipt } from "src/types/ExpoReloadReceipt";
 import { UPDATES_DISABLED } from "src/utils/constants/reasons";
 import { mapCheckResult } from "src/utils/mapCheckResult";
 import { prepareFetchResult } from "src/utils/prepareFetchResult";
@@ -14,7 +16,10 @@ const commands = {
     reference: "offer",
     impacts: ["may-activate-on-next-start"],
     binding: "provider-current",
-    run: async ({ native, offer }) => {
+    run: async ({
+      native,
+      offer,
+    }): Promise<ProviderResult<ExpoDownloadReceipt>> => {
       if (!native.updates.isEnabled) {
         return { status: "unsupported", reason: UPDATES_DISABLED };
       }
@@ -36,7 +41,7 @@ const commands = {
     reference: "prepared",
     impacts: ["javascript-restart"],
     binding: "provider-current",
-    run: async ({ native }) => {
+    run: async ({ native }): Promise<ProviderResult<ExpoReloadReceipt>> => {
       if (!native.updates.isEnabled) {
         return { status: "unsupported", reason: UPDATES_DISABLED };
       }

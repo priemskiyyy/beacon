@@ -13,6 +13,7 @@ import { expectTypeOf } from "vitest";
 
 import { browserReload } from "src/browserReload";
 import type { BrowserNative } from "src/types/BrowserNative";
+import type { BrowserReloadReceipt } from "src/types/BrowserReloadReceipt";
 import type { BrowserWindowLike } from "src/types/BrowserWindowLike";
 
 export const target: BrowserWindowLike = window;
@@ -62,7 +63,7 @@ export const receipt = async () => {
   const settled = await web.reload({ offer });
 
   if (settled.status === "accepted") {
-    expectTypeOf(settled.receipt).toEqualTypeOf<{ kind: "reload-requested" }>();
+    expectTypeOf(settled.receipt).toEqualTypeOf<BrowserReloadReceipt>();
 
     // @ts-expect-error -- an accepted reload proves no update.
     return settled.receipt.updated;

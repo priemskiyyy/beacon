@@ -2,7 +2,7 @@ import type { ObservationDraft } from "@priemskiyyy/beacon";
 
 import type { CheckResultLike } from "src/types/CheckResultLike";
 import type { ExpoBody } from "src/types/ExpoBody";
-import { createRollbackIdentity } from "src/utils/createRollbackIdentity";
+import { ROLLBACK_IDENTITY } from "src/utils/constants/identities";
 import { createUpdateIdentity } from "src/utils/createUpdateIdentity";
 
 /**
@@ -28,7 +28,7 @@ export const mapCheckResult = (
     return {
       status: "available",
       offer: {
-        release: { identity: createRollbackIdentity() },
+        release: { identity: ROLLBACK_IDENTITY },
         kind: "rollback-to-embedded",
       },
     };

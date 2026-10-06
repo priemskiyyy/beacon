@@ -14,8 +14,10 @@ import { build } from "vite";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CORE = path.join(ROOT, "packages/core/dist/index.js");
 const BROWSER = path.join(ROOT, "packages/adapters/browser/dist/index.js");
+const BROWSER_DOCS = path.join(ROOT, "docs/browser.md");
 
-const state = { build: "build-a" };
+// `delay` holds the answer to the page itself, so the old document is alive while the new one is on its way.
+const state = { build: "build-a", delay: 0 };
 
 const lab: {
   code: string;
@@ -51,6 +53,18 @@ const readBundle = async (folder: string) => {
 // A Beacon over a manifest that always names build-b, with the journal in the storage under test. The build the page runs is what the server wrote into it, so a real reload after a deploy runs build-b.
 const APP = `
 const scope = { application: "com.example.notes", environment: "production", platform: "web", distribution: "public-web" };
+// What an application has of its own: a draft it will not lose, the prompt it asks for while the draft is dirty, and a participant that closes the draft while a reload is reserved.
+window.draft = { dirty: false, guard: "preventDefault" };
+addEventListener("beforeunload", (event) => {
+  if (!window.draft.dirty) { return; }
+  if (window.draft.guard === "returnValue") { event.returnValue = "Unsaved"; return; }
+  event.preventDefault();
+});
+addEventListener("pagehide", () => {
+  if (!window.beacon) { return; }
+  const { operation } = window.beacon.route("web").state.get();
+  document.cookie = "operation-at-pagehide=" + operation.state;
+});
 window.boot = async (options = {}) => {
   const source = Lab.createReleaseSource({ name: "manifest", read: async () => ({ document: { kind: "target", release: { identity: { status: "known", authority: scope.application, domain: "web-artifact", value: "build-b" }, label: "b" } } }) });
   const beacon = new Lab.Beacon({
@@ -60,6 +74,14 @@ window.boot = async (options = {}) => {
     journal: { mode: "required", storage: Lab.browserStorage(options) },
   });
   window.beacon = beacon;
+  const field = document.getElementById("draft");
+  field.addEventListener("input", () => { window.draft.dirty = true; });
+  // The reserved result says how to reopen the draft by the name the field has today, and by the name the rename gives it.
+  beacon.disruptions.register({ name: "draft", impacts: ["document-replacement"], reserve: () => {
+    field.readOnly = true;
+    const reopen = () => { field.readOnly = false; };
+    return { status: "reserved", release: reopen, resume: reopen };
+  } });
   beacon.start();
   await new Promise((resolve) => setTimeout(resolve, 80));
   return beacon;
@@ -77,6 +99,19 @@ window.judged = () => {
   const web = window.beacon.running.get().web;
   return { journal, outcome: latest === null ? null : latest.outcome, running: web.state === "known" && web.release.identity.status === "known" ? web.release.identity.value : null };
 };
+`;
+
+// A worker that precaches the page at install and answers every navigation from its cache, as a Workbox precache does for the shell of an app.
+const PRECACHING_WORKER = `
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open("shell").then((cache) => cache.add("/")).then(() => self.skipWaiting()));
+});
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", (event) => {
+  if (event.request.mode === "navigate") {
+    event.respondWith(caches.match("/").then((stored) => stored || fetch(event.request)));
+  }
+});
 `;
 
 // What a sandboxed frame without `allow-same-origin` runs: its origin is opaque, so reading either storage property throws.
@@ -102,6 +137,13 @@ test.beforeAll(async () => {
       return;
     }
 
+    if (request.url === "/sw.js") {
+      response.setHeader("content-type", "text/javascript");
+      response.end(PRECACHING_WORKER);
+
+      return;
+    }
+
     response.setHeader("content-type", "text/html");
 
     if (request.url === "/frame") {
@@ -112,9 +154,9 @@ test.beforeAll(async () => {
       return;
     }
 
-    response.end(
-      `<!doctype html><title>storage</title><body><script>${lab.code}</script><script>const BUILD = ${JSON.stringify(state.build)};${APP}</script></body>`,
-    );
+    const page = `<!doctype html><title>storage</title><body><textarea id="draft"></textarea><script>${lab.code}</script><script>const BUILD = ${JSON.stringify(state.build)};${APP}</script></body>`;
+
+    setTimeout(() => response.end(page), state.delay);
   });
 
   await new Promise<void>((resolve) => {
@@ -146,6 +188,7 @@ test.afterAll(async () => {
 
 test.beforeEach(() => {
   state.build = "build-a";
+  state.delay = 0;
 });
 
 // `options` is what the page hands `browserStorage`, as text of code: nothing, to use its defaults.
@@ -352,3 +395,218 @@ for (const { name, env, known } of DEFINES) {
     }
   });
 }
+
+// The recipe of `docs/browser.md` for a reload the page cancels is read from the page, so what the documentation shows is what runs here.
+const readRecipe = () => {
+  const page = readFileSync(BROWSER_DOCS, "utf8");
+  const section = page.slice(page.indexOf("## A reload the page cancels"));
+  const fence = /```ts\n([\s\S]*?)\n```/.exec(section);
+
+  if (fence === null || fence[1] === undefined) {
+    throw new Error("The page shows no recipe.");
+  }
+
+  return `(() => {${fence[1]}})()`;
+};
+
+// The same handler without the check that the page asked for a prompt.
+const UNCONDITIONAL = `(() => { addEventListener("beforeunload", () => { setTimeout(() => beacon.route("web").acknowledge(), 0); }); })()`;
+
+type Choice = "stay" | "leave";
+
+// A page with an offer and a draft, whose prompt is answered as `choice` says; `dialogs` lists the prompts the browser showed.
+const openWithDraft = async (
+  page: Page,
+  choice: Choice,
+  recipe: string | null,
+) => {
+  const dialogs: string[] = [];
+
+  page.on("dialog", async (dialog) => {
+    dialogs.push(dialog.type());
+
+    if (choice === "stay") {
+      await dialog.dismiss();
+
+      return;
+    }
+
+    await dialog.accept();
+  });
+
+  await page.goto(lab.url);
+  await page.evaluate("sessionStorage.clear(); localStorage.clear();");
+  await page.evaluate("window.boot().then(() => window.offer())");
+
+  if (recipe !== null) {
+    await page.evaluate(recipe);
+  }
+
+  return dialogs;
+};
+
+// Real input gives the page the user activation a browser wants before it shows a prompt.
+const typeADraft = async (page: Page) => {
+  await page.locator("#draft").fill("my draft");
+};
+
+const requestReload = async (page: Page) => {
+  await page.evaluate("setTimeout(() => window.goReload(), 0)");
+  await page.waitForFunction("window.__outcome !== undefined");
+};
+
+const operation = (page: Page) =>
+  page.evaluate("window.beacon.route('web').state.get().operation.state");
+
+test("a reload the user cancels leaves the route unresolved and the draft locked, since nothing tells Beacon the page stayed", async ({
+  page,
+}) => {
+  const dialogs = await openWithDraft(page, "stay", null);
+
+  await typeADraft(page);
+  await requestReload(page);
+
+  expect(dialogs).toEqual(["beforeunload"]);
+  await expect(page.locator("#draft")).not.toBeEditable();
+  expect(await operation(page)).toBe("indeterminate");
+
+  const again = await page.evaluate(`(async () => {
+    const { observation } = window.beacon.route("web").state.get();
+    const outcome = await window.beacon.route("web").reload({ offer: observation.offer.ref });
+
+    return { status: outcome.status, codes: (outcome.reasons || []).map((reason) => reason.code) };
+  })()`);
+
+  expect(again).toEqual({
+    status: "blocked",
+    codes: ["operation-indeterminate"],
+  });
+});
+
+for (const guard of ["preventDefault", "returnValue"]) {
+  test(`with the recipe of the documentation, a prompt the page answered by staying gives the page back, for a guard written with ${guard}`, async ({
+    page,
+  }) => {
+    const dialogs = await openWithDraft(page, "stay", readRecipe());
+
+    // The guard of this page, written the way the test says.
+    await page.evaluate(`window.draft.guard = ${JSON.stringify(guard)}`);
+
+    await typeADraft(page);
+    await requestReload(page);
+
+    expect(dialogs).toEqual(["beforeunload"]);
+    await expect(page.locator("#draft")).toBeEditable();
+    expect(await operation(page)).toBe("idle");
+
+    // Typing works, and a second reload is asked for and accepted, not blocked.
+    await page.locator("#draft").fill("my draft, going on");
+    await expect(page.locator("#draft")).toHaveValue("my draft, going on");
+
+    const second = await page.evaluate(`(async () => {
+      const { observation } = window.beacon.route("web").state.get();
+      const outcome = await window.beacon.route("web").reload({ offer: observation.offer.ref });
+
+      return outcome.status;
+    })()`);
+
+    expect(second).toBe("accepted");
+  });
+}
+
+test("with the recipe, a prompt the user answers by leaving still reloads into the deploy, and the next boot judges it", async ({
+  page,
+}) => {
+  state.delay = 600;
+
+  const dialogs = await openWithDraft(page, "leave", readRecipe());
+
+  await page.evaluate("fetch('/deploy').then((response) => response.text())");
+  await typeADraft(page);
+
+  const loaded = page.waitForEvent("load");
+
+  await page.evaluate("setTimeout(() => window.goReload(), 0)");
+  await loaded;
+
+  expect(dialogs).toEqual(["beforeunload"]);
+
+  // The timer ran while the new document was loading, so the old one had let go of the route by then.
+  expect(await page.evaluate("document.cookie")).toBe(
+    "operation-at-pagehide=idle",
+  );
+
+  const next = await page.evaluate("window.boot().then(() => window.judged())");
+
+  expect(next).toEqual({
+    journal: "ready",
+    outcome: "target-running",
+    running: "build-b",
+  });
+});
+
+test("a reload nobody prompts about stays closed until the new document replaces the old one, with the recipe of the documentation", async ({
+  page,
+}) => {
+  state.delay = 600;
+
+  const dialogs = await openWithDraft(page, "stay", readRecipe());
+
+  await page.evaluate("fetch('/deploy').then((response) => response.text())");
+
+  const loaded = page.waitForEvent("load");
+
+  await page.evaluate("setTimeout(() => window.goReload(), 0)");
+  await loaded;
+
+  expect(dialogs).toEqual([]);
+  expect(await page.evaluate("document.cookie")).toBe(
+    "operation-at-pagehide=indeterminate",
+  );
+});
+
+test("a handler that acknowledges without asking whether a prompt was shown releases the route while the new document is still loading", async ({
+  page,
+}) => {
+  state.delay = 600;
+
+  const dialogs = await openWithDraft(page, "stay", UNCONDITIONAL);
+
+  await page.evaluate("fetch('/deploy').then((response) => response.text())");
+
+  const loaded = page.waitForEvent("load");
+
+  await page.evaluate("setTimeout(() => window.goReload(), 0)");
+  await loaded;
+
+  expect(dialogs).toEqual([]);
+  expect(await page.evaluate("document.cookie")).toBe(
+    "operation-at-pagehide=idle",
+  );
+});
+
+test("a service worker that precaches the page answers the reload from its cache, so the page runs the old build again and the journal says the target did not run", async ({
+  page,
+}) => {
+  await page.goto(lab.url);
+  await page.evaluate("sessionStorage.clear(); localStorage.clear();");
+  await page.evaluate(
+    "navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready)",
+  );
+  await page.waitForFunction("navigator.serviceWorker.controller !== null");
+  await page.evaluate("window.boot().then(() => window.offer())");
+  await page.evaluate("fetch('/deploy').then((response) => response.text())");
+
+  const loaded = page.waitForEvent("load");
+
+  await page.evaluate("setTimeout(() => window.goReload(), 0)");
+  await loaded;
+
+  const next = await page.evaluate("window.boot().then(() => window.judged())");
+
+  expect(next).toEqual({
+    journal: "ready",
+    outcome: "target-not-running",
+    running: "build-a",
+  });
+});

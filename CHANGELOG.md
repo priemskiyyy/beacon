@@ -41,6 +41,8 @@
 
 - First release. `browserReload()` is a mechanism with one command, `reload`, bound to nothing: the next navigation receives whatever is deployed. Without a window it is unsupported.
 - `webBuild({ authority, id, label, domain })` reads the running web build from the id a bundler injects, such as `import.meta.env.VITE_BUILD_ID`, in the domain `web-artifact`: an id that was never defined, which compiles to `undefined` or an empty string or is written as the text `undefined`, is an unknown identity with the reason `build-id-not-injected`, never a build named `undefined`.
+- `webRelease({ authority, id, label })` makes the `Release` that `webBuild` reads back when that build runs, so a custom web source names its build without an identity written by hand; it refuses an id nobody defined with `INVALID_CONFIGURATION`, since a release cannot be unknown.
+- The documentation shows the recipe for a reload the page cancels, a `beforeunload` handler that acknowledges once the prompt is answered, and warns that a service worker that precaches the app answers a reload from its cache. Both run in Chromium with real prompts and a real worker (`examples/browser-storage.spec.ts`); the adapter does not report a cancelled navigation itself.
 - `browserStorage({ area, target, verify })` keeps the journal in the tab's `sessionStorage`, or in `localStorage` with `area: "local"`, over `keyValueJournalStorage`. It reaches the storage at each call and touches nothing when it is made: a server render, a frame that blocks site data (the `SecurityError` is the cause) and a full storage each reject that call.
 - Requires `@priemskiyyy/beacon` 0.1.
 

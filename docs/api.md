@@ -294,6 +294,7 @@ See [browser](browser.md).
 | `browserReload`            | function | a mechanism with one command, `reload`, bound to nothing                                          |
 | `browserStorage`           | function | the journal's storage in the tab's `sessionStorage`, or `localStorage` with `area: "local"`       |
 | `webBuild`                 | function | the reader of the running web build, from the id the bundler injects; an id nobody set is unknown |
+| `webRelease`               | function | the release a source names for a web build, which `webBuild` reads back when it runs              |
 | `BrowserReloadOptions`     | type     | the window whose document is reloaded                                                             |
 | `BrowserNative`            | type     | what `route.native` exposes: the window, or `null`                                                |
 | `BrowserWindowLike`        | type     | the part of a window the mechanism uses: `location.reload()`                                      |
@@ -301,6 +302,7 @@ See [browser](browser.md).
 | `BrowserStorageArea`       | type     | `session` or `local`                                                                              |
 | `BrowserStorageOptions`    | type     | the area, the window and whether a write is read back                                             |
 | `BrowserStorageWindowLike` | type     | the part of a window the storage uses: its two areas of web storage                               |
+| `WebReleaseOptions`        | type     | the authority, id and label of `webRelease`                                                       |
 | `WebBuildOptions`          | type     | the authority, the injected id, an optional label and the domain                                  |
 
 ## @priemskiyyy/beacon-service-worker

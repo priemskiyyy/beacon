@@ -1,8 +1,16 @@
 import type { InconclusiveReason } from "src/types/InconclusiveReason";
 import type { NoOfferReason } from "src/types/NoOfferReason";
 
-/** What selection decided about one release, before evidence is attached. */
-export type Selection<TRelease> =
+/**
+ * What selection decided about one release, before evidence is attached to it:
+ * offer it, say why not, or say the evidence cannot tell.
+ *
+ * @example
+ * ```ts
+ * const selection: ReleaseSelection<Release> = { status: "offer", release };
+ * ```
+ */
+export type ReleaseSelection<TRelease> =
   | { status: "offer"; release: TRelease }
   | {
       status: "none";

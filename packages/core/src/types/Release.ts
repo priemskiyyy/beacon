@@ -15,7 +15,7 @@ import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
  * };
  * ```
  */
-export type Release<TMetadata = null> = {
+export type Release<TMetadata extends object | null = null> = {
   identity: ReleaseIdentity;
   label?: string;
   compatibility?: Compatibility;

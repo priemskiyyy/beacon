@@ -1,0 +1,34 @@
+import type { CommandMap } from "src/types/CommandMap";
+import type { DriverContext } from "src/types/DriverContext";
+import type { DriverSession } from "src/types/DriverSession";
+import type { RouteBody } from "src/types/RouteBody";
+
+/**
+ * A route whose provider owns both the question and the answer, such as Expo
+ * Updates, Google Play or a service worker: it checks, reports what it is
+ * ready to do, and carries the commands of that provider. `prepares` says
+ * whether the provider can report a prepared target at all.
+ *
+ * @example
+ * ```ts
+ * const driver = createReleaseDriver<Updates, UpdateBody, UpdateBody, typeof commands>({
+ *   name: "expo-updates",
+ *   prepares: true,
+ *   open: ({ emit }) => ({ native: updates, check }),
+ *   commands,
+ * });
+ * ```
+ */
+export type ReleaseDriver<
+  TNative,
+  TOffer extends RouteBody,
+  TPrepared extends RouteBody,
+  TCommands extends CommandMap<TNative, TOffer, TPrepared>,
+> = {
+  name: string;
+  prepares: boolean;
+  open(
+    context: DriverContext<TOffer, TPrepared>,
+  ): DriverSession<TNative, TOffer>;
+  commands: TCommands;
+};

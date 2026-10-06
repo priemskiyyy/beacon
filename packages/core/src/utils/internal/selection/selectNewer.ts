@@ -1,7 +1,7 @@
 import type { IdentityRelation } from "src/types/IdentityRelation";
 import type { NoneDecision } from "src/types/NoneDecision";
 import type { ReleaseFacts } from "src/types/internal/ReleaseFacts";
-import type { Selection } from "src/types/internal/Selection";
+import type { ReleaseSelection } from "src/types/ReleaseSelection";
 import type { RunningRelease } from "src/types/RunningRelease";
 import type { VersionStrategy } from "src/types/VersionStrategy";
 import { BeaconError } from "src/utils/BeaconError";
@@ -42,7 +42,7 @@ export const selectNewer = <
   running,
   currentOrder,
   version,
-}: SelectNewerInput<TRelease, TParsed, TInput>): Selection<TRelease> => {
+}: SelectNewerInput<TRelease, TParsed, TInput>): ReleaseSelection<TRelease> => {
   if (decision.kind === "none") {
     return {
       status: "none",

@@ -1,6 +1,6 @@
 import type { NoneDecision } from "src/types/NoneDecision";
 import type { ReleaseFacts } from "src/types/internal/ReleaseFacts";
-import type { Selection } from "src/types/internal/Selection";
+import type { ReleaseSelection } from "src/types/ReleaseSelection";
 import type { RunningRelease } from "src/types/RunningRelease";
 import { compareIdentities } from "src/utils/compareIdentities";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
@@ -14,7 +14,7 @@ type SelectTargetInput<TRelease extends ReleaseFacts> = {
 export const selectTarget = <TRelease extends ReleaseFacts>({
   decision,
   running,
-}: SelectTargetInput<TRelease>): Selection<TRelease> => {
+}: SelectTargetInput<TRelease>): ReleaseSelection<TRelease> => {
   if (decision.kind === "none") {
     return {
       status: "none",

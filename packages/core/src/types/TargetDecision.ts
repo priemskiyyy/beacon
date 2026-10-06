@@ -9,7 +9,7 @@ import type { Release } from "src/types/Release";
  * const decision: TargetDecision = { kind: "target", release };
  * ```
  */
-export type TargetDecision<TMetadata = null> = {
+export type TargetDecision<TMetadata extends object | null = null> = {
   kind: "target";
   release: Release<TMetadata>;
 };

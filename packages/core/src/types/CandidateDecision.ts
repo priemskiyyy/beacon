@@ -13,7 +13,10 @@ import type { Release } from "src/types/Release";
  * };
  * ```
  */
-export type CandidateDecision<TOrder, TMetadata = null> = {
+export type CandidateDecision<
+  TOrder,
+  TMetadata extends object | null = null,
+> = {
   kind: "candidate";
   release: Release<TMetadata> & { order: TOrder };
 };

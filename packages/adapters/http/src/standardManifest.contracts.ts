@@ -11,8 +11,10 @@ import { integer, semver } from "@priemskiyyy/beacon/versions";
 import { expectTypeOf } from "vitest";
 
 import { http } from "src/http";
+import type { HttpAnswer } from "src/types/HttpAnswer";
 import type { ManifestResponse } from "src/types/ManifestResponse";
 import type { RouteDeclarations } from "src/types/RouteDeclarations";
+import type { StandardManifest } from "src/types/StandardManifest";
 import type { StandardRead } from "src/types/StandardRead";
 import { parseStandardManifest } from "src/utils/parseStandardManifest";
 import { readStandardManifest } from "src/utils/readStandardManifest";
@@ -58,12 +60,21 @@ export const build = newerRoute({
   mechanism: inert,
 });
 
+// The response of any `fetch` is what a manifest is read from.
+expectTypeOf<Response>().toExtend<ManifestResponse>();
+
 // A parse gives the evidence a source needs, all of it present.
 const read = parseStandardManifest({ text: "", scope, routes, now: 0 });
 
 expectTypeOf(read).toEqualTypeOf<StandardRead<typeof routes>>();
 expectTypeOf(read.digest).toBeString();
 expectTypeOf(read.expiresAt).toBeNumber();
+
+// And it is an answer of `http` as it stands.
+export const answer: HttpAnswer<StandardManifest<typeof routes>> = {
+  status: "changed",
+  ...read,
+};
 
 // The remediation route of the support facts is a route the application declared.
 expectTypeOf(read.document.support).toEqualTypeOf<{

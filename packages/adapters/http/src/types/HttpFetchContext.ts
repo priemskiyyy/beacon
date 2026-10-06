@@ -9,7 +9,7 @@ import type { ReleaseScope } from "@priemskiyyy/beacon";
  *
  * @example
  * ```ts
- * const fetchManifest = ({ scope, signal, validator }: HttpFetchContext) =>
+ * const getManifest = ({ scope, signal, validator }: HttpFetchContext) =>
  *   api.manifest({ scope, signal, etag: validator });
  * ```
  */

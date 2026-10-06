@@ -10,8 +10,12 @@ import type { StandardManifest } from "src/types/StandardManifest";
  *
  * @example
  * ```ts
- * const read = parseStandardManifest({ text, scope, routes, now });
- * const answer = { status: "changed", ...read };
+ * const manifest = http({
+ *   fetch: ({ scope }) => ({
+ *     status: "changed",
+ *     ...parseStandardManifest({ text, scope, routes, now: Date.now() }),
+ *   }),
+ * });
  * ```
  */
 export type StandardRead<TDeclarations extends RouteDeclarations> = {

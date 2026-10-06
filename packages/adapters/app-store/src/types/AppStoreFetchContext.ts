@@ -5,7 +5,7 @@
  *
  * @example
  * ```ts
- * const lookUp = ({ url, signal }: AppStoreFetchContext) => lookup(url, { signal });
+ * const lookUp = ({ url, signal }: AppStoreFetchContext) => fetch(url, { signal });
  * ```
  */
 export type AppStoreFetchContext = {

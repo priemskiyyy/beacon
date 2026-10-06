@@ -7,6 +7,7 @@ import type { PlayOffer } from "src/types/PlayOffer";
 import type { PlayPrepared } from "src/types/PlayPrepared";
 import type { PlayUpdateInfo } from "src/types/PlayUpdateInfo";
 import { IN_PROGRESS_IDENTITY } from "src/utils/constants/identities";
+import { PLAY_MAXIMUM_VERSION_CODE } from "src/utils/constants/versionCode";
 
 const readFlows = (info: { flexible: boolean; immediate: boolean }) => {
   const flows: PlayOffer["flows"] = [];
@@ -22,9 +23,11 @@ const readFlows = (info: { flexible: boolean; immediate: boolean }) => {
   return flows;
 };
 
-// A version code is a positive whole number. Anything else is a bridge that garbled its answer, and naming a build "NaN" or "undefined" would be a made-up identity.
+// A version code is a positive whole number that Play can have published. Anything else is a bridge that garbled its answer, and naming a build "NaN" or "undefined" would be a made-up identity.
 const isVersionCode = (value: number) =>
-  Number.isSafeInteger(value) && value > 0;
+  Number.isSafeInteger(value) &&
+  value > 0 &&
+  value <= PLAY_MAXIMUM_VERSION_CODE;
 
 // A query that finds the download done says the update is prepared, and one that does not says nothing: Play cannot say that nothing is prepared.
 const readPrepared = (

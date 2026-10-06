@@ -109,6 +109,20 @@ test("PLAY-02 an answer outside Play's four categories is an environment that ca
   });
 });
 
+test("PLAY-02 a version code above the highest Play accepts for a published build is an environment that cannot say, and that highest one is a build", () => {
+  // Play refuses to publish a version code above 2,100,000,000, so a larger one is a bridge that garbled its answer.
+  expect(readUpdateInfo(availableInfo(2_100_000_001), APPLICATION)).toEqual({
+    observation: { status: "unknown", reason: "unsupported-environment" },
+    prepared: null,
+  });
+  expect(
+    readUpdateInfo(availableInfo(2_100_000_000), APPLICATION).observation,
+  ).toMatchObject({
+    status: "available",
+    offer: { release: { identity: { value: "2100000000" } } },
+  });
+});
+
 test("PLAY-02 an available answer whose version code is no positive integer is an environment that cannot say, never a known identity", () => {
   const rest =
     '"flexible":true,"immediate":true,"priority":2,"stalenessDays":5,"installStatus":"downloaded"';

@@ -185,12 +185,16 @@ test("an offer Play no longer makes is stale, and no flow starts", async () => {
 test("PLAY-01 a flow Play does not allow for this update is unsupported, and no flow starts", async () => {
   const context = create(availableInfo(412, { immediate: false }));
   const offer = await checkOffer(context);
+  const asked = context.calls.queries;
 
   await expect(context.binary.update({ offer: offer.ref })).resolves.toEqual({
     status: "unsupported",
     reason: "flow-not-allowed",
   });
   expect(context.calls.immediate).toBe(0);
+
+  // The offer the user was shown never allowed it, so Play is not asked again to say so.
+  expect(context.calls.queries).toBe(asked);
 });
 
 test("an immediate flow is disruptive, so a participant is asked, and the route is unresolved once Play took over", async () => {

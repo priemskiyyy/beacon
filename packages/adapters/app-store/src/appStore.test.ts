@@ -172,6 +172,33 @@ test("STORE-01 a lookup that matched nothing is no offer in that storefront", as
   });
 });
 
+test("STORE-10 a version the store releases in phases is an offer like any other, and nothing about the phase rules out opening the store", async () => {
+  const { beacon, binary, link, store } = create("3.2.0");
+
+  // A lookup carries more than the adapter reads, and a rollout is one of the things it does not read.
+  const phased = { ...entry(), phasedReleaseDay: 2, phasedReleasePercent: 5 };
+
+  store.publish([phased]);
+  beacon.start();
+  await binary.check();
+
+  const { observation } = binary.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  expect(Object.keys(observation.offer)).not.toContain("phasedReleasePercent");
+
+  await expect(
+    binary.openStore({ offer: observation.offer }),
+  ).resolves.toMatchObject({
+    status: "accepted",
+    receipt: { kind: "store-handoff-requested" },
+  });
+  expect(link.opened).toEqual([`https://apps.apple.com/app/id${APP_ID}`]);
+});
+
 test("STORE-09 a build outside the store is offered nothing by it, and the store is never asked", async () => {
   const { beacon, binary, store } = create("3.2.0", "testflight");
 

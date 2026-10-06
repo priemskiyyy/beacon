@@ -404,6 +404,23 @@ test("SW-13 stopping the session removes every listener from the registration, i
   expect(countListeners(registration, container)).toBe(0);
 });
 
+test("SW-13 a registration is listened to once, however many checks find it again", async () => {
+  const registration = updateReady();
+  const { beacon, container, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+
+  const once = countListeners(registration, container);
+
+  await worker.check();
+  await worker.check();
+  await beacon.check();
+
+  expect(countListeners(registration, container)).toBe(once);
+  expect(registration.listeners()).toBe(1);
+});
+
 test("a change after the session stopped is not reported", async () => {
   const registration = updateReady();
   const { beacon, worker } = createWorkerBeacon(registration);

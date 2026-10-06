@@ -46,8 +46,8 @@ const MUTANTS = [
   },
   {
     file: `${core}/internal/policy/PolicyRecord.ts`,
-    find: "this.#lastValid = null;\n    this.#reported = null;",
-    replace: "this.#reported = null;",
+    find: "this.#lastValid = null;\n    this.#install(",
+    replace: "this.#install(",
     project: "core",
     describes:
       "the last valid support of one scope kept beside a failure of the next",
@@ -95,11 +95,48 @@ const MUTANTS = [
     describes: "a blocked command leaving reservations held",
   },
   {
+    file: `${core}/internal/disruptions/DisruptionRegistry.ts`,
+    find: 'signal.addEventListener("abort", cancel, { once: true });',
+    replace: "",
+    project: "core",
+    describes:
+      "a settlement deadline that outlives the caller that stopped waiting",
+  },
+  {
+    file: `${core}/internal/disruptions/DisruptionRegistry.ts`,
+    find: 'reservation.status === "reserved" ||',
+    replace: "true ||",
+    project: "core",
+    describes: "a participant that answers nothing taken as having reserved",
+  },
+  {
     file: `${core}/internal/commands/CommandCoordinator.ts`,
     find: "if (this.#options.disruptions.getRevision() !== lease.revision) {",
     replace: "if (false) {",
     project: "core",
     describes: "a dispatch after the participants changed what is safe",
+  },
+  {
+    file: `${core}/internal/commands/CommandCoordinator.ts`,
+    find: '      this.#release(operation);\n\n      return {\n        status: "failed",',
+    replace: '      return {\n        status: "failed",',
+    project: "core",
+    describes: "a call that fails leaving its route and reservations held",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "this.hydrate(opened.session, opened.getRunning);",
+    replace: "",
+    project: "core",
+    describes:
+      "the record of the next scope never read by a session opened meanwhile",
+  },
+  {
+    file: `${core}/internal/journal/createJournalKey.ts`,
+    find: "return encodeLoneSurrogate(piece);",
+    replace: "return encodeURIComponent(piece);",
+    project: "core",
+    describes: "a scope with text that is not well formed failing to start",
   },
   {
     file: "packages/react/src/hooks/internal/useSelectedValue.ts",

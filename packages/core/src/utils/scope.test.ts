@@ -9,13 +9,19 @@ import {
   startWithOffer,
   takeRun,
 } from "src/utils/commands.fixture";
-import { createMemoryStorage } from "src/utils/journal.fixture";
+import {
+  buildIntent,
+  buildStored,
+  createMemoryStorage,
+} from "src/utils/journal.fixture";
 import { target } from "src/utils/routes.fixture";
 import { createJournalKey } from "src/utils/internal/journal/createJournalKey";
+import { serializeJournal } from "src/utils/internal/journal/serializeJournal";
 import {
   answer,
   buildDocument,
   createPolicyBeacon,
+  evaluateSupport,
 } from "src/utils/policy.fixture";
 
 const STAGING: ReleaseScope = { ...SCOPE, environment: "staging" };
@@ -257,4 +263,91 @@ test("the journal reads the record of the next scope, and shows nothing of the l
   expect(context.beacon.transitions.get().latest).toBeNull();
   expect(memory.data.has(createJournalKey(SCOPE))).toBe(true);
   expect(memory.data.has(createJournalKey(STAGING))).toBe(false);
+});
+
+test("the journal reads the record of the next scope, whatever the last one held", async () => {
+  const memory = createMemoryStorage();
+
+  const context = createWebCommandBeacon({
+    journal: { mode: "best-effort", storage: memory.storage },
+  });
+
+  context.beacon.start();
+  await settle();
+
+  memory.data.set(
+    createJournalKey(STAGING),
+    serializeJournal([buildStored(buildIntent({ boot: { id: "boot-0" } }))]),
+  );
+
+  context.beacon.replaceScope(STAGING);
+  await settle();
+
+  expect(context.beacon.transitions.get().latest).toMatchObject({
+    intent: { boot: { id: "boot-0" } },
+  });
+});
+
+test("the intents of the last scope are not shown for the next when its record cannot be read", async () => {
+  const memory = createMemoryStorage();
+
+  const context = createWebCommandBeacon({
+    journal: { mode: "best-effort", storage: memory.storage },
+  });
+
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+  const reloading = web.requestReload({ offer });
+
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+  await reloading;
+  web.acknowledge();
+
+  memory.failReads(new Error("storage offline"));
+  context.beacon.replaceScope(STAGING);
+  await settle();
+
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "degraded",
+    latest: null,
+  });
+});
+
+test("the last valid support of a scope is not kept beside a failure of the next", async () => {
+  const policy = { failing: false };
+
+  const context = createPolicyBeacon({
+    evaluate: (support, running) => {
+      if (policy.failing) {
+        throw new Error("The policy of the next scope cannot be evaluated.");
+      }
+
+      return evaluateSupport(support, running);
+    },
+  });
+
+  context.beacon.start();
+
+  const checking = context.beacon.check();
+
+  await settle();
+  answer(context.mock, buildDocument(), 601_000);
+  await checking;
+
+  expect(context.beacon.support.get().evaluation).not.toBeNull();
+
+  context.beacon.replaceScope(STAGING);
+  policy.failing = true;
+
+  const rechecking = context.beacon.check();
+
+  await settle();
+  answer(context.mock, buildDocument(), 601_000);
+  await rechecking;
+
+  expect(context.beacon.support.get()).toMatchObject({
+    evaluation: null,
+    error: { code: "POLICY_FAILED" },
+  });
 });

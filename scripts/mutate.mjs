@@ -906,6 +906,28 @@ const MUTANTS = [
     describes: "a blocked storage rejecting without the browser's own error",
   },
   {
+    file: "packages/adapters/browser/src/webRelease.ts",
+    find: "if (value === null) {",
+    replace: "if (false) {",
+    project: "browser",
+    describes: "a release named after a define nobody set",
+  },
+  {
+    file: "packages/adapters/browser/src/webRelease.ts",
+    find: "domain: WEB_ARTIFACT_DOMAIN,",
+    replace: 'domain: "web",',
+    project: "browser",
+    describes:
+      "a release named in other words than the reader of the running build uses",
+  },
+  {
+    file: "packages/adapters/browser/src/webRelease.ts",
+    find: 'assertIdentityText("authority", authority);',
+    replace: "",
+    project: "browser",
+    describes: "a release under an authority with a space around it",
+  },
+  {
     file: `${triggers}/utils/openGate.ts`,
     find: 'const mode = reason === "reconnect" ? "after-current" : "join";',
     replace: 'const mode = "join";',

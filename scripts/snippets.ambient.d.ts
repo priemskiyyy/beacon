@@ -3,6 +3,7 @@
 // the names in every snippet's scope while the types stay private to this file.
 import type {
   Beacon as BeaconClass,
+  targetRoute as targetRouteFactory,
   FeedRoute,
   NoneDecision,
   Observation,
@@ -43,7 +44,7 @@ declare global {
 // application and rely on what the reader already has.
 declare global {
   const Beacon: typeof BeaconClass;
-  const targetRoute: typeof import("@priemskiyyy/beacon").targetRoute;
+  const targetRoute: typeof targetRouteFactory;
   const browserReload: typeof browserReloadFactory;
   const running: RunningReaders;
   const readWebRelease: RunningReader;

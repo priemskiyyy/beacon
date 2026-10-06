@@ -26,6 +26,7 @@ import { fileURLToPath } from "node:url";
 //   READMEs see them, so a page of the documentation cannot lean on them.
 const workspace = fileURLToPath(new URL("..", import.meta.url));
 const output = path.join(workspace, ".artifacts/snippets");
+
 const ambientText = readFileSync(
   path.join(workspace, "scripts/snippets.ambient.d.ts"),
   "utf8",
@@ -198,6 +199,7 @@ for (const fence of fences) {
   }
 
   const folder = path.join(output, name);
+
   const file = path.join(
     folder,
     fence.file ??

@@ -26,6 +26,50 @@ const listReadmes = (directory) => {
     .filter((file) => existsSync(file));
 };
 
+// The id VitePress gives a heading, so a link to `page.md#heading` can be checked.
+const slugify = (text) =>
+  text
+    .normalize("NFKD")
+    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/\p{Cc}/gu, "")
+    .replaceAll(
+      /[\s~`!@#$%^&*()\-_+=[\]{}|\\;:"'\u201C\u201D\u2018\u2019<>,.?/]+/g,
+      "-",
+    )
+    .replaceAll(/-{2,}/g, "-")
+    .replaceAll(/^-+|-+$/g, "")
+    .replace(/^(\d)/, "_$1")
+    .toLowerCase();
+
+const listAnchors = (file) => {
+  const inFence = { open: false };
+
+  return new Set(
+    readFileSync(file, "utf8")
+      .split("\n")
+      .flatMap((line) => {
+        if (line.startsWith("```")) {
+          inFence.open = !inFence.open;
+
+          return [];
+        }
+
+        const heading = /^#{1,6} (.+)$/.exec(line);
+
+        if (inFence.open || heading === null) {
+          return [];
+        }
+
+        // The text a reader sees: no code marks, no link targets.
+        const text = heading[1]
+          .replaceAll(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+          .replaceAll(/[`*]/g, "");
+
+        return [slugify(text)];
+      }),
+  );
+};
+
 const pages = listPages(docs);
 
 const prose = [
@@ -70,15 +114,26 @@ for (const file of prose) {
   }
 
   for (const [, target] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
-    if (/^(https?:|mailto:|#)/.test(target)) {
+    if (/^(https?:|mailto:)/.test(target)) {
       continue;
     }
 
-    const [relative] = target.split("#");
-    const resolved = path.resolve(path.dirname(file), relative);
+    const [relative, fragment] = target.split("#");
+
+    const resolved =
+      relative === "" ? file : path.resolve(path.dirname(file), relative);
 
     if (!existsSync(resolved)) {
       failures.push(`${name} links to ${target}, which does not exist.`);
+      continue;
+    }
+
+    if (fragment === undefined || !resolved.endsWith(".md")) {
+      continue;
+    }
+
+    if (!listAnchors(resolved).has(fragment)) {
+      failures.push(`${name} links to ${target}, which has no such heading.`);
     }
   }
 }

@@ -204,7 +204,7 @@ test("an immediate flow is disruptive, so a participant is asked, and the route 
     reserve: () => {
       asked.push("drafts");
 
-      return { status: "reserved", release: () => {} };
+      return { status: "reserved" };
     },
   });
 

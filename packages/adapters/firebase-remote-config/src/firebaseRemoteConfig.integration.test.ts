@@ -182,8 +182,9 @@ test("a key the server does not have fails the check and leaves support unknown,
   });
   expect(beacon.support.get()).toMatchObject({
     status: "unknown",
-    reason: "not-checked",
+    reason: "read-failed",
     evaluation: null,
+    error: { code: "SOURCE_FAILED" },
   });
 });
 
@@ -282,7 +283,7 @@ test("a failed fetch keeps what was accepted: the check says failed, and the ver
   });
   expect(beacon.support.get()).toMatchObject({
     status: "unknown",
-    reason: "expired",
+    reason: "read-failed",
     evaluation: { status: "unsupported" },
   });
 });
@@ -300,8 +301,9 @@ test("an offline cold start fails the check when the activated values are old, t
   expect(report.support).toMatchObject({ status: "failed" });
   expect(beacon.support.get()).toMatchObject({
     status: "unknown",
-    reason: "not-checked",
+    reason: "read-failed",
     evaluation: null,
+    error: { code: "SOURCE_FAILED" },
   });
 });
 

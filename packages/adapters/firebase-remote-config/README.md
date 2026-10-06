@@ -74,7 +74,7 @@ With `use-activated` the support verdict is `unknown` with the reason `expired` 
 
 ## Honest limits
 
-- A read fetches and activates for the whole application, at the moment of the check. An application that activates on its own schedule writes its own source with `createReleaseSource`.
+- A read fetches and activates for the whole application, at the moment of the check. An application that activates on its own schedule writes its own source with `createReleaseSource` from `@priemskiyyy/beacon/adapter`.
 - Real-time updates are not observed. The source subscribes to nothing and never calls `onConfigUpdate`; [the guide](../../../docs/firebase-remote-config.md#real-time-updates) has the recipe that activates and checks.
 - A fetch cannot be aborted. Beacon's check timeout is 10 seconds and Firebase's fetch timeout is 60, so a check can fail with `SOURCE_TIMEOUT` while the fetch goes on, and it may activate its values after the check gave up. The next check finds them.
 - Remote Config has no partition. Its cache belongs to the installation, so a value fetched for one account is served to the next until the interval lapses. `scope.partition` makes Beacon forget the old answer, and cannot make the SDK fetch again.

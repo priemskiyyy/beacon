@@ -4,7 +4,7 @@ Use Node 22.18 or newer and the pnpm version in `package.json`. Run `pnpm instal
 
 ## Layout
 
-- `packages/core`: the runtime, published as `@priemskiyyy/beacon` with the `./versions`, `./mock`, `./testing`, `./triggers` and `./triggers/browser` subpaths. The triggers check a Beacon when the app starts, returns, reconnects or waits; they are structural, import no SDK and read a window only in `src/triggers/browser`.
+- `packages/core`: the runtime, published as `@priemskiyyy/beacon` with the `./adapter`, `./versions`, `./mock`, `./testing`, `./triggers` and `./triggers/browser` subpaths. The root is what an application imports and `./adapter` what an adapter author writes, and no name is in both. The triggers check a Beacon when the app starts, returns, reconnects or waits; they are structural, import no SDK and read a window only in `src/triggers/browser`.
 - `packages/adapters/*`: one package per source or provider, published as `@priemskiyyy/beacon-<name>`: `http` defines a release source over the application's own client, `browser` reloads the document, keeps the journal in web storage and reads the running web build, `service-worker`, `expo`, `code-push`, `google-play` and `app-store` map a provider, `firebase-remote-config` defines a release source over Firebase Remote Config, and `device-info` reads the installed native build from `react-native-device-info` (`expo` reads it from `expo-application`).
 - `packages/react`, `packages/solid`, `packages/vue` and `packages/svelte`: the framework bindings, each a provider and the same primitives in its framework's idiom, read by route name from the `Register`ed Beacon.
 - `docs/`: the VitePress site, with the guides, the adapters, the bindings, the decision record, the runtime architecture and the verification table.
@@ -23,7 +23,7 @@ Beacon never throws into its host from a callback. A source, a mechanism, a part
 
 ## Adapters
 
-A release source is `{ name, read, select }`, made with `createReleaseSource`. A mechanism (`createUpdateMechanism`) carries commands for a route whose offers come from a source. A driver (`createReleaseDriver`) owns a provider's check, its prepared targets and its commands. The rules that are easiest to break:
+A release source is `{ name, read, select }`, made with `createReleaseSource`. A mechanism (`createUpdateMechanism`) carries commands for a route whose offers come from a source. A driver (`createReleaseDriver`) owns a provider's check, its prepared targets and its commands. These and the types an author writes are exported by `@priemskiyyy/beacon/adapter`, so the root of the core stays what an application imports: an adapter imports from both, and its shipped code never imports `@priemskiyyy/beacon/mock` or `/testing` (ESLint and `pnpm test:package` check it). The rules that are easiest to break:
 
 - The factory is cold: nothing is read, subscribed or registered until a session opens, and a host without the provider is inert, never an error.
 - It takes the SDK the application set up, never configures it, and removes only the listeners it added.

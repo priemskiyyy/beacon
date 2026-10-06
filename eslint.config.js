@@ -256,6 +256,14 @@ const devtoolsSolid = {
     "The React wrapper reaches the inspector by its package name; Solid is bundled inside it.",
 };
 
+// The mock and the conformance suites are for a test of an application or an adapter; what a package ships never imports them.
+const coreTestEntries = {
+  names: ["@priemskiyyy/beacon/mock", "@priemskiyyy/beacon/testing"],
+  groups: ["@priemskiyyy/beacon/mock/*", "@priemskiyyy/beacon/testing/*"],
+  message:
+    "Shipped code never imports the test helpers of the core (mock, testing): only a test does.",
+};
+
 const testRunners = {
   names: ["vitest"],
   groups: ["vitest/*", "@testing-library/*"],
@@ -537,7 +545,7 @@ export default tseslint.config(
     files,
     ignores: [...tests, ...entryPoints, ...ignores],
     rules: {
-      ...restrictImports([...frameworks, sdks, testRunners]),
+      ...restrictImports([...frameworks, sdks, testRunners, coreTestEntries]),
       "no-restricted-globals": [
         "error",
         ...hostTimers,
@@ -577,6 +585,7 @@ export default tseslint.config(
         ...frameworks.filter((other) => other !== framework),
         sdks,
         testRunners,
+        coreTestEntries,
       ]),
       "no-restricted-globals": [
         "error",
@@ -591,17 +600,40 @@ export default tseslint.config(
     {
       files: ["packages/devtools/src/**/*.{ts,tsx}"],
       ignores: [...tests, ...entryPoints],
-      forbidden: [devtoolsReact, devtoolsSelf, vue, svelte, sdks, testRunners],
+      forbidden: [
+        devtoolsReact,
+        devtoolsSelf,
+        vue,
+        svelte,
+        sdks,
+        testRunners,
+        coreTestEntries,
+      ],
       syntax: packageSyntax,
     },
     {
       files: ["packages/devtools/src/index.ts"],
-      forbidden: [devtoolsReact, devtoolsSelf, vue, svelte, sdks, testRunners],
+      forbidden: [
+        devtoolsReact,
+        devtoolsSelf,
+        vue,
+        svelte,
+        sdks,
+        testRunners,
+        coreTestEntries,
+      ],
       syntax: [...relativeImports, ...bannedSyntax],
     },
     {
       files: ["packages/devtools/src/react.ts"],
-      forbidden: [devtoolsSolid, vue, svelte, sdks, testRunners],
+      forbidden: [
+        devtoolsSolid,
+        vue,
+        svelte,
+        sdks,
+        testRunners,
+        coreTestEntries,
+      ],
       syntax: [...relativeImports, ...bannedSyntax],
     },
   ].map(({ files, ignores = [], forbidden, syntax }) => ({

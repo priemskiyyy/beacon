@@ -88,6 +88,9 @@ const allowed = (path, file) => {
 const isAllowed = (specifier, list) =>
   list.some((name) => specifier === name || specifier.startsWith(`${name}/`));
 
+// A package may read the core's root and its `adapter`, `versions` and `triggers` entries; the mock and the conformance suites are for a test, and what ships never imports them.
+const TEST_ENTRIES = [`${CORE}/mock`, `${CORE}/testing`];
+
 let checked = 0;
 
 for (const path of packages) {
@@ -103,6 +106,10 @@ for (const path of packages) {
       assert(
         isAllowed(specifier, allowed(path, file)),
         `${file} imports "${specifier}", which ${path} may not.`,
+      );
+      assert(
+        !isAllowed(specifier, TEST_ENTRIES),
+        `${file} imports "${specifier}", a test helper of the core that shipped code never reads.`,
       );
     }
 

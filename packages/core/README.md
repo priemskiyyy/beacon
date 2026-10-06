@@ -33,9 +33,9 @@ Constructing, reading and subscribing start nothing: `start()` opens the observa
 
 - **`targetRoute`** offers a replacement whatever its order. It is for a deployment, which can roll back to an older build. Its source answers a target decision.
 - **`newerRoute`** offers only a release that orders newer under a version strategy from `@priemskiyyy/beacon/versions`: `semver()`, `integer()` or `custom()`. Its source answers a candidate with an order.
-- **`createReleaseDriver`** declares a route a provider owns, such as Expo Updates or Google Play. Adapter packages return one.
+- A route a provider owns, such as Expo Updates or Google Play, comes from an adapter package: `routes: { ota: expoUpdates({ updates }) }`.
 
-A route's source is made with `createReleaseSource({ name, read })`, and its commands come from `createUpdateMechanism({ name, subject, open, commands })`. Sources that share one object share one read, so keep one source per authority and `select` a view of it for each route.
+An application imports all of the above from `@priemskiyyy/beacon`. A source of your own is made with `createReleaseSource({ name, read })`, and a mechanism with `createUpdateMechanism({ name, subject, open, commands })`; those, `createReleaseDriver` and the types an adapter author writes come from `@priemskiyyy/beacon/adapter`. Sources that share one object share one read, so keep one source per authority and `select` a view of it for each route.
 
 ## Support
 
@@ -87,6 +87,7 @@ Register what a disruptive command must not catch with `beacon.disruptions.regis
 
 ## Subpaths
 
+- `@priemskiyyy/beacon/adapter`: `createReleaseSource`, `createUpdateMechanism`, `createReleaseDriver`, `parseUtcTimestamp`, the identity domain words and the contexts, drafts and results an adapter author writes. An application never needs it.
 - `@priemskiyyy/beacon/versions`: `semver`, `integer`, `custom`.
 - `@priemskiyyy/beacon/mock`: `createMockSource` and `createTestClock`, for tests.
 - `@priemskiyyy/beacon/testing`: `testReleaseSource`, `testVersionStrategy`, `testUpdateMechanism` and `testReleaseDriver`, the conformance suites an adapter runs in its own tests. They need `vitest`.

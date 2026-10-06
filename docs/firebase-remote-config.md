@@ -311,7 +311,7 @@ It returns the function that removes the listener. The check that follows finds 
 ## What it does not do
 
 - **It does not configure the SDK.** The defaults, the fetch settings and the custom signals stay your application's, and the source never sets one.
-- **It does not choose when values activate.** A read fetches and activates for the whole application, so a screen that reads the same SDK sees the new values from then on. An application that activates on its own schedule writes its own source with `createReleaseSource`: it is about ten lines over the same three SDK functions.
+- **It does not choose when values activate.** A read fetches and activates for the whole application, so a screen that reads the same SDK sees the new values from then on. An application that activates on its own schedule writes its own source with `createReleaseSource` from `@priemskiyyy/beacon/adapter`: it is about ten lines over the same three SDK functions.
 - **It does not observe real-time updates.** See above.
 - **It does not partition by account.** Remote Config's cache belongs to the installation, and a fetch inside the interval is answered from it whoever signed in since. [`scope.partition`](scopes.md) makes Beacon forget the last account's answer when the scope is replaced, and the next read asks the SDK again, which may answer from that same cache. A gate that must differ by account does not belong in Remote Config.
 - **It does not name a revision.** Firebase keeps the template version to itself, so the evidence has none, and two different templates are told apart only by their values.

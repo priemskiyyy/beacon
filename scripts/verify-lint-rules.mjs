@@ -220,6 +220,27 @@ const boundaries = [
     "no-restricted-imports",
     TRIGGERS_BROWSER,
   ],
+  // What a package ships never imports the mock or the conformance suites of the core.
+  [
+    'import { createTestClock } from "@priemskiyyy/beacon/mock";',
+    "no-restricted-imports",
+    ADAPTER,
+  ],
+  [
+    'import { testReleaseSource } from "@priemskiyyy/beacon/testing";',
+    "no-restricted-imports",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'import { createTestClock } from "@priemskiyyy/beacon/mock";',
+    "no-restricted-imports",
+    REACT,
+  ],
+  [
+    'import { createTestClock } from "@priemskiyyy/beacon/mock";',
+    "no-restricted-imports",
+    DEVTOOLS,
+  ],
   ['import { Platform } from "react-native";', "no-restricted-imports", REACT],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", CORE],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", REACT],
@@ -401,6 +422,7 @@ const boundaries = [
 
 const entryPoints = [
   "packages/core/src/index.ts",
+  "packages/core/src/adapter.ts",
   "packages/core/src/mock.ts",
   "packages/core/src/testing.ts",
   "packages/core/src/versions.ts",
@@ -420,6 +442,15 @@ const allowed = [
   ["export const value = { key: 1 } satisfies Record<string, number>;", CORE],
   ['import { expect } from "vitest";\n\nexpect(1).toBe(1);', TEST],
   ['import { expect } from "vitest";\n\nexpect(1).toBe(1);', SUITE],
+  // A test of an adapter uses the mock and the suites, and shipped code reads the root and the authoring entry.
+  [
+    'import { createTestClock } from "@priemskiyyy/beacon/mock";\nimport { testReleaseSource } from "@priemskiyyy/beacon/testing";\n\nexport const helpers = [createTestClock, testReleaseSource];',
+    "packages/adapters/http/src/http.test.ts",
+  ],
+  [
+    'import { createReleaseSource } from "@priemskiyyy/beacon/adapter";\nimport { BeaconError } from "@priemskiyyy/beacon";\n\nexport const author = [createReleaseSource, BeaconError];',
+    ADAPTER,
+  ],
   [
     'import * as Updates from "expo-updates";\n\nexport const sdk = Updates;',
     "packages/adapters/expo/src/expoUpdates.contracts.ts",

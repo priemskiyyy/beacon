@@ -31,23 +31,23 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 
 ## Install
 
-| Package                                      | Use it for                                                     |
-| -------------------------------------------- | -------------------------------------------------------------- |
-| `@priemskiyyy/beacon`                        | The runtime, `./triggers`, `./versions`, `./mock`, `./testing` |
-| `@priemskiyyy/beacon-http`                   | Your own release manifest endpoint, through your own client    |
-| `@priemskiyyy/beacon-browser`                | Reloading the browser document                                 |
-| `@priemskiyyy/beacon-service-worker`         | A waiting service worker as an update that is ready            |
-| `@priemskiyyy/beacon-expo`                   | Expo Updates, and the installed build from `expo-application`  |
-| `@priemskiyyy/beacon-google-play`            | The Play Store page, and in-app updates (your bridge)          |
-| `@priemskiyyy/beacon-app-store`              | The App Store route: metadata and store handoff                |
-| `@priemskiyyy/beacon-code-push`              | The React Native CodePush family, over the fork you use        |
-| `@priemskiyyy/beacon-device-info`            | The installed native build, from `react-native-device-info`    |
-| `@priemskiyyy/beacon-firebase-remote-config` | Firebase Remote Config as a source, such as a minimum build    |
-| `@priemskiyyy/beacon-react`                  | A provider and hooks, typed by the Beacon you register         |
-| `@priemskiyyy/beacon-vue`                    | A provider and composables for Vue, typed the same way         |
-| `@priemskiyyy/beacon-solid`                  | A provider and primitives for Solid, typed the same way        |
-| `@priemskiyyy/beacon-svelte`                 | A provider and utilities for Svelte 5, typed the same way      |
-| `@priemskiyyy/beacon-devtools`               | An inspector for the session, the routes and the diagnostics   |
+| Package                                      | Use it for                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------- |
+| `@priemskiyyy/beacon`                        | The runtime, `./adapter`, `./triggers`, `./versions`, `./mock`, `./testing` |
+| `@priemskiyyy/beacon-http`                   | Your own release manifest endpoint, through your own client                 |
+| `@priemskiyyy/beacon-browser`                | Reloading the browser document                                              |
+| `@priemskiyyy/beacon-service-worker`         | A waiting service worker as an update that is ready                         |
+| `@priemskiyyy/beacon-expo`                   | Expo Updates, and the installed build from `expo-application`               |
+| `@priemskiyyy/beacon-google-play`            | The Play Store page, and in-app updates (your bridge)                       |
+| `@priemskiyyy/beacon-app-store`              | The App Store route: metadata and store handoff                             |
+| `@priemskiyyy/beacon-code-push`              | The React Native CodePush family, over the fork you use                     |
+| `@priemskiyyy/beacon-device-info`            | The installed native build, from `react-native-device-info`                 |
+| `@priemskiyyy/beacon-firebase-remote-config` | Firebase Remote Config as a source, such as a minimum build                 |
+| `@priemskiyyy/beacon-react`                  | A provider and hooks, typed by the Beacon you register                      |
+| `@priemskiyyy/beacon-vue`                    | A provider and composables for Vue, typed the same way                      |
+| `@priemskiyyy/beacon-solid`                  | A provider and primitives for Solid, typed the same way                     |
+| `@priemskiyyy/beacon-svelte`                 | A provider and utilities for Svelte 5, typed the same way                   |
+| `@priemskiyyy/beacon-devtools`               | An inspector for the session, the routes and the diagnostics                |
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http @priemskiyyy/beacon-browser

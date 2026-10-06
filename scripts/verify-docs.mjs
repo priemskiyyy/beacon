@@ -148,6 +148,7 @@ const listAdapterEntries = () =>
 
 const entries = [
   "packages/core/src/index.ts",
+  "packages/core/src/adapter.ts",
   "packages/core/src/mock.ts",
   "packages/core/src/testing.ts",
   "packages/core/src/triggers.ts",
@@ -173,16 +174,21 @@ const sections = new Map(
     .map((section) => [section.split("\n")[0].trim(), section]),
 );
 
-// A subpath is named by where its entry sits under `src`: `mock` for `src/mock.ts`, `triggers/browser` for `src/triggers/browser.ts`.
-const readSectionTitle = (entry) => {
+const readPackageName = (entry) => {
   const source = entry.slice(0, entry.indexOf("/src/") + "/src".length);
 
-  const { name } = JSON.parse(
+  return JSON.parse(
     readFileSync(
       path.join(workspace, path.dirname(source), "package.json"),
       "utf8",
     ),
-  );
+  ).name;
+};
+
+// A subpath is named by where its entry sits under `src`: `mock` for `src/mock.ts`, `triggers/browser` for `src/triggers/browser.ts`.
+const readSectionTitle = (entry) => {
+  const source = entry.slice(0, entry.indexOf("/src/") + "/src".length);
+  const name = readPackageName(entry);
 
   const subpath = entry.slice(source.length + 1, -".ts".length);
 
@@ -194,6 +200,15 @@ const readSectionTitle = (entry) => {
 };
 
 const exported = [];
+
+// The root, the adapter and the versions entries split one vocabulary of the core, so a name has one home among them and an import path never has two meanings. Other entries may repeat a name on purpose (`foreground` of the browser triggers, the devtools' props).
+const SPLIT = [
+  "packages/core/src/index.ts",
+  "packages/core/src/adapter.ts",
+  "packages/core/src/versions.ts",
+];
+
+const homes = new Map();
 
 for (const entry of entries) {
   const source = readFileSync(path.join(workspace, entry), "utf8");
@@ -218,6 +233,16 @@ for (const entry of entries) {
       }
 
       exported.push(name);
+
+      if (SPLIT.includes(entry)) {
+        if (homes.has(name)) {
+          failures.push(
+            `${name} is exported by both ${homes.get(name)} and ${entry}.`,
+          );
+        }
+
+        homes.set(name, entry);
+      }
 
       if (!section.includes(`\`${name}\``)) {
         failures.push(`docs/api.md does not list ${name} under "${title}".`);

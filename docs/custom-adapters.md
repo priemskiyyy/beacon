@@ -14,6 +14,17 @@ An adapter maps one provider onto observations, prepared targets and command res
 
 The core never branches on an adapter's name. A source and a mechanism are separate on purpose: what an authority says and how the platform acts on it change independently.
 
+## Which import
+
+Applications import from `@priemskiyyy/beacon`. Adapter authors import what only an author writes from `@priemskiyyy/beacon/adapter`: the three factories above, `parseUtcTimestamp`, the identity domain words (`WEB_ARTIFACT_DOMAIN`, `IOS_BUILD_DOMAIN`, `ANDROID_VERSION_CODE_DOMAIN`) and the types of what an author's code receives and returns (`ProviderResult`, `CommandMap`, `SourceRead`, `DriverEmitter`, `ObservationDraft`...). What an author shares with every application (`BeaconError`, `Release`, `ReleaseIdentity`, `ReleaseScope`, `RouteBody`, `RunningRelease`, `CommandOutcome`...) stays in the root, so an adapter has two import lines and a name is never in both. [The API page](api.md#priemskiyyy-beacon-adapter) lists the adapter entry.
+
+```ts
+import { createReleaseSource } from "@priemskiyyy/beacon/adapter";
+import { BeaconError } from "@priemskiyyy/beacon";
+```
+
+Shipped code imports the core's root and `/adapter` (and `/versions` and `/triggers`), never `/mock` or `/testing`: those are for tests.
+
 ## Rules
 
 These are the rules that are easiest to break.

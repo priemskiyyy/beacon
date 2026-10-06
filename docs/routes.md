@@ -19,7 +19,7 @@ Acquiring a handle or observing it starts nothing. Using what `native` holds dir
 
 ## Sources
 
-A source reads one release authority. Make one with `createReleaseSource({ name, read })`, and have `read` answer a document your client has already validated.
+A source reads one release authority. Make one with `createReleaseSource({ name, read })` from `@priemskiyyy/beacon/adapter`, the entry for what an author of a source writes, and have `read` answer a document your client has already validated.
 
 ```ts
 // src/deployments.ts
@@ -156,7 +156,7 @@ The running order is read from the subject of the mechanism: `appStoreHandoff` n
 
 ## Driver routes
 
-`createReleaseDriver` declares a route a provider owns, such as Expo Updates or Google Play. There the provider answers the check, reports what it has prepared and carries the commands. You rarely call it yourself: an adapter returns the route and you put it in `routes`. A driver route needs no running reader, and may offer the default reader of its own subject with `running`, which is used only when you pass none for that subject.
+`createReleaseDriver`, from `@priemskiyyy/beacon/adapter`, declares a route a provider owns, such as Expo Updates or Google Play. There the provider answers the check, reports what it has prepared and carries the commands. You rarely call it yourself: an adapter returns the route and you put it in `routes`. A driver route needs no running reader, and may offer the default reader of its own subject with `running`, which is used only when you pass none for that subject.
 
 ```ts
 import { Beacon } from "@priemskiyyy/beacon";

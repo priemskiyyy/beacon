@@ -4,7 +4,9 @@ description: "Every public export of every Beacon package with one line each: th
 
 # API
 
-Every name a package root exports, with one line each. A package's `index.test.ts` checks that its root exports exactly the runtime names listed here, and `pnpm verify:docs` checks that this page lists every name of every entry point under that entry point's heading. Each type has a JSDoc with an example, so your editor shows more than a line.
+Every name a package root exports, with one line each. A package's `index.test.ts` checks that its root exports exactly the runtime names listed here, and `pnpm verify:docs` checks that this page lists every name of every entry point under that entry point's heading, and that no name is exported by two entry points of one package. Each type has a JSDoc with an example, so your editor shows more than a line.
+
+An application imports from `@priemskiyyy/beacon`. The author of a source, a mechanism or a driver also imports from [`@priemskiyyy/beacon/adapter`](#priemskiyyy-beacon-adapter).
 
 ## @priemskiyyy/beacon
 
@@ -14,24 +16,17 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Runtime
 
-| Export                        | Kind     | What it is                                                                                      |
-| ----------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `Beacon`                      | class    | one application-owned model of release awareness over named routes; inert until `start()`       |
-| `BeaconError`                 | class    | an error Beacon created, with a `code` to branch on and the original as `cause`                 |
-| `compareIdentities`           | function | relates two release identities as `same`, `different` or `incomparable`                         |
-| `createBootId`                | function | a new boot id: a version 4 UUID that works on every engine, for a `running.boot.id` of your own |
-| `createReleaseDriver`         | function | declares a provider-owned route from its driver                                                 |
-| `createReleaseSource`         | function | makes a release source from a name and a `read`                                                 |
-| `createUpdateMechanism`       | function | declares a mechanism so its native type and commands are inferred together                      |
-| `keyValueJournalStorage`      | function | the journal's storage over any store with `getItem`, `setItem` and `removeItem`                 |
-| `minimumBuild`                | function | the forced upgrade as a support policy: the native build is unsupported below a minimum         |
-| `newerRoute`                  | function | a route that offers a candidate only when it is admitted and orders newer than what runs        |
-| `parseUtcTimestamp`           | function | epoch milliseconds of a UTC timestamp such as `2026-09-27T10:00:00Z`, or `undefined`            |
-| `supportPolicy`               | function | declares the application's support policy over a view of a source                               |
-| `targetRoute`                 | function | a route that offers the release an authority names when it is a different, comparable one       |
-| `ANDROID_VERSION_CODE_DOMAIN` | constant | the identity domain of an Android build: `android-version-code`                                 |
-| `IOS_BUILD_DOMAIN`            | constant | the identity domain of an iOS build: `ios-build`                                                |
-| `WEB_ARTIFACT_DOMAIN`         | constant | the identity domain of a web build: `web-artifact`                                              |
+| Export                   | Kind     | What it is                                                                                      |
+| ------------------------ | -------- | ----------------------------------------------------------------------------------------------- |
+| `Beacon`                 | class    | one application-owned model of release awareness over named routes; inert until `start()`       |
+| `BeaconError`            | class    | an error Beacon created, with a `code` to branch on and the original as `cause`                 |
+| `compareIdentities`      | function | relates two release identities as `same`, `different` or `incomparable`                         |
+| `createBootId`           | function | a new boot id: a version 4 UUID that works on every engine, for a `running.boot.id` of your own |
+| `keyValueJournalStorage` | function | the journal's storage over any store with `getItem`, `setItem` and `removeItem`                 |
+| `minimumBuild`           | function | the forced upgrade as a support policy: the native build is unsupported below a minimum         |
+| `newerRoute`             | function | a route that offers a candidate only when it is admitted and orders newer than what runs        |
+| `supportPolicy`          | function | declares the application's support policy over a view of a source                               |
+| `targetRoute`            | function | a route that offers the release an authority names when it is a different, comparable one       |
 
 ### The Beacon
 
@@ -72,24 +67,21 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Releases, decisions and evidence
 
-| Type                   | What it is                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------ |
-| `Release`              | a release an authority names: identity, label, compatibility, metadata               |
-| `ReleaseIdentity`      | which release something is: known within an authority and domain, or unknown         |
-| `IdentityRelation`     | `same`, `different` or `incomparable`                                                |
-| `Compatibility`        | whether a release can run where it would be installed                                |
-| `TargetDecision`       | an authority's statement that a scope should run one release                         |
-| `CandidateDecision`    | an authority's statement that a release exists, with the order its strategy compares |
-| `NoneDecision`         | an authority's explicit statement that it has no release for a scope                 |
-| `DecisionRevision`     | how an authority numbers its decisions: opaque or ordered                            |
-| `ReleaseSelection`     | what selection decided about one release: offer, none or inconclusive                |
-| `ReleaseSource`        | a reader of one release authority, with `read` and `select`                          |
-| `ReleaseSourceOptions` | a name and a `read` for `createReleaseSource`                                        |
-| `SourceRead`           | what a source answers: a validated document and the evidence to judge it             |
-| `SourceReadContext`    | what a read is given: the scope, a signal, the attempt number and the Beacon's clock |
-| `Projection`           | one typed view of a source's document, sharing its one read                          |
-| `Evidence`             | what backs an observation: source, origin, times, freshness, issuer, revision        |
-| `EvidenceOrigin`       | `network`, `provider`, `application` or `persisted`                                  |
+| Type                | What it is                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `Release`           | a release an authority names: identity, label, compatibility, metadata               |
+| `ReleaseIdentity`   | which release something is: known within an authority and domain, or unknown         |
+| `IdentityRelation`  | `same`, `different` or `incomparable`                                                |
+| `Compatibility`     | whether a release can run where it would be installed                                |
+| `TargetDecision`    | an authority's statement that a scope should run one release                         |
+| `CandidateDecision` | an authority's statement that a release exists, with the order its strategy compares |
+| `NoneDecision`      | an authority's explicit statement that it has no release for a scope                 |
+| `DecisionRevision`  | how an authority numbers its decisions: opaque or ordered                            |
+| `ReleaseSelection`  | what selection decided about one release: offer, none or inconclusive                |
+| `ReleaseSource`     | a reader of one release authority, with `read` and `select`                          |
+| `Projection`        | one typed view of a source's document, sharing its one read                          |
+| `Evidence`          | what backs an observation: source, origin, times, freshness, issuer, revision        |
+| `EvidenceOrigin`    | `network`, `provider`, `application` or `persisted`                                  |
 
 ### Routes and their state
 
@@ -111,11 +103,9 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 | `CheckReport`        | the outcome of every route and of the support policy, apart                               |
 | `CheckState`         | the latest check attempt of a route                                                       |
 | `Observation`        | what a route has accepted: `unknown`, `none`, `available` or `inconclusive`               |
-| `ObservationDraft`   | what a provider driver reports about its route, before evidence is attached               |
 | `Offer`              | the current interpretation of what an authority wants, with a reference to act on         |
 | `OfferReference`     | a handle on one offer, minted by Beacon                                                   |
 | `Prepared`           | something a provider reports as ready for a later step                                    |
-| `PreparedDraft`      | what a provider reports as ready: nothing, or a target it confirms                        |
 | `PreparedReference`  | a handle on something a provider reports as ready, minted by Beacon                       |
 | `PreparedState`      | whether the provider reports something ready                                              |
 | `OperationState`     | the command a route is carrying out: `idle`, `running` or `indeterminate`                 |
@@ -125,32 +115,15 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Commands
 
-| Type                | What it is                                                                      |
-| ------------------- | ------------------------------------------------------------------------------- |
-| `CommandArguments`  | the arguments a route method takes, derived from what its command declares      |
-| `CommandDescriptor` | one command a route offers: reference, impacts, binding and `run`               |
-| `CommandFacade`     | the methods a route gets from its commands                                      |
-| `CommandMap`        | the commands of one mechanism or driver by name                                 |
-| `CommandOutcome`    | how a command settled, as one of seven statuses                                 |
-| `CommandParameters` | what a command may take besides its references                                  |
-| `CommandRunContext` | what every command receives: the native handle, a signal and its parameters     |
-| `ProviderResult`    | what a provider command reports, and nothing more than the provider proves      |
-| `BlockReason`       | why a disruptive command may not run now: a code and the participant that asked |
-| `StaleReason`       | why a command refused a reference                                               |
-| `Impact`            | what a command can do to the running application                                |
-| `TargetBinding`     | how tightly a command is bound to what the user was shown                       |
-
-### Writing an adapter
-
-| Type               | What it is                                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `UpdateMechanism`  | the commands of a route whose offers come from a source, and the subject they replace                         |
-| `MechanismContext` | what a mechanism is given when its route opens: the scope of the session                                      |
-| `MechanismSession` | what a mechanism keeps open while a session runs                                                              |
-| `ReleaseDriver`    | a route whose provider owns both the question and the answer, and may offer the default reader of its subject |
-| `DriverContext`    | what a driver is given when its route opens                                                                   |
-| `DriverEmitter`    | how a driver reports what its provider says between checks                                                    |
-| `DriverSession`    | a driver's open session: the native handle, `check`, `reconcile` and `dispose`                                |
+| Type               | What it is                                                                      |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `CommandArguments` | the arguments a route method takes, derived from what its command declares      |
+| `CommandFacade`    | the methods a route gets from its commands                                      |
+| `CommandOutcome`   | how a command settled, as one of seven statuses                                 |
+| `BlockReason`      | why a disruptive command may not run now: a code and the participant that asked |
+| `StaleReason`      | why a command refused a reference                                               |
+| `Impact`           | what a command can do to the running application                                |
+| `TargetBinding`    | how tightly a command is bound to what the user was shown                       |
 
 ### Disruptions
 
@@ -215,6 +188,41 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 | `SemVerIdentifier`     | one dot-separated prerelease identifier                    |
 | `SemVerOptions`        | whether `semver()` admits prereleases                      |
 | `CustomVersionOptions` | a version domain of your own                               |
+
+## @priemskiyyy/beacon/adapter
+
+What only the author of a release source, an update mechanism or a release driver writes. An application imports from `@priemskiyyy/beacon`; the author of an adapter imports these from here, and the shared vocabulary (`Release`, `ReleaseScope`, `RouteBody`, `BeaconError`...) from the root.
+
+```ts
+import { createReleaseDriver } from "@priemskiyyy/beacon/adapter";
+```
+
+| Export                        | Kind     | What it is                                                                                                    |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| `createReleaseDriver`         | function | declares a provider-owned route from its driver                                                               |
+| `createReleaseSource`         | function | makes a release source from a name and a `read`                                                               |
+| `createUpdateMechanism`       | function | declares a mechanism so its native type and commands are inferred together                                    |
+| `parseUtcTimestamp`           | function | epoch milliseconds of a UTC timestamp such as `2026-09-27T10:00:00Z`, or `undefined`                          |
+| `ANDROID_VERSION_CODE_DOMAIN` | constant | the identity domain of an Android build: `android-version-code`                                               |
+| `IOS_BUILD_DOMAIN`            | constant | the identity domain of an iOS build: `ios-build`                                                              |
+| `WEB_ARTIFACT_DOMAIN`         | constant | the identity domain of a web build: `web-artifact`                                                            |
+| `CommandDescriptor`           | type     | one command a route offers: reference, impacts, binding and `run`                                             |
+| `CommandMap`                  | type     | the commands of one mechanism or driver by name                                                               |
+| `CommandParameters`           | type     | what a command may take besides its references                                                                |
+| `CommandRunContext`           | type     | what every command receives: the native handle, a signal and its parameters                                   |
+| `DriverContext`               | type     | what a driver is given when its route opens                                                                   |
+| `DriverEmitter`               | type     | how a driver reports what its provider says between checks                                                    |
+| `DriverSession`               | type     | a driver's open session: the native handle, `check`, `reconcile` and `dispose`                                |
+| `MechanismContext`            | type     | what a mechanism is given when its route opens: the scope of the session                                      |
+| `MechanismSession`            | type     | what a mechanism keeps open while a session runs                                                              |
+| `ObservationDraft`            | type     | what a provider driver reports about its route, before evidence is attached                                   |
+| `PreparedDraft`               | type     | what a provider reports as ready: nothing, or a target it confirms                                            |
+| `ProviderResult`              | type     | what a provider command reports, and nothing more than the provider proves                                    |
+| `ReleaseDriver`               | type     | a route whose provider owns both the question and the answer, and may offer the default reader of its subject |
+| `ReleaseSourceOptions`        | type     | a name and a `read` for `createReleaseSource`                                                                 |
+| `SourceRead`                  | type     | what a source answers: a validated document and the evidence to judge it                                      |
+| `SourceReadContext`           | type     | what a read is given: the scope, a signal, the attempt number and the Beacon's clock                          |
+| `UpdateMechanism`             | type     | the commands of a route whose offers come from a source, and the subject they replace                         |
 
 ## @priemskiyyy/beacon/versions
 

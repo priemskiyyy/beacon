@@ -9,6 +9,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const ENTRIES = [
   "packages/core/dist/index.js",
+  "packages/core/dist/adapter.js",
   "packages/core/dist/versions.js",
   "packages/core/dist/mock.js",
   "packages/core/dist/triggers.js",

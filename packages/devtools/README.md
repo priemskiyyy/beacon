@@ -10,16 +10,24 @@ pnpm add -D @priemskiyyy/beacon-devtools
 
 ## Use
 
-With React, next to the provider that holds the Beacon:
+With React, register your Beacon as the React binding asks, and mount the inspector next to the provider that holds it:
 
 ```tsx
 import { BeaconProvider } from "@priemskiyyy/beacon-react";
 import { BeaconDevtools } from "@priemskiyyy/beacon-devtools/react";
 
-<BeaconProvider beacon={beacon} start>
-  <Application />
-  {import.meta.env.DEV ? <BeaconDevtools initialIsOpen /> : null}
-</BeaconProvider>;
+declare module "@priemskiyyy/beacon-react" {
+  interface Register {
+    beacon: typeof beacon;
+  }
+}
+
+const Root = ({ isDevelopment }: { isDevelopment: boolean }) => (
+  <BeaconProvider beacon={beacon} start>
+    <UpdateBanner />
+    {isDevelopment ? <BeaconDevtools initialIsOpen /> : null}
+  </BeaconProvider>
+);
 ```
 
 The wrapper takes no `beacon` prop. It reads the Beacon you registered with `Register`, renders an empty host element on the server, follows the provider's Beacon after mount, and removes the inspector when it unmounts.

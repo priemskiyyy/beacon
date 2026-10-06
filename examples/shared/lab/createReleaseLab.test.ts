@@ -291,6 +291,8 @@ test("a slow manifest holds the read until it is answered", async () => {
 
   const pending = lab.controls.check();
 
+  // The check waits for what runs, and only then asks the service, which holds the read on its own turn.
+  await settle();
   await settle();
   expect(lab.world.get().waiting).toBe(1);
   expect(web().state.get().check).toMatchObject({ state: "checking" });

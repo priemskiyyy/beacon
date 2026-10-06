@@ -19,7 +19,8 @@
     "test:scenarios": "node scripts/verify-scenarios.mjs",
     "test:package": "node scripts/verify-packages.mjs",
     "test:limits": "node scripts/verify-limits.mjs",
-    "test:size": "node scripts/measure-size.mjs"
+    "test:size": "node scripts/measure-size.mjs",
+    "test:mutation": "node scripts/mutate.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.4",

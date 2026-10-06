@@ -71,3 +71,7 @@ jobs:
       # suite runs here with no device, no network and no credentials.
       - name: Unit tests
         run: pnpm test:unit
+
+      # Each mutant weakens one rule; a mutant the tests do not kill is a missing test or dead code.
+      - name: Mutation checks
+        run: pnpm test:mutation

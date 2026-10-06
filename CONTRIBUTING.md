@@ -1,6 +1,6 @@
 # Contributing
 
-Use Node 22.18 or newer and the pnpm version in `package.json`. Run `pnpm install --frozen-lockfile`, then `pnpm check` before submitting a change. It builds every package, typechecks, lints, runs the lint rule probes, checks that the verification table matches the tests, that the documented limits are still stated that a built package imports only what its role allows and that each built entry is within its gzip budget, checks formatting and runs every test.
+Use Node 22.18 or newer and the pnpm version in `package.json`. Run `pnpm install --frozen-lockfile`, then `pnpm check` before submitting a change. It builds every package, typechecks, lints, runs the lint rule probes, checks that the verification table matches the tests, that the documented limits are still stated that a built package imports only what its role allows and that each built entry is within its gzip budget, checks formatting and runs every test. `pnpm test:mutation` weakens one guarded rule at a time and fails when a test does not notice; add a mutant to `scripts/mutate.mjs` for a rule you protect.
 
 ## Layout
 

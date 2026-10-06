@@ -138,6 +138,30 @@ for (const file of prose) {
   }
 }
 
+// A getting started page shows the files of its minimal example as they are: the last fence of the page that names a file under `src` is that file of the example, so the page and the app that is compiled, bundled and run cannot drift. A fence of a file the example does not have is not compared.
+const GUIDES = [
+  { page: "docs/react-native.md", example: "examples/expo" },
+  { page: "docs/getting-started.md", example: "examples/react-minimal" },
+];
+
+for (const { page, example } of GUIDES) {
+  const shown = new Map(
+    [
+      ...readFileSync(path.join(workspace, page), "utf8").matchAll(
+        /^```(?:ts|tsx)\n\/\/ src\/(\S+)\n([\s\S]*?)\n```$/gm,
+      ),
+    ].map(([, name, body]) => [name, body]),
+  );
+
+  for (const [name, body] of shown) {
+    const file = path.join(workspace, example, "src", name);
+
+    if (existsSync(file) && readFileSync(file, "utf8").trimEnd() !== body) {
+      failures.push(`${page} shows src/${name} differently from ${example}.`);
+    }
+  }
+}
+
 // api.md lists every name the entry points of the documented packages export.
 const listAdapterEntries = () =>
   readdirSync(path.join(workspace, "packages/adapters"), {

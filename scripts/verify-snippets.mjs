@@ -23,6 +23,10 @@ import { readWorkspacePackages } from "./readWorkspacePackages.mjs";
 // - Fences share one program, except those of a page that names a file, augments
 //   a module or holds a svelte fence: `Register` and a named file are global to
 //   a program, so such a page gets a program of its own.
+// - A page that names the same file again is a guide that changes it: the
+//   second fence starts a new program, seeded with the files named so far and
+//   with that file replaced, so each step of the page compiles as the reader
+//   has it when they get there.
 // - A vue fence needs a `<script setup lang="ts">`. The Vue compiler turns it
 //   into a typed component, and the expressions of its template are then checked
 //   as statements that read the component's bindings the way the template does:
@@ -537,15 +541,21 @@ const isReadme = (page) => path.basename(page) === "README.md";
 const programs = new Map();
 const problems = [];
 
-for (const fence of fences) {
-  let name = "docs";
+// A page that writes a file again shows the next step of it: that version is checked in a program of its own, with the files written before it, so every version of a file compiles with the files of its moment.
+const steps = new Map();
 
-  if (isolated.has(fence.page)) {
-    name = slug(path.relative(workspace, fence.page));
-  } else if (isReadme(fence.page)) {
-    name = "readmes";
+const nameProgram = (fence) => {
+  if (!isolated.has(fence.page)) {
+    return isReadme(fence.page) ? "readmes" : "docs";
   }
 
+  const page = slug(path.relative(workspace, fence.page));
+  const { number } = steps.get(fence.page) ?? { number: 0 };
+
+  return number === 0 ? page : `${page}__${number}`;
+};
+
+const addFence = (name, fence) => {
   const folder = path.join(output, name);
 
   const file = path.join(
@@ -571,7 +581,8 @@ for (const fence of fences) {
   if (fence.extension === "svelte") {
     writeFileSync(file, `${fence.text}\n`);
     program.files.push({ file, fence });
-    continue;
+
+    return;
   }
 
   if (fence.extension === "vue") {
@@ -587,12 +598,33 @@ for (const fence of fences) {
       );
     }
 
-    continue;
+    return;
   }
 
   // A file with no import or export is a script, and its names would be shared.
   writeFileSync(file, `${fence.text}\nexport {};\n`);
   program.files.push({ file, fence });
+};
+
+for (const fence of fences) {
+  if (isolated.has(fence.page) && fence.file !== null) {
+    const step = steps.get(fence.page) ?? { number: 0, named: new Map() };
+
+    steps.set(fence.page, step);
+
+    if (step.named.has(fence.file)) {
+      step.named.delete(fence.file);
+      step.number += 1;
+
+      for (const earlier of step.named.values()) {
+        addFence(nameProgram(fence), earlier);
+      }
+    }
+
+    step.named.set(fence.file, fence);
+  }
+
+  addFence(nameProgram(fence), fence);
 }
 
 // An augmentation alone does not load the module it augments, so the program imports it.

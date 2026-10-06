@@ -23,6 +23,8 @@ import type { PlayBridge } from "@priemskiyyy/beacon-google-play";
 import type { AppStoreLookupResponse } from "@priemskiyyy/beacon-app-store";
 import type { HttpAnswer } from "@priemskiyyy/beacon-http";
 import type { Pulse as PulseInstance } from "@priemskiyyy/pulse";
+// What a Vite application has, such as the `import.meta.env` of a build id: `vite/client` types it for every snippet.
+import type {} from "vite/client";
 
 type WebDocument = { web: TargetDecision | NoneDecision };
 

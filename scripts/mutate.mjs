@@ -1887,6 +1887,73 @@ const MUTANTS = [
     project: "google-play",
     describes: "an application id of one name let into a store link",
   },
+  {
+    file: `${core}/internal/clock/boundTimers.ts`,
+    find: "Math.min(Math.max(delay, 0), MAX_TIMER_DELAY)",
+    replace: "delay",
+    project: "core",
+    describes: "a wait longer than a host timer holds fired at once",
+  },
+  {
+    file: `${triggers}/interval.ts`,
+    find: 'resolveDuration("every", every, every);',
+    replace: "",
+    project: "core",
+    describes: "an interval of no delay arming its timer again for ever",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "intent.expiresAt > now && intent.expiresAt <= latest,",
+    replace: "intent.expiresAt > now,",
+    project: "core",
+    describes: "an intent that expires far in the future held for ever",
+  },
+  {
+    file: `${core}/internal/commands/CommandCoordinator.ts`,
+    find: '} else if (operation.phase === "running") {',
+    replace: "} else {",
+    project: "core",
+    describes: "a disposed Beacon calling an unconfirmed operation idle",
+  },
+  {
+    file: `${core}/internal/routes/FeedRoutes.ts`,
+    find: "    if (!session.resources.isActive()) {\n      return;\n    }\n\n    commit((transaction) => record.installNative(transaction, opened.native));",
+    replace:
+      "    commit((transaction) => record.installNative(transaction, opened.native));",
+    project: "core",
+    describes:
+      "a handle published for a session a mechanism ended as it opened",
+  },
+  {
+    file: `${core}/internal/routes/DriverRoutes.ts`,
+    find: "    if (!session.resources.isActive()) {\n      return;\n    }\n\n    commit((transaction) => record.installNative(transaction, opened.native));",
+    replace:
+      "    commit((transaction) => record.installNative(transaction, opened.native));",
+    project: "core",
+    describes: "a handle published for a session a provider ended as it opened",
+  },
+  {
+    file: `${core}/internal/routes/RouteRecord.ts`,
+    find: "this.#native.update(null);",
+    replace: "",
+    project: "core",
+    describes:
+      "a handle outliving the Beacon that ended while it was let go of",
+  },
+  {
+    file: `${core}/internal/runtime/BeaconRuntime.ts`,
+    find: "this.#holdEvents(() => {",
+    replace: "((work) => work())(() => {",
+    project: "core",
+    describes: "a stopped session heard before its cleanups ran",
+  },
+  {
+    file: `${http}/utils/resolveLimits.ts`,
+    find: "bytes: limits?.bytes ?? DEFAULT_LIMITS.bytes,",
+    replace: "bytes: limits?.bytes ?? Number.POSITIVE_INFINITY,",
+    project: "http",
+    describes: "a manifest limit set to undefined turned off",
+  },
 ];
 
 const run = (project) => {

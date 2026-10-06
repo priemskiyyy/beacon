@@ -18,6 +18,8 @@
     "@priemskiyyy/beacon-react": "workspace:*",
     "example-shared": "workspace:*",
     "expo": "57.0.24",
+    "expo-application": "57.0.3",
+    "expo-sqlite": "57.0.3",
     "expo-updates": "57.0.24",
     "react": "19.2.3",
     "react-dom": "19.2.3",

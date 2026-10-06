@@ -9,12 +9,12 @@ const EMBEDDED = "00000000-0000-4000-8000-000000000001";
 const NEXT = "3f9a7d20-51c4-4b6e-8a02-c1d4e9b7f356";
 
 // An `expo-updates` module whose answers are fixed and whose calls are counted.
-const fakeUpdates = (isEnabled: boolean) => {
+const fakeUpdates = (isEnabled: boolean, running = EMBEDDED) => {
   const calls = { fetches: 0, reloads: 0 };
 
   const updates: UpdatesLike = {
     isEnabled,
-    updateId: isEnabled ? EMBEDDED : null,
+    updateId: isEnabled ? running : null,
     channel: null,
     runtimeVersion: "1",
     isEmbeddedLaunch: true,
@@ -129,7 +129,7 @@ test("an update the backend ended is unsupported and the OTA route is the way ou
         identity: {
           status: "known",
           authority: "expo-updates",
-          domain: "expo-update",
+          domain: "update",
           value: EMBEDDED,
         },
         label: null,
@@ -148,4 +148,142 @@ test("an update the backend ended is unsupported and the OTA route is the way ou
   expect(evaluateNativeSupport({ endedUpdates: [] }, running).status).toBe(
     "supported",
   );
+});
+
+// A key-value store that keeps what the journal writes, as the next boot's storage does.
+const memoryJournal = () => {
+  const values = new Map<string, string>();
+
+  return {
+    values,
+    read: async (key: string) => values.get(key) ?? null,
+    write: async (key: string, value: string) => {
+      values.set(key, value);
+    },
+    remove: async (key: string) => {
+      values.delete(key);
+    },
+  };
+};
+
+test("a reload writes its intent to the journal, and the next boot says it reached the update it asked for", async () => {
+  const journal = memoryJournal();
+  const { updates } = fakeUpdates(true);
+
+  const beacon = createNativeBeacon({
+    updates,
+    platform: "android",
+    boot: { id: "boot-1" },
+    journal,
+  });
+
+  const ota = beacon.route("ota");
+
+  beacon.start();
+  await beacon.check({ reason: "startup" });
+  await settle();
+
+  const { observation } = ota.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error(`Nothing is on offer: ${observation.status}.`);
+  }
+
+  await ota.download({ offer: observation.offer.ref });
+
+  const { prepared } = ota.state.get();
+
+  if (prepared.status !== "ready") {
+    throw new Error(`Nothing is prepared: ${prepared.status}.`);
+  }
+
+  await ota.reload({ prepared: prepared.value.ref });
+
+  expect(journal.values.size).toBe(1);
+  beacon.dispose();
+
+  // The JavaScript runtime was replaced: a new Beacon, the same storage, and the update now runs.
+  const next = createNativeBeacon({
+    updates: fakeUpdates(true, NEXT).updates,
+    platform: "android",
+    boot: { id: "boot-2" },
+    journal,
+  });
+
+  next.start();
+  await settle();
+
+  expect(next.transitions.get().latest).toMatchObject({
+    outcome: "target-running",
+    attempts: 0,
+    exhausted: false,
+  });
+  next.dispose();
+});
+
+test("without a journal, a reload leaves nothing to correlate, and the Beacon says it is off", async () => {
+  const { updates } = fakeUpdates(true);
+
+  const beacon = createNativeBeacon({
+    updates,
+    platform: "ios",
+    boot: { id: "boot-1" },
+  });
+
+  beacon.start();
+  await settle();
+
+  expect(beacon.transitions.get()).toMatchObject({
+    journal: "off",
+    latest: null,
+  });
+  beacon.dispose();
+});
+
+test("the native build is read beside the bundle, and a binary of another application is unknown", async () => {
+  const { updates } = fakeUpdates(true);
+
+  const build = (applicationId: string) => ({
+    applicationId,
+    nativeApplicationVersion: "2.4.0",
+    nativeBuildVersion: "108",
+  });
+
+  const own = createNativeBeacon({
+    updates,
+    platform: "android",
+    boot: { id: "boot-1" },
+    application: build("dev.beacon.example"),
+  });
+
+  own.start();
+  await settle();
+
+  expect(own.running.get().native).toMatchObject({
+    state: "known",
+    release: {
+      identity: {
+        authority: "dev.beacon.example",
+        domain: "android-version-code",
+        value: "108",
+      },
+    },
+  });
+  own.dispose();
+
+  const expoGo = createNativeBeacon({
+    updates,
+    platform: "ios",
+    boot: { id: "boot-1" },
+    application: build("host.exp.Exponent"),
+  });
+
+  expoGo.start();
+  await settle();
+
+  expect(expoGo.running.get().native).toMatchObject({
+    state: "known",
+    release: { identity: { status: "unknown", reason: "another-application" } },
+  });
+  expoGo.dispose();
 });

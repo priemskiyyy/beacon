@@ -6,8 +6,10 @@ import { formatCheck } from "example-shared/formatting/formatCheck";
 import { formatObservation } from "example-shared/formatting/formatObservation";
 import { formatRunningFact } from "example-shared/formatting/formatRunningFact";
 import { formatSupport } from "example-shared/formatting/formatSupport";
+import { formatTransitionState } from "example-shared/formatting/formatTransitionState";
 import {
   CHECK_TONES,
+  JOURNAL_TONES,
   OBSERVATION_TONES,
   RUNNING_TONES,
   SESSION_TONES,
@@ -25,6 +27,8 @@ export const NativeStatusPanel: React.FunctionComponent<
   const status = useObservable(beacon.status);
   const { check, observation } = useObservable(beacon.route("ota").state);
   const bundle = useObservable(beacon.running, ({ bundle: fact }) => fact);
+  const native = useObservable(beacon.running, ({ native: fact }) => fact);
+  const transitions = useObservable(beacon.transitions);
   const support = useObservable(beacon.support);
 
   return (
@@ -56,6 +60,18 @@ export const NativeStatusPanel: React.FunctionComponent<
           value={formatRunningFact(bundle)}
           tone={RUNNING_TONES[bundle.state]}
           testID="running"
+        />
+        <Fact
+          term="Installed binary"
+          value={formatRunningFact(native)}
+          tone={RUNNING_TONES[native.state]}
+          testID="native"
+        />
+        <Fact
+          term="Journal"
+          value={formatTransitionState(transitions)}
+          tone={JOURNAL_TONES[transitions.journal]}
+          testID="journal"
         />
         <Fact
           term="Support"

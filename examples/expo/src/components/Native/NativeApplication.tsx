@@ -1,9 +1,10 @@
 import type { BeaconDiagnosticEvent } from "@priemskiyyy/beacon";
 import type React from "react";
 import { useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { AppState, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { EventLog } from "example-shared/types/EventLog";
+import { checkOnForeground } from "src/lab/checkOnForeground";
 import { NativeStatusPanel } from "src/components/Native/NativeStatusPanel";
 import { NativeTimelinePanel } from "src/components/Native/NativeTimelinePanel";
 import { NativeUpdatePanel } from "src/components/Native/NativeUpdatePanel";
@@ -21,10 +22,14 @@ export const NativeApplication: React.FunctionComponent<
 > = ({ beacon, diagnostics, runtime }) => {
   useEffect(() => {
     const stop = beacon.start();
+    const stopForeground = checkOnForeground(beacon, AppState);
 
     beacon.check({ reason: "startup" });
 
-    return stop;
+    return () => {
+      stopForeground();
+      stop();
+    };
   }, [beacon]);
 
   return (

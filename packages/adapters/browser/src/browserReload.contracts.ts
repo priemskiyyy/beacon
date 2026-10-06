@@ -45,6 +45,10 @@ export const outcome = web.requestReload({ offer });
 // @ts-expect-error -- a reload needs the offer the user was shown.
 web.requestReload();
 
+// WEB-07 A hard reload is not an option of the reload command, so no portable guarantee of one is made.
+// @ts-expect-error -- there is no hard reload.
+web.requestReload({ offer, hard: true });
+
 // @ts-expect-error -- a prepared reference never fits where an offer is asked for.
 web.requestReload({ prepared: { kind: "prepared", route: "web", id: 1 } });
 

@@ -1,6 +1,7 @@
 import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 import { createMockSource, createTestClock } from "@priemskiyyy/beacon/mock";
 import type {
+  JournalOptions,
   NoneDecision,
   ReleaseScope,
   TargetDecision,
@@ -8,6 +9,7 @@ import type {
 import { expect, test } from "vitest";
 
 import { browserReload } from "src/browserReload";
+import { fakeStorage } from "src/fakeStorage.fixture";
 import { fakeWindow } from "src/fakeWindow.fixture";
 
 const SCOPE: ReleaseScope = {
@@ -30,7 +32,16 @@ const target = (value: string): TargetDecision => ({
   },
 });
 
-const createWebBeacon = (window = fakeWindow()) => {
+// Lets every queued promise continuation run before the test goes on.
+const settle = () =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, 0);
+  });
+
+const createWebBeacon = (
+  window = fakeWindow(),
+  journal: JournalOptions | undefined = undefined,
+) => {
   const mock = createMockSource<{ web: TargetDecision | NoneDecision }>({
     name: "manifest",
   });
@@ -53,6 +64,7 @@ const createWebBeacon = (window = fakeWindow()) => {
     },
     routes: { web },
     clock: createTestClock({ now: 1_000 }),
+    ...(journal === undefined ? {} : { journal }),
   });
 
   mock.answer({ document: { web: target("web-build-a") }, expiresAt: 601_000 });
@@ -182,4 +194,51 @@ test("without a window a reload is unsupported, and nothing is claimed", async (
     reason: "no-document",
   });
   expect(beacon.route("web").state.get().operation).toEqual({ state: "idle" });
+});
+
+test("WEB-06 the intent is persisted before the reload is dispatched, never after it", async () => {
+  const storage = fakeStorage();
+  const context = createWebBeacon(fakeWindow(), { mode: "required", storage });
+  const offer = await startWithOffer(context);
+
+  storage.holdWrites();
+
+  const pending = context.beacon.route("web").requestReload({ offer });
+
+  await settle();
+
+  expect(storage.writes()).toBe(1);
+  expect(context.window.reloads()).toBe(0);
+
+  storage.releaseWrites();
+
+  await expect(pending).resolves.toMatchObject({ status: "accepted" });
+  expect(context.window.reloads()).toBe(1);
+});
+
+test("WEB-11 without a journal the limitation is visible and a reload still proceeds", async () => {
+  const context = createWebBeacon();
+  const offer = await startWithOffer(context);
+
+  expect(context.beacon.transitions.get().journal).toBe("off");
+
+  await expect(
+    context.beacon.route("web").requestReload({ offer }),
+  ).resolves.toMatchObject({ status: "accepted" });
+});
+
+test("WEB-11 a required journal that cannot persist blocks the reload", async () => {
+  const storage = fakeStorage();
+  const context = createWebBeacon(fakeWindow(), { mode: "required", storage });
+  const offer = await startWithOffer(context);
+
+  storage.failWrites();
+
+  await expect(
+    context.beacon.route("web").requestReload({ offer }),
+  ).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "JOURNAL_FAILED" },
+  });
+  expect(context.window.reloads()).toBe(0);
 });

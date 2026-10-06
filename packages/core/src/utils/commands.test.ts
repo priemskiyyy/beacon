@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import { settle } from "src/utils/Beacon.fixture";
+import { createMemoryStorage } from "src/utils/journal.fixture";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,
@@ -730,4 +731,99 @@ test("diagnostics record the admission and the settlement of a command", async (
 
   expect(events).toContain("command-admitted:prefetch:null");
   expect(events).toContain("command-settled:prefetch:accepted");
+});
+
+test("SAFE-06 the provider is never asked once the caller has given up, however the abort interleaves with the intent's write", async () => {
+  for (const hops of [0, 1, 2, 3, 4, 5, 6, 8]) {
+    const memory = createMemoryStorage();
+    const controller = new AbortController();
+
+    const context = createWebCommandBeacon({
+      journal: { mode: "best-effort", storage: memory.storage },
+    });
+
+    const offer = await startWithOffer(context);
+    const write = memory.storage.write;
+
+    memory.storage.write = async (key, value) => {
+      await write(key, value);
+
+      // The abort lands a number of microtask turns after the write resolves.
+      let turn = Promise.resolve();
+
+      for (let hop = 0; hop < hops; hop += 1) {
+        turn = turn.then(() => {});
+      }
+
+      turn.then(() => controller.abort());
+    };
+
+    const reloading = context.beacon
+      .route("web")
+      .requestReload({ offer, signal: controller.signal });
+
+    await settle();
+
+    for (const run of context.runs) {
+      expect(run.abortedOnArrival).toBe(false);
+      run.settleWith(ACCEPTED_RELOAD);
+    }
+
+    await reloading;
+  }
+});
+
+test("SAFE-10 a caller that gave up before the call disrupts nobody", async () => {
+  const context = createWebCommandBeacon();
+  const log: string[] = [];
+  const offer = await startWithOffer(context);
+  const controller = new AbortController();
+
+  context.beacon.disruptions.register(createParticipant("drafts", log));
+  controller.abort();
+
+  await expect(
+    context.beacon
+      .route("web")
+      .requestReload({ offer, signal: controller.signal }),
+  ).resolves.toMatchObject({ status: "cancelled" });
+  expect(log).toEqual([]);
+  expect(context.runs).toHaveLength(0);
+});
+
+test("SAFE-04 a participant whose settlement throws at once blocks the command by name", async () => {
+  const context = createWebCommandBeacon();
+  const offer = await startWithOffer(context);
+
+  context.beacon.disruptions.register({
+    name: "drafts",
+    impacts: ["document-replacement"],
+    reserve: () => ({
+      status: "reserved",
+      settle: () => {
+        throw new Error("The draft store is gone.");
+      },
+      release: () => {},
+    }),
+  });
+
+  await expect(
+    context.beacon.route("web").requestReload({ offer }),
+  ).resolves.toEqual({
+    status: "blocked",
+    reasons: [{ code: "settlement-failed", participant: { name: "drafts" } }],
+  });
+  expect(context.runs).toHaveLength(0);
+});
+
+test("SEC-03 an offer whose expiry the clock has passed is refused as expired even when no timer has run", async () => {
+  const context = createWebCommandBeacon();
+  const offer = await startWithOffer(context);
+
+  context.clock.skip(700_000);
+
+  await expect(
+    context.beacon.route("web").requestReload({ offer }),
+  ).resolves.toEqual({ status: "stale", reason: "expired" });
+  expect(context.runs).toHaveLength(0);
 });

@@ -137,7 +137,7 @@ export class DisruptionRegistry {
       return null;
     }
 
-    const settling = reservation.settle({ signal });
+    const { settle } = reservation;
 
     let cancel = () => {};
 
@@ -149,7 +149,8 @@ export class DisruptionRegistry {
     });
 
     try {
-      const settlement = await Promise.race([settling, expired]);
+      // A settlement that throws at once fails like one that rejects, so the call sits inside the try.
+      const settlement = await Promise.race([settle({ signal }), expired]);
 
       if (settlement.status === "ready") {
         return null;

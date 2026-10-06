@@ -15,6 +15,8 @@ export type CommandCoordinatorOptions = {
   journal: Journal;
   getRunning: () => RunningApplication;
   getSession: () => Session | null;
+  /** Epoch milliseconds, for judging whether an offer's evidence still holds. */
+  now: () => number;
   /** Why a call outside a session cannot run: the Beacon is disposed, or was never started. */
   createInactiveError: () => BeaconError;
   record: (

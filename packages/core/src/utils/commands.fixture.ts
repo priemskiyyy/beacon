@@ -20,6 +20,8 @@ type WarmReceipt = { kind: "warmed" };
 
 type HeldRun = {
   signal: AbortSignal;
+  /** Whether the caller had already given up when the provider was asked. */
+  abortedOnArrival: boolean;
   settleWith: (result: ProviderResult<ReloadReceipt>) => void;
   fail: (error: Error) => void;
 };
@@ -39,7 +41,12 @@ export const createHeldMechanism = () => {
         binding: "unpinned-navigation",
         run: ({ signal }) =>
           new Promise<ProviderResult<ReloadReceipt>>((resolve, reject) => {
-            runs.push({ signal, settleWith: resolve, fail: reject });
+            runs.push({
+              signal,
+              abortedOnArrival: signal.aborted,
+              settleWith: resolve,
+              fail: reject,
+            });
           }),
       },
       prefetch: {

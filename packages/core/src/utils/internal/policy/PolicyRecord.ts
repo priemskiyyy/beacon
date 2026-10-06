@@ -14,6 +14,7 @@ import {
 } from "src/utils/constants/support";
 import { freezeList } from "src/utils/internal/common/freezeList";
 import { isSameData } from "src/utils/internal/common/isSameData";
+import { hasLapsed } from "src/utils/internal/feeds/hasLapsed";
 import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import type { Transaction } from "src/utils/internal/observable/Transaction";
@@ -242,12 +243,7 @@ export class PolicyRecord {
     evaluation: SupportEvaluation,
     error: SupportState["error"],
   ): SupportState {
-    const { expiresAt, freshness } = evaluation.evidence;
-
-    if (
-      freshness === "expired" ||
-      (expiresAt !== null && expiresAt <= this.#options.now())
-    ) {
+    if (hasLapsed(evaluation.evidence, this.#options.now())) {
       return {
         revision: 0,
         status: "unknown",

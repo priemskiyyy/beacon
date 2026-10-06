@@ -74,7 +74,12 @@ export class CommandCoordinator {
       });
     }
 
-    const resolution = resolveCommand(target, this.#options.ledger, input);
+    const resolution = resolveCommand(
+      target,
+      this.#options.ledger,
+      input,
+      this.#options.now(),
+    );
 
     if (resolution.status === "stale") {
       return this.#settle(target, resolution);
@@ -292,6 +297,15 @@ export class CommandCoordinator {
       operation: operation.id,
     });
 
+    // Nobody is asked to make room for a command that cannot run.
+    const opened = this.#open(target, controller);
+
+    if (opened.status === "stopped") {
+      this.#release(operation);
+
+      return opened.outcome;
+    }
+
     const reservation = this.#options.disruptions.reserve({
       route: entry.name,
       command: name,
@@ -325,13 +339,22 @@ export class CommandCoordinator {
       return { status: "blocked", reasons: settling.value };
     }
 
-    const verdict = await this.#prepare(
+    const staged = await this.#stage(
       target,
       operation,
       lease,
       input,
       controller,
     );
+
+    if (staged !== null) {
+      this.#release(operation);
+
+      return staged;
+    }
+
+    // The last look and the dispatch share one turn: nothing can interleave between them.
+    const verdict = this.#revalidate(target, lease, input, controller);
 
     if (verdict.status === "stopped") {
       this.#release(operation);
@@ -342,32 +365,30 @@ export class CommandCoordinator {
     return this.#dispatch(operation, verdict, controller);
   }
 
-  // Revalidates, writes the intent a command that replaces the realm needs, and revalidates again, since writing takes time.
-  async #prepare(
+  // A command that replaces the realm first looks again, then writes its intent, which takes time.
+  async #stage(
     target: CommandTarget,
     operation: CommandOperation,
     lease: Lease,
     input: CommandInput,
     controller: AbortController,
-  ): Promise<Verdict> {
-    const first = this.#revalidate(target, lease, input, controller);
-
-    if (first.status === "stopped" || !operation.replacesRealm) {
-      return first;
+  ): Promise<CommandResult | null> {
+    if (!operation.replacesRealm) {
+      return null;
     }
 
-    const stopped = await this.#persist(
+    const first = this.#revalidate(target, lease, input, controller);
+
+    if (first.status === "stopped") {
+      return first.outcome;
+    }
+
+    return this.#persist(
       target,
       operation,
       first.resolution.target,
       controller,
     );
-
-    if (stopped !== null) {
-      return { status: "stopped", outcome: stopped };
-    }
-
-    return this.#revalidate(target, lease, input, controller);
   }
 
   // The intent is not proof of a dispatch: it is what the next boot reads back to say what happened.
@@ -406,13 +427,13 @@ export class CommandCoordinator {
     return { status: "failed", error: toErrorInfo(written.value.error) };
   }
 
-  // Everything the call assumed when it was admitted is looked at again, right before the provider is asked.
-  #revalidate(
-    target: CommandTarget,
-    lease: Lease,
-    input: CommandInput,
+  // What has to hold for any command to run: the caller still waits, and the provider is open.
+  #open(
+    { entry }: CommandTarget,
     controller: AbortController,
-  ): Verdict {
+  ):
+    | Extract<Verdict, { status: "stopped" }>
+    | { status: "open"; native: object } {
     if (controller.signal.aborted) {
       return {
         status: "stopped",
@@ -420,23 +441,7 @@ export class CommandCoordinator {
       };
     }
 
-    const resolution = resolveCommand(target, this.#options.ledger, input);
-
-    if (resolution.status === "stale") {
-      return { status: "stopped", outcome: resolution };
-    }
-
-    if (this.#options.disruptions.getRevision() !== lease.revision) {
-      return {
-        status: "stopped",
-        outcome: {
-          status: "blocked",
-          reasons: [{ code: SAFETY_CHANGED, participant: null }],
-        },
-      };
-    }
-
-    const native = target.entry.record.native.get();
+    const native = entry.record.native.get();
 
     if (native === null) {
       return {
@@ -453,7 +458,44 @@ export class CommandCoordinator {
       };
     }
 
-    return { status: "ready", resolution, native };
+    return { status: "open", native };
+  }
+
+  // Everything the call assumed when it was admitted is looked at again, right before the provider is asked.
+  #revalidate(
+    target: CommandTarget,
+    lease: Lease,
+    input: CommandInput,
+    controller: AbortController,
+  ): Verdict {
+    const opened = this.#open(target, controller);
+
+    if (opened.status === "stopped") {
+      return opened;
+    }
+
+    const resolution = resolveCommand(
+      target,
+      this.#options.ledger,
+      input,
+      this.#options.now(),
+    );
+
+    if (resolution.status === "stale") {
+      return { status: "stopped", outcome: resolution };
+    }
+
+    if (this.#options.disruptions.getRevision() !== lease.revision) {
+      return {
+        status: "stopped",
+        outcome: {
+          status: "blocked",
+          reasons: [{ code: SAFETY_CHANGED, participant: null }],
+        },
+      };
+    }
+
+    return { status: "ready", resolution, native: opened.native };
   }
 
   async #dispatch(

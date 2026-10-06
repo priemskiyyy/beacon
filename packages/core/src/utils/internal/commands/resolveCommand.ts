@@ -9,6 +9,7 @@ import type { PreparedReference } from "src/types/PreparedReference";
 import type { RouteBody } from "src/types/RouteBody";
 import type { StaleReason } from "src/types/StaleReason";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
+import { hasLapsed } from "src/utils/internal/feeds/hasLapsed";
 import type { ReferenceLedger } from "src/utils/internal/routes/ReferenceLedger";
 
 type Found<TValue> =
@@ -18,6 +19,7 @@ const findOffer = (
   entry: RouteEntry,
   ledger: ReferenceLedger,
   reference: OfferReference<string> | undefined,
+  now: number,
 ): Found<Offer<string, RouteBody>> => {
   if (
     reference === undefined ||
@@ -36,7 +38,7 @@ const findOffer = (
     return { status: "stale", reason: "replaced" };
   }
 
-  if (observation.evidence.freshness === "expired") {
+  if (hasLapsed(observation.evidence, now)) {
     return { status: "stale", reason: "expired" };
   }
 
@@ -69,12 +71,14 @@ const findPrepared = (
  * Checks the references a call brought against what the route holds now, and
  * binds them into the call that runs the command. A reference Beacon did not
  * mint, or one of another route, is `foreign`; one that is no longer the
- * route's current is `replaced`; an offer whose evidence lapsed is `expired`.
+ * route's current is `replaced`; an offer whose evidence lapsed, by its own
+ * flag or by the clock, is `expired`.
  */
 export const resolveCommand = (
   { entry, command }: CommandTarget,
   ledger: ReferenceLedger,
   input: CommandInput,
+  now: number,
 ): CommandResolution => {
   if (command.reference === "none") {
     return {
@@ -110,7 +114,7 @@ export const resolveCommand = (
   }
 
   if (command.reference === "offer" || command.reference === "optional-offer") {
-    const found = findOffer(entry, ledger, input.offer);
+    const found = findOffer(entry, ledger, input.offer, now);
 
     if (found.status === "stale") {
       return found;

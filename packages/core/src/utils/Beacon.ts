@@ -244,6 +244,7 @@ export class Beacon<
       journal: this.#journal,
       getRunning: () => this.#running.state.get(),
       getSession: () => this.#runtime.getSession(),
+      now: () => clock.now(),
       createInactiveError: () => this.#createInactiveError(),
       record: this.#diagnostics.record,
     });

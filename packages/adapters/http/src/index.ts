@@ -3,6 +3,7 @@ export { http } from "src/http";
 export type { HttpOptions } from "src/types/HttpOptions";
 export type { HttpAnswer } from "src/types/HttpAnswer";
 export type { HttpFetchContext } from "src/types/HttpFetchContext";
+export type { ManifestFetch } from "src/types/ManifestFetch";
 export type { ManifestLimits } from "src/types/ManifestLimits";
 export type { ManifestMetadata } from "src/types/ManifestMetadata";
 export type { ManifestResponse } from "src/types/ManifestResponse";
@@ -13,8 +14,10 @@ export type { RouteDeclaration } from "src/types/RouteDeclaration";
 export type { RouteDeclarations } from "src/types/RouteDeclarations";
 export type { StandardDecision } from "src/types/StandardDecision";
 export type { StandardManifest } from "src/types/StandardManifest";
+export type { StandardManifestSourceOptions } from "src/types/StandardManifestSourceOptions";
 export type { StandardRead } from "src/types/StandardRead";
 export type { StandardSupport } from "src/types/StandardSupport";
 
 export { parseStandardManifest } from "src/parseStandardManifest";
 export { readStandardManifest } from "src/readStandardManifest";
+export { standardManifestSource } from "src/standardManifestSource";

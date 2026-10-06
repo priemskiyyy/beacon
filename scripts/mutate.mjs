@@ -559,8 +559,8 @@ const MUTANTS = [
   },
   {
     file: `${http}/utils/assertScope.ts`,
-    find: "(key) => readText(readField(record, key), key) !== scope[key],",
-    replace: "() => false,",
+    find: "return echoed !== undefined && readText(echoed, key) !== scope[key];",
+    replace: "return false;",
     project: "http",
     describes: "a manifest for another scope accepted",
   },
@@ -580,10 +580,87 @@ const MUTANTS = [
   },
   {
     file: `${http}/utils/readExpiry.ts`,
-    find: "return Math.min(expiresAt, now + limits.lifetime);",
-    replace: "return expiresAt;",
+    find: "return { expiresAt: Math.min(expiresAt, now + limits.lifetime) };",
+    replace: "return { expiresAt };",
     project: "http",
     describes: "an expiry longer than the local limit",
+  },
+  {
+    file: `${http}/utils/readExpiry.ts`,
+    find: "return { expiresAt: now + limits.lifetime, holdsFor: limits.lifetime };",
+    replace:
+      "return { expiresAt: now + limits.lifetime * 2, holdsFor: limits.lifetime };",
+    project: "http",
+    describes:
+      "a manifest with no expiry of its own holding for longer than the client's window",
+  },
+  {
+    file: `${http}/utils/readExpiry.ts`,
+    find: "if (issuedAt !== null && issuedAt - now > limits.skew) {",
+    replace: "if (false) {",
+    project: "http",
+    describes: "a manifest issued ahead of the local clock accepted",
+  },
+  {
+    file: `${http}/http.ts`,
+    find: "held.holdsFor === null ? undefined : clock.now() + held.holdsFor;",
+    replace: "undefined;",
+    project: "http",
+    describes:
+      "a confirmation of an answer with no expiry of its own that never starts its window again",
+  },
+  {
+    file: `${http}/http.ts`,
+    find: 'if (answer.status === undefined || answer.status === "changed") {',
+    replace: 'if (answer.status === "changed") {',
+    project: "http",
+    describes: "an answer that returns only a document taken for garbage",
+  },
+  {
+    file: `${http}/utils/createIdentityShorthand.ts`,
+    find: 'if (declaration.kind === "target") {',
+    replace: "if (true) {",
+    project: "http",
+    describes: "a text identity of a binary named as a web artifact",
+  },
+  {
+    file: `${http}/utils/readShortIdentity.ts`,
+    find: 'return { status: "known", authority, domain, value: readText(value, field) };',
+    replace:
+      'return { status: "known", authority: domain, domain, value: readText(value, field) };',
+    project: "http",
+    describes:
+      "a text identity named under another authority than the application's",
+  },
+  {
+    file: `${http}/standardManifestSource.ts`,
+    find: 'cache: "no-cache",',
+    replace: 'cache: "default",',
+    project: "http",
+    describes:
+      "a manifest served from a browser's stored copy without asking the server",
+  },
+  {
+    file: `${http}/standardManifestSource.ts`,
+    find: '{ ...headers, "if-none-match": validator }',
+    replace: "{ ...headers }",
+    project: "http",
+    describes: "a manifest source that never sends back the validator it holds",
+  },
+  {
+    file: `${http}/standardManifestSource.ts`,
+    find: "now: clock.now(),",
+    replace: "now: 0,",
+    project: "http",
+    describes: "a manifest dated by a clock other than the Beacon's",
+  },
+  {
+    file: `${http}/standardManifestSource.ts`,
+    find: 'if (typeof fetch === "undefined") {',
+    replace: "if (false) {",
+    project: "http",
+    describes:
+      "a host without fetch failing the read with a missing name instead of the option to pass",
   },
   {
     file: `${http}/utils/readTimestamp.ts`,

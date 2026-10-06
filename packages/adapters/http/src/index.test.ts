@@ -7,5 +7,6 @@ test("the package root exports exactly its supported runtime names", () => {
     "http",
     "parseStandardManifest",
     "readStandardManifest",
+    "standardManifestSource",
   ]);
 });

@@ -436,3 +436,17 @@ test("EXPO-20 the application reporting ready calls nothing of the SDK, and infe
 
   expect(context.calls).toEqual({ checks: 0, fetches: 0, reloads: 0 });
 });
+
+test("EXPO-16 the runtime version is a fact of the running bundle and compares nothing: the provider's answer is the offer", async () => {
+  const context = create();
+
+  context.willCheck(available(UPDATE_A));
+
+  const offer = await checkOffer(context);
+
+  expect(context.beacon.running.get().bundle).toMatchObject({
+    state: "known",
+    release: { raw: { runtimeVersion: "1.0.0" } },
+  });
+  expect(offer.release).not.toHaveProperty("compatibility");
+});

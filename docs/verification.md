@@ -9,18 +9,18 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | CORE    | Core state and observations         | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
 | VER     | Identity, ordering, and revision    | 18        | 18     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 |
 | HTTP    | HTTP, manifests, and shared feeds   | 18        | 17     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15, 16, 17, 18     |
-| POL     | Support policy                      | 14        | 12     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 13, 14                         |
+| POL     | Support policy                      | 14        | 13     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 13, 14                     |
 | WEB     | Browser reload and deployment       | 12        | 9      | 01, 02, 03, 04, 05, 06, 07, 11, 12                                     |
 | SW      | Service-worker and Workbox          | 16        | 10     | 01, 02, 03, 04, 05, 07, 08, 12, 13, 14                                 |
-| EXPO    | Expo Updates                        | 20        | 15     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 17, 18, 19, 20             |
-| PLAY    | Google Play native flows            | 18        | 12     | 01, 02, 04, 05, 08, 09, 10, 11, 12, 13, 14, 15                         |
-| STORE   | App Store metadata and handoff      | 10        | 6      | 01, 02, 03, 04, 05, 07                                                 |
+| EXPO    | Expo Updates                        | 20        | 16     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 16, 17, 18, 19, 20         |
+| PLAY    | Google Play native flows            | 18        | 16     | 01, 02, 03, 04, 05, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17         |
+| STORE   | App Store metadata and handoff      | 10        | 9      | 01, 02, 03, 04, 05, 06, 07, 08, 09                                     |
 | SAFE    | Disruption coordination             | 14        | 12     | 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 14                         |
 | JOURNAL | Persistence and boot reconciliation | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
 | LIFE    | Sessions and resource ownership     | 12        | 9      | 01, 02, 03, 04, 05, 06, 07, 10, 12                                     |
-| SEC     | Security and diagnostics            | 12        | 9      | 01, 02, 03, 04, 05, 06, 07, 10, 12                                     |
+| SEC     | Security and diagnostics            | 12        | 11     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12                             |
 | BIND    | Types, React, and SSR               | 10        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10                                 |
-| Total   |                                     | 202       | 167    |                                                                        |
+| Total   |                                     | 202       | 178    |                                                                        |
 
 <!-- scenarios:end -->
 

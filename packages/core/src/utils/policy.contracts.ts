@@ -86,6 +86,7 @@ new Beacon({
   scope,
   running: { boot: { id: "boot-1" } },
   routes: { web },
+  // POL-11 Two support authorities cannot be configured, so none wins silently: an aggregate is the application's own policy.
   // @ts-expect-error There is one support authority, not a list of them.
   policy: [
     supportPolicy({

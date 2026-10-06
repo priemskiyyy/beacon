@@ -8,6 +8,7 @@ import {
   startWithOffer,
   takeRun,
 } from "src/utils/commands.fixture";
+import { COUNTED_EVENTS } from "src/utils/constants/diagnostics";
 import { createDriverBeacon } from "src/utils/drivers.fixture";
 import { parseJournal } from "src/utils/internal/journal/parseJournal";
 import { target } from "src/utils/routes.fixture";
@@ -215,4 +216,54 @@ test("an accepted reload does not put its offer's build in the diagnostics event
   await pending;
 
   expect(events.join("")).not.toContain("web-build-a");
+});
+
+test("SEC-08 the diagnostics keep counters and no log, so their size does not grow with the events", async () => {
+  const context = createWebCommandBeacon();
+  const web = context.beacon.route("web");
+
+  context.beacon.start();
+
+  const sizeOf = () => JSON.stringify(context.beacon.diagnostics.get()).length;
+
+  const check = async () => {
+    const checking = web.check();
+
+    await settle();
+    answerWithBuild(context.mock, "web-build-a", "208");
+    await checking;
+  };
+
+  for (let index = 0; index < 5; index += 1) {
+    await check();
+  }
+
+  const before = sizeOf();
+
+  for (let index = 0; index < 200; index += 1) {
+    await check();
+  }
+
+  expect(sizeOf()).toBe(before);
+});
+
+test("SEC-09 an accepted command is never an installation in the diagnostics", async () => {
+  const context = createWebCommandBeacon();
+  const events: string[] = [];
+  const offer = await startWithOffer(context);
+
+  context.beacon.diagnostics.events.subscribe((event) => {
+    events.push(event.type);
+  });
+
+  const pending = context.beacon.route("web").requestReload({ offer });
+
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+  await pending;
+
+  expect(events).toEqual(["command-admitted", "command-settled"]);
+  expect(Object.keys(COUNTED_EVENTS)).not.toContainEqual(
+    expect.stringMatching(/install|update|complete|success/),
+  );
 });

@@ -18,9 +18,12 @@ const ordered = (value: string, epoch = "v1"): DecisionRevision => ({
 const answer = (
   name: string,
   revision: DecisionRevision | undefined,
-  digest: string | undefined = name,
+  digest: string | null = name,
 ): SourceRead<Manifest> => {
-  const read: SourceRead<Manifest> = { document: { name }, digest };
+  const read: SourceRead<Manifest> = {
+    document: { name },
+    ...(digest === null ? {} : { digest }),
+  };
 
   if (revision === undefined) {
     return read;
@@ -144,4 +147,42 @@ test("a revision that moves forward replaces the decision", async () => {
   expect(outcome).toEqual({ status: "accepted", attempt: 2 });
   expect(context.feed.getAccepted()?.document).toEqual({ name: "b" });
   expect(context.accepted).toHaveLength(2);
+});
+
+test("VER-14 a renewal that carries no digest does not erase the digest of the decision held", async () => {
+  const context = createFeed();
+  const session = createSession();
+
+  await readOnce(context, session, answer("a", ordered("208"), "a"));
+  await readOnce(context, session, answer("b", ordered("208"), null));
+
+  const outcome = await readOnce(
+    context,
+    session,
+    answer("c", ordered("208"), "c"),
+  );
+
+  expect(outcome).toMatchObject({
+    status: "failed",
+    error: { code: "REVISION_CONFLICT" },
+  });
+});
+
+test("VER-14 a digest that a decision lacked is adopted from a renewal that has one", async () => {
+  const context = createFeed();
+  const session = createSession();
+
+  await readOnce(context, session, answer("a", ordered("208"), null));
+  await readOnce(context, session, answer("a", ordered("208"), "a"));
+
+  const outcome = await readOnce(
+    context,
+    session,
+    answer("c", ordered("208"), "c"),
+  );
+
+  expect(outcome).toMatchObject({
+    status: "failed",
+    error: { code: "REVISION_CONFLICT" },
+  });
 });

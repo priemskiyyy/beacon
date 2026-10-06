@@ -105,6 +105,7 @@ export class FeedRecord {
   // Throws the error a rejected answer becomes; the held document is never touched here.
   #judge(attempt: number, read: SourceRead<unknown>): Verdict {
     const revision = read.revision ?? null;
+    const held = this.#accepted?.claim ?? null;
     const claim = { revision, digest: read.digest ?? null };
 
     if (
@@ -118,7 +119,7 @@ export class FeedRecord {
       });
     }
 
-    const verdict = judgeRevision(this.#accepted?.claim ?? null, claim);
+    const verdict = judgeRevision(held, claim);
 
     if (verdict.status === "rejected") {
       throw new BeaconError({
@@ -136,10 +137,16 @@ export class FeedRecord {
       revision,
     });
 
+    // A renewal that proves nothing about its content does not make the decision forget the digest it was accepted with.
+    const digest =
+      verdict.status === "renewed"
+        ? (claim.digest ?? held?.digest ?? null)
+        : claim.digest;
+
     return {
       accepted: Object.freeze({
         document: read.document,
-        claim: Object.freeze(claim),
+        claim: Object.freeze({ revision, digest }),
         evidence,
         attempt,
       }),

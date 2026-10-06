@@ -10,12 +10,19 @@ type ProjectOptions = {
   dedupe: string[];
   include: string[];
   exclude: string[];
+  alias: Record<string, string>;
+  define: Record<string, string>;
 };
 
 // Solid, Vue and Svelte each need their own build of the framework, and a
 // binding's server render and its hydration need theirs again, so they are
 // projects of their own below. The devtools are Solid too, and have theirs.
 const FRAMEWORKS = ["solid", "vue", "svelte", "devtools"];
+
+const exampleModule = (folder: string, name: string) =>
+  fileURLToPath(
+    new URL(`./examples/${folder}/node_modules/${name}`, import.meta.url),
+  );
 
 const PROJECT_OPTIONS: Record<string, Partial<ProjectOptions>> = {
   // A binding must render against the same React instance as the renderer under test.
@@ -26,6 +33,16 @@ const PROJECT_OPTIONS: Record<string, Partial<ProjectOptions>> = {
     exclude: ["**/*.native.test.tsx"],
   },
   "example-react": { environment: "jsdom", dedupe: ["react", "react-dom"] },
+  // The React Native components render through react-native-web, and `__DEV__` is false, as in a release bundle. The example pins the React that React Native's renderer demands, not the workspace's, so the sources a test inlines are given that copy.
+  "example-expo": {
+    environment: "jsdom",
+    alias: {
+      "react-native": "react-native-web",
+      react: exampleModule("expo", "react"),
+      "react-dom": exampleModule("expo", "react-dom"),
+    },
+    define: { __DEV__: "false" },
+  },
 };
 
 // An example keeps its tests next to its code, not under `src`, and a project of its own never shares a name with a package.
@@ -39,8 +56,12 @@ const project = (directory: string, folder: string) => {
 
   return {
     extends: true,
+    define: options.define ?? {},
     resolve: {
-      alias: { src: fileURLToPath(new URL(`./${root}/src`, import.meta.url)) },
+      alias: {
+        src: fileURLToPath(new URL(`./${root}/src`, import.meta.url)),
+        ...options.alias,
+      },
       dedupe: options.dedupe ?? [],
     },
     test: {

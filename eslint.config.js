@@ -665,12 +665,17 @@ export default tseslint.config(
     },
   },
   {
+    // The two minimal examples are what a newcomer copies, so their files import one another by relative path, as an application with no alias does.
+    files: ["examples/{expo,react-minimal}/**/*.{ts,tsx}"],
+    rules: { "no-restricted-syntax": ["error", ...bannedSyntax] },
+  },
+  {
     // React rules only where React runs.
     files: [
       "packages/react/**/*.{ts,tsx}",
       "packages/devtools/src/react.{ts,tsx}",
       "packages/devtools/src/react.*.{ts,tsx}",
-      "examples/{react,expo}/**/*.{ts,tsx}",
+      "examples/{react,react-minimal,expo,expo-lab}/**/*.{ts,tsx}",
     ],
     plugins: { "react-hooks": reactHooks },
     rules: reactHooks.configs.recommended.rules,

@@ -170,6 +170,58 @@ importers:
 
   examples/expo:
     dependencies:
+      '@priemskiyyy/beacon':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@priemskiyyy/beacon-app-store':
+        specifier: workspace:*
+        version: link:../../packages/adapters/app-store
+      '@priemskiyyy/beacon-expo':
+        specifier: workspace:*
+        version: link:../../packages/adapters/expo
+      '@priemskiyyy/beacon-google-play':
+        specifier: workspace:*
+        version: link:../../packages/adapters/google-play
+      '@priemskiyyy/beacon-react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      expo:
+        specifier: 57.0.24
+        version: 57.0.24(@babel/core@7.29.7)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.16)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)(typescript@5.8.3)
+      expo-application:
+        specifier: 57.0.3
+        version: 57.0.3(expo@57.0.24)
+      expo-updates:
+        specifier: 57.0.24
+        version: 57.0.24(expo@57.0.24)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
+      react:
+        specifier: 19.2.3
+        version: 19.2.3
+      react-native:
+        specifier: 0.86.3
+        version: 0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3)
+    devDependencies:
+      '@testing-library/dom':
+        specifier: 10.4.2
+        version: 10.4.2
+      '@testing-library/react':
+        specifier: 16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.7(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@types/react':
+        specifier: 19.2.17
+        version: 19.2.17
+      react-dom:
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
+      react-native-web:
+        specifier: 0.21.2
+        version: 0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
+  examples/expo-lab:
+    dependencies:
       '@expo/metro-runtime':
         specifier: 57.0.16
         version: 57.0.16(@expo/log-box@57.0.4)(expo@57.0.24)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
@@ -259,6 +311,40 @@ importers:
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      vite:
+        specifier: 8.3.0
+        version: 8.3.0(@types/node@22.20.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1)
+
+  examples/react-minimal:
+    dependencies:
+      '@priemskiyyy/beacon':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@priemskiyyy/beacon-browser':
+        specifier: workspace:*
+        version: link:../../packages/adapters/browser
+      '@priemskiyyy/beacon-http':
+        specifier: workspace:*
+        version: link:../../packages/adapters/http
+      '@priemskiyyy/beacon-react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.17
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: 19.2.7
+        version: 19.2.7(@types/react@19.2.17)
       typescript:
         specifier: 5.8.3
         version: 5.8.3
@@ -8834,6 +8920,16 @@ snapshots:
       lz-string: 1.5.0
       picocolors: 1.1.1
       pretty-format: 27.5.1
+
+  '@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.7(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@babel/runtime': 7.29.7
+      '@testing-library/dom': 10.4.2
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+    optionalDependencies:
+      '@types/react': 19.2.17
+      '@types/react-dom': 19.2.7(@types/react@19.2.17)
 
   '@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.7(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:

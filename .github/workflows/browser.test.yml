@@ -44,13 +44,15 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      # The release lab and its Expo web export run in a real browser against the built packages.
-      - name: Labs in Chromium
+      # The release labs, the web export of the Expo lab and the minimal React app run in a real browser against the built packages.
+      - name: Examples in Chromium
         run: pnpm test:browser
 
       # Metro resolves the packages' exports for both native platforms; a device still has to run them.
       - name: Expo native bundles
-        run: pnpm --filter example-expo build:native
+        run: |
+          pnpm --filter example-expo build:native
+          pnpm --filter example-expo-lab build:native
 
       - name: Upload results
         uses: actions/upload-artifact@v4

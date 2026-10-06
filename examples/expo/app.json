@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Beacon lab",
+    "slug": "beacon-release-lab",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android", "web"],
+    "ios": { "bundleIdentifier": "dev.beacon.example" },
+    "android": { "package": "dev.beacon.example" },
+    "web": { "bundler": "metro" }
+  }
+}

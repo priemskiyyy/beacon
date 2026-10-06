@@ -27,6 +27,7 @@ const PACKAGES = [
   "packages/adapters/app-store",
   "packages/adapters/firebase-remote-config",
   "packages/adapters/code-push",
+  "packages/adapters/native",
 ];
 
 // The part of a Babel node and path these checks read.

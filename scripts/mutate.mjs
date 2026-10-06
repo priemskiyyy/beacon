@@ -781,6 +781,52 @@ const MUTANTS = [
     describes:
       "a package downloaded again after it was installed, which deletes the folder CodePush runs from",
   },
+  {
+    file: "packages/adapters/native/src/utils/readNativeRelease.ts",
+    find: "facts.applicationId !== options.authority",
+    replace: "false",
+    project: "native",
+    describes:
+      "Expo Go's build number named under this application's authority",
+  },
+  {
+    file: "packages/adapters/native/src/utils/readDeviceInfoText.ts",
+    find: "if (text === DEVICE_INFO_NOT_READ) {",
+    replace: "if (false) {",
+    project: "native",
+    describes:
+      "the text unknown from react-native-device-info taken for a build",
+  },
+  {
+    file: "packages/adapters/native/src/utils/constants/authority.ts",
+    find: 'export const ANDROID_DOMAIN = "android-version-code";',
+    replace: 'export const ANDROID_DOMAIN = "native-android-build";',
+    project: "native",
+    describes:
+      "an Android build named in other words than the Play route offers in",
+  },
+  {
+    file: "packages/adapters/browser/src/utils/readBuildText.ts",
+    find: 'text === "" || NOT_INJECTED_TEXTS.has(text)',
+    replace: 'text === ""',
+    project: "browser",
+    describes: "a define written into text taken for a build named undefined",
+  },
+  {
+    file: "packages/adapters/browser/src/browserStorage.ts",
+    find: 'area = "session",',
+    replace: 'area = "local",',
+    project: "browser",
+    describes:
+      "a journal shared by every tab where two tabs overwrite each other",
+  },
+  {
+    file: "packages/adapters/browser/src/utils/openStorage.ts",
+    find: "      { cause },\n",
+    replace: "",
+    project: "browser",
+    describes: "a blocked storage rejecting without the browser's own error",
+  },
   // What Hermes lacks or reads differently: the projects that run a package in
   // the environment of a React Native app must notice where the plain ones do not.
   {

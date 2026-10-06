@@ -17,6 +17,7 @@ const ENTRIES = [
   "packages/adapters/app-store/dist/index.js",
   "packages/adapters/firebase-remote-config/dist/index.js",
   "packages/adapters/code-push/dist/index.js",
+  "packages/adapters/native/dist/index.js",
 ];
 
 const BROWSER_GLOBALS = [

@@ -77,6 +77,9 @@ importers:
       expo-application:
         specifier: 57.0.3
         version: 57.0.3(expo@57.0.25)
+      expo-constants:
+        specifier: 57.0.19
+        version: 57.0.19(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
       expo-sqlite:
         specifier: 57.0.3
         version: 57.0.3(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8)
@@ -110,6 +113,9 @@ importers:
       react-native-code-push:
         specifier: 9.0.1
         version: 9.0.1(@types/node@22.20.2)
+      react-native-device-info:
+        specifier: 15.0.2
+        version: 15.0.2(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
       react-native-mmkv:
         specifier: 4.3.2
         version: 4.3.2(react-native-nitro-modules@0.37.1(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8))(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))(react@19.2.8)
@@ -167,6 +173,9 @@ importers:
       '@priemskiyyy/beacon-expo':
         specifier: workspace:*
         version: link:../../packages/adapters/expo
+      '@priemskiyyy/beacon-native':
+        specifier: workspace:*
+        version: link:../../packages/adapters/native
       '@priemskiyyy/beacon-react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -433,6 +442,25 @@ importers:
       '@priemskiyyy/beacon':
         specifier: workspace:*
         version: link:../../core
+
+  packages/adapters/native:
+    dependencies:
+      expo-application:
+        specifier: '>=57.0.0 <58'
+        version: 57.0.3(expo@57.0.25)
+      react-native-device-info:
+        specifier: '>=15.0.0 <16'
+        version: 15.0.2(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
+    devDependencies:
+      '@priemskiyyy/beacon':
+        specifier: workspace:*
+        version: link:../../core
+      '@priemskiyyy/beacon-app-store':
+        specifier: workspace:*
+        version: link:../app-store
+      '@priemskiyyy/beacon-google-play':
+        specifier: workspace:*
+        version: link:../google-play
 
   packages/adapters/service-worker:
     devDependencies:
@@ -5204,6 +5232,11 @@ packages:
 
   react-native-code-push@9.0.1:
     resolution: {integrity: sha512-+7BhJbsx0c9md2zCOPsEv44eKQsvDM7J5nVYFsDUHVzBx8cvojBSPfjfdqZq5op5YmawH7mpbIPMYUj9bF9SLw==}
+
+  react-native-device-info@15.0.2:
+    resolution: {integrity: sha512-dd71eXG2l3Cwp66IvKNadMTB8fhU3PEjyVddI97sYan+D4bgIAUmgGDhbSOFvHcGavksb2U17kiQYaDiK2WK2g==}
+    peerDependencies:
+      react-native: '*'
 
   react-native-fetch-api@3.0.0:
     resolution: {integrity: sha512-g2rtqPjdroaboDKTsJCTlcmtw54E25OjyaunUP0anOZn4Fuo2IKs8BVfe02zVggA/UysbmfSnRJIqtNkAgggNA==}
@@ -11970,6 +12003,10 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
       - supports-color
+
+  react-native-device-info@15.0.2(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8)):
+    dependencies:
+      react-native: 0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8)
 
   react-native-fetch-api@3.0.0:
     dependencies:

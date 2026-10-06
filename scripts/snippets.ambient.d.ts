@@ -69,6 +69,9 @@ declare global {
   const parseManifestResponse: (input: unknown) => HttpAnswer<WebDocument>;
   // The Pulse library is a sibling of Beacon and is not a dependency.
   const pulse: {
-    on: (event: "foreground", listener: () => void | Promise<void>) => () => void;
+    on: (
+      event: "foreground",
+      listener: () => void | Promise<void>,
+    ) => () => void;
   };
 }

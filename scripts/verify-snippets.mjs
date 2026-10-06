@@ -103,6 +103,19 @@ if (paths["@priemskiyyy/beacon"] === undefined) {
   process.exit(1);
 }
 
+// Solid compiles its own JSX, so a Solid page needs settings of its own.
+const compilerOptionsFor = (page) => {
+  if (
+    /^(packages\/solid\/|docs\/solid\.md$|examples\/solid)/.test(
+      path.relative(workspace, page),
+    )
+  ) {
+    return { jsx: "preserve", jsxImportSource: "solid-js" };
+  }
+
+  return {};
+};
+
 const slug = (text) => text.replaceAll(/[^A-Za-z0-9]+/g, "_");
 
 const readFences = (page) => {
@@ -154,7 +167,10 @@ const fences = pages.flatMap(readFences);
 const isolated = new Set(
   fences
     .filter(
-      (fence) => fence.file !== null || /\bdeclare module\b/.test(fence.text),
+      (fence) =>
+        fence.file !== null ||
+        /\bdeclare module\b/.test(fence.text) ||
+        Object.keys(compilerOptionsFor(fence.page)).length > 0,
     )
     .map((fence) => fence.page),
 );
@@ -194,6 +210,7 @@ for (const fence of fences) {
 
   const program = programs.get(name) ?? {
     folder,
+    options: compilerOptionsFor(fence.page),
     ambient: path.join(
       output,
       isReadme(fence.page) ? "ambient.readme.d.ts" : "ambient.docs.d.ts",
@@ -205,7 +222,27 @@ for (const fence of fences) {
   programs.set(name, program);
 }
 
-for (const { folder, ambient, files } of programs.values()) {
+// An augmentation alone does not load the module it augments, so the program imports it.
+const readAugmented = (files) => [
+  ...new Set(
+    files.flatMap(({ fence }) =>
+      [...fence.text.matchAll(/\bdeclare module "([^"]+)"/g)].map(
+        (match) => match[1],
+      ),
+    ),
+  ),
+];
+
+for (const { folder, options, ambient, files } of programs.values()) {
+  const augmented = path.join(folder, "augmented.ts");
+
+  writeFileSync(
+    augmented,
+    `${readAugmented(files)
+      .map((name) => `import type {} from "${name}";`)
+      .join("\n")}\nexport {};\n`,
+  );
+
   writeFileSync(
     path.join(folder, "tsconfig.json"),
     `${JSON.stringify(
@@ -217,10 +254,11 @@ for (const { folder, ambient, files } of programs.values()) {
           types: ["node"],
           baseUrl: ".",
           paths,
+          ...options,
         },
         // Wildcards skip dot directories such as .artifacts, so every file is named.
         include: [],
-        files: [...files.map(({ file }) => file), ambient],
+        files: [...files.map(({ file }) => file), augmented, ambient],
       },
       null,
       2,

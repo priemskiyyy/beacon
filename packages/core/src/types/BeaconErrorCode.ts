@@ -6,6 +6,9 @@
  * - `DISPOSED`: an operation ran after `dispose()`.
  * - `INVALID_VERSION`: a version string or number broke the grammar of the
  *   strategy that parsed it.
+ * - `SELECTION_FAILED`: a version strategy threw while parsing or comparing.
+ * - `IDENTITY_CONFLICT`: one release identity was reported with contradictory
+ *   order or compatibility.
  *
  * @example
  * ```ts
@@ -13,4 +16,8 @@
  * ```
  */
 export type BeaconErrorCode =
-  "INVALID_CONFIGURATION" | "DISPOSED" | "INVALID_VERSION";
+  | "INVALID_CONFIGURATION"
+  | "DISPOSED"
+  | "INVALID_VERSION"
+  | "SELECTION_FAILED"
+  | "IDENTITY_CONFLICT";

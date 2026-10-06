@@ -328,9 +328,8 @@ const emitElement = (out, element) => {
 
   // An imported component is read, so a missing import is an unknown name.
   if (element.tagType === 1 && !VUE_BUILT_INS.has(element.tag)) {
-    const name = element.tag.includes("-")
-      ? camelize(`-${element.tag}`)
-      : element.tag;
+    // Vue resolves `<update-banner>` and `<updateBanner>` to `UpdateBanner`.
+    const name = camelize(`-${element.tag}`);
 
     emit(out, `void (${name});`, line);
   }
@@ -512,7 +511,8 @@ const convertVue = (fence) => {
     ...scriptLines,
     ...VUE_PRELUDE.split("\n"),
     "{",
-    `const { ${[...names].join(", ")} } = __ctx;`,
+    // `let`, since a handler may assign to a ref; a never assigned `let` narrows like a `const`.
+    `let { ${[...names].join(", ")} } = __ctx;`,
     "const { $attrs, $slots, $emit, $props, $refs } = __ctx;",
   ];
 

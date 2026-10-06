@@ -65,13 +65,12 @@ const dirty = ref(false);
 
 useDisruption({
   name: "draft-editor",
-  impacts: ["document-replacement"],
   reserve: () => {
     if (dirty.value) {
       return { status: "blocked", code: "unsaved-draft" };
     }
 
-    return { status: "reserved", release: resume };
+    return { status: "reserved" };
   },
 });
 </script>
@@ -79,7 +78,7 @@ useDisruption({
 <template>
   <button
     v-if="observation.status === 'available'"
-    @click="beacon.route('web').reload({ offer: observation.offer.ref })"
+    @click="beacon.route('web').reload({ offer: observation.offer })"
   >
     Update
   </button>

@@ -1,5 +1,5 @@
 ---
-description: "Turn on the transition journal to learn on the next boot what a reload led to: intents, storage, checkpoints, boot reconciliation and the attempt budget."
+description: "Turn on the transition journal to learn on the next boot what a reload led to: intents, storage, checkpoints, boot reconciliation, and the attempt budget for the advanced."
 ---
 
 # Journal
@@ -10,7 +10,15 @@ It is off by default. Without it, `beacon.transitions` says so, and nothing is c
 
 ## Turn it on
 
-The journal keeps its record in storage you provide, as strings under keys. `keyValueJournalStorage` adapts any store with `getItem`, `setItem` and `removeItem`, which is what AsyncStorage, `expo-sqlite/kv-store`, `localStorage` and most stores have, and `browserStorage()` of `@priemskiyyy/beacon-browser` is that over the browser's web storage. [Choosing a storage](#choosing-a-storage) says which one to use.
+The journal keeps its record in storage you provide, as strings under keys. Hand it any key-value store with `getItem`, `setItem` and `removeItem`, which is what AsyncStorage, `expo-sqlite/kv-store`, `localStorage` and most stores have, and Beacon wraps it with `keyValueJournalStorage`, which reads the record back after every write. `browserStorage()` of `@priemskiyyy/beacon-browser` is that over the browser's web storage. [Choosing a storage](#choosing-a-storage) says which one to use.
+
+```ts
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+export const journal = { storage: AsyncStorage };
+```
+
+That is the whole option in React Native. The mode is `best-effort` unless you say `required`, so a broken store never blocks an update. On the web, with the routes around it:
 
 ```ts
 import { Beacon, targetRoute } from "@priemskiyyy/beacon";
@@ -54,38 +62,18 @@ export const beacon = new Beacon({
       mechanism: browserReload(),
     }),
   },
-  journal: {
-    mode: "required",
-    storage: browserStorage(),
-    budget: 3,
-    retention: 86_400_000,
-  },
+  journal: { mode: "required", storage: browserStorage() },
 });
 ```
 
-In React Native, hand it the store you already use:
+A write that resolves must mean the value was persisted, not merely queued. A `required` journal treats anything else as a failure, and a store that accepts a write and keeps nothing would make it lie. `keyValueJournalStorage` therefore reads the record back after every write, and fails the write when the store shows something else. A store you hand over as it is gets that read back. Wrap it yourself to pass `{ verify: false }` or a `key` mapping.
 
-```ts
-import { keyValueJournalStorage } from "@priemskiyyy/beacon";
-import type { JournalOptions } from "@priemskiyyy/beacon";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+| Option    | Default       | Meaning                                                                                                                  |
+| --------- | ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `mode`    | `best-effort` | `best-effort` goes on when a write fails. `required` stops the command                                                   |
+| `storage` |               | a key-value store with `getItem`, `setItem` and `removeItem`, or a storage of your own with `read`, `write` and `remove` |
 
-export const journal = {
-  mode: "required",
-  storage: keyValueJournalStorage(AsyncStorage),
-} satisfies JournalOptions;
-```
-
-A write that resolves must mean the value was persisted, not merely queued. A `required` journal treats anything else as a failure, and a store that accepts a write and keeps nothing would make it lie. `keyValueJournalStorage` therefore reads the record back after every write, and fails the write when the store shows something else.
-
-| Option      | Default            | Meaning                                                                 |
-| ----------- | ------------------ | ----------------------------------------------------------------------- |
-| `mode`      |                    | `best-effort` goes on when a write fails. `required` stops the command  |
-| `storage`   |                    | your `read`, `write` and `remove`                                       |
-| `budget`    | 3                  | how many boots in a row may leave a target unreached before `exhausted` |
-| `retention` | 86,400,000 (a day) | milliseconds an intent is kept                                          |
-
-A budget that is not a positive whole number, and a retention that is not a positive whole number of milliseconds, are refused with `INVALID_CONFIGURATION` when the Beacon is made.
+The options `budget` and `retention` are [advanced](#advanced-the-budget-and-the-retention).
 
 ## Choosing a storage
 
@@ -105,16 +93,14 @@ The journal wants one whole record, read, written and removed under one key, and
 AsyncStorage and `expo-sqlite/kv-store` are handed over as they are.
 
 ```ts
-import { keyValueJournalStorage } from "@priemskiyyy/beacon";
 import KvStore from "expo-sqlite/kv-store";
 
-export const storage = keyValueJournalStorage(KvStore);
+export const journal = { storage: KvStore };
 ```
 
 MMKV has no `getItem`. Its `getString` and `set` are adapted in a few lines, and whichever of `remove` and `delete` the installed version has removes the record.
 
 ```ts
-import { keyValueJournalStorage } from "@priemskiyyy/beacon";
 import type { KeyValueStoreLike } from "@priemskiyyy/beacon";
 import { createMMKV } from "react-native-mmkv";
 
@@ -135,9 +121,7 @@ const mmkvStore = (mmkv: MmkvLike): KeyValueStoreLike => ({
   },
 });
 
-export const storage = keyValueJournalStorage(
-  mmkvStore(createMMKV({ id: "beacon" })),
-);
+export const journal = { storage: mmkvStore(createMMKV({ id: "beacon" })) };
 ```
 
 MMKV 3 makes its instance with `new MMKV({ id: "beacon" })`, and the rest does not change. Both majors are typechecked against this recipe.
@@ -158,7 +142,7 @@ It reaches the storage at each call and touches nothing when it is made, so a pa
 ### What to know
 
 - **The key names the scope in plain text.** It is `beacon/v1/<application>/<environment>/<platform>/<distribution>`, with the partition appended when there is one. Make the partition an opaque id, never an address or a token. A departed partition's record stays until `clearJournal()` removes it, so clear the journal before `replaceScope` when someone signs out.
-- **The read back costs one read per write.** A record is a few kilobytes at most, about 4.2 KB at its capacity of 8 intents. Pass `{ verify: false }` only for a store that is known to keep what it accepts.
+- **The read back costs one read per write.** A record is a few kilobytes at most, about 4.2 KB at its capacity of 8 intents. Wrap the store in `keyValueJournalStorage(store, { verify: false })` only when it is known to keep what it accepts.
 - **A store that hangs is bounded.** Every call is given up on at `timeouts.journal`, and what a slow write answers later is ignored, though it may still land.
 - **A narrow key alphabet is mapped, not avoided.** `{ key: (journalKey) => ... }` gives the store its own key, and it must be injective: two journal keys that map to one would make two scopes share a record.
 - **Prove a store you wrote.** `testJournalStorage` from `@priemskiyyy/beacon/testing` holds it to the contract, and `createMockJournalStorage` from `@priemskiyyy/beacon/mock` stands in for one in tests. See [testing](testing.md#a-journal-storage).
@@ -201,7 +185,7 @@ const stop = beacon.transitions.subscribe(() => {
     return;
   }
 
-  console.info(latest.outcome, latest.attempts, latest.exhausted);
+  console.info(latest.outcome, latest.judgedHere);
   console.info(dropped, checkpoints);
 });
 ```
@@ -209,7 +193,7 @@ const stop = beacon.transitions.subscribe(() => {
 | Field         | Meaning                                                                                          |
 | ------------- | ------------------------------------------------------------------------------------------------ |
 | `journal`     | `off`, `reading`, `ready`, or `degraded` because a read, a write or a remove failed or timed out |
-| `latest`      | the most recent intent, and its `outcome`, `attempts` and `exhausted`                            |
+| `latest`      | the most recent intent, and its `outcome`, `judgedHere`, `attempts` and `exhausted` (advanced)   |
 | `dropped`     | intents let go because the capacity or their retention ran out                                   |
 | `checkpoints` | the readiness checkpoints this boot reported                                                     |
 
@@ -225,21 +209,17 @@ When the session opens, the journal reads the record once, waits until every run
 
 None of them is a causal or a crash-free claim. A match of labels alone never matches, and an identity of another domain is inconclusive.
 
-### The budget
+### Saying "Updated." once
 
-`attempts` counts the boots in a row that left the same target unreached, this one included once it is known to have. The same attempt is the same command on the same route at the same target. Any other outcome, or a different target, starts the count again, so a new deployment decision is never charged for an old one. Several intents of one boot are one boot.
-
-`exhausted` becomes true when `attempts` reaches the budget.
+`latest.judgedHere` is true only while this boot is the one that judged the intent, so a banner that thanks the user does it once. The boots after it read the same record with the outcome already in it, and say `false`. It lives in memory and adds nothing to the record, and like the outcome it says which boot judged, never that anything was installed.
 
 ```ts
 const { latest } = beacon.transitions.get();
 
-if (latest?.exhausted) {
-  console.warn("The same reload keeps landing on the same build.");
+if (latest?.judgedHere && latest.outcome === "target-running") {
+  console.info("Updated.");
 }
 ```
-
-It is information. Nothing in Beacon gates a command on it, since no scheduler exists to automate one. Use it to stop an automatic reload and to ask the user to acknowledge.
 
 ## Checkpoints
 
@@ -262,6 +242,33 @@ await beacon.clearJournal();
 For a privacy flow. It removes the record and forgets what it held. Nothing stored is replayed and no native operation is cancelled. It still erases the stored record after `dispose()`, because the record outlives the Beacon.
 
 It also recovers a journal that could not read its record. That journal says `degraded`, and every command that replaces the realm fails with `JOURNAL_FAILED` in `required` mode, since a record that could not be read is never replaced by one that knows nothing of it. Once `clearJournal()` has removed the record, the journal holds an empty one it knows, and says `ready`. A removal that fails leaves it `degraded`.
+
+## Advanced: the budget and the retention
+
+Two options are for an application that reads `exhausted`, or that must keep intents for another time than a day. Leave them out otherwise.
+
+| Option      | Default            | Meaning                                                                 |
+| ----------- | ------------------ | ----------------------------------------------------------------------- |
+| `budget`    | 3                  | how many boots in a row may leave a target unreached before `exhausted` |
+| `retention` | 86,400,000 (a day) | milliseconds an intent is kept                                          |
+
+A budget that is not a positive whole number, and a retention that is not a positive whole number of milliseconds, are refused with `INVALID_CONFIGURATION` when the Beacon is made.
+
+### The budget
+
+`attempts` counts the boots in a row that left the same target unreached, this one included once it is known to have. The same attempt is the same command on the same route at the same target. Any other outcome, or a different target, starts the count again, so a new deployment decision is never charged for an old one. Several intents of one boot are one boot.
+
+`exhausted` becomes true when `attempts` reaches the budget.
+
+```ts
+const { latest } = beacon.transitions.get();
+
+if (latest?.exhausted) {
+  console.warn("The same reload keeps landing on the same build.");
+}
+```
+
+It is information. Nothing in Beacon gates a command on it, since no scheduler exists to automate one. Use it to stop an automatic reload and to ask the user to acknowledge.
 
 ## Limits
 

@@ -303,7 +303,7 @@ A command is an action, so it belongs in an event handler. Take the Beacon with 
 
     const outcome = await beacon.current
       .route("web")
-      .reload({ offer: observation.current.offer.ref });
+      .reload({ offer: observation.current.offer });
 
     if (outcome.status === "blocked") {
       console.info(outcome.reasons.map((reason) => reason.code));
@@ -375,7 +375,7 @@ The observable is read once, so it does not follow a provider that publishes ano
 
           return { status: "blocked", code: "draft-not-saved" };
         },
-        release: () => {
+        resume: () => {
           locked = false;
         },
       };

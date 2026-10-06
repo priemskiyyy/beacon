@@ -203,7 +203,7 @@ export const UpdateBanner = () => {
   const update = async () => {
     const outcome = await beacon
       .route("web")
-      .reload({ offer: observation.offer.ref });
+      .reload({ offer: observation.offer });
 
     if (outcome.status !== "accepted") {
       console.warn("The update did not start:", outcome.status);
@@ -218,7 +218,7 @@ export const UpdateBanner = () => {
 };
 ```
 
-The route `observation` has four states: `unknown`, `none`, `available` and `inconclusive`. Only `available` carries an offer. The `offer.ref` is a reference Beacon minted, and `reload` takes it back. `reload` needs an offer because the browser reload is declared with `reference: "offer"`.
+The route `observation` has four states: `unknown`, `none`, `available` and `inconclusive`. Only `available` carries an offer. `reload` takes the offer, and Beacon reads the reference it minted inside it (`offer.ref`, which works too). `reload` needs an offer because the browser reload is declared with `reference: "offer"`.
 
 ### What happens on the click
 

@@ -62,13 +62,12 @@ Call the utilities while a component initializes, as you would `getContext`, and
 
   useDisruption({
     name: "draft-editor",
-    impacts: ["document-replacement"],
     reserve: () => {
       if (dirty) {
         return { status: "blocked", code: "unsaved-draft" };
       }
 
-      return { status: "reserved", release: () => {} };
+      return { status: "reserved" };
     },
   });
 </script>
@@ -79,9 +78,7 @@ Call the utilities while a component initializes, as you would `getContext`, and
 
 {#if observation.current.status === "available"}
   {@const offer = observation.current.offer}
-  <button
-    onclick={() => beacon.current.route("web").reload({ offer: offer.ref })}
-  >
+  <button onclick={() => beacon.current.route("web").reload({ offer })}>
     Update to {offer.release.label}
   </button>
 {/if}

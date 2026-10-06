@@ -112,7 +112,7 @@ const { observation } = beacon.route("web").state.get();
 if (observation.status === "available") {
   const outcome = await beacon
     .route("web")
-    .reload({ offer: observation.offer.ref });
+    .reload({ offer: observation.offer });
 
   console.info(outcome.status);
 }

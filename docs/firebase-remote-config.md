@@ -190,11 +190,11 @@ A document that accepts a default on purpose reads `source(key)` and decides. No
 | rejects the fetch, in `use-activated` mode       | `succeeded`, and the evidence is dated by the old fetch: the support verdict is `unknown` with the reason `expired`, and the evaluation it reached stays beside it |
 | has never fetched                                | `failed` with `SOURCE_FAILED`, in either mode                                                                                                                      |
 | cannot initialize                                | `failed`, in either mode                                                                                                                                           |
-| has no server value for a key your builder reads | `failed` with `SOURCE_FAILED`, and support stays `unknown`                                                                                                         |
+| has no server value for a key your builder reads | `failed` with `SOURCE_FAILED`, and support is `unknown` with the reason `read-failed`                                                                              |
 
 ### Fail and use-activated
 
-`onFetchFailure` is `"fail"` by default: a fetch that fails fails the read, the last verdict stays, and on a cold start offline there is none, so support is `unknown`.
+`onFetchFailure` is `"fail"` by default: a fetch that fails fails the read, the last verdict stays, and on a cold start offline there is none, so support is `unknown` with the reason `read-failed`.
 
 `"use-activated"` answers with the values the SDK activated in an earlier run, dated by the fetch that got them. The check then says `succeeded`, although the server did not answer. That is what the option is for, and it is the one place a check succeeds without an authority answering, so the evidence is what to read: a verdict from values activated two days ago is `expired`, and support is `unknown` with the evaluation kept beside it. A `maxAge` longer than the age of the values makes them `fresh`: then the verdict is yours, for as long as you said.
 

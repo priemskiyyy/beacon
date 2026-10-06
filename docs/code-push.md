@@ -162,7 +162,7 @@ export const applyUpdate = async () => {
     return "nothing-on-offer";
   }
 
-  const download = await route.download({ offer: observation.offer.ref });
+  const download = await route.download({ offer: observation.offer });
 
   if (download.status !== "accepted") {
     return download.status;
@@ -174,7 +174,7 @@ export const applyUpdate = async () => {
     return "nothing-prepared";
   }
 
-  return (await route.reload({ prepared: prepared.value.ref })).status;
+  return (await route.reload({ prepared: prepared.value })).status;
 };
 ```
 
@@ -208,7 +208,7 @@ const route = beacon.route("update");
 const { prepared } = route.state.get();
 
 if (prepared.status === "ready") {
-  const outcome = await route.reload({ prepared: prepared.value.ref });
+  const outcome = await route.reload({ prepared: prepared.value });
 
   console.info(outcome.status);
 }

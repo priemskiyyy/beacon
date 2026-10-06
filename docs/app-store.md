@@ -180,7 +180,7 @@ const route = beacon.route("binary");
 const { observation } = route.state.get();
 
 if (observation.status === "available") {
-  await route.openStore({ offer: observation.offer.ref });
+  await route.openStore({ offer: observation.offer });
 } else {
   await route.openStore();
 }

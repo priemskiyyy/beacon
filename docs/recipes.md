@@ -101,7 +101,7 @@ export const UpdateBanner = () => {
 
   const update = async () => {
     const route = beacon.route("web");
-    const outcome = await route.reload({ offer: observation.offer.ref });
+    const outcome = await route.reload({ offer: observation.offer });
 
     if (outcome.status === "accepted") {
       setNotice("Reloading.");
@@ -296,11 +296,11 @@ export const nextOtaStep = async () => {
   const { observation, prepared } = route.state.get();
 
   if (prepared.status === "ready") {
-    return route.reload({ prepared: prepared.value.ref });
+    return route.reload({ prepared: prepared.value });
   }
 
   if (observation.status === "available") {
-    return route.download({ offer: observation.offer.ref });
+    return route.download({ offer: observation.offer });
   }
 
   return null;

@@ -43,7 +43,7 @@ A route's source is made with `createReleaseSource({ name, read })`, and its com
 
 ## Journal
 
-Turn on `journal: { mode, storage }` and Beacon writes an intent before a command that replaces the realm, then reads it back on the next boot: `beacon.transitions` says whether that boot runs the target, runs what ran before, runs something else, or cannot tell, with the boots that left the same target unreached counted against a budget. An intent is not proof a dispatch happened, and nothing here says an installation succeeded or that the boot is healthy: `beacon.reportReady({ checkpoint })` is the application saying its own code reached a point. `required` stops a command whose intent could not be persisted; `best-effort` goes on and says storage degraded. A storage call that does not answer within `timeouts.journal` (10 seconds by default) counts as failed, so a storage that hangs cannot hang a command. Storage is yours, and no counter is atomic across tabs.
+Turn on `journal: { storage }`, with a key-value store such as AsyncStorage or `localStorage` as it is, and Beacon writes an intent before a command that replaces the realm, then reads it back on the next boot: `beacon.transitions` says whether that boot runs the target, runs what ran before, runs something else, or cannot tell. `latest.judgedHere` is true only in the boot that judged the intent, so "Updated." shows once. An intent is not proof a dispatch happened, and nothing here says an installation succeeded or that the boot is healthy: `beacon.reportReady({ checkpoint })` is the application saying its own code reached a point. `best-effort`, the default, goes on and says storage degraded; `required` stops a command whose intent could not be persisted. A storage call that does not answer within `timeouts.journal` (10 seconds by default) counts as failed, so a storage that hangs cannot hang a command. Storage is yours, and no counter is atomic across tabs.
 
 ## Scope
 
@@ -74,9 +74,7 @@ pulse.on("foreground", async () => {
 Each command declares which reference it needs (`offer`, `prepared`, `optional-offer` or `none`), what it can do to the running application (`impacts`), and how tightly it is bound (`binding`). A route gets one method per command:
 
 ```ts
-const outcome = await beacon
-  .route("web")
-  .reload({ offer: observation.offer.ref });
+const outcome = await beacon.route("web").reload({ offer: observation.offer });
 
 if (outcome.status === "blocked") {
   console.info(outcome.reasons.map((reason) => reason.code));

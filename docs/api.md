@@ -179,17 +179,17 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### Journal
 
-| Type                     | What it is                                                                                |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `JournalOptions`         | turns the journal on: mode, storage, budget and retention                                 |
-| `JournalStorage`         | the minimal storage a journal needs: `read`, `write` and `remove`                         |
-| `KeyValueStoreLike`      | the three calls of a key-value store: `getItem`, `setItem` and `removeItem`               |
-| `KeyValueJournalOptions` | whether a write is read back, and how a journal key maps to the store's own               |
-| `TransitionIntent`       | what Beacon recorded before it asked a provider to replace the realm                      |
-| `TransitionState`        | what the journal knows: its status, latest intent, dropped count and checkpoints          |
-| `Reconciliation`         | an intent, what the running facts say about it, and the attempts                          |
-| `ReconciliationOutcome`  | `same-boot`, `target-running`, `target-not-running`, `different-target` or `inconclusive` |
-| `ReadyReport`            | what `reportReady` answers: `recorded` or `already-recorded`                              |
+| Type                     | What it is                                                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `JournalOptions`         | turns the journal on: a storage or key-value store and an optional mode; budget and retention are advanced |
+| `JournalStorage`         | the minimal storage a journal needs: `read`, `write` and `remove`                                          |
+| `KeyValueStoreLike`      | the three calls of a key-value store: `getItem`, `setItem` and `removeItem`                                |
+| `KeyValueJournalOptions` | whether a write is read back, and how a journal key maps to the store's own                                |
+| `TransitionIntent`       | what Beacon recorded before it asked a provider to replace the realm                                       |
+| `TransitionState`        | what the journal knows: its status, latest intent, dropped count and checkpoints                           |
+| `Reconciliation`         | an intent, what the running facts say about it, whether this boot judged it, and the attempts              |
+| `ReconciliationOutcome`  | `same-boot`, `target-running`, `target-not-running`, `different-target` or `inconclusive`                  |
+| `ReadyReport`            | what `reportReady` answers: `recorded` or `already-recorded`                                               |
 
 ### Errors, diagnostics and observables
 

@@ -21,6 +21,16 @@ try {
 
 The thrown error keeps whatever a source, driver or listener threw as `cause`. Published state keeps the code and the message alone, so a snapshot never holds a provider payload, a URL or a credential.
 
+When the code and the message are not enough, subscribe before you start and read what was thrown:
+
+```ts
+beacon.diagnostics.events.subscribe((event) => {
+  console.warn(event.type, event.reason, event.cause);
+});
+```
+
+The events that report a failure carry the raw value in `cause`: `read-failed`, `running-failed`, `route-failed`, `policy-failed`, `journal-failed` and `command-settled` when the command failed. It is `null` when nothing was thrown, such as a timeout. A cause can hold a URL or a provider payload, so a listener that forwards events to telemetry must drop it.
+
 ## The codes
 
 | Code                     | You see it as                                                                                 | Usual cause                                                                                                                                                                                                       |
@@ -28,9 +38,9 @@ The thrown error keeps whatever a source, driver or listener threw as `cause`. P
 | `INVALID_CONFIGURATION`  | a throw                                                                                       | an unknown route name from untyped code, a feed route whose subject has no reader, a timeout or journal option that is not a positive whole number, a hook outside its provider, a bad App Store id or storefront |
 | `DISPOSED`               | a throw from `start()`, `replaceScope()` or `reportReady()`; `failed` in a check or a command | the Beacon was disposed. Create a new one                                                                                                                                                                         |
 | `NOT_STARTED`            | `failed` in a check or a command                                                              | no open session. Call `start()`, or mount a `BeaconProvider` that is not given `start={false}`                                                                                                                    |
-| `DRIVER_FAILED`          | a failed check, a failed command, or a route that stays closed                                | the provider could not open or its check failed; a second Beacon holds the same native manager; the provider is not open                                                                                          |
+| `DRIVER_FAILED`          | a failed check, a failed command, or a route that stays closed                                | the provider threw while it was checked or answered what is no observation; the provider is not open, because it threw when it opened or another Beacon session holds its native module                           |
 | `INVALID_VERSION`        | a throw from `parse`; a failed check                                                          | a version broke the grammar of its strategy, such as `v2.4.0` under `semver()`                                                                                                                                    |
-| `SELECTION_FAILED`       | a failed check                                                                                | a version strategy threw something that is not a `BeaconError`                                                                                                                                                    |
+| `SELECTION_FAILED`       | a failed check                                                                                | the select function of the route threw, or a version strategy threw something that is not a `BeaconError`                                                                                                         |
 | `IDENTITY_CONFLICT`      | a failed check                                                                                | a candidate has the identity of what runs but a different order                                                                                                                                                   |
 | `SOURCE_FAILED`          | a failed check                                                                                | your source or client threw, rejected, or refused a status                                                                                                                                                        |
 | `SOURCE_TIMEOUT`         | a failed check                                                                                | a source or a provider took longer than `timeouts.check`                                                                                                                                                          |
@@ -64,12 +74,14 @@ The full list is in [routes](routes.md#the-observation).
 
 ### The route says inconclusive
 
-| Reason                     | Cause                                                                                                                                                                   |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `missing-current-identity` | the running fact is not `known`, or its identity is unknown. Check `beacon.running.get()` for `failed` or `pending`, and for an identity the reader answered as unknown |
-| `incomparable-identity`    | the running release and the offered one have a different `authority` or `domain`. Make the reader and the manifest use the same                                         |
-| `missing-current-order`    | the `current` function of a `newerRoute` answered `null`                                                                                                                |
-| `incomparable-order`       | the strategy answered `incomparable` for the two values                                                                                                                 |
+Read `observation.detail` first: it names the running reader's reason, or the authority or domain that differs with both words.
+
+| Reason                     | Cause                                                                                                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `missing-current-identity` | the running fact is not `known` (`detail` is `running-not-known`: check `beacon.running.get()` for `failed` or `pending`), or its identity is unknown (`detail` is the reader's reason, such as `build-id-not-injected`) |
+| `incomparable-identity`    | the running release and the offered one have a different `authority` or `domain`, which `detail` names with both words, or the offered identity is unknown. Make the reader and the manifest use the same                |
+| `missing-current-order`    | the `current` function of a `newerRoute` answered `null`                                                                                                                                                                 |
+| `incomparable-order`       | the strategy answered `incomparable` for the two values                                                                                                                                                                  |
 
 ### The Beacon throws that a route has no reader
 
@@ -78,6 +90,10 @@ A feed route compares what its source offers with what its mechanism's subject i
 ### A running fact is failed or pending
 
 `pending` means the reader has not answered. `failed` carries `RUNNING_READ_FAILED`: the reader threw, rejected, or took longer than `timeouts.running`. A check waits only for the subjects its route depends on, and a subject with no reader stays `unconfigured`.
+
+### Support stays unknown
+
+Read `beacon.support.get().reason`. `no-policy` means the Beacon has no `policy`. `not-checked` means no check has run, so call `beacon.check()`. `read-failed` means the last read of the policy's source failed and nothing is in force: `error` carries its code and message, such as `SOURCE_FAILED` for a key the source does not have, and `evaluation` holds the last valid one if there was one. `evaluation-failed` means the policy threw or named a route the Beacon does not have. `expired` means the accepted policy lapsed and no read has failed since.
 
 ### The source fails with INVALID_DOCUMENT
 
@@ -129,7 +145,7 @@ After an accepted reload, the next command is blocked with `operation-indetermin
 
 ### A command settles as failed
 
-`COMMAND_FAILED` is a provider command that threw. `DRIVER_FAILED` says the provider is not open: the mechanism or driver failed to open when the session started, or another Beacon holds the same native manager. `NOT_STARTED` and `DISPOSED` say there is no session. `JOURNAL_FAILED` says the required journal could not write.
+`COMMAND_FAILED` is a provider command that threw. `DRIVER_FAILED` says the provider is not open: the mechanism or driver threw when the session started, or another Beacon session holds its native module. `NOT_STARTED` and `DISPOSED` say there is no session. `JOURNAL_FAILED` says the required journal could not write.
 
 ### The command was accepted and nothing changed
 
@@ -170,7 +186,7 @@ A `web` running fact that says `unknown` with the reason `build-id-not-injected`
 
 ### DRIVER_FAILED when opening
 
-A driver that names an exclusive native manager cannot be opened by two sessions. If two Beacons exist, for example after a hot reload created a second one, stop the first with `stop()` or `dispose()`. With Fast Refresh, keep the Beacon in a module of its own and start it through the provider, which ends the old session before the new one opens: see [the provider](react-native.md#the-provider).
+The message says which it is. "The provider is not open: its native module is held by another Beacon session" means a driver that names an exclusive native manager was opened by a second session. "The provider is not open: it threw while it opened" means its own `open` threw, and the error is the `cause` of the `route-failed` event that `start()` records. If two Beacons exist, for example after a hot reload created a second one, stop the first with `stop()` or `dispose()`. With Fast Refresh, keep the Beacon in a module of its own and start it through the provider, which ends the old session before the new one opens: see [the provider](react-native.md#the-provider).
 
 ## Types
 
@@ -222,4 +238,4 @@ Classic Hermes compiles no class and no `async`. The preset has to transform `@p
 
 ## Diagnostics
 
-`beacon.diagnostics.events.subscribe` shows what Beacon does as it does it, without a URL, a manifest or a payload: `read-started`, `read-failed`, `command-admitted`, `command-settled`, `route-failed` and the rest. `late-callback` counts an answer that came after its session ended, which is normal after a `stop()`, or a journal storage answer that came after its deadline. See [sessions](sessions.md#diagnostics).
+`beacon.diagnostics.events.subscribe` shows what Beacon does as it does it, without a URL, a manifest or a payload, except the `cause` of a failure: `read-started`, `read-failed`, `command-admitted`, `command-settled`, `route-failed` and the rest. `late-callback` counts an answer that came after its session ended, which is normal after a `stop()`, or a journal storage answer that came after its deadline. See [sessions](sessions.md#diagnostics).

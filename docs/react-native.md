@@ -136,7 +136,7 @@ export const beacon = new Beacon({
     native: nativeBuild,
   },
   routes: { ota: expoUpdates({ updates: Updates }) },
-  journal: { mode: "best-effort", storage: journalStorage },
+  journal: { storage: journalStorage },
 });
 
 declare module "@priemskiyyy/beacon-react" {
@@ -241,7 +241,7 @@ The route stays unresolved in the old runtime until `route.acknowledge()`, and i
 
 ## Guarding unsaved input
 
-A participant answers for what a reload would lose. The hook registers it while the component is mounted and asks the latest one you passed. Expo's `reload` restarts JavaScript, so the impact is `javascript-restart`.
+A participant answers for what a reload would lose. The hook registers it while the component is mounted and asks the latest one you passed. It is asked before every impact that loses in-memory state, which includes Expo's `reload` (`javascript-restart`), so it names none.
 
 ```tsx
 // src/DraftInput.tsx
@@ -255,10 +255,9 @@ export const DraftInput = () => {
 
   useDisruption({
     name: "note",
-    impacts: ["javascript-restart"],
     reserve: () => {
       if (text === saved.current) {
-        return { status: "reserved", release: () => {} };
+        return { status: "reserved" };
       }
 
       return { status: "blocked", code: "unsaved-note" };

@@ -10,6 +10,22 @@ Beacon orders the steps. The participant owns its own persistence. Nothing here 
 
 ## Register a participant
 
+The shortest participant is a guard that answers one question: is there unsaved work? It names no impacts, so it is asked before every command that would lose what the application holds in memory.
+
+```ts
+let hasUnsavedNote = false;
+
+const unregister = beacon.disruptions.register({
+  name: "note",
+  reserve: () =>
+    hasUnsavedNote
+      ? { status: "blocked", code: "unsaved-note" }
+      : { status: "reserved" },
+});
+```
+
+A participant that also closes its admission of new work, and waits for a save in flight, looks like this.
+
 ```ts
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
 
@@ -41,7 +57,7 @@ export const createDraftParticipant = (
 
         return { status: "blocked", code: "draft-not-saved" };
       },
-      release: reopen,
+      resume: reopen,
     };
   },
 });
@@ -54,16 +70,16 @@ export const registerDrafts = (drafts: DraftService) =>
 
 A participant has three parts.
 
-- **`impacts`** lists what it cares about. Beacon asks it only before a command whose impacts include one of these. See [commands](commands.md#what-each-command-declares) for the impacts.
+- **`impacts`** is optional and lists what it cares about. Beacon asks it only before a command whose impacts include one of these. Left out, it means every impact that loses in-memory state: `document-replacement`, `javascript-restart`, `native-update-flow`, `worker-takeover` and `external-handoff`, and not `may-activate-on-next-start`. An empty list throws `INVALID_CONFIGURATION` when the participant registers, because a participant that is never asked would claim a safety it does not give: list the impacts you care about, or omit the field. See [commands](commands.md#what-each-command-declares) for the impacts.
 - **`reserve(context)`** is asked first. `context` names the route, the command and the impacts. It answers `blocked` with a code, to refuse at once, or `reserved`.
-- **`reserved`** carries `release`, which reopens admission, and optionally `settle`, which waits for work already begun and answers `ready` or `blocked` with a code.
+- **`reserved`** optionally carries `resume`, which reopens admission and runs whether the command went on or not, and `settle`, which waits for work already begun and answers `ready` or `blocked` with a code. A guard that closes nothing has nothing to resume.
 
 ## The order of a command
 
 A disruptive call goes through these steps, and nothing is skipped or reordered.
 
 1. **Admit.** The reference is checked. A stale one settles as `stale` before anything is reserved. The call takes its route's slot, and its disruptive slot if it has one. A conflicting call is `blocked` here.
-2. **Reserve.** Every participant that cares is asked, synchronously, in registration order. Each closes its admission of new work in that call. If one blocks, the earlier reservations are released in reverse order and the command is `blocked` with that participant's code. A participant that throws, answers neither `reserved` nor `blocked`, or declares no `impacts` is `blocked` with `reservation-failed`, and the reservations before it are released.
+2. **Reserve.** Every participant that cares is asked, synchronously, in registration order. Each closes its admission of new work in that call. If one blocks, the earlier reservations are released in reverse order and the command is `blocked` with that participant's code. A participant that throws, or answers neither `reserved` nor `blocked`, is `blocked` with `reservation-failed`, and the reservations before it are released.
 3. **Settle.** Every reserved participant settles at once, each with an abort signal and at most `timeouts.settlement` milliseconds (10,000 by default). A participant that answers `blocked`, throws or does not answer in time is not ready. Silence is never consent.
 4. **Journal.** A command that replaces the realm writes its intent first, if the [journal](journal.md) is on. A required write that fails stops the command.
 5. **Revalidate.** Immediately before the provider is asked, Beacon looks again at the references, the participant registry and the caller's signal. A participant that registered or left while others were settling changes the safety context, and the command is `blocked` with `safety-changed`. A reference that changed is `stale`.
@@ -82,7 +98,7 @@ const { observation } = beacon.route("web").state.get();
 if (observation.status === "available") {
   const outcome = await beacon
     .route("web")
-    .reload({ offer: observation.offer.ref });
+    .reload({ offer: observation.offer });
 
   if (outcome.status === "blocked") {
     const codes = outcome.reasons.map((reason) => reason.code);

@@ -74,7 +74,7 @@ const route = beacon.route("worker");
 const { observation } = route.state.get();
 
 if (observation.status === "available") {
-  const outcome = await route.activate({ offer: observation.offer.ref });
+  const outcome = await route.activate({ offer: observation.offer });
 
   console.info(outcome.status);
 }
@@ -96,7 +96,7 @@ const stop = beacon.route("worker").state.subscribe(async () => {
   }
 
   stop();
-  await route.reload({ prepared: prepared.value.ref });
+  await route.reload({ prepared: prepared.value });
 });
 ```
 

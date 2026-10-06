@@ -44,7 +44,7 @@ What a new session does:
 4. Arms the expiry of a document held from before, or expires it if its time passed.
 5. If the journal is on, reads its record and reconciles it with what runs. See [journal](journal.md).
 
-It fetches nothing. Checks are yours to make. A route whose mechanism or driver fails to open reports `route-failed` in the diagnostics and leaves the other routes usable. A driver that names an `exclusive` native manager fails to open when another session holds it, and its route says `DRIVER_FAILED`.
+It fetches nothing. Checks are yours to make. A route whose mechanism or driver fails to open reports `route-failed` in the diagnostics, with what it threw as the event's `cause`, and leaves the other routes usable. A driver that names an `exclusive` native manager fails to open when another session holds it: the `route-failed` event says so at `start()`, and the route's first check says `DRIVER_FAILED` with the same message.
 
 ## Stop
 
@@ -124,7 +124,7 @@ stop();
 
 The snapshot has the status, the number of the open session or `null`, and three counters kept whether or not anyone listens: `lateCallbacks`, `listenerErrors` and `cleanupErrors`.
 
-Events never replay, and one is built only while someone listens. An event has a `type`, a `timestamp` on the Beacon clock, and the `session`, `route`, `command`, `attempt`, `operation` and `reason` that apply, each `null` otherwise. It names things by number and name and a short reason code, never a URL, a manifest, a release note, a credential or a provider payload.
+Events never replay, and one is built only while someone listens. An event has a `type`, a `timestamp` on the Beacon clock, and the `session`, `route`, `command`, `attempt`, `operation`, `reason` and `cause` that apply, each `null` otherwise. It names things by number and name and a short reason code, never a URL, a manifest, a release note, a credential or a provider payload. The one exception is `cause`, on the events that report a failure: the raw value that was thrown, in the event alone and never in a snapshot or an outcome. A listener that forwards events to telemetry must drop it.
 
 | Group     | Types                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------- |

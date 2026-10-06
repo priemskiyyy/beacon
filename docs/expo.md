@@ -154,7 +154,7 @@ const route = beacon.route("ota");
 const { observation } = route.state.get();
 
 if (observation.status === "available") {
-  const outcome = await route.download({ offer: observation.offer.ref });
+  const outcome = await route.download({ offer: observation.offer });
 
   if (outcome.status === "accepted") {
     const { receipt } = outcome;
@@ -185,7 +185,7 @@ const route = beacon.route("ota");
 const { prepared } = route.state.get();
 
 if (prepared.status === "ready") {
-  const outcome = await route.reload({ prepared: prepared.value.ref });
+  const outcome = await route.reload({ prepared: prepared.value });
 
   console.info(outcome.status);
 }

@@ -144,7 +144,7 @@ test("a deployed build is offered, and a reload is only requested", async () => 
 
   const outcome = await beacon
     .route("web")
-    .reload({ offer: observation.offer.ref });
+    .reload({ offer: observation.offer });
 
   expect(outcome).toMatchObject({
     status: "accepted",
@@ -221,7 +221,7 @@ test("a failed read keeps what was accepted", async () => {
 });
 ```
 
-A source that rejects fails the read with `SOURCE_FAILED`, with your error as the `cause` on the thrown error. The published state keeps the code and message only.
+A source that rejects fails the read with `SOURCE_FAILED`, with your error as the `cause` on the thrown error and on the `read-failed` event. The published state keeps the code and message only.
 
 ## Time
 
@@ -259,7 +259,7 @@ test("an offer that lapsed is stale, and the check that would renew it is yours"
 
   const outcome = await beacon
     .route("web")
-    .reload({ offer: observation.offer.ref });
+    .reload({ offer: observation.offer });
 
   expect(outcome).toEqual({ status: "stale", reason: "expired" });
   expect(reloads.count).toBe(0);
@@ -326,7 +326,7 @@ test("a reload is not requested when its intent cannot be written", async () => 
 
   const outcome = await beacon
     .route("web")
-    .reload({ offer: observation.offer.ref });
+    .reload({ offer: observation.offer });
 
   expect(outcome).toMatchObject({
     status: "failed",
@@ -432,7 +432,7 @@ test("a draft that cannot be saved blocks the reload, and the platform is never 
 
   const outcome = await beacon
     .route("web")
-    .reload({ offer: observation.offer.ref });
+    .reload({ offer: observation.offer });
 
   expect(outcome).toEqual({
     status: "blocked",
@@ -506,7 +506,7 @@ test("an update is checked, downloaded and then restarted with what was prepared
     throw new Error("Expected an offer.");
   }
 
-  const download = await route.download({ offer: observation.offer.ref });
+  const download = await route.download({ offer: observation.offer });
 
   expect(download).toMatchObject({
     status: "accepted",
@@ -519,7 +519,7 @@ test("an update is checked, downloaded and then restarted with what was prepared
     throw new Error("Expected a prepared update.");
   }
 
-  await route.reload({ prepared: prepared.value.ref });
+  await route.reload({ prepared: prepared.value });
 
   expect(calls.reloads).toBe(1);
 });

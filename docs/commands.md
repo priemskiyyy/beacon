@@ -12,7 +12,7 @@ const { observation } = beacon.route("web").state.get();
 if (observation.status === "available") {
   const outcome = await beacon
     .route("web")
-    .reload({ offer: observation.offer.ref });
+    .reload({ offer: observation.offer });
 
   console.info(outcome.status);
 }
@@ -39,16 +39,18 @@ A command cannot be named `state`, `native`, `capabilities`, `check` or `acknowl
 
 The reference a command declares decides its argument.
 
-| Declared reference | The call takes                                             |
-| ------------------ | ---------------------------------------------------------- |
-| `offer`            | `{ offer }`, the reference of this route's current offer   |
-| `prepared`         | `{ prepared }`, the reference of what the provider readied |
-| `optional-offer`   | an optional `{ offer }`                                    |
-| `none`             | an optional input                                          |
+| Declared reference | The call takes                            |
+| ------------------ | ----------------------------------------- |
+| `offer`            | `{ offer }`, this route's current offer   |
+| `prepared`         | `{ prepared }`, what the provider readied |
+| `optional-offer`   | an optional `{ offer }`                   |
+| `none`             | an optional input                         |
 
 Every call may also carry its command's parameters and a `signal`. A command that declares no parameters and needs no reference can be called with no argument.
 
-The types refuse what they can see. A reference of another route does not fit, and neither does one of another kind.
+Pass the offer or the prepared target itself, as the state gave it. Beacon reads the reference inside it, `offer.ref`, so `{ offer: offer.ref }` works too. Either way only what Beacon minted is believed: a copy of a reference, a forged one and one of another route are each refused, before anything is reserved.
+
+The types refuse what they can see. An offer or a reference of another route does not fit, and neither does one of another kind.
 
 ```ts
 import { Beacon } from "@priemskiyyy/beacon";
@@ -77,16 +79,16 @@ const binary = native.route("binary").state.get().observation;
 const { prepared } = ota.state.get();
 
 if (binary.status === "available") {
-  const foreign = binary.offer.ref;
+  const foreign = binary.offer;
 
-  // @ts-expect-error The reference belongs to the "binary" route.
+  // @ts-expect-error The offer belongs to the "binary" route.
   await ota.download({ offer: foreign });
 }
 
 if (prepared.status === "ready") {
-  const readied = prepared.value.ref;
+  const readied = prepared.value;
 
-  // @ts-expect-error A prepared reference is not an offer.
+  // @ts-expect-error A prepared target is not an offer.
   await ota.download({ offer: readied });
 }
 ```
@@ -95,18 +97,18 @@ if (prepared.status === "ready") {
 
 An **offer** is the route's current interpretation of what an authority or provider says is available. A feed route's offer comes from selection. A driver's offer comes from its check. It is not a downloaded thing and not a running fact.
 
-A **prepared** target is what a provider reports as ready for a later step: a bundle it downloaded, a worker that took over. Only the provider's confirmation makes something `ready`, never the fact that a command returned. A prepared reference is minted when the provider reports it, and an offer reference never fits where a prepared one is asked for.
+A **prepared** target is what a provider reports as ready for a later step: a bundle it downloaded, a worker that took over. Only the provider's confirmation makes something `ready`, never the fact that a command returned. A prepared reference is minted when the provider reports it, and an offer never fits where a prepared target is asked for.
 
 A typical provider sequence is an offer, a command that prepares, and a command that uses what was prepared:
 
-| Adapter        | Sequence                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------- |
-| Expo           | `download` with the offer, then `reload` with the prepared reference                                    |
-| CodePush       | `download` with the offer, then `reload` with the prepared reference                                    |
-| Google Play    | `download` with the offer, then `restart` with the prepared reference, or `update` with the offer alone |
-| Service worker | `activate` with the offer, then `reload` with the prepared reference                                    |
-| Browser        | `reload` with the offer                                                                                 |
-| App Store      | `openStore`, with an offer or without one                                                               |
+| Adapter        | Sequence                                                                                             |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| Expo           | `download` with the offer, then `reload` with the prepared target                                    |
+| CodePush       | `download` with the offer, then `reload` with the prepared target                                    |
+| Google Play    | `download` with the offer, then `restart` with the prepared target, or `update` with the offer alone |
+| Service worker | `activate` with the offer, then `reload` with the prepared target                                    |
+| Browser        | `reload` with the offer                                                                              |
+| App Store      | `openStore`, with an offer or without one                                                            |
 
 Every reference is checked twice: when the call arrives, and again immediately before the provider is asked. See [disruptions](disruptions.md).
 
@@ -226,7 +228,7 @@ Each reason is `{ code, participant }`, where `participant` is `{ name }` for a 
 | `operation-in-progress`           | Beacon        | another command holds this route, or the one disruptive slot                                 |
 | `operation-indeterminate`         | Beacon        | the route's last command may have taken effect and was not confirmed                         |
 | `safety-changed`                  | Beacon        | a participant registered or left while the command was settling                              |
-| `reservation-failed`              | Beacon        | a participant threw, answered nothing usable or declared no impacts when asked to reserve    |
+| `reservation-failed`              | Beacon        | a participant threw or answered nothing usable when asked to reserve                         |
 | `settlement-timeout`              | Beacon        | a participant did not settle within `timeouts.settlement`                                    |
 | `settlement-failed`               | Beacon        | a participant threw or rejected while settling, or the host clock could not arm its deadline |
 | your own, such as `unsaved-draft` | a participant | the participant refused                                                                      |
@@ -260,7 +262,7 @@ if (observation.status === "available") {
   const controller = new AbortController();
 
   const pending = beacon.route("web").reload({
-    offer: observation.offer.ref,
+    offer: observation.offer,
     signal: controller.signal,
   });
 

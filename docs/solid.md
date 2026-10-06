@@ -283,7 +283,7 @@ export const UpdateBanner = () => {
           onClick={async () => {
             const outcome = await beacon()
               .route("web")
-              .reload({ offer: current().ref });
+              .reload({ offer: current() });
 
             if (outcome.status === "blocked") {
               console.info(outcome.reasons.map((reason) => reason.code));
@@ -356,7 +356,7 @@ export const DraftEditor = (props: DraftEditorProps) => {
 
           return { status: "blocked", code: "draft-not-saved" };
         },
-        release: () => {
+        resume: () => {
           setLocked(false);
         },
       };

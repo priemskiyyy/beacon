@@ -217,7 +217,7 @@ export const applyBinaryUpdate = async () => {
   const { offer } = observation;
 
   if (offer.flows.includes("flexible")) {
-    const download = await route.download({ offer: offer.ref });
+    const download = await route.download({ offer });
 
     if (download.status !== "accepted") {
       return download.status;
@@ -229,11 +229,11 @@ export const applyBinaryUpdate = async () => {
       return "nothing-prepared";
     }
 
-    return (await route.restart({ prepared: prepared.value.ref })).status;
+    return (await route.restart({ prepared: prepared.value })).status;
   }
 
   if (offer.flows.includes("immediate")) {
-    return (await route.update({ offer: offer.ref })).status;
+    return (await route.update({ offer })).status;
   }
 
   return "no-flow-allowed";

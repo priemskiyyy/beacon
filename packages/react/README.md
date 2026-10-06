@@ -54,13 +54,12 @@ const UpdateBanner = () => {
 
   useDisruption({
     name: "draft-editor",
-    impacts: ["document-replacement"],
     reserve: () => {
       if (isDirty()) {
         return { status: "blocked", code: "unsaved-draft" };
       }
 
-      return { status: "reserved", release: resume };
+      return { status: "reserved" };
     },
   });
 
@@ -70,9 +69,7 @@ const UpdateBanner = () => {
 
   return (
     <button
-      onClick={() =>
-        beacon.route("web").reload({ offer: observation.offer.ref })
-      }
+      onClick={() => beacon.route("web").reload({ offer: observation.offer })}
     >
       Update
     </button>

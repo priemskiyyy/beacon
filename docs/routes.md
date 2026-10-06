@@ -189,7 +189,7 @@ if (observation.status === "available") {
 } else if (observation.status === "none") {
   console.info("Nothing on offer:", observation.reason, observation.detail);
 } else if (observation.status === "inconclusive") {
-  console.info("Cannot tell:", observation.reason);
+  console.info("Cannot tell:", observation.reason, observation.detail);
 } else {
   console.info("Not known yet:", observation.reason);
 }
@@ -200,7 +200,7 @@ if (observation.status === "available") {
 | `unknown`      | `reason`                                    | nothing accepted in this session, or the provider cannot run here |
 | `none`         | `evidence`, `reason`, `detail`, `candidate` | the authority has nothing on offer for this scope                 |
 | `available`    | `evidence`, `offer`                         | a release is on offer, with a reference to act on                 |
-| `inconclusive` | `evidence`, `reason`, `candidate`           | the evidence cannot say, which is never "up to date"              |
+| `inconclusive` | `evidence`, `reason`, `detail`, `candidate` | the evidence cannot say, which is never "up to date"              |
 
 The reasons are closed sets.
 
@@ -219,6 +219,8 @@ The reasons are closed sets.
 | `inconclusive` | `missing-current-order`          | what runs has no order to compare                           |
 | `inconclusive` | `incomparable-identity`          | different authorities or domains                            |
 | `inconclusive` | `incomparable-order`             | the strategy could not order the two values                 |
+
+An `inconclusive` observation says why in `detail`. For `missing-current-identity` it is the reason the running reader gave, such as `build-id-not-injected`, or `running-not-known` while the running fact is `pending` or `failed`. For `incomparable-identity` it names the side that differs with both words, such as `authority: running com.example.notes, offered com.example.shop` or `domain: running web-artifact, offered expo-update`, or the offered identity that is unknown. The order reasons have a `detail` of `null`. Only identities appear in it, which the observation already publishes.
 
 Running facts change what is on offer. When a reader answers, every route selects again from the documents it holds, in one commit, so no listener sees a route from one commit and the running facts from another.
 

@@ -253,7 +253,7 @@ const update = async () => {
 
   const outcome = await beacon.value
     .route("web")
-    .reload({ offer: observation.value.offer.ref });
+    .reload({ offer: observation.value.offer });
 
   if (outcome.status === "blocked") {
     console.info(outcome.reasons.map((reason) => reason.code));
@@ -336,7 +336,7 @@ useDisruption({
 
         return { status: "blocked", code: "draft-not-saved" };
       },
-      release: () => {
+      resume: () => {
         locked.value = false;
       },
     };

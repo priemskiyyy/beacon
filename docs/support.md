@@ -115,25 +115,26 @@ if (status === "unsupported" && evaluation !== null) {
 }
 ```
 
-| Field        | Meaning                                                                                                        |
-| ------------ | -------------------------------------------------------------------------------------------------------------- |
-| `status`     | what is in force                                                                                               |
-| `reason`     | why `status` is `unknown` when Beacon reached that itself, else `null`                                         |
-| `evaluation` | the last evaluation: status, reasons, remediation, the running revision it was reached under, and its evidence |
-| `error`      | the failure of the latest evaluation, kept beside the last valid one                                           |
+| Field        | Meaning                                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `status`     | what is in force                                                                                                       |
+| `reason`     | why `status` is `unknown` when Beacon reached that itself, else `null`                                                 |
+| `evaluation` | the last evaluation: status, reasons, remediation, the running revision it was reached under, and its evidence         |
+| `error`      | the failure of the latest evaluation, kept beside the last valid one, or of the last read when it left support unknown |
 
 Each remediation in an evaluation adds `usable`: its route has an offer or a prepared target now. A route with nothing usable is honest information, not an error.
 
 ### When support is unknown
 
-`unknown` is what support is until a policy is accepted, and it is never `supported` by default.
+`unknown` is what support is until a policy is accepted, and it is never `supported` by default. `not-checked` means only that no check has run: a check that ran and failed says so.
 
-| `reason`            | Means                                                              |
-| ------------------- | ------------------------------------------------------------------ |
-| `no-policy`         | the Beacon has no policy                                           |
-| `not-checked`       | no policy was accepted yet                                         |
-| `expired`           | the accepted policy lapsed, and its last evaluation is kept beside |
-| `evaluation-failed` | the policy could not be evaluated                                  |
+| `reason`            | Means                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `no-policy`         | the Beacon has no policy                                                                                                                        |
+| `not-checked`       | no check has run yet                                                                                                                            |
+| `read-failed`       | the last read of the policy's source failed and nothing is in force: `error` says why, and the last evaluation, if there is one, is kept beside |
+| `expired`           | the accepted policy lapsed, and its last evaluation is kept beside                                                                              |
+| `evaluation-failed` | the policy could not be evaluated                                                                                                               |
 
 An `unknown` that your policy answered has none of these, and carries its own reasons in the evaluation.
 
@@ -141,6 +142,7 @@ An `unknown` that your policy answered has none of these, and carries its own re
 
 - A failed check never turns `supported` into `unsupported`. The check says `failed` and the verdict stays.
 - A policy that throws keeps the last valid evaluation in force and reports the failure in `error`.
+- A read of the policy's source that fails while an evaluation still holds changes nothing: the evaluation stays in force until it lapses, and then support says `read-failed` instead of `expired`, with that evaluation beside it.
 - A policy that lapses becomes `unknown` with the last decision kept beside it, and a restart does not renew it.
 - A requirement is satisfied only by newly observed running facts or a new accepted policy. Opening a store, downloading an update or a provider's consent does not lift it.
 - A dismissal never changes it. Dismissals are not stored yet; see [decisions](decisions.md).

@@ -13,6 +13,7 @@ import { build } from "vite";
 // The built packages in a real browser: `browserStorage` with a real `location.reload()`, real Web Storage, a real quota and a real sandboxed frame, and `webBuild` over what a real Vite build compiles a missing define to. No example app is involved, so the page is a few lines of its own.
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CORE = path.join(ROOT, "packages/core/dist/index.js");
+const ADAPTER = path.join(ROOT, "packages/core/dist/adapter.js");
 const BROWSER = path.join(ROOT, "packages/adapters/browser/dist/index.js");
 const BROWSER_DOCS = path.join(ROOT, "docs/browser.md");
 
@@ -31,7 +32,7 @@ const readBundle = async (folder: string) => {
 
   writeFileSync(
     entry,
-    `export { Beacon, createBootId, createReleaseSource, targetRoute } from ${JSON.stringify(CORE)};\nexport { browserReload, browserStorage, webBuild } from ${JSON.stringify(BROWSER)};\n`,
+    `export { Beacon, createBootId, targetRoute } from ${JSON.stringify(CORE)};\nexport { createReleaseSource } from ${JSON.stringify(ADAPTER)};\nexport { browserReload, browserStorage, webBuild } from ${JSON.stringify(BROWSER)};\n`,
   );
 
   const bundle = await rolldown({ input: entry, logLevel: "silent" });

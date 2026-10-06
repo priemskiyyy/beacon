@@ -1,0 +1,25 @@
+{
+  "name": "example-react-minimal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "VITE_BUILD_ID=a91b44e vite --host 127.0.0.1",
+    "build": "tsc --noEmit -p . && VITE_BUILD_ID=a91b44e vite build",
+    "preview": "vite preview",
+    "lint:typescript": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@priemskiyyy/beacon": "workspace:*",
+    "@priemskiyyy/beacon-browser": "workspace:*",
+    "@priemskiyyy/beacon-http": "workspace:*",
+    "@priemskiyyy/beacon-react": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.7",
+    "typescript": "5.8.3",
+    "vite": "8.3.0"
+  }
+}

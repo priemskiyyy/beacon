@@ -1,33 +1,32 @@
 {
   "name": "example-expo",
   "private": true,
-  "main": "index.tsx",
+  "main": "index.ts",
   "scripts": {
     "dev": "expo start",
     "ios": "expo start --ios",
     "android": "expo start --android",
-    "web": "expo start --web",
-    "build": "expo export --platform web --output-dir dist",
     "build:native": "expo export --platform ios --platform android --output-dir ../../.artifacts/expo-native",
     "lint:typescript": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@expo/metro-runtime": "57.0.16",
     "@priemskiyyy/beacon": "workspace:*",
+    "@priemskiyyy/beacon-app-store": "workspace:*",
     "@priemskiyyy/beacon-expo": "workspace:*",
+    "@priemskiyyy/beacon-google-play": "workspace:*",
     "@priemskiyyy/beacon-react": "workspace:*",
-    "example-shared": "workspace:*",
     "expo": "57.0.24",
     "expo-application": "57.0.3",
-    "expo-sqlite": "57.0.3",
     "expo-updates": "57.0.24",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.86.3",
-    "react-native-web": "0.21.2"
+    "react-native": "0.86.3"
   },
   "devDependencies": {
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
     "@types/react": "19.2.17",
+    "react-dom": "19.2.3",
+    "react-native-web": "0.21.2",
     "typescript": "5.8.3"
   }
 }

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "routes": {
+    "web": {
+      "kind": "target",
+      "release": { "identity": "a91b44e" }
+    }
+  }
+}

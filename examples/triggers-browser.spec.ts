@@ -10,6 +10,7 @@ import { rolldown } from "rolldown";
 // The built browser triggers in a real browser: `reconnect` over the `online` event that Chromium fires when its network really goes away and comes back, and the check at startup of `checkOn`. A hidden tab and the back-forward cache cannot be made in a headless page, so `foreground` is only run over a fake page, by its unit tests.
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CORE = path.join(ROOT, "packages/core/dist/index.js");
+const ADAPTER = path.join(ROOT, "packages/core/dist/adapter.js");
 const TRIGGERS = path.join(ROOT, "packages/core/dist/triggers.js");
 const BROWSER = path.join(ROOT, "packages/core/dist/triggers-browser.js");
 
@@ -22,7 +23,7 @@ test.beforeAll(async () => {
 
   writeFileSync(
     entry,
-    `export { Beacon, createReleaseSource, createUpdateMechanism, targetRoute } from ${JSON.stringify(CORE)};\nexport { checkOn } from ${JSON.stringify(TRIGGERS)};\nexport { foreground, reconnect } from ${JSON.stringify(BROWSER)};\n`,
+    `export { Beacon, targetRoute } from ${JSON.stringify(CORE)};\nexport { createReleaseSource, createUpdateMechanism } from ${JSON.stringify(ADAPTER)};\nexport { checkOn } from ${JSON.stringify(TRIGGERS)};\nexport { foreground, reconnect } from ${JSON.stringify(BROWSER)};\n`,
   );
 
   const bundle = await rolldown({ input: entry, logLevel: "silent" });

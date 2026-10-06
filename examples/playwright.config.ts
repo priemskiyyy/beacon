@@ -15,9 +15,10 @@ const servers = [
   preview("vue", 4492),
   preview("solid", 4493),
   preview("svelte", 4494),
+  preview("react-minimal", 4495),
   {
     command:
-      "pnpm --filter example-expo build && pnpm --filter example-react exec vite preview --outDir ../expo/dist --host 127.0.0.1 --port 4491 --strictPort",
+      "pnpm --filter example-expo-lab build && pnpm --filter example-react exec vite preview --outDir ../expo-lab/dist --host 127.0.0.1 --port 4491 --strictPort",
     cwd: "..",
     url: "http://127.0.0.1:4491",
     reuseExistingServer: process.env.CI === undefined,
@@ -61,7 +62,13 @@ export default defineConfig({
       testMatch: "lab.spec.ts",
       use: { baseURL: "http://127.0.0.1:4494" },
     },
-    { name: "expo", testMatch: "expo.spec.ts" },
+    { name: "expo-lab", testMatch: "expo-lab.spec.ts" },
+    // The minimal app of the web golden path, against a manifest the spec serves.
+    {
+      name: "react-minimal",
+      testMatch: "react-minimal.spec.ts",
+      use: { baseURL: "http://127.0.0.1:4495" },
+    },
     // The built browser package alone, in a page of its own that the spec serves.
     { name: "browser-storage", testMatch: "browser-storage.spec.ts" },
     // The built browser triggers alone, in a page of their own.

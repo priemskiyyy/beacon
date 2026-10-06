@@ -1,18 +1,17 @@
 {
   "expo": {
-    "name": "Release lab",
-    "slug": "beacon-release-lab",
-    "version": "0.1.0",
+    "name": "Notes",
+    "slug": "beacon-notes",
+    "version": "1.2.0",
     "orientation": "portrait",
-    "platforms": ["ios", "android", "web"],
+    "platforms": ["ios", "android"],
     "ios": {
-      "bundleIdentifier": "dev.beacon.example"
+      "bundleIdentifier": "com.example.notes",
+      "buildNumber": "120"
     },
     "android": {
-      "package": "dev.beacon.example"
-    },
-    "web": {
-      "bundler": "metro"
+      "package": "com.example.notes",
+      "versionCode": 120
     }
   }
 }

@@ -38,6 +38,67 @@ const MUTANTS = [
     describes: "an equal scope wiping what is known",
   },
   {
+    file: `${core}/internal/runtime/BeaconRuntime.ts`,
+    find: "this.#open(stop);\n  };",
+    replace: "this.#open(() => {});\n  };",
+    project: "core",
+    describes:
+      "a scope replacement restarting the session for a stop that nobody holds",
+  },
+  {
+    file: `${core}/Beacon.ts`,
+    find: "if (this.#routes.hasPolicy()) {\n      return RUNNING_SUBJECTS;",
+    replace: "if (false) {\n      return RUNNING_SUBJECTS;",
+    project: "core",
+    describes:
+      "a check with a support policy starting its reads before every running fact is in",
+  },
+  {
+    file: `${core}/Beacon.ts`,
+    find: "if (this.#isDisposed()) {\n      throw createDisposedError();\n    }\n\n    return this.#journal.reportReady(checkpoint);",
+    replace: "return this.#journal.reportReady(checkpoint);",
+    project: "core",
+    describes:
+      "a checkpoint nothing recorded answered as recorded after dispose",
+  },
+  {
+    file: `${core}/internal/observable/commitChange.ts`,
+    find: "  try {\n    apply(transaction);\n  } finally {\n    transaction.commit();\n  }",
+    replace: "  apply(transaction);\n  transaction.commit();",
+    project: "core",
+    describes:
+      "a change that throws leaving stores set that nobody was told of",
+  },
+  {
+    file: `${core}/internal/reads/SharedRead.ts`,
+    find: "this.#fail(flight, toBeaconError(cause, errors.failed));\n\n      return;",
+    replace: "throw cause;",
+    project: "core",
+    describes: "a host clock that refuses a timer rejecting the check",
+  },
+  {
+    file: `${core}/internal/feeds/FeedRecord.ts`,
+    find: "    } catch {\n      return this.#expire(accepted);\n    }",
+    replace: "    } catch {\n      return accepted;\n    }",
+    project: "core",
+    describes: "a document whose expiry nobody watches staying fresh",
+  },
+  {
+    file: `${core}/internal/commands/CommandCoordinator.ts`,
+    find: 'if (this.#options.journal.state.get().journal !== "off") {',
+    replace: "if (false) {",
+    project: "core",
+    describes: "an intent naming what ran before its reader answered",
+  },
+  {
+    file: `${core}/internal/commands/CommandCoordinator.ts`,
+    find: 'if (this.#options.journal.state.get().journal !== "off") {',
+    replace: "if (true) {",
+    project: "core",
+    describes:
+      "a command waiting for a reader on behalf of a journal that is off",
+  },
+  {
     file: `${core}/internal/feeds/FeedRecord.ts`,
     find: "    this.#accepted = null;\n  };",
     replace: "  };",

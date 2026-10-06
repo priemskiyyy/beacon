@@ -1,6 +1,7 @@
 import type { NoneDecision } from "@priemskiyyy/beacon";
 
 import type { FieldReader } from "src/types/internal/FieldReader";
+import type { JsonRecord } from "src/types/internal/JsonRecord";
 import type { RouteDeclaration } from "src/types/RouteDeclaration";
 import type { StandardDecision } from "src/types/StandardDecision";
 import { invalidManifest } from "src/utils/invalidManifest";
@@ -15,6 +16,9 @@ const readNone: FieldReader<NoneDecision> = (record, field) => ({
   kind: "none",
   reason: readText(readField(record, "reason"), `${field}.reason`),
 });
+
+const readReleaseRecord = (record: JsonRecord, field: string) =>
+  readRecord(readField(record, "release"), `${field}.release`);
 
 const contradicts = (field: string, expected: RouteDeclaration["kind"]) =>
   invalidManifest(
@@ -44,10 +48,7 @@ export function readDecision(
           throw contradicts(path, declaration.kind);
         }
 
-        const release = readRecord(
-          readField(record, "release"),
-          `${path}.release`,
-        );
+        const release = readReleaseRecord(record, path);
 
         return {
           kind: "target",
@@ -59,10 +60,7 @@ export function readDecision(
           throw contradicts(path, declaration.kind);
         }
 
-        const release = readRecord(
-          readField(record, "release"),
-          `${path}.release`,
-        );
+        const release = readReleaseRecord(record, path);
 
         return {
           kind: "candidate",

@@ -1,0 +1,75 @@
+{
+  "name": "@priemskiyyy/beacon-code-push",
+  "version": "0.1.0",
+  "description": "The React Native CodePush family (Microsoft, Revopush, Bravemobile, AppZung) as a Beacon route: a check that never calls an empty answer up to date, a download that stages an update for the next start, and a reload that only requests a restart.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priemskiyyy/beacon.git",
+    "directory": "packages/adapters/code-push"
+  },
+  "bugs": {
+    "url": "https://github.com/priemskiyyy/beacon/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint:typescript": "tsc --noEmit -p .",
+    "lint:eslint": "eslint src",
+    "test:unit": "vitest run --root ../../.. --project code-push"
+  },
+  "peerDependencies": {
+    "@priemskiyyy/beacon": ">=0.1.0 <0.2",
+    "@appzung/react-native-code-push": ">=11.0.0 <12",
+    "@bravemobile/react-native-code-push": ">=13.3.0 <14",
+    "@revopush/react-native-code-push": ">=2.6.0 <3",
+    "react-native-code-push": ">=9.0.0 <10"
+  },
+  "devDependencies": {
+    "@priemskiyyy/beacon": "workspace:*"
+  },
+  "keywords": [
+    "code-push",
+    "codepush",
+    "revopush",
+    "react-native",
+    "ota",
+    "over-the-air",
+    "release",
+    "typescript",
+    "beacon",
+    "adapter"
+  ],
+  "peerDependenciesMeta": {
+    "@appzung/react-native-code-push": {
+      "optional": true
+    },
+    "@bravemobile/react-native-code-push": {
+      "optional": true
+    },
+    "@revopush/react-native-code-push": {
+      "optional": true
+    },
+    "react-native-code-push": {
+      "optional": true
+    }
+  }
+}

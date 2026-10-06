@@ -16,6 +16,8 @@ One `Beacon` per application holds named routes. A route is either a feed route,
 | `ReferenceLedger`    | the offer and prepared references, minted by the core and recognized by identity                                                              |
 | `CommandCoordinator` | one operation per route, one disruptive operation across routes, and the order reserve, settle, revalidate, dispatch                          |
 | `DisruptionRegistry` | the participants, their reservations in registration order, and the registry revision                                                         |
+| `PolicyRecord`       | the support state, the last valid evaluation beside a failure or a lapse, and the evaluations run only when the document or the facts changed |
+| `Journal`            | the intents written before a realm-replacing command, the readiness checkpoints, and the queue that orders every read and write of the record |
 
 Adapters own their provider's mapping and nothing else. The core never branches on an adapter's name.
 
@@ -40,6 +42,8 @@ Each is proven by tests named after the case it protects.
 - **Accepted is not installed.** A receipt names what was accepted: a reload request, a store handoff, a started flow. Nothing changes what is running except a later boot (WEB-01).
 - **An abort ends a wait.** Before the dispatch it cancels and releases; after it, the command is indeterminate (SAFE-10, SAFE-11).
 - **A command that may have taken effect is never retried blindly.** The route stays unresolved, and refuses the next command, until the application acknowledges it (WEB-03).
+- **A scope owns what it taught.** `replaceScope` fences the old reads, forgets the documents, observations, prepared targets, support and journal intents of the scope that ended, keeps the running facts, and is blocked while an operation is running or unresolved (LIFE-08, LIFE-09).
+- **One session holds a native manager.** A driver that names the manager it needs with `exclusive` cannot be opened by a second session while the first holds it, and the second route says `DRIVER_FAILED` (LIFE-11).
 - **Drivers cannot write running facts**, and a driver's emitter is fenced by its session.
 
 ## Layout

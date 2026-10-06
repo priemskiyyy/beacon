@@ -45,6 +45,30 @@ A route's source is made with `createReleaseSource({ name, read })`, and its com
 
 Turn on `journal: { mode, storage }` and Beacon writes an intent before a command that replaces the realm, then reads it back on the next boot: `beacon.transitions` says whether that boot runs the target, runs what ran before, runs something else, or cannot tell, with the boots that left the same target unreached counted against a budget. An intent is not proof a dispatch happened, and nothing here says an installation succeeded or that the boot is healthy: `beacon.reportReady({ checkpoint })` is the application saying its own code reached a point. `required` stops a command whose intent could not be persisted; `best-effort` goes on and says storage degraded. Storage is yours, and no counter is atomic across tabs.
 
+## Scope
+
+A Beacon speaks for one scope: an application in an environment, on a platform, through a distribution. `beacon.replaceScope(next)` puts another in force all at once. Everything the old scope taught is forgotten (the documents, the offers and the references to them, what a provider prepared, the support evaluated from them and the journal's intents), the results of its reads are dropped, and an open session starts again with the next scope. What is running is never rewritten: a new environment label does not change the build in memory.
+
+```ts
+const replacement = beacon.replaceScope({ ...scope, environment: "staging" });
+
+if (replacement.status === "blocked") {
+  console.info(replacement.route);
+}
+```
+
+A route whose operation is running or unresolved blocks the replacement, since that work cannot be given to another scope: acknowledge it first. An equal scope is `unchanged`, and nothing is touched.
+
+## Checking when the app returns
+
+Beacon has no timer of its own. To check when the app comes to the foreground, or now and then, call `beacon.check({ reason })` from your own signal: checks join a read already under way, so overlapping signals cost one request, and `reason` shows up in the diagnostics.
+
+```ts
+pulse.on("foreground", async () => {
+  await beacon.check({ reason: "foreground" });
+});
+```
+
 ## Commands
 
 Each command declares which reference it needs (`offer`, `prepared`, `optional-offer` or `none`), what it can do to the running application (`impacts`), and how tightly it is bound (`binding`). A route gets one method per command:

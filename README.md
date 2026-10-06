@@ -163,7 +163,7 @@ Every package is ESM only, side-effect free and typed. The core has no dependenc
 
 ## Requirements
 
-TypeScript 5.4 or later when `skipLibCheck` is off, since the declarations of the framework bindings use `NoInfer`; the Expo and Vite templates leave `skipLibCheck` on. React 18.3 or 19. A server render under React 18 logs its development warning about `useLayoutEffect`, because the provider starts its session in one; React 19 does not.
+TypeScript 5.4 or later when `skipLibCheck` is off, since the declarations of the framework bindings use `NoInfer`; the Expo and Vite templates leave `skipLibCheck` on. `moduleResolution` must be `bundler`, `node16` or `nodenext`, since the subpaths (`/adapter`, `/mock`, `/triggers`) resolve through `exports`, and the `lib` or the types must declare `AbortSignal` (the DOM, `@types/node` and React Native's do). The packages are ESM only, and `require()` loads them on Node 22.12 or later. `@priemskiyyy/beacon/testing` needs Vitest. React 18.3 or 19; the devtools wrapper needs 19.2. A server render under React 18 logs its development warning about `useLayoutEffect`, because the provider starts its session in one; React 19 does not.
 
 ## Status
 

@@ -6,10 +6,10 @@ import {
   rollbackCheck,
   UPDATE_A,
 } from "src/fakeUpdates.fixture";
-import { mapCheckResult } from "src/utils/mapCheckResult";
+import { readCheckResult } from "src/utils/readCheckResult";
 
 test("EXPO-01 an available update is an offer named by the id its server assigned", () => {
-  expect(mapCheckResult(available(UPDATE_A))).toEqual({
+  expect(readCheckResult(available(UPDATE_A))).toEqual({
     status: "available",
     offer: {
       release: {
@@ -26,7 +26,7 @@ test("EXPO-01 an available update is an offer named by the id its server assigne
 });
 
 test("EXPO-02 a rollback to the embedded update is an offer of its own, with an identity nobody named", () => {
-  expect(mapCheckResult(rollbackCheck())).toEqual({
+  expect(readCheckResult(rollbackCheck())).toEqual({
     status: "available",
     offer: {
       release: { identity: { status: "unknown", reason: "embedded-rollback" } },
@@ -37,7 +37,7 @@ test("EXPO-02 a rollback to the embedded update is an offer of its own, with an 
 
 test("EXPO-03 a valid answer with neither is no offer, and keeps the SDK's own reason", () => {
   expect(
-    mapCheckResult(notAvailable("updateRejectedBySelectionPolicy")),
+    readCheckResult(notAvailable("updateRejectedBySelectionPolicy")),
   ).toEqual({
     status: "none",
     reason: "no-decision",

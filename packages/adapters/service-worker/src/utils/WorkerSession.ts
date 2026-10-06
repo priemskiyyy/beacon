@@ -51,7 +51,11 @@ export class WorkerSession {
 
     // Watched before it is asked: the worker the update finds is heard as it installs, and a registration whose update fails is still known.
     this.#attach(registration);
-    await registration?.update();
+
+    // A session that ended while the registration was being found asks the browser for nothing.
+    if (!this.#disposed) {
+      await registration?.update();
+    }
 
     const reading = this.#read();
 

@@ -2,7 +2,7 @@ import type { WorkerReading } from "src/types/internal/WorkerReading";
 import type { RegistrationLike } from "src/types/RegistrationLike";
 import type { WorkerBody } from "src/types/WorkerBody";
 import type { WorkerLike } from "src/types/WorkerLike";
-import { UNKNOWN_WORKER_IDENTITY } from "src/utils/constants/release";
+import { UNKNOWN_WORKER_IDENTITY } from "src/utils/constants/identities";
 import {
   FIRST_INSTALL,
   INSTALLING,

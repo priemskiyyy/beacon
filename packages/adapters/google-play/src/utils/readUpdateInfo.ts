@@ -1,8 +1,12 @@
+import type { PreparedDraft } from "@priemskiyyy/beacon";
+
 import type { PlayReading } from "src/types/internal/PlayReading";
+import type { PlayInstallStatus } from "src/types/PlayInstallStatus";
 import type { PlayOffer } from "src/types/PlayOffer";
+import type { PlayPrepared } from "src/types/PlayPrepared";
 import type { PlayUpdateInfo } from "src/types/PlayUpdateInfo";
 import { VERSION_CODE_DOMAIN } from "src/utils/constants/authority";
-import { IN_PROGRESS_IDENTITY } from "src/utils/constants/reasons";
+import { IN_PROGRESS_IDENTITY } from "src/utils/constants/identities";
 
 const readFlows = (info: { flexible: boolean; immediate: boolean }) => {
   const flows: PlayOffer["flows"] = [];
@@ -18,14 +22,17 @@ const readFlows = (info: { flexible: boolean; immediate: boolean }) => {
   return flows;
 };
 
-// An answer that names no release and says nothing of an install.
-const readNoRelease = (
-  observation: PlayReading["observation"],
-): PlayReading => ({
-  observation,
-  release: null,
-  installStatus: null,
-});
+// A query that finds the download done says the update is prepared, and one that does not says nothing: Play cannot say that nothing is prepared.
+const readPrepared = (
+  release: PlayPrepared["release"],
+  installStatus: PlayInstallStatus,
+): PreparedDraft<PlayPrepared> | null => {
+  if (installStatus !== "downloaded") {
+    return null;
+  }
+
+  return { status: "ready", value: { release, flow: "flexible" } };
+};
 
 /**
  * What a query of Play means, in its four categories. A version, its priority
@@ -39,17 +46,18 @@ export const readUpdateInfo = (
   application: string,
 ): PlayReading => {
   if (info.availability === "not-available") {
-    return readNoRelease({
-      status: "none",
-      reason: "no-decision",
-      detail: "not-available",
-    });
+    return {
+      observation: {
+        status: "none",
+        reason: "no-decision",
+        detail: "not-available",
+      },
+      prepared: null,
+    };
   }
 
   if (info.availability === "in-progress") {
-    const release = {
-      identity: { status: "unknown", reason: IN_PROGRESS_IDENTITY },
-    } satisfies PlayOffer["release"];
+    const release: PlayOffer["release"] = { identity: IN_PROGRESS_IDENTITY };
 
     return {
       observation: {
@@ -63,21 +71,20 @@ export const readUpdateInfo = (
           inProgress: true,
         },
       },
-      release,
-      installStatus: info.installStatus,
+      prepared: readPrepared(release, info.installStatus),
     };
   }
 
   if (info.availability === "available") {
     // A published build is named by the version code Play orders builds with, under the application that publishes it.
-    const release = {
+    const release: PlayOffer["release"] = {
       identity: {
         status: "known",
         authority: application,
         domain: VERSION_CODE_DOMAIN,
         value: String(info.versionCode),
       },
-    } satisfies PlayOffer["release"];
+    };
 
     return {
       observation: {
@@ -90,13 +97,12 @@ export const readUpdateInfo = (
           inProgress: false,
         },
       },
-      release,
-      installStatus: info.installStatus,
+      prepared: readPrepared(release, info.installStatus),
     };
   }
 
-  return readNoRelease({
-    status: "unknown",
-    reason: "unsupported-environment",
-  });
+  return {
+    observation: { status: "unknown", reason: "unsupported-environment" },
+    prepared: null,
+  };
 };

@@ -7,9 +7,9 @@ import type { ExpoNative } from "src/types/ExpoNative";
 import type { ExpoOptions } from "src/types/ExpoOptions";
 import type { ExpoReloadReceipt } from "src/types/ExpoReloadReceipt";
 import { UPDATES_DISABLED } from "src/utils/constants/reasons";
-import { mapCheckResult } from "src/utils/mapCheckResult";
-import { prepareFetchResult } from "src/utils/prepareFetchResult";
-import { bindReporter, getReporter } from "src/utils/reporters";
+import { emitters } from "src/utils/emitters";
+import { readCheckResult } from "src/utils/readCheckResult";
+import { readFetchResult } from "src/utils/readFetchResult";
 
 const commands = {
   download: {
@@ -24,14 +24,14 @@ const commands = {
         return { status: "unsupported", reason: UPDATES_DISABLED };
       }
 
-      const { prepared, receipt } = prepareFetchResult(
+      const { prepared, receipt } = readFetchResult(
         await native.updates.fetchUpdateAsync(),
         offer.release.identity,
       );
 
       // A result that prepared nothing new leaves what was known as it was.
       if (prepared !== null) {
-        getReporter(native)?.prepared(prepared);
+        emitters.get(native)?.prepared(prepared);
       }
 
       return { status: "accepted", receipt };
@@ -60,11 +60,11 @@ const commands = {
  * and a rejection or disabled updates are never reported as no update.
  * `download` asks the provider for its current selection, which may differ
  * from the offer, and says how; it may also be selected on a later start, so
- * it declares that before the user agrees. The module belongs to one open
+ * it declares that before the user agrees. `reload` restarts the JavaScript
+ * runtime and guarantees no code after it. The module belongs to one open
  * session at a time: a second Beacon that opens a route on it fails to open
- * it, as `DRIVER_FAILED`. `reload` restarts the
- * JavaScript runtime and guarantees no code after it. Autonomous native
- * startup checks are not observed, and no configuration is ever changed.
+ * it, as `DRIVER_FAILED`. Autonomous native startup checks are not observed,
+ * and no configuration is ever changed.
  *
  * @example
  * ```ts
@@ -82,6 +82,8 @@ export const expoUpdates = ({ updates }: ExpoOptions) =>
     open: ({ emit }) => {
       const native: ExpoNative = { updates };
 
+      emitters.set(native, emit);
+
       return {
         native,
         check: async () => {
@@ -89,9 +91,11 @@ export const expoUpdates = ({ updates }: ExpoOptions) =>
             return { status: "unknown", reason: "unsupported-environment" };
           }
 
-          return mapCheckResult(await updates.checkForUpdateAsync());
+          return readCheckResult(await updates.checkForUpdateAsync());
         },
-        dispose: bindReporter(native, emit),
+        dispose: () => {
+          emitters.delete(native);
+        },
       };
     },
     commands,

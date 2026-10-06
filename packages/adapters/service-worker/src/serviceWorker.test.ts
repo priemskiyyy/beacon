@@ -820,6 +820,28 @@ test("SW-13 a registration found for a check after its session ended is not list
   expect(countListeners(registration, container)).toBe(0);
 });
 
+test("SW-13 a check whose session ended while the registration was being found asks the browser for no update", async () => {
+  const registration = updateReady();
+  const lookup = holdLookup();
+
+  const { beacon, worker } = createWorkerBeacon(undefined, {
+    registration: lookup.find,
+  });
+
+  beacon.start();
+  lookup.release(undefined);
+  await settle();
+
+  const checking = worker.check();
+
+  await settle();
+  beacon.stop();
+  lookup.release(registration);
+  await checking;
+
+  expect(registration.updates()).toBe(0);
+});
+
 test("a listener that stops the session while a change is reported leaves no late report", async () => {
   const registration = fakeRegistration({ active: fakeWorker("activated") });
   const { beacon, worker } = createWorkerBeacon(registration);
@@ -832,5 +854,22 @@ test("a listener that stops the session while a change is reported leaves no lat
   registration.found(fakeWorker());
 
   expect(beacon.status.get()).toEqual({ state: "stopped" });
+  expect(beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
+});
+
+test("a listener that stops the session when the target is reported leaves the observation unreported", async () => {
+  const registration = updateReady();
+  const { beacon, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+  worker.state.subscribe(() => {
+    beacon.stop();
+  });
+  registration.activate();
+
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+  expect(worker.state.get().prepared).toMatchObject({ status: "ready" });
+  expect(worker.state.get().observation).toMatchObject({ status: "available" });
   expect(beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
 });

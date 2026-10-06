@@ -1,53 +1,34 @@
 import { createReleaseDriver } from "@priemskiyyy/beacon";
-import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon";
+import type { CommandMap } from "@priemskiyyy/beacon";
 
+import type { PlayResult } from "src/types/internal/PlayResult";
 import type { PlayNative } from "src/types/PlayNative";
 import type { PlayOffer } from "src/types/PlayOffer";
 import type { PlayOptions } from "src/types/PlayOptions";
 import type { PlayPrepared } from "src/types/PlayPrepared";
-import type { PlayReceipt } from "src/types/PlayReceipt";
 import { PlaySession } from "src/utils/PlaySession";
-import { bindSession, getSession } from "src/utils/sessions";
+import { readFlow } from "src/utils/readFlow";
 
-// A command answers its own receipt, and annotating it keeps the receipt's `kind` a literal.
-type Answer<TKind extends PlayReceipt["kind"]> = Promise<
-  ProviderResult<Extract<PlayReceipt, { kind: TKind }>>
->;
+const UPDATE_FAILED = "Play reported that the update flow failed.";
 
 const commands = {
   download: {
     reference: "offer",
     impacts: ["may-activate-on-next-start"],
     binding: "provider-current",
-    run: async ({ native, offer, signal }): Answer<"update-downloaded"> => {
-      const session = getSession(native);
+    run: async ({
+      native,
+      offer,
+      signal,
+    }): Promise<PlayResult<"update-downloaded">> => {
+      const session = PlaySession.of(native);
       const refusal = await session.confirmFlow(offer, "flexible");
 
       if (refusal !== null) {
         return refusal;
       }
 
-      const result = await session.downloadFlexible(offer.release, signal);
-
-      if (result.status === "downloaded") {
-        return { status: "accepted", receipt: { kind: "update-downloaded" } };
-      }
-
-      if (result.status === "cancelled") {
-        return result;
-      }
-
-      if (result.status === "session-ended") {
-        return { status: "indeterminate", reason: "session-ended" };
-      }
-
-      return {
-        status: "failed",
-        error: {
-          code: "COMMAND_FAILED",
-          message: "Play reported that the download failed.",
-        },
-      };
+      return session.downloadFlexible(offer.release, signal);
     },
   },
   update: {
@@ -58,32 +39,28 @@ const commands = {
       native,
       offer,
       signal,
-    }): Answer<"immediate-flow-started"> => {
-      const refusal = await getSession(native).confirmFlow(offer, "immediate");
+    }): Promise<PlayResult<"immediate-flow-started">> => {
+      const refusal = await PlaySession.of(native).confirmFlow(
+        offer,
+        "immediate",
+      );
 
       if (refusal !== null) {
         return refusal;
       }
 
-      // The wait may have ended while Play was asked, and the check shares its turn with the start. The caller has been told already; this releases the route that wait left unresolved.
+      // The wait may have ended while Play was asked, as in `downloadFlexible`.
       if (signal.aborted) {
         return { status: "cancelled", stage: "session-ended" };
       }
 
-      const flow = await native.bridge.startImmediate();
+      const flow = readFlow(
+        await native.bridge.startImmediate(),
+        UPDATE_FAILED,
+      );
 
-      if (flow === "cancelled") {
-        return { status: "cancelled", stage: "consent" };
-      }
-
-      if (flow === "failed") {
-        return {
-          status: "failed",
-          error: {
-            code: "COMMAND_FAILED",
-            message: "Play reported that the update flow failed.",
-          },
-        };
+      if (flow !== null) {
+        return flow;
       }
 
       return {
@@ -96,7 +73,7 @@ const commands = {
     reference: "prepared",
     impacts: ["javascript-restart"],
     binding: "provider-current",
-    run: async ({ native }): Answer<"completion-requested"> => {
+    run: async ({ native }): Promise<PlayResult<"completion-requested">> => {
       await native.bridge.completeUpdate();
 
       return { status: "accepted", receipt: { kind: "completion-requested" } };
@@ -108,15 +85,15 @@ const commands = {
  * Google Play in-app updates as a Beacon route, over a native bridge you
  * inject. Play owns eligibility, the flows and the version order: an offer
  * names a version code, carries the flows Play allows now, and comes from a
- * fresh query, never from a manifest. `download` answers when Play
- * says the download ended and prepares the update without restarting the app;
- * `restart` is a separate, guarded command. `update` is
- * disruptive from the moment the flow starts, and resumes one Play still
- * holds. Every start reconfirms the offer against Play first. Nothing here
- * is proof of an installation: only a later boot shows the running build, and
- * only a real device with a real Play distribution validates the flow. A
- * bridge belongs to one open session at a time: a second Beacon that opens a
- * route on the same bridge fails to open it, as `DRIVER_FAILED`.
+ * fresh query, never from a manifest. `download` answers when Play says the
+ * download ended and prepares the update without restarting the app;
+ * `restart` is a separate, guarded command. `update` is disruptive from the
+ * moment the flow starts, and resumes one Play still holds. Every start
+ * reconfirms the offer against Play first. Nothing here is proof of an
+ * installation: only a later boot shows the running build, and only a real
+ * device with a real Play distribution validates the flow. A bridge belongs
+ * to one open session at a time: a second Beacon that opens a route on the
+ * same bridge fails to open it, as `DRIVER_FAILED`.
  *
  * @example
  * ```ts
@@ -133,21 +110,16 @@ export const googlePlay = ({ bridge }: PlayOptions) =>
       const native: PlayNative = { bridge };
 
       const session = new PlaySession({
-        bridge,
+        native,
         application: scope.application,
         emit,
       });
-
-      const unbind = bindSession(native, session);
 
       return {
         native,
         check: session.check,
         reconcile: session.reconcile,
-        dispose: () => {
-          unbind();
-          session.dispose();
-        },
+        dispose: session.dispose,
       };
     },
     commands,

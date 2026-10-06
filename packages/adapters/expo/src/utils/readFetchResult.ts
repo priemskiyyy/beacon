@@ -1,3 +1,4 @@
+import { compareIdentities } from "@priemskiyyy/beacon";
 import type { PreparedDraft, ReleaseIdentity } from "@priemskiyyy/beacon";
 
 import type { ExpoBody } from "src/types/ExpoBody";
@@ -5,9 +6,8 @@ import type { ExpoDownloadReceipt } from "src/types/ExpoDownloadReceipt";
 import type { FetchResultLike } from "src/types/FetchResultLike";
 import { ROLLBACK_IDENTITY } from "src/utils/constants/identities";
 import { createUpdateIdentity } from "src/utils/createUpdateIdentity";
-import { relateToOffer } from "src/utils/relateToOffer";
 
-type Preparation = {
+type FetchReading = {
   /** What the provider now has prepared, or `null` when the answer prepared nothing new. */
   prepared: PreparedDraft<ExpoBody> | null;
   receipt: ExpoDownloadReceipt;
@@ -20,12 +20,13 @@ type Preparation = {
  * receipt relates the result to the offer the user was shown, since the
  * provider fetches its own current selection.
  */
-export const prepareFetchResult = (
+export const readFetchResult = (
   result: FetchResultLike,
   offered: ReleaseIdentity,
-): Preparation => {
+): FetchReading => {
   if (result.isNew) {
     const identity = createUpdateIdentity(result.manifest.id);
+    const relation = compareIdentities(identity, offered);
 
     return {
       prepared: {
@@ -35,11 +36,12 @@ export const prepareFetchResult = (
       receipt: {
         kind: "update-prepared",
         update: { id: result.manifest.id },
-        offered: relateToOffer(identity, offered),
+        offered: relation === "incomparable" ? "unknown" : relation,
       },
     };
   }
 
+  // The embedded update has no identity, so it is comparable with no offer.
   if (result.isRollBackToEmbedded) {
     return {
       prepared: {
@@ -49,10 +51,7 @@ export const prepareFetchResult = (
           kind: "rollback-to-embedded",
         },
       },
-      receipt: {
-        kind: "rollback-prepared",
-        offered: relateToOffer(ROLLBACK_IDENTITY, offered),
-      },
+      receipt: { kind: "rollback-prepared", offered: "unknown" },
     };
   }
 

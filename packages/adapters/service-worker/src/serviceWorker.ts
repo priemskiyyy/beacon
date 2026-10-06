@@ -77,13 +77,13 @@ const createCommands = ({
 
 /**
  * A service worker registration as a Beacon route. A waiting worker, next to
- * one that is already active, is an update that is ready: `activate`
- * asks that worker to skip waiting, which proves no activation. Once the
- * worker that was active has been replaced, the route has a prepared target
- * and `reload` replaces the document. The release stays unknown,
- * because the bytes behind a script URL can change. The adapter never
- * registers or unregisters a worker, and activating one is a takeover that
- * reaches every tab of the scope, not only this one.
+ * one that is already active, is an update that is ready: `activate` asks that
+ * worker to skip waiting, which proves no activation. Once the worker that was
+ * active has been replaced, the route has a prepared target and `reload`
+ * replaces the document. The release stays unknown, because the bytes behind a
+ * script URL can change. The adapter never registers or unregisters a worker,
+ * and activating one is a takeover that reaches every tab of the scope, not
+ * only this one.
  *
  * @example
  * ```ts

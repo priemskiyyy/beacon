@@ -1,28 +1,42 @@
-import { compareIdentities } from "@priemskiyyy/beacon";
+import { BeaconError, compareIdentities } from "@priemskiyyy/beacon";
 import type { DriverEmitter } from "@priemskiyyy/beacon";
 
-import type { DownloadResult } from "src/types/internal/DownloadResult";
+import type { PlayResult } from "src/types/internal/PlayResult";
 import type { Refusal } from "src/types/internal/Refusal";
-import type { PlayBridge } from "src/types/PlayBridge";
 import type { PlayInstallEvent } from "src/types/PlayInstallEvent";
+import type { PlayNative } from "src/types/PlayNative";
 import type { PlayOffer } from "src/types/PlayOffer";
 import type { PlayPrepared } from "src/types/PlayPrepared";
 import type { PlayUpdateInfo } from "src/types/PlayUpdateInfo";
-import {
-  DOWNLOADED_IDENTITY,
-  FLOW_NOT_ALLOWED,
-} from "src/utils/constants/reasons";
+import { DOWNLOADED_IDENTITY } from "src/utils/constants/identities";
+import { FLOW_NOT_ALLOWED } from "src/utils/constants/reasons";
+import { readFlow } from "src/utils/readFlow";
 import { readProgress } from "src/utils/readProgress";
 import { readUpdateInfo } from "src/utils/readUpdateInfo";
 
 type PlaySessionOptions = {
-  bridge: PlayBridge;
+  native: PlayNative;
   application: string;
   emit: DriverEmitter<PlayOffer, PlayPrepared>;
 };
 
-const UNNAMED_DOWNLOAD: PlayPrepared["release"] = {
-  identity: { status: "unknown", reason: DOWNLOADED_IDENTITY },
+type Download = PlayResult<"update-downloaded">;
+
+const DOWNLOAD_FAILED = "Play reported that the download failed.";
+
+// What Play makes now is what the user was shown: the same version, or the same flow it still holds.
+const isSameOffer = (fresh: PlayOffer, offer: PlayOffer) => {
+  if (fresh.inProgress !== offer.inProgress) {
+    return false;
+  }
+
+  if (fresh.inProgress) {
+    return true;
+  }
+
+  return (
+    compareIdentities(fresh.release.identity, offer.release.identity) === "same"
+  );
 };
 
 /**
@@ -31,42 +45,56 @@ const UNNAMED_DOWNLOAD: PlayPrepared["release"] = {
  * prepared under the release of the query that said so, or of the flow that
  * awaits it, and under no name when neither did: an event names no version. It
  * answers a flexible flow only when Play says the download ended, and falls
- * silent for good when disposed.
+ * silent for good when disposed. A command reaches the session it runs on
+ * through `PlaySession.of`.
  */
 export class PlaySession {
-  #bridge: PlayBridge;
+  static #open = new WeakMap<PlayNative, PlaySession>();
+
+  /** The session a command runs on, found by the handle it was given. A command runs only on the handle of an open session, so any other handle is a provider that is not open. */
+  static of(native: PlayNative) {
+    const session = PlaySession.#open.get(native);
+
+    if (session === undefined) {
+      throw new BeaconError({
+        code: "DRIVER_FAILED",
+        message: "The provider is not open.",
+      });
+    }
+
+    return session;
+  }
+
+  #native: PlayNative;
   #application: string;
   #emit: DriverEmitter<PlayOffer, PlayPrepared>;
   #waiting: {
     release: PlayPrepared["release"];
-    settle: (result: DownloadResult) => void;
+    settle: (result: Download) => void;
   } | null = null;
   #stop: () => void;
   #disposed = false;
 
-  constructor({ bridge, application, emit }: PlaySessionOptions) {
-    this.#bridge = bridge;
+  constructor({ native, application, emit }: PlaySessionOptions) {
+    this.#native = native;
     this.#application = application;
     this.#emit = emit;
-    this.#stop = bridge.addInstallListener(this.#reportInstall);
+    this.#stop = native.bridge.addInstallListener(this.#reportInstall);
+    PlaySession.#open.set(native, this);
   }
 
   /** A fresh query of Play, as an observation; a download it finds finished is prepared. */
-  check = async () => {
-    const info = await this.#bridge.getUpdateInfo();
-
-    return this.#read(info).observation;
-  };
+  check = async () => this.#read(await this.#native.bridge.getUpdateInfo());
 
   /** The same query after a restart or a return to the app, reported through the route. */
   reconcile = async () => {
-    const info = await this.#bridge.getUpdateInfo();
+    const observation = await this.check();
 
     if (this.#disposed) {
       return;
     }
 
-    this.#emit.observation(this.#read(info).observation);
+    this.#emit.observation(observation);
   };
 
   /**
@@ -84,13 +112,16 @@ export class PlaySession {
       return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
     }
 
-    const fresh = await this.#confirm(offer);
+    const observation = this.#read(await this.#native.bridge.getUpdateInfo());
 
-    if (fresh === null) {
+    if (
+      observation.status !== "available" ||
+      !isSameOffer(observation.offer, offer)
+    ) {
       return { status: "stale" };
     }
 
-    if (!fresh.flows.includes(flow)) {
+    if (!observation.offer.flows.includes(flow)) {
       return { status: "unsupported", reason: FLOW_NOT_ALLOWED };
     }
 
@@ -101,33 +132,31 @@ export class PlaySession {
   downloadFlexible = async (
     release: PlayPrepared["release"],
     signal: AbortSignal,
-  ): Promise<DownloadResult> => {
+  ): Promise<Download> => {
     // Nothing is started for a wait that ended while Play was asked, and the check shares its turn with the start. The caller has been told already; this releases the route that wait left unresolved.
     if (signal.aborted) {
       return { status: "cancelled", stage: "session-ended" };
     }
 
-    const ended = new Promise<DownloadResult>((settle) => {
+    const ended = new Promise<Download>((settle) => {
       this.#waiting = { release, settle };
     });
 
-    const flow = await this.#bridge.startFlexible().catch((cause: unknown) => {
-      // No flow started, so nothing awaits one and no later event is this download's.
+    const flow = await this.#native.bridge
+      .startFlexible()
+      .catch((cause: unknown) => {
+        // No flow started, so nothing awaits one and no later event is this download's.
+        this.#waiting = null;
+
+        throw cause;
+      });
+
+    const refusal = readFlow(flow, DOWNLOAD_FAILED);
+
+    if (refusal !== null) {
       this.#waiting = null;
 
-      throw cause;
-    });
-
-    if (flow === "cancelled") {
-      this.#waiting = null;
-
-      return { status: "cancelled", stage: "consent" };
-    }
-
-    if (flow === "failed") {
-      this.#waiting = null;
-
-      return { status: "failed" };
+      return refusal;
     }
 
     return ended;
@@ -135,53 +164,20 @@ export class PlaySession {
 
   dispose = () => {
     this.#disposed = true;
-    this.#settle({ status: "session-ended" });
+    PlaySession.#open.delete(this.#native);
+    this.#settle({ status: "indeterminate", reason: "session-ended" });
     this.#stop();
   };
 
-  // What Play offers now if it is still what the user was shown, else `null`; the fresh offer is the one whose flows decide what may start.
-  async #confirm(offer: PlayOffer): Promise<PlayOffer | null> {
-    const { observation } = this.#read(await this.#bridge.getUpdateInfo());
-
-    if (observation.status !== "available") {
-      return null;
-    }
-
-    const fresh = observation.offer;
-
-    if (fresh.inProgress !== offer.inProgress) {
-      return null;
-    }
-
-    if (fresh.inProgress) {
-      return fresh;
-    }
-
-    if (
-      compareIdentities(fresh.release.identity, offer.release.identity) !==
-      "same"
-    ) {
-      return null;
-    }
-
-    return fresh;
-  }
-
+  // A query that finds the download done prepares it, whoever asked.
   #read(info: PlayUpdateInfo) {
-    const reading = readUpdateInfo(info, this.#application);
+    const { observation, prepared } = readUpdateInfo(info, this.#application);
 
-    if (reading.installStatus === "downloaded" && !this.#disposed) {
-      this.#prepare(reading.release);
+    if (prepared !== null && !this.#disposed) {
+      this.#emit.prepared(prepared);
     }
 
-    return reading;
-  }
-
-  #prepare(release: PlayPrepared["release"]) {
-    this.#emit.prepared({
-      status: "ready",
-      value: { release, flow: "flexible" },
-    });
+    return observation;
   }
 
   // The bridge is the application's, and its native side may deliver an event that was already on its way when the listener was removed.
@@ -198,8 +194,17 @@ export class PlaySession {
 
     if (event.status === "downloaded") {
       this.#emit.progress(null);
-      this.#prepare(this.#waiting?.release ?? UNNAMED_DOWNLOAD);
-      this.#settle({ status: "downloaded" });
+      this.#emit.prepared({
+        status: "ready",
+        value: {
+          release: this.#waiting?.release ?? { identity: DOWNLOADED_IDENTITY },
+          flow: "flexible",
+        },
+      });
+      this.#settle({
+        status: "accepted",
+        receipt: { kind: "update-downloaded" },
+      });
 
       return;
     }
@@ -216,10 +221,13 @@ export class PlaySession {
     }
 
     this.#emit.progress(null);
-    this.#settle({ status: "failed" });
+    this.#settle({
+      status: "failed",
+      error: { code: "COMMAND_FAILED", message: DOWNLOAD_FAILED },
+    });
   };
 
-  #settle(result: DownloadResult) {
+  #settle(result: Download) {
     this.#waiting?.settle(result);
     this.#waiting = null;
   }

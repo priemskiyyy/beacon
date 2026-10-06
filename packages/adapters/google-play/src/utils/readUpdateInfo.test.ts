@@ -15,8 +15,7 @@ test("not available is no offer here, and says nothing about other releases", ()
       reason: "no-decision",
       detail: "not-available",
     },
-    release: null,
-    installStatus: null,
+    prepared: null,
   });
 });
 
@@ -30,7 +29,7 @@ test("PLAY-02 unknown, as without Play services, is an environment that cannot s
 });
 
 test("an available update is named by its version code, with the flows Play allows and its own facts", () => {
-  const { observation, release } = readUpdateInfo(
+  const { observation, prepared } = readUpdateInfo(
     availableInfo(412, { immediate: false, priority: 4, stalenessDays: 11 }),
     APPLICATION,
   );
@@ -52,7 +51,23 @@ test("an available update is named by its version code, with the flows Play allo
       inProgress: false,
     },
   });
-  expect(release).not.toBeNull();
+  expect(prepared).toBeNull();
+});
+
+test("PLAY-13 an available update Play reports as downloaded is prepared under the release of that query", () => {
+  const { observation, prepared } = readUpdateInfo(
+    availableInfo(412, { installStatus: "downloaded" }),
+    APPLICATION,
+  );
+
+  if (observation.status !== "available") {
+    throw new Error("The reading has no offer.");
+  }
+
+  expect(prepared).toEqual({
+    status: "ready",
+    value: { release: observation.offer.release, flow: "flexible" },
+  });
 });
 
 test("both flows are offered when Play allows both", () => {
@@ -64,7 +79,7 @@ test("both flows are offered when Play allows both", () => {
 });
 
 test("a flow Play still holds is offered as a continuation with no version to name", () => {
-  const { observation, installStatus } = readUpdateInfo(
+  const { observation, prepared } = readUpdateInfo(
     { availability: "in-progress", installStatus: "downloading" },
     APPLICATION,
   );
@@ -79,7 +94,7 @@ test("a flow Play still holds is offered as a continuation with no version to na
       inProgress: true,
     },
   });
-  expect(installStatus).toBe("downloading");
+  expect(prepared).toBeNull();
 });
 
 test("PLAY-02 an answer outside Play's four categories is an environment that cannot say, never an offer", () => {
@@ -90,7 +105,6 @@ test("PLAY-02 an answer outside Play's four categories is an environment that ca
 
   expect(readUpdateInfo(stray, APPLICATION)).toEqual({
     observation: { status: "unknown", reason: "unsupported-environment" },
-    release: null,
-    installStatus: null,
+    prepared: null,
   });
 });

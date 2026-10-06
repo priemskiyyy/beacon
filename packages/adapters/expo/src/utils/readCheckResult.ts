@@ -11,7 +11,7 @@ import { createUpdateIdentity } from "src/utils/createUpdateIdentity";
  * neither is no offer, with the SDK's own reason kept as the detail. A
  * rejection never reaches here: it fails the check instead.
  */
-export const mapCheckResult = (
+export const readCheckResult = (
   result: CheckResultLike,
 ): ObservationDraft<ExpoBody> => {
   if (result.isAvailable) {

@@ -3,35 +3,34 @@ import { expect, test } from "vitest";
 
 import { fakeBridge } from "src/fakeBridge.fixture";
 import { PlaySession } from "src/utils/PlaySession";
-import { bindSession, getSession } from "src/utils/sessions";
 
 const open = () => {
   const { bridge } = fakeBridge();
+  const native = { bridge };
 
   const session = new PlaySession({
-    bridge,
+    native,
     application: "com.example.notes",
     emit: { observation: () => {}, prepared: () => {}, progress: () => {} },
   });
 
-  return { native: { bridge }, session };
+  return { native, session };
 };
 
-test("a session is found by the handle it is bound to, until it is unbound", () => {
+test("a session is found by the handle it opened, until it is disposed", () => {
   const { native, session } = open();
-  const unbind = bindSession(native, session);
 
-  expect(getSession(native)).toBe(session);
+  expect(PlaySession.of(native)).toBe(session);
 
-  unbind();
+  session.dispose();
 
-  expect(() => getSession(native)).toThrow(BeaconError);
+  expect(() => PlaySession.of(native)).toThrow(BeaconError);
 });
 
-test("a handle no session owns is a provider that is not open", () => {
-  const { native } = open();
+test("a handle no session opened is a provider that is not open", () => {
+  const { bridge } = fakeBridge();
 
-  expect(() => getSession(native)).toThrow(
+  expect(() => PlaySession.of({ bridge })).toThrow(
     expect.objectContaining({ code: "DRIVER_FAILED" }),
   );
 });

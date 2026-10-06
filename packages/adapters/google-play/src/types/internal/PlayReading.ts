@@ -1,12 +1,10 @@
-import type { ObservationDraft, Release } from "@priemskiyyy/beacon";
+import type { ObservationDraft, PreparedDraft } from "@priemskiyyy/beacon";
 
-import type { PlayInstallStatus } from "src/types/PlayInstallStatus";
 import type { PlayOffer } from "src/types/PlayOffer";
+import type { PlayPrepared } from "src/types/PlayPrepared";
 
-/** What a query of Play said: the observation it stands for and, when it named a release, that release with where the install stands. */
+/** What a query of Play says: the observation it stands for, and the download it found finished, or `null` when it says nothing of one. */
 export type PlayReading = {
   observation: ObservationDraft<PlayOffer>;
-} & (
-  | { release: null; installStatus: null }
-  | { release: Release; installStatus: PlayInstallStatus }
-);
+  prepared: PreparedDraft<PlayPrepared> | null;
+};

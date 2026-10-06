@@ -2,7 +2,7 @@ import { createUpdateMechanism } from "@priemskiyyy/beacon";
 import type { ProviderResult } from "@priemskiyyy/beacon";
 
 import type { AppStoreHandoffOptions } from "src/types/AppStoreHandoffOptions";
-import type { StoreHandoffReceipt } from "src/types/StoreHandoffReceipt";
+import type { AppStoreHandoffReceipt } from "src/types/AppStoreHandoffReceipt";
 import { assertAppId } from "src/utils/assertAppId";
 import { STORE_URL } from "src/utils/constants/lookup";
 
@@ -34,12 +34,12 @@ export const appStoreHandoff = ({ appId, linking }: AppStoreHandoffOptions) => {
         binding: "store-destination",
         run: async ({
           native,
-        }): Promise<ProviderResult<StoreHandoffReceipt>> => {
+        }): Promise<ProviderResult<AppStoreHandoffReceipt>> => {
           await native.linking.openURL(url);
 
           return {
             status: "accepted",
-            receipt: { kind: "store-handoff-accepted" },
+            receipt: { kind: "store-handoff-requested" },
           };
         },
       },

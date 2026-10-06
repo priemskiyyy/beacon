@@ -12,4 +12,4 @@ export type { AppStoreLookupOptions } from "src/types/AppStoreLookupOptions";
 export type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";
 export type { AppStoreMetadata } from "src/types/AppStoreMetadata";
 export type { LinkingLike } from "src/types/LinkingLike";
-export type { StoreHandoffReceipt } from "src/types/StoreHandoffReceipt";
+export type { AppStoreHandoffReceipt } from "src/types/AppStoreHandoffReceipt";

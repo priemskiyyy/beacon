@@ -17,7 +17,7 @@ import type { HttpFetchContext } from "src/types/HttpFetchContext";
  * });
  * ```
  */
-export type HttpAdapterOptions<TDocument> = {
+export type HttpOptions<TDocument> = {
   name?: string;
   fetch: (
     context: HttpFetchContext,

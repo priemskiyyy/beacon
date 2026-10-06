@@ -74,8 +74,8 @@ test("a valid manifest is a typed document, the evidence to judge it by, and not
           identity: {
             status: "known",
             authority: "com.example.notes",
-            domain: "web-artifact",
-            value: "ios-build-9",
+            domain: "ios-build",
+            value: "412",
           },
           order: "2.5.0",
         },
@@ -235,7 +235,7 @@ describe("the order of a candidate is the kind its route declared", () => {
     parseStandardManifest({
       text: withRoutes(buildWebRoute(), {
         kind: "candidate",
-        release: { ...buildRelease("ios-build-9"), order: value },
+        release: { ...buildRelease("412", "ios-build"), order: value },
       }),
       scope: SCOPE,
       routes: { web: { kind: "target" }, binary: { kind: "candidate", order } },

@@ -125,7 +125,7 @@ test("STORE-05 opening the store with the offer is accepted as a handoff, and in
   ).resolves.toEqual({
     status: "accepted",
     operation: { id: 1 },
-    receipt: { kind: "store-handoff-accepted" },
+    receipt: { kind: "store-handoff-requested" },
   });
   expect(link.opened).toEqual([`https://apps.apple.com/app/id${APP_ID}`]);
   expect(binary.state.get().operation).toEqual({ state: "idle" });

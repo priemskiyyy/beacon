@@ -1,6 +1,6 @@
 export { http } from "src/http";
 
-export type { HttpAdapterOptions } from "src/types/HttpAdapterOptions";
+export type { HttpOptions } from "src/types/HttpOptions";
 export type { HttpAnswer } from "src/types/HttpAnswer";
 export type { HttpFetchContext } from "src/types/HttpFetchContext";
 export type { ManifestLimits } from "src/types/ManifestLimits";

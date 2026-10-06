@@ -5,7 +5,7 @@ import type {
   SourceRead,
 } from "@priemskiyyy/beacon";
 
-import type { HttpAdapterOptions } from "src/types/HttpAdapterOptions";
+import type { HttpOptions } from "src/types/HttpOptions";
 import { toSourceRead } from "src/utils/toSourceRead";
 
 /**
@@ -29,7 +29,7 @@ import { toSourceRead } from "src/utils/toSourceRead";
 export const http = <TDocument>({
   name = "http",
   fetch: fetchAnswer,
-}: HttpAdapterOptions<TDocument>): ReleaseSource<TDocument> => {
+}: HttpOptions<TDocument>): ReleaseSource<TDocument> => {
   // The last answer accepted and the scope it speaks for. The scope is matched by identity, since Beacon hands over the same frozen scope for as long as it is in force: a copy is another scope and finds nothing held, which costs one unconditional read and never shares an account's answer.
   let memory: {
     scope: ReleaseScope;

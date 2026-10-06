@@ -26,11 +26,15 @@ const inert = createUpdateMechanism({
   commands: {},
 });
 
-const running = (value: string, label: string): RunningRelease => ({
+const running = (
+  value: string,
+  label: string,
+  domain = "web-artifact",
+): RunningRelease => ({
   identity: {
     status: "known",
     authority: "com.example.notes",
-    domain: "web-artifact",
+    domain,
     value,
   },
   label,
@@ -93,7 +97,7 @@ const create = () => {
     running: {
       boot: { id: "boot-1" },
       web: () => running("web-build-c", "Build web-build-c"),
-      native: () => running("ios-build-8", "2.4.0"),
+      native: () => running("411", "2.4.0", "ios-build"),
     },
     routes: { web, binary },
     policy,

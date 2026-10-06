@@ -5,7 +5,7 @@
  *
  * @example
  * ```ts
- * const receipt: StoreHandoffReceipt = { kind: "store-handoff-accepted" };
+ * const receipt: AppStoreHandoffReceipt = { kind: "store-handoff-requested" };
  * ```
  */
-export type StoreHandoffReceipt = { kind: "store-handoff-accepted" };
+export type AppStoreHandoffReceipt = { kind: "store-handoff-requested" };

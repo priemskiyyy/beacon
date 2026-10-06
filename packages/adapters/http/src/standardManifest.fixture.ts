@@ -12,11 +12,14 @@ export const NOW = Date.parse("2026-09-27T10:05:00Z");
 
 export type JsonObject = Record<string, unknown>;
 
-export const buildRelease = (value: string): JsonObject => ({
+export const buildRelease = (
+  value: string,
+  domain = "web-artifact",
+): JsonObject => ({
   identity: {
     status: "known",
     authority: "com.example.notes",
-    domain: "web-artifact",
+    domain,
     value,
   },
 });
@@ -33,7 +36,7 @@ export const buildWebRoute = (): JsonObject => ({
 
 export const buildBinaryRoute = (): JsonObject => ({
   kind: "candidate",
-  release: { ...buildRelease("ios-build-9"), order: "2.5.0" },
+  release: { ...buildRelease("412", "ios-build"), order: "2.5.0" },
 });
 
 export const buildSupport = (): JsonObject => ({

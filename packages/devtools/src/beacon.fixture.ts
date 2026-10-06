@@ -165,10 +165,10 @@ export const createLabBeacon = ({
   const held: HeldReload[] = [];
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: createUpdateMechanism({
       name: "held-reload",
+      subject: "web",
       open: () => ({ native: {} }),
       commands: {
         reload: {
@@ -188,12 +188,12 @@ export const createLabBeacon = ({
   });
 
   const binary = newerRoute({
-    subject: "native",
     source: mock.source.select((manifest) => manifest.binary),
     version: integer(),
     current: (release) => Number(release?.raw["build"] ?? Number.NaN),
     mechanism: createUpdateMechanism({
       name: "store",
+      subject: "native",
       open: () => ({ native: {} }),
       commands: {
         prefetch: {

@@ -25,7 +25,7 @@ export const withoutProps = <BeaconDevtools />;
 export const withProps = <BeaconDevtools initialIsOpen maxEvents={500} />;
 
 export const insideTheProvider = (
-  <BeaconProvider beacon={beacon} start>
+  <BeaconProvider beacon={beacon}>
     <BeaconDevtools initialIsOpen />
   </BeaconProvider>
 );

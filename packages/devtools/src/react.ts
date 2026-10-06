@@ -10,11 +10,11 @@ export type { BeaconDevtoolsProps } from "src/types/BeaconDevtoolsProps";
 /**
  * Mounts the inspector for the nearest `BeaconProvider` and follows its
  * Beacon. It renders an empty host element on the server, starts nothing, and
- * removes the inspector when it unmounts.
+ * removes the inspector when it unmounts. It is for the web: it needs a DOM.
  *
  * @example
  * ```tsx
- * <BeaconProvider beacon={beacon} start>
+ * <BeaconProvider beacon={beacon}>
  *   <Application />
  *   {import.meta.env.DEV ? <BeaconDevtools /> : null}
  * </BeaconProvider>

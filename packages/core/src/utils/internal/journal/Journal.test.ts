@@ -11,6 +11,8 @@ import { buildIntent, createMemoryStorage } from "src/utils/journal.fixture";
 const DRAFT: IntentDraft = buildIntent();
 
 test("a hydration that fails leaves the queue working for what is queued behind it", async () => {
+  const failure = new Error("The running facts could not be read.");
+
   const journal = new Journal({
     options: {
       mode: "required",
@@ -19,15 +21,15 @@ test("a hydration that fails leaves the queue working for what is queued behind 
       retention: 86_400_000,
     },
     getScope: () => SCOPE,
+    getRunning: () => Promise.reject(failure),
     clock: createTestClock({ now: 1_000 }),
-    listeners: new Listeners(),
+    listeners: new Listeners(() => {}),
     record: () => {},
   });
 
   const session = { id: 1, scope: new ResourceScope(() => {}) };
-  const failure = new Error("The running facts could not be read.");
 
-  const hydrating = journal.hydrate(session, () => Promise.reject(failure));
+  const hydrating = journal.hydrate(session);
   const writing = journal.write(DRAFT);
 
   await expect(hydrating).rejects.toBe(failure);

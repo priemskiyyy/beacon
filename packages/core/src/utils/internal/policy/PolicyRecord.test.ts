@@ -102,7 +102,7 @@ const createRecord = (
 
   const record = new PolicyRecord({
     policy,
-    listeners: new Listeners(),
+    listeners: new Listeners(() => {}),
     getRoute,
     onFailure: (error) => failures.push(error),
     now: () => 0,

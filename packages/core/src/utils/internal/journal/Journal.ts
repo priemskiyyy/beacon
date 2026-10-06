@@ -25,11 +25,6 @@ import { serializeJournal } from "src/utils/internal/journal/serializeJournal";
 import { commitChange } from "src/utils/internal/observable/commitChange";
 import { ValueStore } from "src/utils/internal/observable/ValueStore";
 
-type Opened = {
-  session: Session;
-  getRunning: () => Promise<RunningApplication>;
-};
-
 /**
  * Owns the transition journal: the intents written before a command replaces
  * the realm, what a later boot says about them, and the readiness checkpoints
@@ -45,7 +40,6 @@ export class Journal {
   #transitions: StoredTransition[] = [];
   #queue: Promise<void> = Promise.resolve();
   #hydrated = false;
-  #opened: Opened | null = null;
 
   state: ObservableValue<TransitionState>;
 
@@ -66,13 +60,8 @@ export class Journal {
   }
 
   /** Reads the record once, and reconciles every intent of an earlier boot against what runs now. */
-  hydrate = (
-    session: Session,
-    getRunning: () => Promise<RunningApplication>,
-  ) => {
-    this.#opened = { session, getRunning };
-
-    return this.#enqueue(async (claim) => {
+  hydrate = (session: Session) =>
+    this.#enqueue(async (claim) => {
       const { options } = this.#config;
 
       if (options === undefined || this.#hydrated) {
@@ -80,7 +69,7 @@ export class Journal {
       }
 
       const read = await this.#read(options, claim.key);
-      const running = await getRunning();
+      const running = await this.#config.getRunning(session);
 
       // A read that arrives after its session or its scope ended describes nothing that is still true.
       if (!session.scope.isActive() || claim.generation !== this.#generation) {
@@ -90,7 +79,6 @@ export class Journal {
       this.#hydrated = read !== undefined;
       await this.#reconcile(options, read, running, claim.key);
     });
-  };
 
   /** Persists an intent before its command is dispatched, and answers whether the command may go on. */
   write = (draft: IntentDraft): Promise<JournalWrite> =>
@@ -197,15 +185,6 @@ export class Journal {
       journal: this.#config.options === undefined ? "off" : "reading",
       dropped: 0,
     });
-
-    const opened = this.#opened;
-
-    // A listener may have opened a session while the scope was being replaced, and its read was for the scope that ended.
-    if (opened === null || !opened.session.scope.isActive()) {
-      return;
-    }
-
-    this.hydrate(opened.session, opened.getRunning);
   };
 
   close = () => {

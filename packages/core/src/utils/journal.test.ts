@@ -171,6 +171,8 @@ test("an intent names what ran as it was known: an unnamed build as unknown, and
   const first = createJournaled(unnamed, "required", { build: null });
 
   first.beacon.start();
+  // A command written before the running facts are read names nothing as running.
+  await settle();
   await first.beacon.route("web").refresh();
 
   expect(readRecord(unnamed)[0]?.intent).toMatchObject({
@@ -182,6 +184,7 @@ test("an intent names what ran as it was known: an unnamed build as unknown, and
   const second = createJournaled(unread, "required", { failRead: true });
 
   second.beacon.start();
+  await settle();
   await second.beacon.route("web").refresh();
 
   expect(readRecord(unread)[0]?.intent).toMatchObject({

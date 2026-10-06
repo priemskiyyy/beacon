@@ -5,8 +5,7 @@ import type { RouteEntry } from "src/types/internal/RouteEntry";
 
 /**
  * One command holding its route: what it was called with, so an identical
- * call can join it, the reservations it holds, and whether it is still
- * running or was left unresolved because its outcome was never confirmed.
+ * call can join it, the reservations it holds, and how far it got.
  */
 export type CommandOperation = {
   id: number;
@@ -16,7 +15,8 @@ export type CommandOperation = {
   parameters: CommandParameters;
   disruptive: boolean;
   replacesRealm: boolean;
-  phase: "running" | "unresolved";
+  /** `running` until the provider is asked, `dispatched` while it answers, `unresolved` when its outcome was never confirmed. */
+  phase: "running" | "dispatched" | "unresolved";
   lease: Lease | null;
   outcome: Promise<CommandResult>;
 };

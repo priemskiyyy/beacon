@@ -240,6 +240,7 @@ export class Beacon<
     this.#journal = new Journal({
       options: journalOptions,
       getScope: () => this.#scope,
+      getRunning: (session) => this.#getSettledRunning(session),
       clock,
       listeners: createListeners(),
       record: this.#diagnostics.record,
@@ -272,7 +273,7 @@ export class Beacon<
           return;
         }
 
-        this.#journal.hydrate(session, () => this.#getSettledRunning(session));
+        this.#journal.hydrate(session);
       },
       onDispose: () => {
         this.#running.close();

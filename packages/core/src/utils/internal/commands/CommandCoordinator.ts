@@ -126,10 +126,10 @@ export class CommandCoordinator {
   /** The name of a route whose operation is running or unresolved, or `undefined` when none is. */
   findBusy = () => this.#operations.keys().next().value;
 
-  /** Releases every reservation still held, as the Beacon ends. The operations stay, so a call that is still under way ends as it does when a session stops. */
+  /** Ends every call still under way as a session that stops does, while the routes still take the state it leaves: what was asked of the provider is indeterminate, and the rest is released. */
   close = () => {
     for (const operation of [...this.#operations.values()]) {
-      this.#releaseLease(operation);
+      this.#end(operation);
     }
   };
 
@@ -501,6 +501,8 @@ export class CommandCoordinator {
     { resolution, native }: Extract<Verdict, { status: "ready" }>,
     controller: AbortController,
   ): Promise<CommandResult> {
+    operation.phase = "dispatched";
+
     const dispatched = this.#call(() =>
       resolution.invoke({
         native,
@@ -624,6 +626,16 @@ export class CommandCoordinator {
     }
 
     this.#publish(entry, IDLE_OPERATION);
+  }
+
+  #end(operation: CommandOperation) {
+    if (operation.phase === "dispatched") {
+      this.#hold(operation, ABORTED_AFTER_DISPATCH);
+    } else {
+      this.#release(operation);
+    }
+
+    this.#releaseLease(operation);
   }
 
   #releaseLease(operation: CommandOperation) {

@@ -41,12 +41,13 @@ const binary = newerRoute({
 
 ## What it reports
 
-| Lookup                       | Route observation                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------- |
-| a newer marketing version    | `available`, with the release date as advisory metadata                               |
-| the same or an older version | `none`                                                                                |
-| no entry                     | `none`, detail `no-match`: nothing matched in that storefront only                    |
-| no `shortVersion` running    | `inconclusive`: nothing claims a newer version without knowing the order of what runs |
+| Lookup                          | Route observation                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| a newer marketing version       | `available`, with the release date as advisory metadata                               |
+| the same or an older version    | `none`                                                                                |
+| no entry                        | `none`, detail `no-match`: nothing matched in that storefront only                    |
+| a scope that is not `app-store` | `none`, detail `other-distribution`, with no request                                  |
+| no `shortVersion` running       | `inconclusive`: nothing claims a newer version without knowing the order of what runs |
 
 The running native release keeps `CFBundleShortVersionString` as `raw.shortVersion` and the build number as a separate fact; `appleMarketingVersion` reads the first. A marketing version can never satisfy a build-level minimum.
 
@@ -54,4 +55,4 @@ The running native release keeps `CFBundleShortVersionString` as `raw.shortVersi
 
 `openStore` takes an offer or none, since remediation can send a user to the store without one. It opens `https://apps.apple.com/app/id<appId>`, built from your configured id alone and never from a manifest. A resolved call means only that the OS accepted the request: the user can decline or never return, and the route settles as soon as it is accepted, without waiting for the app to come back.
 
-TestFlight, enterprise and development builds are not App Store distributions: configure the route only where it applies.
+TestFlight, enterprise and development builds are not App Store distributions. The distribution is your configuration: a lookup read for a scope whose `distribution` is not `app-store` makes no request and has no release to offer, and the route is yours to leave out where it does not apply. A required native update with no usable route is a support state to handle, not a reason to redirect to the store again and again.

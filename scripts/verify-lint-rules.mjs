@@ -1,0 +1,203 @@
+import assert from "node:assert/strict";
+import { ESLint } from "eslint";
+
+const eslint = new ESLint();
+
+const CORE = "packages/core/src/utils/lint-probe.ts";
+const CLOCK = "packages/core/src/utils/internal/clock/createSystemClock.ts";
+const MOCK = "packages/core/src/mock/lint-probe.ts";
+const ADAPTER = "packages/adapters/http/src/lint-probe.ts";
+const NATIVE_ADAPTER = "packages/adapters/expo/src/lint-probe.ts";
+const REACT = "packages/react/src/lint-probe.ts";
+const TEST = "packages/core/src/utils/lint-probe.test.ts";
+
+const syntax = [
+  ['import { value } from "./value";', "no-restricted-syntax"],
+  ['import type { Value } from "../types";', "no-restricted-syntax"],
+  ['const value = import("./value");', "no-restricted-syntax"],
+  ['type Value = import("../value").Value;', "no-restricted-syntax"],
+  [
+    "const value = 1 as number;",
+    "@typescript-eslint/consistent-type-assertions",
+  ],
+  ["const value = [1] as const;", "no-restricted-syntax"],
+  [
+    "// eslint-disable-next-line no-restricted-syntax\nconst value = [1] as const;",
+    "no-restricted-syntax",
+  ],
+  ["/* eslint-disable */\nconst value = [1] as const;", "no-restricted-syntax"],
+  ["const value = <number>1;", "no-restricted-syntax"],
+  ["const value: string | null = null; value!;", "no-restricted-syntax"],
+  ["enum State { Ready }", "no-restricted-syntax"],
+  ["switch (1) { default: break; }", "no-restricted-syntax"],
+  ["void Promise.resolve();", "no-restricted-syntax"],
+  ["let value; value ??= 1;", "no-restricted-syntax"],
+  ["let value = 0; value ||= 1;", "no-restricted-syntax"],
+  ["let value = 0; value &&= 1;", "no-restricted-syntax"],
+  ["type Value = { readonly key: string };", "no-restricted-syntax"],
+  ["type Value = { readonly [key: string]: string };", "no-restricted-syntax"],
+  ["class Value { readonly key = 1; }", "no-restricted-syntax"],
+  [
+    "class Value { constructor(readonly key: string) {} }",
+    "no-restricted-syntax",
+  ],
+  [
+    "type Value<T> = { readonly [K in keyof T]: T[K] };",
+    "no-restricted-syntax",
+  ],
+  ["type Value = readonly string[];", "no-restricted-syntax"],
+  ["type Value = Readonly<{ key: string }>;", "no-restricted-syntax"],
+  ["type Value = ReadonlyArray<string>;", "no-restricted-syntax"],
+  ['export * from "src/value";', "no-restricted-syntax"],
+  [
+    "declare const signal: { throwIfAborted: () => void }; signal.throwIfAborted();",
+    "no-restricted-syntax",
+  ],
+  [
+    "declare const source: { removeAllListeners: () => void }; source.removeAllListeners();",
+    "no-restricted-syntax",
+  ],
+  [
+    "declare const sdk: { configure: (options: object) => void }; sdk.configure({});",
+    "no-restricted-syntax",
+  ],
+  [
+    "interface Value { key: string }",
+    "@typescript-eslint/consistent-type-definitions",
+  ],
+  ["const value: any = 1;", "@typescript-eslint/no-explicit-any"],
+  [
+    'import { Value } from "src/value";\n\ntype Copy = Value;',
+    "@typescript-eslint/consistent-type-imports",
+  ],
+  ["if (true) console.log(1);", "curly"],
+  [
+    "function value(flag) { if (flag) { return 1; } else { return 2; } }",
+    "no-else-return",
+  ],
+  [
+    "const first = 1;\nif (first) {\n  first;\n}",
+    "padding-line-between-statements",
+  ],
+  [
+    "function value() {\n  const first = 1;\n  return first;\n}",
+    "padding-line-between-statements",
+  ],
+];
+
+// The core is platform neutral and keeps time only through its clock; an
+// adapter never imports its provider SDK at runtime.
+const boundaries = [
+  ['import { useState } from "react";', "no-restricted-imports", CORE],
+  ['import { useState } from "react";', "no-restricted-imports", ADAPTER],
+  ['import * as Updates from "expo-updates";', "no-restricted-imports", CORE],
+  [
+    'import * as Updates from "expo-updates";',
+    "no-restricted-imports",
+    NATIVE_ADAPTER,
+  ],
+  [
+    'import { Workbox } from "workbox-window";',
+    "no-restricted-imports",
+    ADAPTER,
+  ],
+  ['import { Platform } from "react-native";', "no-restricted-imports", REACT],
+  ['import { expect } from "vitest";', "no-restricted-imports", MOCK],
+  [
+    'import { render } from "@testing-library/react";',
+    "no-restricted-imports",
+    CORE,
+  ],
+  ["setTimeout(() => {}, 0);", "no-restricted-globals", CORE],
+  ["setInterval(() => {}, 1_000);", "no-restricted-globals", MOCK],
+  ["setTimeout(() => {}, 0);", "no-restricted-globals", ADAPTER],
+  ["const view = window;", "no-restricted-globals", CORE],
+  ["const page = document;", "no-restricted-globals", CLOCK],
+  ["const agent = navigator;", "no-restricted-globals", MOCK],
+  ["const big = BigInt(1);", "no-restricted-globals", CORE],
+  ["const big = BigInt(1);", "no-restricted-globals", ADAPTER],
+  ["const copy = structuredClone({});", "no-restricted-globals", CORE],
+  ["const decoder = new TextDecoder();", "no-restricted-globals", ADAPTER],
+  ["const encoder = new TextEncoder();", "no-restricted-globals", CORE],
+  ["const time = Date.now();", "no-restricted-properties", CORE],
+  ["const time = performance.now();", "no-restricted-properties", CORE],
+  ["const time = Date.now();", "no-restricted-properties", ADAPTER],
+  [
+    'export { value } from "src/value";',
+    "no-restricted-syntax",
+    "packages/core/src/utils/index.ts",
+  ],
+  [
+    "function value() {\n  console.log(1);\n  return 1;\n}",
+    "padding-line-between-statements",
+    "scripts/lint-probe.mjs",
+  ],
+];
+
+const entryPoints = [
+  "packages/core/src/index.ts",
+  "packages/core/src/mock.ts",
+  "packages/core/src/testing.ts",
+  "packages/core/src/versions.ts",
+  "packages/adapters/http/src/index.ts",
+  "packages/react/src/index.ts",
+];
+
+const allowed = [
+  ['import { value } from "src/value";\n\nexport const copy = value;', CORE],
+  ...entryPoints.map((file) => ['export { value } from "src/value";', file]),
+  ["export const value = { key: 1 } satisfies Record<string, number>;", CORE],
+  ['import { expect } from "vitest";\n\nexpect(1).toBe(1);', TEST],
+  [
+    'import * as Updates from "expo-updates";\n\nexport const sdk = Updates;',
+    "packages/adapters/expo/src/expo.contracts.ts",
+  ],
+  [
+    'import { useState } from "react";\n\nexport const useValue = () => useState(0);',
+    REACT,
+  ],
+  [
+    'import { vi } from "vitest";\n\nexport const spy = vi.fn();',
+    "packages/adapters/http/src/fakeFetch.fixture.ts",
+  ],
+  ["export const view = globalThis.window;", ADAPTER],
+  [
+    "export const cancel = setTimeout(() => {}, 0);\n\nclearTimeout(cancel);",
+    CLOCK,
+  ],
+  ["export const time = Date.now() + performance.now();", CLOCK],
+  ["export const time = Date.now();", TEST],
+];
+
+const getRuleIds = async (code, filePath) => {
+  const [result] = await eslint.lintText(code, { filePath });
+
+  return result.messages.map(
+    (message) => message.ruleId ?? `parse error: ${message.message}`,
+  );
+};
+
+const probes = [...syntax, ...boundaries];
+
+for (const [code, rule, filePath = CORE] of probes) {
+  const ruleIds = await getRuleIds(code, filePath);
+
+  assert(
+    ruleIds.includes(rule),
+    `Missing lint rejection: ${rule} in ${filePath}: ${code}`,
+  );
+}
+
+for (const [code, filePath] of allowed) {
+  const ruleIds = await getRuleIds(code, filePath);
+
+  assert.deepEqual(
+    ruleIds,
+    [],
+    `Unexpected lint report ${ruleIds.join(", ")} in ${filePath}: ${code}`,
+  );
+}
+
+console.log(
+  `Verified ${syntax.length} syntax restrictions, ${boundaries.length} boundary rules and ${allowed.length} allowed forms.`,
+);

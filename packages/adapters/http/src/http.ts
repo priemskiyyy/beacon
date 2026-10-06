@@ -7,7 +7,6 @@ import {
   NOT_MODIFIED_WITHOUT_DOCUMENT,
   UNKNOWN_ANSWER,
 } from "src/utils/constants/errors";
-import { renewRead } from "src/utils/renewRead";
 import { toSourceRead } from "src/utils/toSourceRead";
 
 /**
@@ -73,7 +72,13 @@ export const http = <TDocument>({
         });
       }
 
-      const read = renewRead(held.read, answer.expiresAt);
+      // Without a new expiry the old one stays, so an answer is never fresher than the backend said.
+      const read = {
+        ...held.read,
+        ...(answer.expiresAt === undefined
+          ? {}
+          : { expiresAt: answer.expiresAt }),
+      };
 
       memory = { scope, validator: held.validator, read };
 

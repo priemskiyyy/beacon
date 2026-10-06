@@ -1,13 +1,14 @@
+import { BeaconError } from "@priemskiyyy/beacon";
+
 import type { HttpAnswer } from "src/types/HttpAnswer";
 import type { ReadStandardManifestOptions } from "src/types/ReadStandardManifestOptions";
 import type { RouteDeclarations } from "src/types/RouteDeclarations";
 import type { StandardManifest } from "src/types/StandardManifest";
-import { REFUSED_STATUSES } from "src/utils/constants/statuses";
 import { DEFAULT_LIMITS } from "src/utils/constants/limits";
+import { REFUSED_STATUSES } from "src/utils/constants/statuses";
 import { invalidManifest } from "src/utils/invalidManifest";
 import { parseStandardManifest } from "src/utils/parseStandardManifest";
 import { readResponseText } from "src/utils/readResponseText";
-import { BeaconError } from "@priemskiyyy/beacon";
 
 const isJson = (contentType: string | null) => {
   const type = contentType?.split(";")[0]?.trim().toLowerCase();

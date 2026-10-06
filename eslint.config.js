@@ -1,4 +1,5 @@
 import eslint from "@eslint/js";
+import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 const toRestrictions = (entries) =>
@@ -331,6 +332,12 @@ export default tseslint.config(
       "no-restricted-globals": ["error", ...hostTimers, ...portableGlobals],
       "no-restricted-syntax": ["error", ...packageSyntax, ...clockReads],
     },
+  },
+  {
+    // React rules only where React runs.
+    files: ["packages/react/**/*.{ts,tsx}"],
+    plugins: { "react-hooks": reactHooks },
+    rules: reactHooks.configs.recommended.rules,
   },
   {
     files: ["**/*.{js,mjs}"],

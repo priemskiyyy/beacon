@@ -1,0 +1,52 @@
+# @priemskiyyy/beacon-browser
+
+Reloading the browser document as a [Beacon](../../core) update mechanism. It requests a navigation and claims nothing more: the next document may be the same build, another one, or never arrive, and only the next boot can show what runs.
+
+## Installation
+
+```sh
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-browser
+```
+
+## Create a route
+
+```ts
+import { Beacon, targetRoute } from "@priemskiyyy/beacon";
+import { browserReload } from "@priemskiyyy/beacon-browser";
+
+const web = targetRoute({
+  subject: "web",
+  source: manifest.select((document) => document.web),
+  mechanism: browserReload(),
+});
+
+const beacon = new Beacon({
+  scope,
+  running: { boot: { id: BOOT_ID }, web: readWebRelease },
+  routes: { web },
+});
+```
+
+The route gets one method, `requestReload`, which needs the offer the user was shown:
+
+```ts
+const { observation } = beacon.route("web").state.get();
+
+if (observation.status === "available") {
+  const outcome = await beacon
+    .route("web")
+    .requestReload({ offer: observation.offer.ref });
+}
+```
+
+| Declared     | Value                  | Why                                                                                    |
+| ------------ | ---------------------- | -------------------------------------------------------------------------------------- |
+| `impacts`    | `document-replacement` | participants that guard unsaved work are asked before the navigation                   |
+| `binding`    | `unpinned-navigation`  | the next navigation receives whatever is deployed, which may not be the offer          |
+| receipt kind | `reload-requested`     | the request was made; the running build is unchanged until a later boot says otherwise |
+
+An accepted reload leaves the route unresolved, because the old document may stay alive: call `route.acknowledge()` once the application decides to continue in this runtime.
+
+## Options
+
+`browserReload({ target })` reloads the document of `target`, the global `window` by default. Without either, such as in a server render, opening does nothing, `native.window` is `null` and `requestReload` settles as `unsupported`.

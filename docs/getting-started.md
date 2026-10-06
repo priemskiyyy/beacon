@@ -186,7 +186,7 @@ export const App = () => {
 };
 ```
 
-The provider starts the session in a layout effect, before the `useEffect` of any child, so the first check finds it running. `check` never rejects. Overlapping checks join one read, so two signals at once cost one request.
+The provider starts the session in a layout effect, before the `useEffect` of any child, so the first check finds it running. `check` never rejects. Overlapping checks join one read, so two signals at once cost one request. [Triggers](triggers.md) is the package that makes these moments, with a reconnect and an interval besides, for the web as well as React Native.
 
 ### 5. Show the update
 
@@ -233,7 +233,7 @@ Nothing here says which build the next document runs. The reload binds to no bui
 ## React Native and Expo
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo @priemskiyyy/beacon-native expo-updates expo-application
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo @priemskiyyy/beacon-native @priemskiyyy/beacon-triggers expo-updates expo-application
 ```
 
 Expo Updates decides eligibility, fetches assets and picks what starts next. The adapter maps what it says. The module goes in as an argument, so the adapter imports no SDK.
@@ -270,10 +270,11 @@ export const beacon = new Beacon({
 
 `expoBundle` reads the update that launched. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`. `expoApplication` reads the installed binary, its version code on Android or its build number on iOS, in the words the store adapters and the journal compare in, and a binary of another application, such as Expo Go, is unknown and never your build.
 
-Start the session at bootstrap, check when the app returns from the background, and apply an update in two commands: `download` prepares it and `reload` restarts the runtime with it.
+Start the session at bootstrap, check when the app starts and when it returns from the background, and apply an update in two commands: `download` prepares it and `reload` restarts the runtime with it.
 
 ```ts
 // src/updates.ts
+import { checkOn, foreground, startup } from "@priemskiyyy/beacon-triggers";
 import { AppState } from "react-native";
 
 import { beacon } from "src/beacon.native";
@@ -281,28 +282,13 @@ import { beacon } from "src/beacon.native";
 export const startUpdates = () => {
   const stop = beacon.start();
 
-  // Only a trip through the background is a return: on iOS a system dialog is inactive and back to active.
-  let away = AppState.currentState === "background";
-
-  const subscription = AppState.addEventListener("change", (state) => {
-    if (state === "background") {
-      away = true;
-
-      return;
-    }
-
-    if (state !== "active" || !away) {
-      return;
-    }
-
-    away = false;
-    beacon.check({ reason: "foreground" });
+  // Only a trip through the background is a return: on iOS a system dialog is inactive and back to active, and `foreground` knows it.
+  const stopChecking = checkOn(beacon, {
+    triggers: [startup(), foreground({ appState: AppState })],
   });
 
-  beacon.check({ reason: "startup" });
-
   return () => {
-    subscription.remove();
+    stopChecking();
     stop();
   };
 };

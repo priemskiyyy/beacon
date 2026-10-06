@@ -42,6 +42,7 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 | `@priemskiyyy/beacon-app-store`              | App Store metadata and store handoff                        |
 | `@priemskiyyy/beacon-code-push`              | The React Native CodePush family, over the fork you use     |
 | `@priemskiyyy/beacon-native`                 | The installed native build as a running fact                |
+| `@priemskiyyy/beacon-triggers`               | Checks on startup, a return, a reconnect and an interval    |
 | `@priemskiyyy/beacon-firebase-remote-config` | Firebase Remote Config as a source, such as a minimum build |
 | `@priemskiyyy/beacon-react`                  | A provider and hooks, typed by the Beacon you register      |
 | `@priemskiyyy/beacon-vue`                    | A provider and composables for Vue, typed the same way      |
@@ -122,7 +123,7 @@ if (observation.status === "available") {
 
 ## Where Beacon stops
 
-It is not an installer, a cache, a scheduler or a policy engine. It never claims more than a provider gave, and it never turns a missing fact into an old version. [Limits](limits.md) lists what it does not guarantee.
+It is not an installer, a cache, a scheduler or a policy engine. It has no timer and subscribes to nothing until you ask, and [triggers](triggers.md) is the optional package that checks on the moments you name. It never claims more than a provider gave, and it never turns a missing fact into an old version. [Limits](limits.md) lists what it does not guarantee.
 
 ## Where to go next
 
@@ -131,5 +132,5 @@ It is not an installer, a cache, a scheduler or a policy engine. It never claims
 - Guides: [routes](routes.md), [commands](commands.md), [support](support.md), [disruptions](disruptions.md), [journal](journal.md), [scopes](scopes.md) and [sessions](sessions.md).
 - Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [Google Play](google-play.md), [App Store](app-store.md), [CodePush](code-push.md), [native build](native.md), [Firebase Remote Config](firebase-remote-config.md) and [custom adapters](custom-adapters.md).
 - Bindings: [React](react.md), [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
-- [Recipes](recipes.md), [testing](testing.md) and [troubleshooting](troubleshooting.md).
+- [Triggers](triggers.md), [recipes](recipes.md), [testing](testing.md) and [troubleshooting](troubleshooting.md).
 - [API](api.md), [verification](verification.md), [limits](limits.md), [decisions](decisions.md) and [architecture](internals/architecture.md).

@@ -61,7 +61,7 @@ A route whose operation is running or unresolved blocks the replacement, since t
 
 ## Checking when the app returns
 
-Beacon has no timer of its own. To check when the app comes to the foreground, or now and then, call `beacon.check({ reason })` from your own signal: checks join a read already under way, so overlapping signals cost one request, and `reason` shows up in the diagnostics.
+Beacon has no timer of its own. To check when the app comes to the foreground, or now and then, call `beacon.check({ reason })` from your own signal: checks join a read already under way, so overlapping signals cost one request, and `reason` shows up in the diagnostics. [`@priemskiyyy/beacon-triggers`](../adapters/triggers) makes those calls for you, from startup, a return from the background, a reconnect, an interval or a push.
 
 ```ts
 pulse.on("foreground", async () => {

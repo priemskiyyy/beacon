@@ -88,6 +88,7 @@ export default defineConfig({
           { text: "Solid", link: "/solid" },
           { text: "Svelte", link: "/svelte" },
           { text: "Devtools", link: "/devtools" },
+          { text: "Triggers", link: "/triggers" },
           { text: "Recipes", link: "/recipes" },
           { text: "Testing", link: "/testing" },
           { text: "Troubleshooting", link: "/troubleshooting" },

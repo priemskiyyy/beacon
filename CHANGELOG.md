@@ -77,6 +77,11 @@
 - First release. `expoApplication({ application, platform, authority })` and `deviceInfo({ deviceInfo, platform, authority })` read the installed binary as the `native` running fact, from `expo-application` and from `react-native-device-info`: an Android build is its version code in the domain `android-version-code` and an iOS build its build number in `ios-build`, the words the Play adapter offers in and the App Store adapter reads (`raw.shortVersion`). A build the SDK did not give, which `react-native-device-info` answers as the text `unknown`, is an unknown identity with the reason `build-not-read` or `application-not-read`, never a build named null, and a binary of another application, such as Expo Go, is unknown as `another-application` and keeps none of its version numbers.
 - Requires `@priemskiyyy/beacon` 0.1. `expo-application` 57 and `react-native-device-info` 15 are optional peer dependencies.
 
+## @priemskiyyy/beacon-triggers 0.1.0 - Unreleased
+
+- First release. `checkOn(beacon, { triggers })` checks a Beacon on startup, a return from the background, a network that came back, an interval and a push, through one gate that shares reads, holds a burst to one start and backs off after a failure. React Native's `AppState` and NetInfo are taken as they are, a Pulse and a Reach condition are the other inputs, and nothing is subscribed before `checkOn`.
+- Requires `@priemskiyyy/beacon` 0.1.
+
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased
 
 - First release. `BeaconProvider` and the hooks `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useStatus`, `useObservable`, `useDisruption` and `useBeacon`, typed by the `Register`ed Beacon so a route is read by its name. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.

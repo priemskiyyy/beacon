@@ -197,49 +197,20 @@ export const SupportGate = ({ children }: { children: ReactNode }) => {
 
 ## Check on foreground and on an interval
 
-Beacon has no timer of its own. You call `check` from the signals your application already has, and checks that overlap join one read, so several signals at once cost one request. The `reason` only labels the diagnostics.
+Beacon has no timer of its own. [`@priemskiyyy/beacon-triggers`](triggers.md) calls `check` from the signals your application already has, and checks that overlap join one read, so several signals at once cost one request. The `reason` only labels the diagnostics.
 
-On the web:
-
-```ts
-// src/watchForUpdates.ts
-import { beacon } from "src/beacon";
-
-export const watchForUpdates = (interval: number) => {
-  const stop = beacon.start();
-
-  const handleVisibility = () => {
-    if (document.visibilityState === "visible") {
-      beacon.check({ reason: "foreground" });
-    }
-  };
-
-  const handleOnline = () => {
-    beacon.check({ reason: "reconnect" });
-  };
-
-  document.addEventListener("visibilitychange", handleVisibility);
-  addEventListener("online", handleOnline);
-
-  const timer = setInterval(() => {
-    beacon.check({ reason: "interval" });
-  }, interval);
-
-  beacon.check({ reason: "startup" });
-
-  return () => {
-    clearInterval(timer);
-    removeEventListener("online", handleOnline);
-    document.removeEventListener("visibilitychange", handleVisibility);
-    stop();
-  };
-};
-```
-
-In React Native, use `AppState`:
+In React Native, `AppState` and NetInfo go in as they are, and the package keeps the rule that only a trip through the background is a return:
 
 ```ts
 // src/watchNative.ts
+import {
+  checkOn,
+  foreground,
+  interval,
+  reconnect,
+  startup,
+} from "@priemskiyyy/beacon-triggers";
+import NetInfo from "@react-native-community/netinfo";
 import { AppState } from "react-native";
 
 import { native } from "src/native";
@@ -247,22 +218,72 @@ import { native } from "src/native";
 export const watchNative = () => {
   const stop = native.start();
 
-  const subscription = AppState.addEventListener("change", (state) => {
-    if (state === "active") {
-      native.check({ reason: "foreground" });
-    }
+  const stopChecking = checkOn(native, {
+    triggers: [
+      startup(),
+      foreground({ appState: AppState, minAway: 30_000 }),
+      reconnect({ netInfo: NetInfo }),
+      interval({ every: 30 * 60_000, jitter: 0.2 }),
+    ],
+    backoff: { first: 10_000, max: 15 * 60_000 },
   });
 
-  native.check({ reason: "startup" });
-
   return () => {
-    subscription.remove();
+    stopChecking();
     stop();
   };
 };
 ```
 
-Two habits keep this cheap. Pick an interval that matches how fast you deploy, and add jitter so a fleet does not check in step. Do not check faster than your authority's `expiresAt`: a check that returns the same revision is a renewal, and nothing more. A check on a timer is only as good as the runtime that runs it, and a backgrounded app or tab may run none, so keep the foreground check.
+On the web the sources are yours, and a trigger of your own is a few lines that keep the reason the core knows it by:
+
+```ts
+// src/watchForUpdates.ts
+import { checkOn, interval, startup } from "@priemskiyyy/beacon-triggers";
+import type { BeaconTrigger } from "@priemskiyyy/beacon-triggers";
+
+import { beacon } from "src/beacon";
+
+const visible: BeaconTrigger = (target) => {
+  const listener = () => {
+    const away = document.visibilityState !== "visible";
+
+    target.setAway(away);
+
+    if (!away) {
+      target.signal("foreground");
+    }
+  };
+
+  target.setAway(document.visibilityState !== "visible");
+  document.addEventListener("visibilitychange", listener);
+
+  return () => document.removeEventListener("visibilitychange", listener);
+};
+
+const online: BeaconTrigger = (target) => {
+  const listener = () => target.signal("reconnect");
+
+  addEventListener("online", listener);
+
+  return () => removeEventListener("online", listener);
+};
+
+export const watchForUpdates = (every: number) => {
+  const stop = beacon.start();
+
+  const stopChecking = checkOn(beacon, {
+    triggers: [startup(), visible, online, interval({ every, jitter: 0.2 })],
+  });
+
+  return () => {
+    stopChecking();
+    stop();
+  };
+};
+```
+
+Two habits keep this cheap. Pick an interval that matches how fast you deploy, with jitter so a fleet does not check in step. Do not check faster than your authority's `expiresAt`: `whileFresh: "skip"` drops a return or a tick while every route holds fresh evidence, and a check that returns the same revision is a renewal, and nothing more. A check on a timer is only as good as the runtime that runs it, and a backgrounded app or tab may run none, so keep the foreground check.
 
 ## Staged messaging per platform
 

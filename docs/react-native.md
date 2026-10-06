@@ -10,15 +10,16 @@ The same files run in [the Expo example](https://github.com/priemskiyyy/beacon/t
 
 ## What to install
 
-| You want                                       | Install                                                           |
-| ---------------------------------------------- | ----------------------------------------------------------------- |
-| Expo Updates as a route                        | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-expo`, `expo-updates` |
-| CodePush, through the fork you use             | `@priemskiyyy/beacon-code-push` and a CodePush fork               |
-| Play in-app updates, through a native bridge   | `@priemskiyyy/beacon-google-play`                                 |
-| The App Store page of your app and its version | `@priemskiyyy/beacon-app-store`                                   |
-| The installed binary as a running fact         | `@priemskiyyy/beacon-native`, with `expo-application`             |
-| A provider and hooks for your components       | `@priemskiyyy/beacon-react`, which needs React 19.2 or later      |
-| A stored journal                               | `expo-sqlite`, or the store you already use                       |
+| You want                                        | Install                                                                                  |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Expo Updates as a route                         | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-expo`, `expo-updates`                        |
+| CodePush, through the fork you use              | `@priemskiyyy/beacon-code-push` and a CodePush fork                                      |
+| Play in-app updates, through a native bridge    | `@priemskiyyy/beacon-google-play`                                                        |
+| The App Store page of your app and its version  | `@priemskiyyy/beacon-app-store`                                                          |
+| The installed binary as a running fact          | `@priemskiyyy/beacon-native`, with `expo-application`                                    |
+| Checks on start, on a return and on a reconnect | `@priemskiyyy/beacon-triggers`, with `@react-native-community/netinfo` for the reconnect |
+| A provider and hooks for your components        | `@priemskiyyy/beacon-react`, which needs React 19.2 or later                             |
+| A stored journal                                | `expo-sqlite`, or the store you already use                                              |
 
 React Native 0.86 and Expo SDK 57 ship React 19.2, which is the range `@priemskiyyy/beacon-react` asks for. It never imports `react-native`, so one binding serves the web and a device.
 
@@ -181,53 +182,58 @@ With Expo, `registerRootComponent(App)` in the entry file, or the default export
 
 Two things that happen on a device and not on the web:
 
-- **Strict Mode.** A development build runs effects twice. The provider starts a session, ends it and starts it again, and leaves one running. A check in your own effect runs twice and joins the same read.
+- **Strict Mode.** A development build runs effects twice. The provider starts a session, ends it and starts it again, and leaves one running. A `checkOn` in your own effect stops and starts again and leaves one set of listeners, and its first check joins the read already in flight.
 - **Fast Refresh.** Editing a screen re-renders it and leaves the provider alone. Editing `src/beacon.ts` makes a second Beacon, and the provider moves to it: it ends the old session, which releases the native `expo-updates` module, and starts the new one. So start only through the provider. A `beacon.start()` at the top of a module is never ended, and the second Beacon would fail to open the route with `DRIVER_FAILED`. Nothing of the first Beacon's state is carried over, which is development only.
 
 The hooks render the same in React Native as in `react-dom`: they read a Beacon and start nothing, and the package imports no DOM global when it loads. A selector that builds a new object needs an `isEqual`, as on the web ([React](react.md#selectors)).
 
 ## When to check
 
-Check when the app starts, and again each time it returns from the background. React Native's `AppState` says what state the app is in, and two facts decide how to read it:
+Check when the app starts, again each time it returns from the background, when the network comes back and now and then. [`@priemskiyyy/beacon-triggers`](triggers.md) does that, and it keeps the rule about React Native's `AppState` so your code does not. Two facts decide how to read it:
 
 - On iOS a system dialog, the control center or an incoming call takes the app from `active` to `inactive` and back. Only a trip through `background` is a return. React Native reports `background` when the app leaves, and `active` when it comes back.
 - On Android there is no `inactive`, and every pause of the activity is a `background`, including a permission dialog.
 
+```sh
+pnpm add @priemskiyyy/beacon-triggers @react-native-community/netinfo
+```
+
 ```ts
 // src/useUpdateChecks.ts
 import { useBeacon } from "@priemskiyyy/beacon-react";
+import {
+  checkOn,
+  foreground,
+  interval,
+  reconnect,
+  startup,
+} from "@priemskiyyy/beacon-triggers";
+import NetInfo from "@react-native-community/netinfo";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 
 export const useUpdateChecks = () => {
   const beacon = useBeacon();
 
-  useEffect(() => {
-    beacon.check({ reason: "startup" });
-
-    let away = AppState.currentState === "background";
-
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "background") {
-        away = true;
-
-        return;
-      }
-
-      if (state !== "active" || !away) {
-        return;
-      }
-
-      away = false;
-      beacon.check({ reason: "foreground" });
-    });
-
-    return () => subscription.remove();
-  }, [beacon]);
+  useEffect(
+    () =>
+      checkOn(beacon, {
+        triggers: [
+          startup(),
+          foreground({ appState: AppState, minAway: 30_000 }),
+          reconnect({ netInfo: NetInfo }),
+          interval({ every: 30 * 60_000, jitter: 0.2 }),
+        ],
+        backoff: { first: 10_000, max: 15 * 60_000 },
+      }),
+    [beacon],
+  );
 };
 ```
 
-A check joins a read already in flight, so a quick second return asks nothing more, but a source may still be asked again after it answers. Beacon has no scheduler: an Expo update server may rate limit, so keep your own minimum between checks if your users switch apps often.
+`checkOn` subscribes to nothing until it is called, and then only to the Beacon's status: each trigger subscribes to its own source while the session that the provider's `start` opened is open, and takes it back when it ends or when the effect's cleanup stops it. So the order of the provider's effect and this one does not matter. `foreground` listens to `AppState`'s `change` event, `reconnect` to NetInfo's state, and `interval` arms one timer that pauses while the app is in the background. NetInfo tells a new listener the state it knows at once, which is not a reconnect, so nothing is checked because of it.
+
+Several signals at once cost one read, signals inside `minInterval` (5 seconds) become one later start, and `backoff` holds the next check off after a failure, so an Expo update server that rate limits is not asked faster than you say. `minAway` skips a return after less than that many milliseconds. [Triggers](triggers.md) has the timing of each, what it does not do and what a device still has to show.
 
 ## What a reload keeps
 
@@ -292,6 +298,8 @@ Everything here is tested in process, and the packages were also run on the two 
 - `expo-updates` downloading, selecting and launching an update, and the next boot reading the journal.
 - `Updates.reloadAsync()` replacing the runtime, and what an `AppState` listener does as it goes.
 - `AppState` on a device: a system dialog taking iOS to `inactive` and back, and any pause taking Android to `background`. The check on return follows what React Native documents, not what a device was seen to send.
+- NetInfo on a device: the state it reports as soon as it is subscribed to, and across a real change of network, which `reconnect` reads as a reconnect only when it saw the network lost first.
+- Timers while the app is in the background: iOS suspending JavaScript, Android throttling it, and an `interval` that resumes at the return.
 - What `expo-application` gives in Expo Go, in a development build and in a release build, in particular that Expo Go answers with its own application id, and that `nativeBuildVersion` is the version code on Android and the build number on iOS for each flavor, and what `react-native-device-info` gives on a device.
 - The journal's storage under a kill during a write.
 - Play's flows through a real bridge, and the install events of a flexible update.

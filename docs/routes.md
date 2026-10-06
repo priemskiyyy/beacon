@@ -269,4 +269,4 @@ A selection can fail after the read was accepted, for example when a strategy th
 
 ## Check timers
 
-Beacon has no scheduler. Check from your own signals: startup, returning to the foreground, reconnecting, or an interval. See [recipes](recipes.md#check-on-foreground-and-on-an-interval).
+Beacon has no scheduler. Check from your own signals: startup, returning to the foreground, reconnecting, or an interval. [Triggers](triggers.md) does that for you, and [recipes](recipes.md#check-on-foreground-and-on-an-interval) shows the hand-written form.

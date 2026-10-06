@@ -923,6 +923,50 @@ test("a source read is given the clock the Beacon runs on, so a source reads no 
   expect(seen[0]?.clock).toBe(beacon.clock);
 });
 
+test("CORE-14 an observation that is inconclusive because nothing is running yet says whether the reader failed or has not answered", async () => {
+  const failing = createWebBeacon({
+    running: {
+      boot: { id: "boot-1" },
+      web: async () => {
+        throw new Error("The native module is not linked.");
+      },
+    },
+  });
+
+  await startAndCheck(failing);
+
+  expect(failing.beacon.running.get().web).toMatchObject({ state: "failed" });
+  expect(failing.beacon.route("web").state.get().observation).toMatchObject({
+    status: "inconclusive",
+    reason: "missing-current-identity",
+    detail: "running-failed",
+  });
+
+  const route = targetRoute({
+    source: createMockSource<Manifest>({ name: "manifest" }).source.select(
+      (manifest) => manifest.web,
+    ),
+    mechanism: createReloadMechanism().mechanism,
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { web: route },
+    { running: { web: () => buildWebRelease("web-build-b") } },
+  );
+
+  expect(beacon.running.get().web).toEqual({ state: "pending" });
+  expect(
+    route.select(
+      { web: target("web-build-a"), policy: { minimum: "1.0.0" } },
+      beacon.running.get(),
+    ),
+  ).toMatchObject({
+    status: "inconclusive",
+    reason: "missing-current-identity",
+    detail: "running-pending",
+  });
+});
+
 test("CORE-14 an observation that is inconclusive names why: the reason the running reader gave, and then the identities that could not be compared", async () => {
   const state: { running: RunningRelease } = {
     running: {

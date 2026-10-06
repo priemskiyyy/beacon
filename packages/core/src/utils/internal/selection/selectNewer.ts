@@ -29,6 +29,8 @@ type SelectNewerInput<
 > = {
   decision: { kind: "candidate"; release: TRelease } | NoneDecision;
   running: RunningRelease | null;
+  /** The detail of an inconclusive selection when `running` is not there, which says whether the reader failed or has not answered. */
+  missing?: string;
   /** The order of what is running, or `null` when its reader cannot say. */
   currentOrder: TInput | null;
   version: VersionStrategy<TParsed, TInput>;
@@ -42,6 +44,7 @@ export const selectNewer = <
 >({
   decision,
   running,
+  missing = "running-not-known",
   currentOrder,
   version,
 }: SelectNewerInput<TRelease, TParsed, TInput>): ReleaseSelection<TRelease> => {
@@ -53,6 +56,10 @@ export const selectNewer = <
 
   if (release.compatibility?.status === "incompatible") {
     return noOffer("incompatible", release);
+  }
+
+  if (currentOrder === null && running === null) {
+    return inconclusive("missing-current-order", release, missing);
   }
 
   if (currentOrder === null) {

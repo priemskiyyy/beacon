@@ -71,6 +71,22 @@ test("an unknown current order is inconclusive, never version zero", () => {
   });
 });
 
+test("an order nobody can read from a running release that is not there says whether it is pending or failed", () => {
+  expect(
+    selectNewer({
+      decision: candidate("2.4.0"),
+      running: null,
+      missing: "running-failed",
+      currentOrder: null,
+      version: semver(),
+    }),
+  ).toMatchObject({
+    status: "inconclusive",
+    reason: "missing-current-order",
+    detail: "running-failed",
+  });
+});
+
 test("VER-10 a comparator that says incomparable makes the selection inconclusive", () => {
   const version = custom({
     name: "trains",

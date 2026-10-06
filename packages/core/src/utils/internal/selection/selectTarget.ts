@@ -11,12 +11,15 @@ import { noOffer } from "src/utils/internal/selection/noOffer";
 type SelectTargetInput<TRelease extends ReleaseFacts> = {
   decision: { kind: "target"; release: TRelease } | NoneDecision;
   running: RunningRelease | null;
+  /** The detail of an inconclusive selection when `running` is not there, which says whether the reader failed or has not answered. */
+  missing?: string;
 };
 
 /** An authority names the release a scope should run; a different comparable identity is an offer, whatever its order. */
 export const selectTarget = <TRelease extends ReleaseFacts>({
   decision,
   running,
+  missing = "running-not-known",
 }: SelectTargetInput<TRelease>): ReleaseSelection<TRelease> => {
   if (decision.kind === "none") {
     return noOffer<TRelease>("no-decision", null, decision.reason);
@@ -29,11 +32,7 @@ export const selectTarget = <TRelease extends ReleaseFacts>({
   }
 
   if (running === null) {
-    return inconclusive(
-      "missing-current-identity",
-      release,
-      "running-not-known",
-    );
+    return inconclusive("missing-current-identity", release, missing);
   }
 
   if (running.identity.status === "unknown") {

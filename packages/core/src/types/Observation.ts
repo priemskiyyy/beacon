@@ -38,11 +38,13 @@ export type Observation<TRoute extends string, TBody extends RouteBody> =
       /**
        * Why, in words, when the reason alone does not say. For
        * `missing-current-identity` it is the running reader's own reason, such
-       * as `build-id-not-injected`, or `running-not-known` while the running
-       * fact is pending or failed. For `incomparable-identity` it names the
-       * authority or the domain that differs, with the running and the offered
-       * word of each, or the offered identity that is unknown. The order
-       * reasons have none.
+       * as `build-id-not-injected`, or `running-pending` while the reader has
+       * not answered yet and `running-failed` once it failed. For
+       * `incomparable-identity` it names the authority or the domain that
+       * differs, with the running and the offered word of each, or the offered
+       * identity that is unknown. `missing-current-order` says the same two
+       * words when the running release is not there, and nothing when it is
+       * there and has no order. The other order reasons have none.
        */
       detail: string | null;
       candidate: TBody["release"] | null;

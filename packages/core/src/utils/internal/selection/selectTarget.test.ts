@@ -104,10 +104,12 @@ test("an unknown running identity is inconclusive, never a difference", () => {
     reason: "missing-current-identity",
     detail: "not-reported",
   });
-  expect(selectTarget({ decision, running: null })).toMatchObject({
+  expect(
+    selectTarget({ decision, running: null, missing: "running-pending" }),
+  ).toMatchObject({
     status: "inconclusive",
     reason: "missing-current-identity",
-    detail: "running-not-known",
+    detail: "running-pending",
   });
 });
 

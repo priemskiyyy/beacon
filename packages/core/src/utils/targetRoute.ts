@@ -3,6 +3,7 @@ import type { FeedRoute } from "src/types/FeedRoute";
 import type { Release } from "src/types/Release";
 import type { RouteBody } from "src/types/RouteBody";
 import type { TargetRouteOptions } from "src/types/TargetRouteOptions";
+import { describeMissingRunning } from "src/utils/internal/running/describeMissingRunning";
 import { readRunningRelease } from "src/utils/internal/running/readRunningRelease";
 import { selectTarget } from "src/utils/internal/selection/selectTarget";
 
@@ -41,6 +42,7 @@ export const targetRoute = <
     selectTarget({
       decision: source.project(document),
       running: readRunningRelease(running, mechanism.subject),
+      missing: describeMissingRunning(running, mechanism.subject),
     }),
   mechanism,
 });

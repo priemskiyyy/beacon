@@ -3,6 +3,7 @@ import type { FeedRoute } from "src/types/FeedRoute";
 import type { NewerRouteOptions } from "src/types/NewerRouteOptions";
 import type { Release } from "src/types/Release";
 import type { RouteBody } from "src/types/RouteBody";
+import { describeMissingRunning } from "src/utils/internal/running/describeMissingRunning";
 import { readRunningRelease } from "src/utils/internal/running/readRunningRelease";
 import { selectNewer } from "src/utils/internal/selection/selectNewer";
 
@@ -55,6 +56,7 @@ export const newerRoute = <
     return selectNewer({
       decision: source.project(document),
       running: release,
+      missing: describeMissingRunning(running, mechanism.subject),
       currentOrder: current(release),
       version,
     });

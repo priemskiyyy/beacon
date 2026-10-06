@@ -1357,6 +1357,14 @@ const MUTANTS = [
       "a package downloaded again after it was installed, which deletes the folder CodePush runs from",
   },
   {
+    file: `${core}/internal/running/describeMissingRunning.ts`,
+    find: 'if (state === "failed") {',
+    replace: "if (false) {",
+    project: "core",
+    describes:
+      "an inconclusive observation that cannot tell a reader that failed from one that has not answered",
+  },
+  {
     file: `${core}/internal/commands/CommandCoordinator.ts`,
     find: "entry.record.getNotOpen() ??",
     replace: "null ??",

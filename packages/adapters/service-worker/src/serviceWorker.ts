@@ -21,8 +21,13 @@ const createCommands = ({
       reference: "offer",
       impacts: ["worker-takeover"],
       binding: "exact-instance",
-      run: async ({ native, offer }) => {
+      run: async ({ native, offer, signal }) => {
         const registration = await native.registration();
+
+        // A takeover reaches every tab, so it is never started for a session that has ended.
+        if (signal.aborted) {
+          return { status: "cancelled", stage: "session-ended" };
+        }
 
         if (registration === undefined) {
           return { status: "unsupported", reason: NO_REGISTRATION };

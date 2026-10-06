@@ -22,12 +22,12 @@ const none = (detail: string | null): WorkerReading["observation"] => ({
   detail,
 });
 
-// An activation is observed when the worker that was active when observation began has been replaced.
+// An activation is observed when the worker the page was last known to run under has been replaced.
 const readPrepared = (
   { active }: RegistrationLike,
-  initialActive: WorkerLike | null,
+  baseline: WorkerLike | null,
 ): WorkerReading["prepared"] => {
-  if (initialActive === null || active === null || active === initialActive) {
+  if (baseline === null || active === null || active === baseline) {
     return NOTHING;
   }
 
@@ -37,19 +37,19 @@ const readPrepared = (
 /**
  * What a registration says, as an observation and a prepared target. A
  * waiting worker is an update only when a worker was already active: the first
- * installation of a page is not one. Nothing is prepared until the worker that
- * was active when observation began has been replaced, since a skip-waiting
+ * installation of a page is not one. Nothing is prepared until the baseline
+ * worker, the first one seen active, has been replaced, since a skip-waiting
  * request alone proves no activation.
  */
 export const readWorkers = (
   registration: RegistrationLike | undefined,
-  initialActive: WorkerLike | null,
+  baseline: WorkerLike | null,
 ): WorkerReading => {
   if (registration === undefined) {
     return { observation: none(NO_REGISTRATION), prepared: NOTHING };
   }
 
-  const prepared = readPrepared(registration, initialActive);
+  const prepared = readPrepared(registration, baseline);
   const { waiting, active, installing } = registration;
 
   if (waiting !== null && active !== null) {

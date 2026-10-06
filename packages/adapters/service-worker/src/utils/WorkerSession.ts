@@ -17,15 +17,15 @@ type WorkerSessionOptions = {
 /**
  * Owns what one session listens to: the registration once the application has
  * one, its workers, and the container's controller. It reports the workers'
- * state as it changes, remembers which worker was active when observation
- * began so an activation can be told from the first installation, and falls
+ * state as it changes, remembers which worker the page was last known to run
+ * under so an activation can be told from the first installation, and falls
  * silent for good when disposed.
  */
 export class WorkerSession {
   #resolve: WorkerSessionOptions["resolve"];
   #emit: DriverEmitter<WorkerBody, WorkerBody>;
   #registration: RegistrationLike | undefined = undefined;
-  #initialActive: WorkerLike | null = null;
+  #baseline: WorkerLike | null = null;
   #attached = new Set<RegistrationLike>();
   #stops: Array<() => void> = [];
   #disposed = false;
@@ -81,7 +81,12 @@ export class WorkerSession {
   };
 
   #read(): WorkerReading {
-    return readWorkers(this.#registration, this.#initialActive);
+    // The first worker to be active is the baseline, whether it was there when observation began or came from the first installation.
+    if (this.#baseline === null && this.#registration?.active) {
+      this.#baseline = this.#registration.active;
+    }
+
+    return readWorkers(this.#registration, this.#baseline);
   }
 
   #report({ observation, prepared }: WorkerReading) {
@@ -97,24 +102,19 @@ export class WorkerSession {
     this.#report(this.#read());
   };
 
-  // The first registration seen fixes which worker was active when observation began.
+  // A registration that is gone is gone: what was read from it is not offered any more.
   #attach(registration: RegistrationLike | undefined) {
-    if (this.#disposed || registration === undefined) {
+    if (this.#disposed) {
       return;
     }
 
     this.#registration = registration;
 
-    if (this.#attached.has(registration)) {
+    if (registration === undefined || this.#attached.has(registration)) {
       return;
     }
 
     this.#attached.add(registration);
-
-    if (this.#attached.size === 1) {
-      this.#initialActive = registration.active;
-    }
-
     this.#stops.push(observeWorkers(registration, this.#refresh));
   }
 }

@@ -529,3 +529,91 @@ test("SW-15 a page restored with another worker in control reconciles from the r
   ).resolves.toMatchObject({ status: "stale" });
   expect(staleWaiting?.messages).toEqual([]);
 });
+
+test("SEC-10 a session that ends while the registration is resolved posts no message to a worker", async () => {
+  const registration = updateReady();
+
+  const held: { release: (value: RegistrationLike | undefined) => void } = {
+    release: () => {},
+  };
+
+  let calls = 0;
+
+  const { beacon, worker } = createWorkerBeacon(registration, {
+    registration: () => {
+      calls += 1;
+
+      if (calls === 1) {
+        return Promise.resolve(registration);
+      }
+
+      return new Promise<RegistrationLike | undefined>((resolve) => {
+        held.release = resolve;
+      });
+    },
+  });
+
+  beacon.start();
+  await settle();
+
+  const { observation } = worker.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  const activating = worker.activateWaiting({ offer: observation.offer.ref });
+
+  await settle();
+  beacon.stop();
+  held.release(registration);
+  await activating;
+
+  expect(registration.waiting?.messages).toEqual([]);
+});
+
+test("a first installation that activates is no update, and the next real update prepares a target", async () => {
+  const first = fakeWorker("installing");
+  const registration = fakeRegistration({ active: null });
+  const { beacon, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+
+  registration.found(first);
+  registration.install();
+  registration.activate();
+
+  expect(worker.state.get().prepared).toMatchObject({ status: "none" });
+
+  registration.found(fakeWorker("installing"));
+  registration.install();
+  registration.activate();
+
+  expect(worker.state.get().prepared).toMatchObject({ status: "ready" });
+});
+
+test("a registration that vanished takes its offer with it", async () => {
+  const registration = updateReady();
+  const { beacon, worker, state } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+
+  const { observation } = worker.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  state.registration = undefined;
+  await worker.check();
+
+  expect(worker.state.get().observation).toMatchObject({
+    status: "none",
+    detail: "no-registration",
+  });
+  await expect(
+    worker.activateWaiting({ offer: observation.offer.ref }),
+  ).resolves.toMatchObject({ status: "stale" });
+});

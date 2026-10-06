@@ -35,6 +35,11 @@ const findScripts = (directory) =>
       return findScripts(path);
     }
 
+    // The Svelte package compiles nothing, so its tests and fixtures sit in `dist` beside the sources; `files` keeps them out of the tarball.
+    if (/\.(test|fixture|contracts)\./.test(entry.name)) {
+      return [];
+    }
+
     return entry.name.endsWith(".js") ? [path] : [];
   });
 

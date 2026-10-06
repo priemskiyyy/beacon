@@ -1,5 +1,6 @@
 import type { CommandParameters } from "src/types/CommandParameters";
 import type { CommandDescriptor } from "src/types/CommandDescriptor";
+import type { CommandInput } from "src/types/internal/CommandInput";
 import type { Impact } from "src/types/Impact";
 import type { TargetBinding } from "src/types/TargetBinding";
 
@@ -18,12 +19,12 @@ export const DISPATCH_UNCONFIRMED = "dispatch-unconfirmed";
 /** Why a route stays unresolved when its caller stopped waiting after the dispatch. */
 export const ABORTED_AFTER_DISPATCH = "aborted-after-dispatch";
 
-/** The keys of a call that Beacon reads itself; everything else is the command's parameters. */
-export const CONTROL_KEYS: Array<keyof CommandParameters> = [
-  "offer",
-  "prepared",
-  "signal",
-];
+/** The keys of a call that Beacon reads itself; everything else is the command's parameters. A key added to `CommandInput` cannot be left out. */
+export const CONTROL_KEYS = {
+  offer: true,
+  prepared: true,
+  signal: true,
+} satisfies Record<keyof CommandInput, true>;
 
 /**
  * What each impact means to the coordinator: a disruptive command takes the

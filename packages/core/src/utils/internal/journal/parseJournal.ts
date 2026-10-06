@@ -1,5 +1,6 @@
 import type { StoredTransition } from "src/types/internal/StoredTransition";
 import { JOURNAL_CAPACITY, JOURNAL_VERSION } from "src/utils/constants/journal";
+import { readField } from "src/utils/internal/journal/readField";
 import { readTransition } from "src/utils/internal/journal/readTransition";
 
 /** More than a record of a few small transitions can be is not one. */
@@ -24,33 +25,27 @@ export const parseJournal = (text: string): StoredTransition[] | undefined => {
     return undefined;
   }
 
-  if (typeof parsed !== "object" || parsed === null) {
+  if (readField(parsed, "version") !== JOURNAL_VERSION) {
     return undefined;
   }
 
-  if (!("version" in parsed) || parsed.version !== JOURNAL_VERSION) {
+  const transitions = readField(parsed, "transitions");
+
+  if (!Array.isArray(transitions) || transitions.length > JOURNAL_CAPACITY) {
     return undefined;
   }
 
-  if (!("transitions" in parsed) || !Array.isArray(parsed.transitions)) {
-    return undefined;
-  }
+  const read: StoredTransition[] = [];
 
-  if (parsed.transitions.length > JOURNAL_CAPACITY) {
-    return undefined;
-  }
-
-  const transitions: StoredTransition[] = [];
-
-  for (const item of parsed.transitions) {
+  for (const item of transitions) {
     const transition = readTransition(item);
 
     if (transition === undefined) {
       return undefined;
     }
 
-    transitions.push(transition);
+    read.push(transition);
   }
 
-  return transitions;
+  return read;
 };

@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 
-import { settle } from "src/utils/Beacon.fixture";
+import { SCOPE, settle } from "src/utils/Beacon.fixture";
 import { createMemoryStorage } from "src/utils/journal.fixture";
 import {
   ACCEPTED_RELOAD,
@@ -58,6 +58,35 @@ test("WEB-01 the realm is expected to end, so the operation stays unresolved unt
 
   expect(log).toEqual(["drafts:reserve", "drafts:settle", "drafts:release"]);
   expect(web.state.get().operation).toEqual({ state: "idle" });
+});
+
+test("the operation a route publishes cannot be changed, while it runs and when it is left unresolved", async () => {
+  const context = createWebCommandBeacon();
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+  const reload = web.reload({ offer });
+
+  await settle();
+
+  const running = web.state.get().operation;
+
+  expect(running.state).toBe("running");
+  expect(Object.isFrozen(running)).toBe(true);
+  expect(
+    running.state === "running" && Object.isFrozen(running.operation),
+  ).toBe(true);
+
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+  await reload;
+
+  const unresolved = web.state.get().operation;
+
+  expect(unresolved.state).toBe("indeterminate");
+  expect(Object.isFrozen(unresolved)).toBe(true);
+  expect(
+    unresolved.state === "indeterminate" &&
+      Object.isFrozen(unresolved.operation),
+  ).toBe(true);
 });
 
 test("a route that is unresolved refuses another command instead of replaying it", async () => {
@@ -196,6 +225,31 @@ test("SAFE-02 a participant reserves before any settlement begins", async () => 
   await settle();
   takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
   await reload;
+});
+
+test("a provider that answers something that is not a result fails the command, and the reservations are released", async () => {
+  const context = createWebCommandBeacon();
+  const log: string[] = [];
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+
+  context.beacon.disruptions.register(createParticipant("drafts", log));
+
+  const reload = web.reload({ offer });
+
+  await settle();
+  // A provider that is not typed can answer with anything.
+  takeRun(context.runs).settleWith(JSON.parse('{"status":"done"}'));
+
+  await expect(reload).resolves.toEqual({
+    status: "failed",
+    error: {
+      code: "COMMAND_FAILED",
+      message: "A command could not be carried out.",
+    },
+  });
+  expect(log).toEqual(["drafts:reserve", "drafts:settle", "drafts:release"]);
+  expect(web.state.get().operation).toEqual({ state: "idle" });
 });
 
 test("SAFE-03 a participant that refuses releases the earlier reservations in reverse, and nothing is dispatched", async () => {
@@ -391,6 +445,21 @@ test("a joined caller that aborts stops only its own wait", async () => {
   await expect(first).resolves.toMatchObject({ status: "accepted" });
 });
 
+test("a joined caller whose signal never aborts is answered with the call it joined", async () => {
+  const context = createWebCommandBeacon();
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+  const controller = new AbortController();
+  const first = web.reload({ offer });
+  const second = web.reload({ offer, signal: controller.signal });
+
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+
+  await expect(second).resolves.toEqual(await first);
+  await expect(second).resolves.toMatchObject({ status: "accepted" });
+});
+
 test("a different command while the route is busy is blocked, not queued", async () => {
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
@@ -508,6 +577,89 @@ test("a provider that later confirms the command failed releases what an abort l
 
   expect(log).toContain("drafts:release");
   expect(web.state.get().operation).toEqual({ state: "idle" });
+});
+
+test("a provider that did not open fails the command, releases the reservations, and leaves the route free", async () => {
+  const context = createWebCommandBeacon({ failOpen: true });
+  const log: string[] = [];
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+
+  context.beacon.disruptions.register(createParticipant("drafts", log));
+
+  await expect(web.reload({ offer })).resolves.toEqual({
+    status: "failed",
+    error: { code: "DRIVER_FAILED", message: "The provider is not open." },
+  });
+  expect(log).toEqual([]);
+  expect(context.runs).toHaveLength(0);
+  expect(web.state.get().operation).toEqual({ state: "idle" });
+  expect(
+    context.beacon.replaceScope({ ...SCOPE, environment: "staging" }),
+  ).toEqual({ status: "replaced" });
+});
+
+test("a reservation released by starting the next command leaves that command's state standing", async () => {
+  const context = createWebCommandBeacon();
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+  const next: Array<ReturnType<typeof web.reload>> = [];
+
+  context.beacon.disruptions.register({
+    name: "guard",
+    impacts: ["document-replacement"],
+    reserve: () => ({
+      status: "reserved",
+      release: () => {
+        if (next.length > 0) {
+          return;
+        }
+
+        next.push(web.reload({ offer }));
+      },
+    }),
+  });
+
+  const first = web.reload({ offer });
+
+  await settle();
+  takeRun(context.runs).settleWith({ status: "stale" });
+  await first;
+
+  expect(web.state.get().operation).toMatchObject({
+    state: "running",
+    operation: { id: 2 },
+  });
+
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+
+  await expect(next[0]).resolves.toMatchObject({
+    status: "accepted",
+    operation: { id: 2 },
+  });
+});
+
+test("a signal that is not one fails the command and leaves the route free", async () => {
+  const context = createWebCommandBeacon();
+  const log: string[] = [];
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+
+  context.beacon.disruptions.register(createParticipant("drafts", log));
+
+  // A host that is not typed can pass the controller, or a number of milliseconds, for the signal.
+  await expect(
+    web.reload({ offer, signal: JSON.parse("{}") }),
+  ).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "COMMAND_FAILED" },
+  });
+  expect(context.runs).toHaveLength(0);
+  expect(web.state.get().operation).toEqual({ state: "idle" });
+  expect(
+    context.beacon.replaceScope({ ...SCOPE, environment: "staging" }),
+  ).toEqual({ status: "replaced" });
 });
 
 test("SAFE-08 a disruptive command on another route is blocked while one runs, not queued", async () => {
@@ -661,6 +813,25 @@ test("stopping the session while participants settle cancels the command", async
   expect(log).toContain("drafts:release");
 });
 
+test("disposing while participants settle leaves no timer armed", async () => {
+  const context = createWebCommandBeacon();
+  const offer = await startWithOffer(context);
+
+  context.beacon.disruptions.register(
+    createParticipant("drafts", [], {
+      settlement: () => new Promise(() => {}),
+    }),
+  );
+
+  const reload = context.beacon.route("web").reload({ offer });
+
+  await settle();
+  context.beacon.dispose();
+
+  await expect(reload).resolves.toMatchObject({ status: "cancelled" });
+  expect(context.clock.pendingTimers()).toBe(0);
+});
+
 test("stopping the session after the dispatch leaves the operation unresolved for the next session", async () => {
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
@@ -681,6 +852,37 @@ test("stopping the session after the dispatch leaves the operation unresolved fo
   expect(web.state.get().operation).toEqual({ state: "idle" });
 });
 
+test("disposing while the provider runs leaves the operation indeterminate, as stopping does, and releases the reservations once", async () => {
+  const context = createWebCommandBeacon();
+  const log: string[] = [];
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+
+  context.beacon.disruptions.register(createParticipant("drafts", log));
+
+  const reload = web.reload({ offer });
+
+  await settle();
+  context.beacon.dispose();
+
+  await expect(reload).resolves.toEqual({
+    status: "indeterminate",
+    operation: { id: 1 },
+    reason: "aborted-after-dispatch",
+  });
+  expect(web.state.get().operation).toEqual({
+    state: "indeterminate",
+    operation: { id: 1 },
+    command: "reload",
+    reason: "aborted-after-dispatch",
+  });
+
+  takeRun(context.runs).settleWith({ status: "cancelled", stage: "late" });
+  await settle();
+
+  expect(log).toEqual(["drafts:reserve", "drafts:settle", "drafts:release"]);
+});
+
 test("disposing releases the reservations a command still holds", async () => {
   const context = createWebCommandBeacon();
   const log: string[] = [];
@@ -697,6 +899,11 @@ test("disposing releases the reservations a command still holds", async () => {
   expect(log).toEqual(["drafts:reserve", "drafts:settle"]);
 
   context.beacon.dispose();
+
+  expect(log).toEqual(["drafts:reserve", "drafts:settle", "drafts:release"]);
+
+  // What was released at the end is not released again by the acknowledgement that comes after.
+  context.beacon.route("web").acknowledge();
 
   expect(log).toEqual(["drafts:reserve", "drafts:settle", "drafts:release"]);
 });

@@ -3,7 +3,6 @@ import type { ErasedPolicy } from "src/types/internal/ErasedPolicy";
 import type { PolicyEvaluation } from "src/types/internal/PolicyEvaluation";
 import type { PolicyRecordOptions } from "src/types/internal/PolicyRecordOptions";
 import type { ObservableValue } from "src/types/ObservableValue";
-import type { RemediationState } from "src/types/RemediationState";
 import type { RunningApplication } from "src/types/RunningApplication";
 import type { SupportEvaluation } from "src/types/SupportEvaluation";
 import type { SupportState } from "src/types/SupportState";
@@ -20,34 +19,38 @@ import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import type { Transaction } from "src/utils/internal/observable/Transaction";
 import { ValueStore } from "src/utils/internal/observable/ValueStore";
 
+/** An evaluation and what it was made from: the same accepted feed and running revision are not evaluated again. */
 type Held = {
   accepted: AcceptedFeed;
   runningRevision: number;
-  evaluation: PolicyEvaluation;
-};
+} & PolicyEvaluation;
+
+type Reached = Extract<Held, { status: "evaluated" }>;
 
 /**
  * Owns the published support state. It evaluates the policy from the accepted
  * document and the running facts, keeps the last valid evaluation beside a
  * failure or a lapse, and runs the application's function again only when the
- * document or the running facts changed. A state that means the same as the
- * last keeps its snapshot, so a change to a fact the verdict does not depend
- * on resets no gate.
+ * accepted document, its evidence included, or the running facts changed. A
+ * state that means the same as the last keeps its snapshot, so a change to a
+ * fact the verdict does not depend on resets no gate.
  */
 export class PolicyRecord {
   #options: PolicyRecordOptions;
   #store: ValueStore<SupportState>;
+  #unchecked: SupportState;
   #held: Held | null = null;
-  #lastValid: SupportEvaluation | null = null;
-  #reported: BeaconError | null = null;
+  #lastValid: Reached | null = null;
 
   state: ObservableValue<SupportState>;
 
   constructor(options: PolicyRecordOptions) {
     this.#options = options;
 
+    this.#unchecked =
+      options.policy === null ? NO_POLICY_SUPPORT : NOT_CHECKED_SUPPORT;
     this.#store = new ValueStore<SupportState>(
-      options.policy === null ? NO_POLICY_SUPPORT : NOT_CHECKED_SUPPORT,
+      this.#unchecked,
       options.listeners,
     );
     this.state = this.#store.observable;
@@ -67,40 +70,30 @@ export class PolicyRecord {
 
     const held = this.#evaluate(policy, accepted, running);
 
-    if (held.evaluation.status === "failed") {
-      this.#report(held.evaluation.error);
-    } else {
-      this.#reported = null;
-    }
-
-    this.#install(transaction, held);
+    this.#install(transaction, this.#toState(held));
   };
 
   /** Forgets every evaluation, as a policy of another scope says nothing about this one. */
   reset = (transaction: Transaction) => {
     this.#held = null;
     this.#lastValid = null;
-    this.#reported = null;
-
-    transaction.set(
-      this.#store,
-      this.#options.policy === null ? NO_POLICY_SUPPORT : NOT_CHECKED_SUPPORT,
-    );
+    this.#install(transaction, this.#unchecked);
   };
 
   /** The last evaluation failed, or `null`. */
   getFailure = () => {
-    if (this.#held?.evaluation.status !== "failed") {
+    if (this.#held?.status !== "failed") {
       return null;
     }
 
-    return this.#held.evaluation.error;
+    return this.#held.error;
   };
 
   close = () => {
     this.#store.close();
   };
 
+  // A failure is reported when it is made, so once, however often it is read again.
   #evaluate(
     policy: ErasedPolicy,
     accepted: AcceptedFeed,
@@ -116,15 +109,26 @@ export class PolicyRecord {
       return held;
     }
 
-    this.#held = {
+    const next: Held = {
       accepted,
       runningRevision: running.revision,
-      evaluation: this.#run(policy, accepted.document, running),
+      ...this.#run(policy, accepted.document, running),
     };
 
-    return this.#held;
+    this.#held = next;
+
+    if (next.status === "failed") {
+      this.#options.onFailure(next.error);
+
+      return next;
+    }
+
+    this.#lastValid = next;
+
+    return next;
   }
 
+  // The verdict is the application's, and it may change it later: what is kept is a copy, and an answer that is not a verdict fails here.
   #run(
     policy: ErasedPolicy,
     document: unknown,
@@ -135,7 +139,17 @@ export class PolicyRecord {
     try {
       const verdict = policy.evaluate(policy.source.project(document), running);
 
-      const unknown = verdict.remediation.find(
+      const reasons = freezeList(
+        verdict.reasons.map((reason) => Object.freeze({ ...reason })),
+      );
+
+      const remediation = freezeList(
+        verdict.remediation.map(({ route, level }) =>
+          Object.freeze({ route, level }),
+        ),
+      );
+
+      const unknown = remediation.find(
         ({ route }) => getRoute(route) === undefined,
       );
 
@@ -149,35 +163,25 @@ export class PolicyRecord {
         };
       }
 
-      return { status: "evaluated", verdict };
+      return {
+        status: "evaluated",
+        verdict: { status: verdict.status, reasons, remediation },
+      };
     } catch (cause) {
-      return { status: "failed", error: this.#createError(cause) };
+      return {
+        status: "failed",
+        error: toBeaconError(cause, {
+          code: "POLICY_FAILED",
+          message: "The support policy could not be evaluated.",
+        }),
+      };
     }
   }
 
-  #createError(cause: unknown) {
-    return toBeaconError(cause, {
-      code: "POLICY_FAILED",
-      message: "The support policy could not be evaluated.",
-    });
-  }
-
-  #report(error: BeaconError) {
-    if (this.#reported === error) {
-      return;
-    }
-
-    this.#reported = error;
-    this.#options.onFailure(error);
-  }
-
-  #install(transaction: Transaction, held: Held) {
-    const state = this.#toState(held);
+  #install(transaction: Transaction, state: SupportState) {
     const current = this.#store.get();
 
-    const same = isSameData(this.#normalize(state), this.#normalize(current));
-
-    if (same) {
+    if (isSameData(this.#normalize(state), this.#normalize(current))) {
       return;
     }
 
@@ -199,31 +203,13 @@ export class PolicyRecord {
     };
   }
 
-  #toState({ accepted, runningRevision, evaluation }: Held): SupportState {
-    if (evaluation.status === "failed") {
-      return this.#toFailedState(evaluation.error);
+  // A failure keeps the last valid evaluation in force while its policy still holds, and says what failed beside it.
+  #toState(held: Held): SupportState {
+    if (held.status === "evaluated") {
+      return this.#toInForce(held, null);
     }
 
-    const { verdict } = evaluation;
-
-    const evaluated: SupportEvaluation = Object.freeze({
-      status: verdict.status,
-      reasons: freezeList(
-        verdict.reasons.map((reason) => Object.freeze({ ...reason })),
-      ),
-      remediation: freezeList(this.#toRemediation(verdict.remediation)),
-      evaluatedRunningRevision: runningRevision,
-      evidence: accepted.evidence,
-    });
-
-    this.#lastValid = evaluated;
-
-    return this.#toInForce(evaluated, null);
-  }
-
-  // A failure keeps the last valid evaluation in force while its policy still holds, and says what failed beside it.
-  #toFailedState(error: BeaconError): SupportState {
-    const info = toErrorInfo(error);
+    const error = toErrorInfo(held.error);
 
     if (this.#lastValid === null) {
       return {
@@ -231,18 +217,17 @@ export class PolicyRecord {
         status: "unknown",
         reason: "evaluation-failed",
         evaluation: null,
-        error: info,
+        error,
       };
     }
 
-    return this.#toInForce(this.#lastValid, info);
+    return this.#toInForce(this.#lastValid, error);
   }
 
   // A policy whose evidence lapsed is unknown, with its last decision retained. The freshness recorded with an evaluation is as old as the evaluation, so the clock decides for one that is kept.
-  #toInForce(
-    evaluation: SupportEvaluation,
-    error: SupportState["error"],
-  ): SupportState {
+  #toInForce(reached: Reached, error: SupportState["error"]): SupportState {
+    const evaluation = this.#describe(reached);
+
     if (hasLapsed(evaluation.evidence, this.#options.now())) {
       return {
         revision: 0,
@@ -262,29 +247,32 @@ export class PolicyRecord {
     };
   }
 
-  #toRemediation(
-    remediation: Array<{ route: string; level: RemediationState["level"] }>,
-  ): RemediationState[] {
-    return remediation.map(({ route, level }) =>
-      Object.freeze({
-        route,
-        level,
-        usable: this.#isUsable(route),
-      }),
-    );
+  // Whether a route is usable is what it is now, also for an evaluation that was made earlier.
+  #describe({
+    accepted,
+    runningRevision,
+    verdict,
+  }: Reached): SupportEvaluation {
+    return Object.freeze({
+      status: verdict.status,
+      reasons: verdict.reasons,
+      remediation: freezeList(
+        verdict.remediation.map(({ route, level }) =>
+          Object.freeze({ route, level, usable: this.#isUsable(route) }),
+        ),
+      ),
+      evaluatedRunningRevision: runningRevision,
+      evidence: accepted.evidence,
+    });
   }
 
   // A route is usable when it has an offer to act on or a prepared target to finish.
   #isUsable(route: string) {
     const state = this.#options.getRoute(route);
 
-    if (state === undefined) {
-      return false;
-    }
-
     return (
-      state.observation.status === "available" ||
-      state.prepared.status === "ready"
+      state?.observation.status === "available" ||
+      state?.prepared.status === "ready"
     );
   }
 }

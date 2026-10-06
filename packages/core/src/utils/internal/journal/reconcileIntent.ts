@@ -6,9 +6,12 @@ import { compareIdentities } from "src/utils/compareIdentities";
 /**
  * What the running facts say about an earlier intent. In the same boot nothing
  * new was observed, so the action may still be unresolved. In a new boot, the
- * subject's identity is compared with the target and with what ran before. An
- * identity that is unknown or of another domain is inconclusive, and a match of
- * labels alone never matches. Nothing here claims what caused the outcome.
+ * subject's identity is compared with the target first, then with what ran
+ * before: the same as the target has reached it, and the same as what ran
+ * before has not, whatever the target was. Otherwise a comparable target that
+ * differs is `different-target`, and an identity that is unknown or of another
+ * domain is inconclusive. A match of labels alone never matches, and nothing
+ * here claims what caused the outcome.
  */
 export const reconcileIntent = (
   intent: TransitionIntent,

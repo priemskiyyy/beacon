@@ -16,6 +16,11 @@ import type {
 } from "src/utils/routes.fixture";
 import { targetRoute } from "src/utils/targetRoute";
 
+export const ACCEPTED_RELOAD: ProviderResult<ReloadReceipt> = {
+  status: "accepted",
+  receipt: { kind: "reload-requested" },
+};
+
 type WarmReceipt = { kind: "warmed" };
 
 type HeldRun = {
@@ -27,13 +32,21 @@ type HeldRun = {
 };
 
 // A mechanism whose reload is held until the test settles it, so a test decides exactly what interleaves with it.
-export const createHeldMechanism = () => {
+export const createHeldMechanism = ({
+  failOpen = false,
+}: { failOpen?: boolean } = {}) => {
   const runs: HeldRun[] = [];
   const warmed = { count: 0 };
 
   const mechanism = createUpdateMechanism({
     name: "held",
-    open: () => ({ native: {} }),
+    open: () => {
+      if (failOpen) {
+        throw new Error("The provider could not be opened.");
+      }
+
+      return { native: {} };
+    },
     commands: {
       reload: {
         reference: "offer",
@@ -48,6 +61,14 @@ export const createHeldMechanism = () => {
               fail: reject,
             });
           }),
+      },
+      // Reloads whatever is deployed, so no offer names a target.
+      refresh: {
+        reference: "none",
+        impacts: ["document-replacement"],
+        binding: "unpinned-navigation",
+        run: async (): Promise<ProviderResult<ReloadReceipt>> =>
+          ACCEPTED_RELOAD,
       },
       prefetch: {
         reference: "none",
@@ -76,16 +97,15 @@ export const takeRun = (runs: HeldRun[]) => {
   return run;
 };
 
-export const ACCEPTED_RELOAD: ProviderResult<ReloadReceipt> = {
-  status: "accepted",
-  receipt: { kind: "reload-requested" },
-};
-
 type WebCommandOptions = {
   /** The id of the boot, for a test that starts the same application again. */
   boot?: string;
   /** The web build that runs, or `null` when nothing names it. */
   build?: string | null;
+  /** Makes the web reader fail, so that no fact about the web build is known. */
+  failRead?: boolean;
+  /** Makes the mechanism fail to open, so the route has no provider. */
+  failOpen?: boolean;
   journal?: JournalOptions;
 };
 
@@ -98,10 +118,12 @@ const UNNAMED_WEB_RELEASE: RunningRelease = {
 export const createWebCommandBeacon = ({
   boot = "boot-1",
   build = "web-build-b",
+  failRead = false,
+  failOpen = false,
   journal,
 }: WebCommandOptions = {}) => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
-  const held = createHeldMechanism();
+  const held = createHeldMechanism({ failOpen });
 
   const web = targetRoute({
     subject: "web",
@@ -115,6 +137,10 @@ export const createWebCommandBeacon = ({
       running: {
         boot: { id: boot },
         web: () => {
+          if (failRead) {
+            throw new Error("The web build could not be read.");
+          }
+
           if (build === null) {
             return UNNAMED_WEB_RELEASE;
           }

@@ -239,6 +239,25 @@ test("the support evaluated for the last scope is forgotten with it", async () =
   });
 });
 
+test("the revision of the support state keeps growing when a scope forgets what it evaluated", async () => {
+  const context = createPolicyBeacon();
+  const revisions: number[] = [];
+
+  context.beacon.support.subscribe(() => {
+    revisions.push(context.beacon.support.get().revision);
+  });
+  context.beacon.start();
+
+  const checking = context.beacon.check();
+
+  await settle();
+  answer(context.mock, buildDocument(), 601_000);
+  await checking;
+  context.beacon.replaceScope(STAGING);
+
+  expect(revisions).toEqual([1, 2]);
+});
+
 test("the journal reads the record of the next scope, and shows nothing of the last", async () => {
   const memory = createMemoryStorage();
 
@@ -285,6 +304,38 @@ test("the journal reads the record of the next scope, whatever the last one held
 
   expect(context.beacon.transitions.get().latest).toMatchObject({
     intent: { boot: { id: "boot-0" } },
+  });
+});
+
+test("a listener that starts the Beacon while the scope is replaced leaves the journal reading the record of the next scope", async () => {
+  const memory = createMemoryStorage();
+
+  const context = createWebCommandBeacon({
+    journal: { mode: "required", storage: memory.storage },
+  });
+
+  context.beacon.start();
+  await settle();
+
+  memory.data.set(
+    createJournalKey(STAGING),
+    serializeJournal([buildStored(buildIntent({ boot: { id: "boot-0" } }))]),
+  );
+
+  // The status is announced as stopped before the replacement is done, and the listener starts the session again.
+  context.beacon.status.subscribe(() => {
+    if (context.beacon.status.get().state !== "stopped") {
+      return;
+    }
+
+    context.beacon.start();
+  });
+  context.beacon.replaceScope(STAGING);
+  await settle();
+
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "ready",
+    latest: { intent: { boot: { id: "boot-0" } } },
   });
 });
 
@@ -350,6 +401,20 @@ test("the last valid support of a scope is not kept beside a failure of the next
     evaluation: null,
     error: { code: "POLICY_FAILED" },
   });
+});
+
+test("support that was never evaluated is not told that it forgot", () => {
+  const context = createPolicyBeacon();
+  const held = context.beacon.support.get();
+  const heard: number[] = [];
+
+  context.beacon.support.subscribe(() => {
+    heard.push(context.beacon.support.get().revision);
+  });
+  context.beacon.replaceScope(STAGING);
+
+  expect(heard).toEqual([]);
+  expect(context.beacon.support.get()).toBe(held);
 });
 
 test("a route that learned nothing is not told that it forgot it", () => {

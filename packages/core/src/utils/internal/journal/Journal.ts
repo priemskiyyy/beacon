@@ -1,7 +1,7 @@
 import type { IntentDraft } from "src/types/internal/IntentDraft";
 import type { JournalConfig } from "src/types/internal/JournalConfig";
-import type { JournalRead } from "src/types/internal/JournalRead";
 import type { JournalWrite } from "src/types/internal/JournalWrite";
+import type { ResolvedJournalOptions } from "src/types/internal/ResolvedJournalOptions";
 import type { Session } from "src/types/internal/Session";
 import type { StoredTransition } from "src/types/internal/StoredTransition";
 import type { ObservableValue } from "src/types/ObservableValue";
@@ -17,12 +17,18 @@ import {
 import { freezeList } from "src/utils/internal/common/freezeList";
 import { isSameData } from "src/utils/internal/common/isSameData";
 import { countAttempts } from "src/utils/internal/journal/countAttempts";
+import { freezeIntent } from "src/utils/internal/journal/freezeIntent";
 import { createJournalKey } from "src/utils/internal/journal/createJournalKey";
 import { parseJournal } from "src/utils/internal/journal/parseJournal";
 import { reconcileIntent } from "src/utils/internal/journal/reconcileIntent";
 import { serializeJournal } from "src/utils/internal/journal/serializeJournal";
 import { commitChange } from "src/utils/internal/observable/commitChange";
 import { ValueStore } from "src/utils/internal/observable/ValueStore";
+
+type Opened = {
+  session: Session;
+  getRunning: () => Promise<RunningApplication>;
+};
 
 /**
  * Owns the transition journal: the intents written before a command replaces
@@ -39,6 +45,7 @@ export class Journal {
   #transitions: StoredTransition[] = [];
   #queue: Promise<void> = Promise.resolve();
   #hydrated = false;
+  #opened: Opened | null = null;
 
   state: ObservableValue<TransitionState>;
 
@@ -63,14 +70,16 @@ export class Journal {
     session: Session,
     getRunning: () => Promise<RunningApplication>,
   ) => {
-    const claim = this.#claim();
+    this.#opened = { session, getRunning };
 
-    return this.#enqueue(async () => {
-      if (this.#config.options === undefined || this.#hydrated) {
+    return this.#enqueue(async (claim) => {
+      const { options } = this.#config;
+
+      if (options === undefined || this.#hydrated) {
         return;
       }
 
-      const read = await this.#read(claim.key);
+      const read = await this.#read(options, claim.key);
       const running = await getRunning();
 
       // A read that arrives after its session or its scope ended describes nothing that is still true.
@@ -78,16 +87,14 @@ export class Journal {
         return;
       }
 
-      this.#hydrated = read.status !== "failed";
-      await this.#reconcile(read, running, claim.key);
+      this.#hydrated = read !== undefined;
+      await this.#reconcile(options, read, running, claim.key);
     });
   };
 
   /** Persists an intent before its command is dispatched, and answers whether the command may go on. */
-  write = (draft: IntentDraft): Promise<JournalWrite> => {
-    const claim = this.#claim();
-
-    return this.#enqueue(async () => {
+  write = (draft: IntentDraft): Promise<JournalWrite> =>
+    this.#enqueue(async (claim) => {
       const { options, clock } = this.#config;
 
       if (options === undefined) {
@@ -101,15 +108,17 @@ export class Journal {
 
       const createdAt = clock.now();
 
-      const { transitions, overflow } = this.#append({
-        ...draft,
-        createdAt,
-        expiresAt: createdAt + options.retention,
-      });
+      const { transitions, overflow } = this.#append(
+        freezeIntent({
+          ...draft,
+          createdAt,
+          expiresAt: createdAt + options.retention,
+        }),
+      );
 
       // A record that could not be read is not replaced by one that knows nothing of it.
       if (!this.#hydrated) {
-        return this.#handleWriteFailure({
+        return this.#answerFailedWrite({
           mode: options.mode,
           transitions,
           overflow,
@@ -122,7 +131,7 @@ export class Journal {
       try {
         await options.storage.write(claim.key, serializeJournal(transitions));
       } catch (cause) {
-        return this.#handleWriteFailure({
+        return this.#answerFailedWrite({
           mode: options.mode,
           transitions,
           overflow,
@@ -142,7 +151,6 @@ export class Journal {
 
       return { status: "written" };
     });
-  };
 
   /** Records that the application reached a checkpoint in this boot; reporting it again changes nothing. */
   reportReady = (checkpoint: string = DEFAULT_CHECKPOINT): ReadyReport => {
@@ -159,15 +167,13 @@ export class Journal {
   };
 
   /** Removes the record and forgets it, for a privacy flow. Nothing in it is replayed, and nothing native is cancelled. */
-  clear = () => {
-    const claim = this.#claim();
-
-    return this.#enqueue(async () => {
+  clear = () =>
+    this.#enqueue(async (claim) => {
       const { options, record } = this.#config;
 
       if (claim.generation === this.#generation) {
         this.#transitions = [];
-        this.#publish({ latest: null });
+        this.#publish();
       }
 
       if (options === undefined) {
@@ -181,7 +187,6 @@ export class Journal {
         this.#publish({ journal: "degraded" });
       }
     });
-  };
 
   /** Forgets the intents of the scope that ended, so the next session reads the record of the next one. */
   reset = () => {
@@ -192,6 +197,15 @@ export class Journal {
       journal: this.#config.options === undefined ? "off" : "reading",
       dropped: 0,
     });
+
+    const opened = this.#opened;
+
+    // A listener may have opened a session while the scope was being replaced, and its read was for the scope that ended.
+    if (opened === null || !opened.session.scope.isActive()) {
+      return;
+    }
+
+    this.hydrate(opened.session, opened.getRunning);
   };
 
   close = () => {
@@ -199,15 +213,15 @@ export class Journal {
   };
 
   // The record a call is about is fixed when it is made: the queue may run it after the scope changed.
-  #claim() {
-    return {
+  #enqueue<TValue>(
+    work: (claim: { key: string; generation: number }) => Promise<TValue>,
+  ): Promise<TValue> {
+    const claim = {
       key: createJournalKey(this.#config.getScope()),
       generation: this.#generation,
     };
-  }
 
-  #enqueue<TValue>(work: () => Promise<TValue>): Promise<TValue> {
-    const result = this.#queue.then(work);
+    const result = this.#queue.then(() => work(claim));
 
     this.#queue = result.then(
       () => {},
@@ -217,43 +231,51 @@ export class Journal {
     return result;
   }
 
-  async #read(key: string): Promise<JournalRead> {
-    const { options, record } = this.#config;
+  // The transitions the record holds, none for a record that is absent or ignored, and `undefined` for a storage that failed.
+  async #read(
+    options: ResolvedJournalOptions,
+    key: string,
+  ): Promise<StoredTransition[] | undefined> {
+    const { record } = this.#config;
 
-    if (options === undefined) {
-      return { status: "absent" };
-    }
+    let text: string | null | undefined;
 
     try {
-      const text = await options.storage.read(key);
-
-      record("journal-read");
-
-      if (text === null) {
-        return { status: "absent" };
-      }
-
-      return { status: "read", text };
+      text = await options.storage.read(key);
     } catch {
       record("journal-failed", { reason: "read" });
 
-      return { status: "failed" };
+      return undefined;
     }
+
+    record("journal-read");
+
+    // A store with nothing under the key says `null`, and many say `undefined`.
+    if (typeof text !== "string") {
+      return [];
+    }
+
+    const parsed = parseJournal(text);
+
+    if (parsed === undefined) {
+      record("journal-ignored");
+
+      return [];
+    }
+
+    return parsed;
   }
 
-  // What a record holds, kept to what has not expired, judged against the boot that runs now.
+  // What a record holds, kept to what has not expired, judged against the boot that runs now. A record that could not be read leaves the intents this boot already holds.
   async #reconcile(
-    read: JournalRead,
+    options: ResolvedJournalOptions,
+    read: StoredTransition[] | undefined,
     running: RunningApplication,
     key: string,
   ) {
-    const { options, clock, record } = this.#config;
+    const { clock, record } = this.#config;
 
-    if (options === undefined) {
-      return;
-    }
-
-    const loaded = this.#load(read);
+    const loaded = read ?? this.#transitions;
     const kept = loaded.filter(({ intent }) => intent.expiresAt > clock.now());
     const reconciled: StoredTransition[] = [];
 
@@ -266,11 +288,11 @@ export class Journal {
 
     this.#transitions = reconciled;
     this.#publish({
-      journal: read.status === "failed" ? "degraded" : "ready",
+      journal: read === undefined ? "degraded" : "ready",
       dropped: this.#getDropped() + dropped,
     });
 
-    if (!changed || read.status === "failed") {
+    if (!changed || read === undefined) {
       return;
     }
 
@@ -280,26 +302,6 @@ export class Journal {
       record("journal-failed", { reason: "write" });
       this.#publish({ journal: "degraded" });
     }
-  }
-
-  #load(read: JournalRead) {
-    if (read.status === "failed") {
-      return this.#transitions;
-    }
-
-    if (read.status === "absent") {
-      return [];
-    }
-
-    const parsed = parseJournal(read.text);
-
-    if (parsed === undefined) {
-      this.#config.record("journal-ignored");
-
-      return [];
-    }
-
-    return parsed;
   }
 
   // An intent from an earlier boot gets its outcome now; one from this boot stays pending, since nothing new was observed.
@@ -341,7 +343,7 @@ export class Journal {
     return { transitions: all.slice(overflow), overflow };
   }
 
-  #handleWriteFailure({
+  #answerFailedWrite({
     mode,
     transitions,
     overflow,
@@ -353,9 +355,10 @@ export class Journal {
     cause: unknown;
   }): JournalWrite {
     this.#config.record("journal-failed", { reason: "write" });
-    this.#publish({ journal: "degraded" });
 
     if (mode === "required") {
+      this.#publish({ journal: "degraded" });
+
       return {
         status: "failed",
         error: new BeaconError({
@@ -369,7 +372,7 @@ export class Journal {
     // Best effort goes on with the intent in memory only, so it correlates this boot and no later one.
     this.#transitions = transitions;
     this.#publish({
-      latest: this.#toLatest(),
+      journal: "degraded",
       dropped: this.#getDropped() + overflow,
     });
 
@@ -378,26 +381,25 @@ export class Journal {
 
   #toLatest(): Reconciliation | null {
     const latest = this.#transitions.at(-1);
+    const { options } = this.#config;
 
-    if (latest === undefined) {
+    if (latest === undefined || options === undefined) {
       return null;
     }
 
-    const budget = this.#config.options?.budget ?? 0;
-
-    return {
+    return Object.freeze({
       intent: latest.intent,
       outcome: latest.outcome ?? "same-boot",
       attempts: latest.attempts,
-      exhausted: latest.attempts >= budget,
-    };
+      exhausted: latest.attempts >= options.budget,
+    });
   }
 
   #getDropped() {
     return this.#store.get().dropped;
   }
 
-  #publish(patch: Partial<Omit<TransitionState, "revision">>) {
+  #publish(patch: Partial<Omit<TransitionState, "revision">> = {}) {
     const current = this.#store.get();
 
     const next: TransitionState = {

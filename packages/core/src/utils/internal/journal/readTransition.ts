@@ -1,10 +1,10 @@
 import type { StoredTransition } from "src/types/internal/StoredTransition";
 import type { ReconciliationOutcome } from "src/types/ReconciliationOutcome";
-import type { RunningSubject } from "src/types/RunningSubject";
-import type { TargetBinding } from "src/types/TargetBinding";
 import { TARGET_BINDINGS } from "src/utils/constants/commands";
 import { RUNNING_SUBJECTS } from "src/utils/constants/subjects";
-import { readNullableIdentity } from "src/utils/internal/journal/readNullableIdentity";
+import { freezeIntent } from "src/utils/internal/journal/freezeIntent";
+import { readField } from "src/utils/internal/journal/readField";
+import { readIdentity } from "src/utils/internal/journal/readIdentity";
 
 const OUTCOMES: ReconciliationOutcome[] = [
   "same-boot",
@@ -14,20 +14,11 @@ const OUTCOMES: ReconciliationOutcome[] = [
   "inconclusive",
 ];
 
-const readSubject = (value: unknown): RunningSubject | undefined =>
+const readSubject = (value: unknown) =>
   RUNNING_SUBJECTS.find((subject) => subject === value);
 
-const BINDINGS = new Map<string, TargetBinding>(
-  Object.values(TARGET_BINDINGS).map((binding) => [binding, binding]),
-);
-
-const readBinding = (value: unknown) => {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  return BINDINGS.get(value);
-};
+const readBinding = (value: unknown) =>
+  Object.values(TARGET_BINDINGS).find((binding) => binding === value);
 
 const readInteger = (value: unknown) => {
   if (typeof value !== "number" || !Number.isSafeInteger(value)) {
@@ -45,29 +36,21 @@ const readTime = (value: unknown) => {
   return value;
 };
 
-const readObject = (value: unknown, key: string): unknown => {
-  if (typeof value !== "object" || value === null || !(key in value)) {
-    return undefined;
+// `null` is a valid answer where nothing was known or judged, so `undefined` is left to say the layout broke.
+const readNullableIdentity = (value: unknown) => {
+  if (value === null) {
+    return null;
   }
 
-  return Object.getOwnPropertyDescriptor(value, key)?.value;
+  return readIdentity(value);
 };
 
-type OutcomeRead =
-  { valid: true; outcome: ReconciliationOutcome | null } | { valid: false };
-
-const readOutcome = (value: unknown): OutcomeRead => {
+const readOutcome = (value: unknown) => {
   if (value === null) {
-    return { valid: true, outcome: null };
+    return null;
   }
 
-  const outcome = OUTCOMES.find((candidate) => candidate === value);
-
-  if (outcome === undefined) {
-    return { valid: false };
-  }
-
-  return { valid: true, outcome };
+  return OUTCOMES.find((outcome) => outcome === value);
 };
 
 /**
@@ -78,23 +61,23 @@ const readOutcome = (value: unknown): OutcomeRead => {
 export const readTransition = (
   value: unknown,
 ): StoredTransition | undefined => {
-  const intent = readObject(value, "intent");
+  const intent = readField(value, "intent");
 
   const operation = readInteger(
-    readObject(readObject(intent, "operation"), "id"),
+    readField(readField(intent, "operation"), "id"),
   );
 
-  const boot = readObject(readObject(intent, "boot"), "id");
-  const route = readObject(intent, "route");
-  const command = readObject(intent, "command");
-  const subject = readSubject(readObject(intent, "subject"));
-  const current = readNullableIdentity(readObject(intent, "current"));
-  const target = readNullableIdentity(readObject(intent, "target"));
-  const binding = readBinding(readObject(intent, "binding"));
-  const createdAt = readTime(readObject(intent, "createdAt"));
-  const expiresAt = readTime(readObject(intent, "expiresAt"));
-  const attempts = readInteger(readObject(value, "attempts"));
-  const outcome = readOutcome(readObject(value, "outcome"));
+  const boot = readField(readField(intent, "boot"), "id");
+  const route = readField(intent, "route");
+  const command = readField(intent, "command");
+  const subject = readSubject(readField(intent, "subject"));
+  const current = readNullableIdentity(readField(intent, "current"));
+  const target = readNullableIdentity(readField(intent, "target"));
+  const binding = readBinding(readField(intent, "binding"));
+  const createdAt = readTime(readField(intent, "createdAt"));
+  const expiresAt = readTime(readField(intent, "expiresAt"));
+  const attempts = readInteger(readField(value, "attempts"));
+  const outcome = readOutcome(readField(value, "outcome"));
 
   if (
     operation === undefined ||
@@ -102,32 +85,32 @@ export const readTransition = (
     typeof route !== "string" ||
     typeof command !== "string" ||
     subject === undefined ||
-    !current.valid ||
-    !target.valid ||
+    current === undefined ||
+    target === undefined ||
     binding === undefined ||
     createdAt === undefined ||
     expiresAt === undefined ||
     attempts === undefined ||
     attempts < 0 ||
-    !outcome.valid
+    outcome === undefined
   ) {
     return undefined;
   }
 
   return {
-    intent: {
+    intent: freezeIntent({
       operation: { id: operation },
       boot: { id: boot },
       route,
       command,
       subject,
-      current: current.identity,
-      target: target.identity,
+      current,
+      target,
       binding,
       createdAt,
       expiresAt,
-    },
-    outcome: outcome.outcome,
+    }),
+    outcome,
     attempts,
   };
 };

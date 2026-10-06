@@ -40,6 +40,20 @@ test("a part that contains a separator cannot reach into another scope's key", (
   );
 });
 
+test("text that is not well formed still makes a key, and no other scope shares it", () => {
+  const keys = ["user-", "user-\uD800", "user-\uDC00", "user-�", "user-😀"].map(
+    (partition) => createJournalKey({ ...scope, partition }),
+  );
+
+  expect(new Set(keys).size).toBe(keys.length);
+  expect(keys[1]).toBe(
+    "beacon/v1/com.example.notes/production/web/public-web/user-%ED%A0%80",
+  );
+  expect(keys[4]).toBe(
+    "beacon/v1/com.example.notes/production/web/public-web/user-%F0%9F%98%80",
+  );
+});
+
 test("an account partition is part of the key, and no partition is not an empty one", () => {
   expect(createJournalKey({ ...scope, partition: "user-42" })).toBe(
     "beacon/v1/com.example.notes/production/web/public-web/user-42",

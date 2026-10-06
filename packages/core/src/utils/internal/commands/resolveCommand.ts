@@ -15,17 +15,25 @@ import type { ReferenceLedger } from "src/utils/internal/routes/ReferenceLedger"
 type Found<TValue> =
   { status: "found"; value: TValue } | { status: "stale"; reason: StaleReason };
 
+// A reference is this route's own when Beacon minted it for the route: a copy, a forgery and another route's reference are not.
+const isOwn = <
+  TReference extends OfferReference<string> | PreparedReference<string>,
+>(
+  entry: RouteEntry,
+  ledger: ReferenceLedger,
+  reference: TReference | undefined,
+): reference is TReference =>
+  reference !== undefined &&
+  ledger.owns(reference) &&
+  reference.route === entry.name;
+
 const findOffer = (
   entry: RouteEntry,
   ledger: ReferenceLedger,
   reference: OfferReference<string> | undefined,
   now: number,
 ): Found<Offer<string, RouteBody>> => {
-  if (
-    reference === undefined ||
-    !ledger.owns(reference) ||
-    reference.route !== entry.name
-  ) {
+  if (!isOwn(entry, ledger, reference)) {
     return { status: "stale", reason: "foreign" };
   }
 
@@ -50,11 +58,7 @@ const findPrepared = (
   ledger: ReferenceLedger,
   reference: PreparedReference<string> | undefined,
 ): Found<Prepared<string, RouteBody>> => {
-  if (
-    reference === undefined ||
-    !ledger.owns(reference) ||
-    reference.route !== entry.name
-  ) {
+  if (!isOwn(entry, ledger, reference)) {
     return { status: "stale", reason: "foreign" };
   }
 

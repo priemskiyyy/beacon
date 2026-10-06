@@ -1,5 +1,6 @@
 import type { StoredTransition } from "src/types/internal/StoredTransition";
 import type { TransitionIntent } from "src/types/TransitionIntent";
+import { compareIdentities } from "src/utils/compareIdentities";
 
 // The same attempt is the same command on the same route at the same target: a new deployment decision names another target.
 const isSameAttempt = (left: TransitionIntent, right: TransitionIntent) => {
@@ -11,15 +12,7 @@ const isSameAttempt = (left: TransitionIntent, right: TransitionIntent) => {
     return left.target === right.target;
   }
 
-  if (left.target.status === "unknown" || right.target.status === "unknown") {
-    return false;
-  }
-
-  return (
-    left.target.authority === right.target.authority &&
-    left.target.domain === right.target.domain &&
-    left.target.value === right.target.value
-  );
+  return compareIdentities(left.target, right.target) === "same";
 };
 
 /**

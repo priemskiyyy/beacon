@@ -5,6 +5,7 @@ import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { SupportVerdict } from "src/types/SupportVerdict";
 import {
   buildWebRelease,
+  createBeacon,
   createRoutedBeacon,
   settle,
 } from "src/utils/Beacon.fixture";
@@ -35,7 +36,6 @@ const checkWith = async (
 };
 
 test("a Beacon without a policy has unknown support, and its report says there is none", async () => {
-  const { createBeacon } = await import("src/utils/Beacon.fixture");
   const { beacon } = createBeacon();
 
   expect(beacon.support.get()).toEqual({
@@ -384,6 +384,65 @@ test("POL-14 a policy that throws keeps the last valid evaluation in force and r
     status: "unsupported",
     reason: null,
     error: { code: "POLICY_FAILED" },
+  });
+});
+
+test("POL-14 the evaluation kept beside a failure says whether its routes are usable now, not when it was made", async () => {
+  const state = { broken: false };
+
+  const context = createPolicyBeacon({
+    build: 90,
+    evaluate: (support, running) => {
+      if (state.broken) {
+        throw new Error("bad policy");
+      }
+
+      return evaluateSupport(support, running);
+    },
+  });
+
+  context.beacon.start();
+  await checkWith(
+    context,
+    buildDocument({ binary: { kind: "none", reason: "no-release" } }),
+  );
+
+  expect(context.beacon.support.get().evaluation?.remediation).toEqual([
+    { route: "binary", level: "required", usable: false },
+  ]);
+
+  state.broken = true;
+
+  // The read that breaks the policy is also the one that brings the binary its offer.
+  await checkWith(
+    context,
+    buildDocument({ support: { minimumBuild: 109, deprecatedBelow: 100 } }),
+  );
+
+  expect(context.beacon.support.get()).toMatchObject({
+    error: { code: "POLICY_FAILED" },
+    evaluation: {
+      remediation: [{ route: "binary", level: "required", usable: true }],
+    },
+  });
+});
+
+test("POL-14 an answer that is not a verdict fails the evaluation, and the check still answers", async () => {
+  const context = createPolicyBeacon({
+    // A host that is not typed can answer with anything.
+    evaluate: () => JSON.parse('{"status":"supported","remediation":[]}'),
+  });
+
+  context.beacon.start();
+
+  await expect(checkWith(context)).resolves.toMatchObject({
+    routes: { web: { status: "succeeded" } },
+    support: { status: "failed", error: { code: "POLICY_FAILED" } },
+  });
+  expect(context.beacon.support.get()).toMatchObject({
+    status: "unknown",
+    reason: "evaluation-failed",
+    evaluation: null,
   });
 });
 

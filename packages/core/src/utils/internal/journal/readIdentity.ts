@@ -1,42 +1,32 @@
 import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
+import { readField } from "src/utils/internal/journal/readField";
 
 /** A release identity as it was persisted, or `undefined` when what was read is not one: the record is a trust boundary. */
 export const readIdentity = (value: unknown): ReleaseIdentity | undefined => {
-  if (typeof value !== "object" || value === null) {
-    return undefined;
-  }
+  const status = readField(value, "status");
 
-  if (!("status" in value)) {
-    return undefined;
-  }
+  if (status === "unknown") {
+    const reason = readField(value, "reason");
 
-  if (value.status === "unknown") {
-    if (!("reason" in value) || typeof value.reason !== "string") {
+    if (typeof reason !== "string") {
       return undefined;
     }
 
-    return { status: "unknown", reason: value.reason };
+    return { status: "unknown", reason };
   }
 
-  if (value.status !== "known") {
-    return undefined;
-  }
+  const authority = readField(value, "authority");
+  const domain = readField(value, "domain");
+  const identified = readField(value, "value");
 
   if (
-    !("authority" in value) ||
-    !("domain" in value) ||
-    !("value" in value) ||
-    typeof value.authority !== "string" ||
-    typeof value.domain !== "string" ||
-    typeof value.value !== "string"
+    status !== "known" ||
+    typeof authority !== "string" ||
+    typeof domain !== "string" ||
+    typeof identified !== "string"
   ) {
     return undefined;
   }
 
-  return {
-    status: "known",
-    authority: value.authority,
-    domain: value.domain,
-    value: value.value,
-  };
+  return { status: "known", authority, domain, value: identified };
 };

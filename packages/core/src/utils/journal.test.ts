@@ -105,6 +105,25 @@ test("JOURNAL-02 a best-effort intent that cannot be written is visible, and the
   expect(memory.data.has(KEY)).toBe(false);
 });
 
+test("JOURNAL-02 a best-effort intent that cannot be written is announced once, in the state that says the journal degraded", async () => {
+  const memory = createMemoryStorage();
+  const context = createJournaled(memory, "best-effort");
+  const offer = await startWithOffer(context);
+  const heard: Array<ReturnType<typeof context.beacon.transitions.get>> = [];
+
+  context.beacon.transitions.subscribe(() => {
+    heard.push(context.beacon.transitions.get());
+  });
+  memory.failWrites(new Error("quota exceeded"));
+  await reload(context, offer);
+
+  expect(heard).toHaveLength(1);
+  expect(heard[0]).toMatchObject({
+    journal: "degraded",
+    latest: { intent: { command: "reload" } },
+  });
+});
+
 test("an intent is written before the provider is asked, and holds identities and nothing else", async () => {
   const memory = createMemoryStorage();
   const context = createJournaled(memory);
@@ -147,6 +166,30 @@ test("an intent is written before the provider is asked, and holds identities an
   await pending;
 });
 
+test("an intent names what ran as it was known: an unnamed build as unknown, and a build not read as nothing", async () => {
+  const unnamed = createMemoryStorage();
+  const first = createJournaled(unnamed, "required", { build: null });
+
+  first.beacon.start();
+  await first.beacon.route("web").refresh();
+
+  expect(readRecord(unnamed)[0]?.intent).toMatchObject({
+    current: { status: "unknown", reason: "unnamed-build" },
+    target: null,
+  });
+
+  const unread = createMemoryStorage();
+  const second = createJournaled(unread, "required", { failRead: true });
+
+  second.beacon.start();
+  await second.beacon.route("web").refresh();
+
+  expect(readRecord(unread)[0]?.intent).toMatchObject({
+    current: null,
+    target: null,
+  });
+});
+
 test("a command that changes nothing that is running writes no intent", async () => {
   const memory = createMemoryStorage();
   const context = createJournaled(memory);
@@ -155,6 +198,36 @@ test("a command that changes nothing that is running writes no intent", async ()
   await context.beacon.route("web").prefetch();
 
   expect(memory.calls.writes).toBe(0);
+});
+
+test("what the journal publishes about an intent cannot be changed, whether the intent was written by this boot or read from an earlier one", async () => {
+  const memory = createMemoryStorage();
+
+  seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
+
+  const written = createJournaled(memory, "required", { boot: "boot-2" });
+  const offer = await startWithOffer(written);
+
+  await reload(written, offer);
+
+  const { latest } = written.beacon.transitions.get();
+
+  expect(latest?.intent.boot.id).toBe("boot-2");
+
+  const read = createJournaled(memory, "required", { boot: "boot-3" });
+
+  read.beacon.start();
+  await settle();
+
+  for (const published of [latest, read.beacon.transitions.get().latest]) {
+    expect(published).not.toBeNull();
+    expect(Object.isFrozen(published)).toBe(true);
+    expect(Object.isFrozen(published?.intent)).toBe(true);
+    expect(Object.isFrozen(published?.intent.operation)).toBe(true);
+    expect(Object.isFrozen(published?.intent.boot)).toBe(true);
+    expect(Object.isFrozen(published?.intent.current)).toBe(true);
+    expect(Object.isFrozen(published?.intent.target)).toBe(true);
+  }
 });
 
 test("JOURNAL-03 an intent written before a crash is read back as an intent, not as proof of a dispatch", async () => {
@@ -377,6 +450,34 @@ test("JOURNAL-10 a record of a future schema is ignored, not read as a version i
   expect(context.beacon.transitions.get().latest).toBeNull();
 });
 
+test("a storage that answers nothing at all for a missing key has no record, as one that answers null", async () => {
+  const store: Record<string, string> = {};
+
+  const context = createWebCommandBeacon({
+    journal: {
+      mode: "required",
+      storage: {
+        // Many stores say `undefined` for a key they do not have, and the answer is not checked by the types of a host that has none.
+        read: async (key) => Reflect.get(store, key),
+        write: async (key, value) => {
+          store[key] = value;
+        },
+        remove: async (key) => {
+          delete store[key];
+        },
+      },
+    },
+  });
+
+  context.beacon.start();
+  await settle();
+
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "ready",
+    latest: null,
+  });
+});
+
 test("JOURNAL-11 boots in a row that leave the same target unreached use up the budget, and a new target starts again", async () => {
   const memory = createMemoryStorage();
   const target = buildIntent().target;
@@ -436,6 +537,19 @@ test("JOURNAL-11 boots in a row that leave the same target unreached use up the 
   });
 });
 
+test("a scope with text that is not well formed in it starts, and its record is read", async () => {
+  const memory = createMemoryStorage();
+  const context = createJournaled(memory);
+
+  context.beacon.replaceScope({ ...SCOPE, partition: "user-\uD800" });
+
+  expect(() => context.beacon.start()).not.toThrow();
+  await settle();
+
+  expect(memory.calls.reads).toBe(1);
+  expect(context.beacon.transitions.get().journal).toBe("ready");
+});
+
 test("JOURNAL-12 two contexts share no atomic counter: the last write wins and is what a later boot reads", async () => {
   const memory = createMemoryStorage();
   const first = createJournaled(memory, "required", { boot: "boot-a" });
@@ -465,6 +579,67 @@ test("JOURNAL-13 a privacy flow clears the record, and nothing stored is replaye
   expect(memory.data.has(KEY)).toBe(false);
   expect(context.beacon.transitions.get().latest).toBeNull();
   expect(context.runs).toHaveLength(0);
+});
+
+test("JOURNAL-13 clearing a Beacon that has no journal has nothing to remove", async () => {
+  const context = createWebCommandBeacon();
+
+  context.beacon.start();
+  await context.beacon.clearJournal();
+
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "off",
+    latest: null,
+  });
+});
+
+test("JOURNAL-13 a record that cannot be removed leaves the journal degraded, with what it held forgotten", async () => {
+  const memory = createMemoryStorage();
+  const events: string[] = [];
+
+  seed(memory, [buildStored(buildIntent())]);
+
+  const context = createJournaled(memory, "required", { boot: "boot-2" });
+
+  context.beacon.diagnostics.events.subscribe((event) => {
+    events.push(`${event.type}:${event.reason}`);
+  });
+  context.beacon.start();
+  await settle();
+
+  memory.storage.remove = async () => {
+    throw new Error("storage offline");
+  };
+
+  await expect(context.beacon.clearJournal()).resolves.toBeUndefined();
+
+  expect(events).toContain("journal-failed:clear");
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "degraded",
+    latest: null,
+  });
+});
+
+test("JOURNAL-04 a judged record that cannot be written back is still read, and the journal says degraded", async () => {
+  const memory = createMemoryStorage();
+  const events: string[] = [];
+
+  seed(memory, [buildStored(buildIntent())]);
+  memory.failWrites(new Error("quota exceeded"));
+
+  const context = createJournaled(memory, "required", { boot: "boot-2" });
+
+  context.beacon.diagnostics.events.subscribe((event) => {
+    events.push(`${event.type}:${event.reason}`);
+  });
+  context.beacon.start();
+  await settle();
+
+  expect(events).toContain("journal-failed:write");
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "degraded",
+    latest: { outcome: "target-not-running", attempts: 1 },
+  });
 });
 
 test("JOURNAL-14 the journal keeps a bounded history, and says how much older correlation it let go", async () => {

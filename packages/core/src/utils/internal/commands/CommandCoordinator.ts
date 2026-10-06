@@ -9,7 +9,6 @@ import type { CommandResolution } from "src/types/internal/CommandResolution";
 import type { CommandTarget } from "src/types/internal/CommandTarget";
 import type { RouteEntry } from "src/types/internal/RouteEntry";
 import type { Session } from "src/types/internal/Session";
-import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import type { OperationState } from "src/types/OperationState";
 import type { ProviderResult } from "src/types/ProviderResult";
 import { BeaconError } from "src/utils/BeaconError";
@@ -22,6 +21,7 @@ import {
 } from "src/utils/constants/commands";
 import { IDLE_OPERATION } from "src/utils/constants/routes";
 import { describeImpacts } from "src/utils/internal/commands/describeImpacts";
+import { freezeOperation } from "src/utils/internal/commands/freezeOperation";
 import { readParameters } from "src/utils/internal/commands/readParameters";
 import { resolveCommand } from "src/utils/internal/commands/resolveCommand";
 import { assertUnreachable } from "src/utils/internal/common/assertUnreachable";
@@ -36,8 +36,6 @@ import { getSubject } from "src/utils/internal/routes/getSubject";
 type Admitted = Extract<CommandAdmission, { status: "admitted" }>;
 
 type Stopped = { status: "stopped"; outcome: CommandResult };
-
-type Prepared = { status: "prepared"; lease: Lease };
 
 /** Why the call stopped before the provider was asked, or what to dispatch. */
 type Verdict =
@@ -77,10 +75,12 @@ export class CommandCoordinator {
     const session = this.#options.getSession();
 
     if (session === null) {
-      return this.#settle(target, {
-        status: "failed",
-        error: toErrorInfo(this.#options.createInactiveError()),
-      });
+      return Promise.resolve(
+        this.#answer(target, {
+          status: "failed",
+          error: toErrorInfo(this.#options.createInactiveError()),
+        }),
+      );
     }
 
     const resolution = resolveCommand(
@@ -91,14 +91,14 @@ export class CommandCoordinator {
     );
 
     if (resolution.status === "stale") {
-      return this.#settle(target, resolution);
+      return Promise.resolve(this.#answer(target, resolution));
     }
 
     const parameters = readParameters(input);
     const admission = this.#admit(target, resolution.reference, parameters);
 
     if (admission.status === "blocked") {
-      return this.#settle(target, admission);
+      return Promise.resolve(this.#answer(target, admission));
     }
 
     if (admission.status === "joined") {
@@ -126,13 +126,9 @@ export class CommandCoordinator {
   /** The name of a route whose operation is running or unresolved, or `undefined` when none is. */
   findBusy = () => this.#operations.keys().next().value;
 
-  /** Releases every reservation still held, as the Beacon ends. */
+  /** Releases every reservation still held, as the Beacon ends. The operations stay, so a call that is still under way ends as it does when a session stops. */
   close = () => {
-    const held = [...this.#operations.values()];
-
-    this.#operations.clear();
-
-    for (const operation of held) {
+    for (const operation of [...this.#operations.values()]) {
       this.#releaseLease(operation);
     }
   };
@@ -186,7 +182,7 @@ export class CommandCoordinator {
 
     this.#operations.set(entry.name, operation);
 
-    return { status: "admitted", operation, settle: deferred.resolve };
+    return { status: "admitted", operation, answer: deferred.resolve };
   }
 
   #refuse(code: string): CommandAdmission {
@@ -223,11 +219,11 @@ export class CommandCoordinator {
   #start(
     session: Session,
     target: CommandTarget,
-    { operation, settle }: Admitted,
+    { operation, answer }: Admitted,
     input: CommandInput,
   ): Promise<CommandResult> {
     this.#execute(session, target, operation, input).then((outcome) =>
-      settle(this.#settle(target, outcome, operation)),
+      answer(this.#answer(target, outcome, operation)),
     );
 
     return operation.outcome;
@@ -240,11 +236,15 @@ export class CommandCoordinator {
     input: CommandInput,
   ): Promise<CommandResult> {
     const controller = new AbortController();
-    const stopFollowing = this.#follow(session, controller, input.signal);
+
+    let stopFollowing = () => {};
 
     try {
+      stopFollowing = this.#follow(session, controller, input.signal);
+
       return await this.#coordinate(target, operation, input, controller);
     } catch (cause) {
+      // Whatever throws here, the slot and the reservations are given back: a route never stays held by a call that is over.
       this.#release(operation);
 
       return {
@@ -268,10 +268,9 @@ export class CommandCoordinator {
     signal: AbortSignal | undefined,
   ) {
     const abort = () => controller.abort();
-    const leaveSession = session.scope.add(abort);
 
     if (signal === undefined) {
-      return leaveSession;
+      return session.scope.add(abort);
     }
 
     if (signal.aborted) {
@@ -279,6 +278,8 @@ export class CommandCoordinator {
     }
 
     signal.addEventListener("abort", abort, { once: true });
+
+    const leaveSession = session.scope.add(abort);
 
     return () => {
       leaveSession();
@@ -332,9 +333,9 @@ export class CommandCoordinator {
     operation: CommandOperation,
     input: CommandInput,
     controller: AbortController,
-  ): Promise<Stopped | Prepared> {
+  ): Promise<Stopped | { status: "prepared"; lease: Lease }> {
     // Nobody is asked to make room for a command that cannot run.
-    const opened = this.#open(target, controller);
+    const opened = this.#checkOpen(target, controller);
 
     if (opened.status === "stopped") {
       return opened;
@@ -369,7 +370,7 @@ export class CommandCoordinator {
       return stopWith({ status: "blocked", reasons: settling.value });
     }
 
-    const staged = await this.#stage(
+    const stopped = await this.#writeIntent(
       target,
       operation,
       lease,
@@ -377,15 +378,15 @@ export class CommandCoordinator {
       controller,
     );
 
-    if (staged !== null) {
-      return staged;
+    if (stopped !== null) {
+      return stopped;
     }
 
     return { status: "prepared", lease };
   }
 
-  // A command that replaces the realm first looks again, then writes its intent, which takes time.
-  async #stage(
+  // A command that replaces the realm first looks again, then writes its intent, which takes time. The intent is not proof of a dispatch: it is what the next boot reads back to say what happened.
+  async #writeIntent(
     target: CommandTarget,
     operation: CommandOperation,
     lease: Lease,
@@ -402,21 +403,7 @@ export class CommandCoordinator {
       return first;
     }
 
-    return this.#persist(
-      target,
-      operation,
-      first.resolution.target,
-      controller,
-    );
-  }
-
-  // The intent is not proof of a dispatch: it is what the next boot reads back to say what happened.
-  async #persist(
-    { entry, name, command }: CommandTarget,
-    operation: CommandOperation,
-    target: ReleaseIdentity | null,
-    controller: AbortController,
-  ): Promise<Stopped | null> {
+    const { entry, name, command } = target;
     const running = this.#options.getRunning();
     const subject = getSubject(entry.definition);
     const fact = running[subject];
@@ -429,7 +416,7 @@ export class CommandCoordinator {
         command: name,
         subject,
         current: fact.state === "known" ? fact.release.identity : null,
-        target,
+        target: first.resolution.target,
         binding: command.binding,
       }),
       controller.signal,
@@ -450,7 +437,7 @@ export class CommandCoordinator {
   }
 
   // What has to hold for any command to run: the caller still waits, and the provider is open.
-  #open(
+  #checkOpen(
     { entry }: CommandTarget,
     controller: AbortController,
   ): Stopped | { status: "open"; native: object } {
@@ -482,7 +469,7 @@ export class CommandCoordinator {
     input: CommandInput,
     controller: AbortController,
   ): Verdict {
-    const opened = this.#open(target, controller);
+    const opened = this.#checkOpen(target, controller);
 
     if (opened.status === "stopped") {
       return opened;
@@ -648,15 +635,16 @@ export class CommandCoordinator {
 
   #publish(entry: RouteEntry, operation: OperationState) {
     commitChange((transaction) =>
-      entry.record.installOperation(transaction, operation),
+      entry.record.installOperation(transaction, freezeOperation(operation)),
     );
   }
 
-  #settle(
+  // Records how a call ended, and hands the outcome back.
+  #answer(
     { entry, name }: CommandTarget,
     outcome: CommandResult,
     operation?: CommandOperation,
-  ): Promise<CommandResult> {
+  ): CommandResult {
     this.#options.record("command-settled", {
       route: entry.name,
       command: name,
@@ -664,6 +652,6 @@ export class CommandCoordinator {
       ...(operation === undefined ? {} : { operation: operation.id }),
     });
 
-    return Promise.resolve(outcome);
+    return outcome;
   }
 }

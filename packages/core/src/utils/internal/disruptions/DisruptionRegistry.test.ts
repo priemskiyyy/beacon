@@ -127,6 +127,50 @@ test("a participant whose reservation throws blocks the command and the others a
   expect(reportError).toHaveBeenCalledWith(failure);
 });
 
+test("SAFE-03 a participant that answers a reservation with neither status refuses the command, and the earlier ones are released", () => {
+  // A host that is not typed can answer with nothing, or with something else.
+  for (const answer of ["null", '{"status":"maybe"}']) {
+    const { registry } = createRegistry();
+    const log: string[] = [];
+
+    registry.register(createParticipant("first", log));
+    registry.register({
+      name: "confused",
+      impacts: ["document-replacement"],
+      reserve: () => JSON.parse(answer),
+    });
+
+    expect(registry.reserve(RELOAD)).toEqual({
+      status: "blocked",
+      reasons: [
+        { code: "reservation-failed", participant: { name: "confused" } },
+      ],
+    });
+    expect(log).toEqual(["first reserved", "first released"]);
+  }
+});
+
+test("SAFE-03 a participant that declares no impacts refuses the command, and the earlier ones are released", () => {
+  const { registry, reportError } = createRegistry();
+  const log: string[] = [];
+
+  registry.register(createParticipant("first", log));
+  registry.register({
+    name: "forgetful",
+    // A host that is not typed can leave a field out.
+    ...JSON.parse('{"reserve":null}'),
+  });
+
+  expect(registry.reserve(RELOAD)).toEqual({
+    status: "blocked",
+    reasons: [
+      { code: "reservation-failed", participant: { name: "forgetful" } },
+    ],
+  });
+  expect(log).toEqual(["first reserved", "first released"]);
+  expect(reportError).toHaveBeenCalledTimes(1);
+});
+
 test("SAFE-05 a release that throws is reported and the remaining releases still run", () => {
   const { registry, reportError } = createRegistry();
   const log: string[] = [];
@@ -156,6 +200,25 @@ test("SAFE-05 a release that throws is reported and the remaining releases still
     "first released",
   ]);
   expect(reportError).toHaveBeenCalledWith(failure);
+});
+
+test("a participant registered twice is asked twice, and each registration leaves on its own", () => {
+  const { registry } = createRegistry();
+  const log: string[] = [];
+  const participant = createParticipant("drafts", log);
+  const unregisterFirst = registry.register(participant);
+
+  registry.register(participant);
+  registry.reserve(RELOAD);
+  expect(log).toEqual(["drafts reserved", "drafts reserved"]);
+
+  unregisterFirst();
+  registry.reserve(RELOAD);
+  expect(log).toEqual([
+    "drafts reserved",
+    "drafts reserved",
+    "drafts reserved",
+  ]);
 });
 
 test("a participant asks only when the command has an impact it cares about", () => {
@@ -207,6 +270,30 @@ test("SAFE-04 a settlement that says blocked, throws or takes too long is not re
   expect(reportError).toHaveBeenCalledTimes(1);
 });
 
+test("SAFE-10 a caller that stops waiting for a settlement leaves no timer armed", () => {
+  const { registry, clock } = createRegistry();
+  const log: string[] = [];
+  const controller = new AbortController();
+
+  registry.register(
+    createParticipant("silent", log, {
+      settle: () => createDeferred<Settlement>().promise,
+    }),
+  );
+
+  const outcome = registry.reserve(RELOAD);
+
+  if (outcome.status !== "reserved") {
+    throw new Error("The reservation should have been taken.");
+  }
+
+  outcome.lease.settle(controller.signal);
+  expect(clock.pendingTimers()).toBe(1);
+
+  controller.abort();
+  expect(clock.pendingTimers()).toBe(0);
+});
+
 test("SAFE-06 the revision grows when a participant registers or leaves, once per change", () => {
   const { registry } = createRegistry();
   const log: string[] = [];
@@ -225,5 +312,8 @@ test("SAFE-06 the revision grows when a participant registers or leaves, once pe
   unregister();
 
   expect(registry.getRevision()).toBe(2);
-  expect(registry.size()).toBe(0);
+
+  // A participant that left is not asked again.
+  registry.reserve(RELOAD);
+  expect(log).toEqual(["drafts reserved"]);
 });

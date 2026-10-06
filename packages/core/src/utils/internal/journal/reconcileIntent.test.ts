@@ -83,6 +83,39 @@ test("an unknown target is never matched, whatever runs", () => {
   ).toBe("inconclusive");
 });
 
+test("what ran before running again has not reached the target, whatever the target names", () => {
+  const unknown: ReleaseIdentity = {
+    status: "unknown",
+    reason: "worker-build-unknown",
+  };
+
+  for (const target of [null, unknown]) {
+    expect(
+      reconcileIntent(buildIntent({ target }), running(known("web-build-b"))),
+    ).toBe("target-not-running");
+  }
+});
+
+test("an unknown identity that ran before is never matched by what runs now", () => {
+  const unknown: ReleaseIdentity = {
+    status: "unknown",
+    reason: "unnamed-build",
+  };
+
+  expect(
+    reconcileIntent(
+      buildIntent({ current: unknown }),
+      running(known("web-build-z")),
+    ),
+  ).toBe("different-target");
+  expect(
+    reconcileIntent(
+      buildIntent({ current: unknown }),
+      running(known("web-build-b")),
+    ),
+  ).toBe("different-target");
+});
+
 test("an identity of another domain matches nothing, even with the same value", () => {
   expect(
     reconcileIntent(

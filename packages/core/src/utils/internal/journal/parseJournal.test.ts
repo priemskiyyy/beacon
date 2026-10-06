@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 
+import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import { buildIntent, buildStored } from "src/utils/journal.fixture";
 import { parseJournal } from "src/utils/internal/journal/parseJournal";
 import { serializeJournal } from "src/utils/internal/journal/serializeJournal";
@@ -79,4 +80,70 @@ test("a record with more transitions than the capacity is ignored", () => {
 
 test("a record larger than any record can be is ignored without being parsed", () => {
   expect(parseJournal(" ".repeat(70_000))).toBeUndefined();
+});
+
+test("an identity that was not known reads back as it was written", () => {
+  const unknown: ReleaseIdentity = {
+    status: "unknown",
+    reason: "unnamed-build",
+  };
+
+  const transitions = [
+    buildStored(buildIntent({ current: unknown, target: unknown })),
+  ];
+
+  expect(parseJournal(serializeJournal(transitions))).toEqual(transitions);
+});
+
+test("an identity that is not one is a bad transition, wherever it stands", () => {
+  const good = buildStored(buildIntent());
+
+  const identities = [
+    "web-build-a",
+    7,
+    [],
+    {},
+    { status: "unknown" },
+    { status: "unknown", reason: 3 },
+    { status: "known", authority: "a", domain: "d" },
+    { status: "known", authority: "a", domain: "d", value: 3 },
+    { status: "known", authority: 1, domain: "d", value: "v" },
+  ];
+
+  for (const identity of identities) {
+    for (const field of ["current", "target"]) {
+      const broken = { ...good, intent: { ...good.intent, [field]: identity } };
+
+      expect(
+        parseJournal(JSON.stringify({ version: 1, transitions: [broken] })),
+      ).toBeUndefined();
+    }
+  }
+});
+
+test("a transition that is not an object, or has no intent, is a bad transition", () => {
+  const good = buildStored(buildIntent());
+
+  for (const broken of [null, 7, "intent", [], {}, { ...good, intent: null }]) {
+    expect(
+      parseJournal(JSON.stringify({ version: 1, transitions: [broken] })),
+    ).toBeUndefined();
+  }
+});
+
+test("a binding that is not a string, and a boot or an operation that is not an object, are bad", () => {
+  const good = buildStored(buildIntent());
+
+  for (const intent of [
+    { ...good.intent, binding: 3 },
+    { ...good.intent, boot: "boot-1" },
+    { ...good.intent, boot: { id: 1 } },
+    { ...good.intent, operation: 1 },
+  ]) {
+    expect(
+      parseJournal(
+        JSON.stringify({ version: 1, transitions: [{ ...good, intent }] }),
+      ),
+    ).toBeUndefined();
+  }
 });

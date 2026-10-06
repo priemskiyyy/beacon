@@ -19,6 +19,7 @@ concurrency:
 
 jobs:
   test:
+    name: packages-test (${{ matrix.node }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -75,3 +76,28 @@ jobs:
       # Each mutant weakens one rule; a mutant the tests do not kill is a missing test or dead code.
       - name: Mutation checks
         run: pnpm test:mutation
+
+  # The binding claims React 18.3 and up, and the suite runs on the 19.2 that React Native 0.86 and Expo SDK 57 ship, so the oldest it claims is run on its own. Devtools need 19.2 and the native renderer tests are written for it, so only the web binding's tests run here.
+  react-floor:
+    name: packages-test (react 18.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+        with:
+          node-version: "22.18.0"
+
+      - name: Install the oldest React the binding claims
+        run: pnpm add -Dw --ignore-scripts react@18.3.1 react-dom@18.3.1
+
+      # The binding imports the core by its package name.
+      - name: Build packages
+        run: pnpm build
+
+      - name: React binding on React 18.3
+        run: pnpm exec vitest run --project react

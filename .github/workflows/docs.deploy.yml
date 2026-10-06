@@ -9,6 +9,7 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "docs/**"
+      - "scripts/verify-links.mjs"
       - ".github/actions/setup/**"
       - ".github/workflows/docs.deploy.yml"
 
@@ -26,6 +27,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The site is served from https://priemskiyyy.github.io/beacon/, so it is built
+    # for that base path whether or not Pages is switched on yet: the build and the
+    # check of its links run on every push, and only the deployment below needs Pages.
+    env:
+      DOCS_SITE_URL: https://priemskiyyy.github.io/beacon/
+      DOCS_BASE_PATH: /beacon/
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,24 +41,27 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup
 
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@v5
-
       - name: Build site
-        env:
-          DOCS_SITE_URL: ${{ steps.pages.outputs.base_url }}/
-          DOCS_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
         run: pnpm build:docs
 
+      # Under the base path the deployment serves it from, which a build for `/` cannot prove.
+      - name: Check the built site
+        run: pnpm verify:links
+
       - name: Upload artifact
+        if: ${{ !github.event.repository.private }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs/.vitepress/dist
 
   deploy:
     needs: build
+    # Pages is not available to a private repository on the current plan, and a
+    # public one has to select GitHub Actions as its Pages source first: see
+    # .github/REPOSITORY_SETUP.md.
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

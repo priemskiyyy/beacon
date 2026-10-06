@@ -1,0 +1,106 @@
+name: publish
+
+# Publishing is a human act: someone creates a GitHub release for one package
+# (`beacon-expo-v0.1.0`) and approves the `npm` environment. Pushes and
+# verification runs publish nothing. See RELEASING.md and .github/REPOSITORY_SETUP.md.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+
+# One run per tag. A second release event for the same tag waits for the first
+# rather than racing it to the registry.
+concurrency:
+  group: publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      package: ${{ steps.verify.outputs.package }}
+      version: ${{ steps.verify.outputs.version }}
+      dist-tag: ${{ steps.verify.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # The release tag is `<package>-v<version>`, such as `beacon-expo-v0.1.0`; the script resolves the package, checks that the version, the changelog date and the prerelease flag agree, and fails on a tag that matches no package.
+      - id: verify
+        run: node scripts/verify-release.mjs
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+  packages:
+    needs: metadata
+    uses: ./.github/workflows/packages.test.yml
+  format:
+    needs: metadata
+    uses: ./.github/workflows/common.format.yml
+  verified:
+    needs: metadata
+    uses: ./.github/workflows/packages.verify.yml
+  docs:
+    needs: metadata
+    uses: ./.github/workflows/docs.test.yml
+  browser:
+    needs: metadata
+    uses: ./.github/workflows/browser.test.yml
+  peers:
+    needs: metadata
+    uses: ./.github/workflows/packages.peers.yml
+  publish:
+    needs: [metadata, packages, format, verified, docs, browser, peers]
+    # A fork that is given a release publishes nothing: the npm environment belongs to this repository.
+    if: github.repository == 'priemskiyyy/beacon'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or newer; the bundled npm is not
+      # guaranteed to be, and an older one would look for a token this
+      # workflow deliberately does not have.
+      - name: Ensure npm supports trusted publishing
+        run: npm install --global npm@11
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+      # Publishes the exact tarball the verify job packed, linted and installed, not a rebuild.
+      - name: Publish the verified package
+        working-directory: release/${{ needs.metadata.outputs.package }}
+        env:
+          NPM_TAG: ${{ needs.metadata.outputs.dist-tag }}
+          PACKAGE_NAME: ${{ needs.metadata.outputs.package }}
+          PACKAGE_VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          sha256sum --check SHA256SUMS
+          if published="$(npm view "$PACKAGE_NAME@$PACKAGE_VERSION" dist.integrity --json 2>/dev/null)"; then
+            node --input-type=module - "$published" ./*.tgz <<'NODE'
+          import assert from "node:assert/strict";
+          import { createHash } from "node:crypto";
+          import { readFileSync } from "node:fs";
+          const expected = JSON.parse(process.argv[2]);
+          const actual = `sha512-${createHash("sha512").update(readFileSync(process.argv[3])).digest("base64")}`;
+          assert.equal(actual, expected, "The published version differs from the verified tarball. Prepare a new version.");
+          console.log("This exact verified tarball is already published.");
+          NODE
+            exit 0
+          fi
+          npm publish ./*.tgz --access public --provenance --tag "$NPM_TAG"

@@ -24,3 +24,7 @@ tasks/
 
 # expo writes its export log here
 .expo/
+
+# package manager and compiler logs and caches
+*.log
+*.tsbuildinfo

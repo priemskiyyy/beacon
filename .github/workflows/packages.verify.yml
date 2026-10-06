@@ -1,0 +1,85 @@
+name: packages-verify
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "CHANGELOG.md"
+      - ".github/actions/setup/**"
+      - ".github/workflows/packages.verify.yml"
+      - "scripts/**"
+      - "packages/**"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "CHANGELOG.md"
+      - ".github/actions/setup/**"
+      - ".github/workflows/packages.verify.yml"
+      - "scripts/**"
+      - "packages/**"
+
+permissions:
+  contents: read
+
+# Named, not derived from the workflow: when a caller runs this workflow, every
+# called workflow shares the caller's name and they would cancel each other.
+concurrency:
+  group: packages-verify-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: packages-verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+
+      # The rules of the release gate are tested before they gate anything.
+      - name: Release rules
+        run: pnpm test:release
+
+      # Every package on one version line, with a changelog entry, the metadata the registry page needs and peers on the line.
+      - name: Release metadata
+        run: pnpm verify:release
+
+      - name: Build packages
+        run: pnpm build
+
+      # Packs every package the way pnpm publishes it, lints each tarball with
+      # publint and attw, reads it back (no source, no test file, nothing imported
+      # that the manifest does not declare) and stages it with its checksum.
+      - name: Packed packages
+        run: pnpm test:package
+
+      # Installs exactly those tarballs, with plain npm install and the peers it
+      # asks for, into clean folders outside the workspace: a Vite and React app,
+      # an Expo app (compiled, then bundled by Metro for both native platforms),
+      # the native SDK adapters, the secondary frameworks, an adapter author's
+      # Vitest project and a Jest test through the provider.
+      - name: Packaged consumers
+        run: pnpm test:consumers
+
+      # The publish workflow publishes these tarballs and nothing it rebuilds.
+      - name: Upload verified packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: .artifacts/release/
+          # The folder is under a dot directory, which v4.4 and later leave out unless told.
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

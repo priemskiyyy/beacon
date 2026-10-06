@@ -1,0 +1,46 @@
+name: packages-peers
+
+# Each adapter claims an open-ended peer range from the oldest SDK its structural
+# type fits. This installs that floor and the newest release it was run against,
+# outside the workspace, and typechecks the adapter against them. It needs the
+# network, so it is not part of the check every push runs: it runs weekly, when the
+# SDKs it reads may have moved, by hand, and before a release.
+on:
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 1"
+  pull_request:
+    paths:
+      - "scripts/verify-peers.mjs"
+      - "scripts/readWorkspacePackages.mjs"
+      - "packages/adapters/**/package.json"
+      - "packages/adapters/**/src/types/**"
+      - ".github/workflows/packages.peers.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packages-peers-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  peers:
+    name: packages-peers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+
+      # The structural types are read from the built declarations.
+      - name: Build packages
+        run: pnpm build
+
+      - name: Oldest and newest SDKs
+        run: pnpm verify:peers

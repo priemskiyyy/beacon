@@ -16,6 +16,7 @@ on:
       - "scripts/verify-docs.mjs"
       - "scripts/verify-snippets.mjs"
       - "scripts/verify-jsdoc.mjs"
+      - "scripts/verify-links.mjs"
       - "scripts/readWorkspacePackages.mjs"
       - "scripts/snippets.ambient.d.ts"
   push:
@@ -33,6 +34,7 @@ on:
       - "scripts/verify-docs.mjs"
       - "scripts/verify-snippets.mjs"
       - "scripts/verify-jsdoc.mjs"
+      - "scripts/verify-links.mjs"
       - "scripts/readWorkspacePackages.mjs"
       - "scripts/snippets.ambient.d.ts"
 
@@ -48,6 +50,7 @@ concurrency:
 
 jobs:
   test:
+    name: docs-test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -75,3 +78,7 @@ jobs:
       # VitePress fails the build on a dead internal link.
       - name: Site
         run: pnpm build:docs
+
+      # What the built site links to is in it: every link, script, style and image, every fragment, the pages the navigation reaches, the 404 page and the code groups.
+      - name: Links in the built site
+        run: pnpm verify:links

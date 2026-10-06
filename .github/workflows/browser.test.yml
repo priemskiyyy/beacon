@@ -31,6 +31,7 @@ concurrency:
 
 jobs:
   test:
+    name: browser-test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -60,4 +61,6 @@ jobs:
         with:
           name: example-results
           path: .artifacts/example-results
+          # The folder is under a dot directory, which v4.4 and later leave out unless told.
+          include-hidden-files: true
           retention-days: 7

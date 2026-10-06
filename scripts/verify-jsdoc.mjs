@@ -43,7 +43,7 @@ const PLACEHOLDERS = new Set(
     // Types the application declares.
     "Browser Decision Flow Lookup Manifest PlayBody ReloadReceipt Revision Store UpdateBody Updates UpdatesNative",
     // Constants and modules it imports.
-    "APP_LABEL BUILD_ID BUILD_IDENTITY Linking NativeModules api createSignal expect",
+    "APP_LABEL BUILD_ID BUILD_IDENTITY Linking PlayUpdates api createSignal events expect playBridge",
     // Components and functions of its own.
     "Application BeaconProvider evaluateSupport fetchManifest parseDecision parseLookup parseManifestResponse parseRevision readWebRelease showBanner",
     // What a test of its own builds.

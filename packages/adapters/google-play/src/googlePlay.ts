@@ -34,6 +34,7 @@ const commands = {
     binding: "provider-current",
     run: async (context): Promise<PlayResult<"immediate-flow-started">> => {
       const { native, offer, signal } = context;
+
       const refusal = await PlaySession.of(native).confirmFlow(
         offer,
         "immediate",

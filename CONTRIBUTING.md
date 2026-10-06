@@ -1,13 +1,14 @@
 # Contributing
 
-Use Node 22.18 or newer and the pnpm version in `package.json`. Run `pnpm install --frozen-lockfile`, then `pnpm check` before submitting a change. It builds every package, typechecks, lints, runs the lint rule probes, checks that the verification table matches the tests, that the documented limits are still stated that a built package imports only what its role allows and that each built entry is within its gzip budget, checks formatting and runs every test. `pnpm test:mutation` weakens one guarded rule at a time and fails when a test does not notice; add a mutant to `scripts/mutate.mjs` for a rule you protect.
+Use Node 22.18 or newer and the pnpm version in `package.json`. Run `pnpm install --frozen-lockfile`, then `pnpm check` before submitting a change. It builds every package, typechecks, lints, runs the lint rule probes, checks that the verification table matches the tests, that the documented limits are still stated that a built package imports only what its role allows and that each built entry is within its gzip budget, that the documentation's pages and links are sound and that every code fence in it compiles against the built packages, checks formatting and runs every test. `pnpm test:mutation` weakens one guarded rule at a time and fails when a test does not notice; add a mutant to `scripts/mutate.mjs` for a rule you protect.
 
 ## Layout
 
 - `packages/core`: the runtime, published as `@priemskiyyy/beacon` with the `./versions`, `./mock` and `./testing` subpaths.
 - `packages/adapters/*`: one package per source or provider, published as `@priemskiyyy/beacon-<name>`: `http` defines a release source over the application's own client, `browser` reloads the document, `service-worker`, `expo`, `google-play` and `app-store` map a provider.
-- `packages/react`: the React binding, a provider and hooks.
-- `docs/`: the decision record, the runtime architecture and the verification table.
+- `packages/react`, `packages/solid`, `packages/vue` and `packages/svelte`: the framework bindings, each a provider and the same primitives in its framework's idiom, read by route name from the `Register`ed Beacon.
+- `docs/`: the VitePress site, with the guides, the adapters, the bindings, the decision record, the runtime architecture and the verification table.
+- `examples/`: the release lab shared by a React app and an Expo app, and the Playwright specs that run them in Chromium.
 - `scripts/`: the checks beyond the tests. `verify-lint-rules.mjs` proves each lint rule still rejects what it was written for, and `verify-scenarios.mjs` keeps the verification table in step with the tests. Each has been probed with a deliberately broken input, so keep that habit when changing one.
 
 Runtime owners and helpers live in `utils/`, constants in `utils/constants/`, and shared contracts in `types/`, one type per file. Internal code belongs in each folder's `internal/` directory, so `utils/internal/` holds the helpers no consumer may import. The mock lives in `mock/` and the conformance suites in `testing/`. Package roots export the supported public API explicitly, and no other file is a barrel. An adapter keeps its factory in `src/<name>.ts`, its mapping in `utils/`, and the provider's names and reasons in `utils/constants/`.

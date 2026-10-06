@@ -9,7 +9,7 @@ import type { BeaconClock } from "src/types/BeaconClock";
  * @example
  * ```ts
  * const clock = createTestClock();
- * const beacon = new Beacon({ scope, routes, clock });
+ * const beacon = new Beacon({ scope, running, routes, clock });
  *
  * clock.advance(30_000);
  * ```

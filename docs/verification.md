@@ -36,4 +36,4 @@ Every provider SDK, the clock and the network are faked in process. The Expo Upd
 
 Nothing has run in a real browser, on a device, or against a real Play or App Store distribution, and a fake bridge verifies state handling, not installation. What a stable release of each adapter still needs is in [the decision record](decisions.md#not-verified-on-a-device).
 
-The groups with few or no proven rows are features that are not built yet: the dismissal of a banner (`POL`), and the parts of `HTTP`, `SEC` and `BIND` that belong to a standard manifest, the diagnostics inspector and the other framework bindings. [The decision record](decisions.md#not-built-yet) lists them.
+The rows without a test belong to features that are not built yet, such as the dismissal of a banner (`POL-12`), or need a device or a real distribution to prove. [The decision record](decisions.md#not-built-yet) lists them.

@@ -15,7 +15,7 @@
     "test:lint": "node scripts/verify-lint-rules.mjs",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "check": "pnpm build && pnpm lint:typescript && pnpm lint:eslint && pnpm test:lint && pnpm test:scenarios && pnpm test:limits && pnpm test:package && pnpm test:size && pnpm lint:prettier && pnpm test:unit",
+    "check": "pnpm build && pnpm lint:typescript && pnpm lint:eslint && pnpm test:lint && pnpm test:scenarios && pnpm test:limits && pnpm test:package && pnpm test:size && pnpm verify:docs && pnpm verify:snippets && pnpm lint:prettier && pnpm test:unit",
     "test:scenarios": "node scripts/verify-scenarios.mjs",
     "test:package": "node scripts/verify-packages.mjs",
     "test:limits": "node scripts/verify-limits.mjs",

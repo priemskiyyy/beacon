@@ -8,7 +8,7 @@ import type { RouteBody } from "src/types/RouteBody";
  *
  * @example
  * ```ts
- * const routes = { ota: expoUpdates({ sdk: Updates }) };
+ * const routes = { ota: expoUpdates({ updates: Updates }) };
  * ```
  */
 export type DriverRoute<

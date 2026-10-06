@@ -27,7 +27,7 @@ const stop = beacon.start();
 await beacon.check({ reason: "startup" });
 ```
 
-Constructing, reading and subscribing start nothing: `start()` opens the observation session and `dispose()` ends it for good. Every observable has `get()` and `subscribe()`, and `get()` keeps its identity until something meaningful changes.
+Constructing, reading and subscribing start nothing: `start()` opens the observation session and `dispose()` ends it for good. Every observable has `get()`, `subscribe()` and `getInitial()`, the value before any session, which is what a server renders. `get()` keeps its identity until something meaningful changes.
 
 ## Routes
 

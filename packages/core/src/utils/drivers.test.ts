@@ -72,6 +72,27 @@ test("CORE-05 a prepared target and a new operation's progress stay distinguisha
   await downloading;
 });
 
+test("CORE-04 an accepted no-offer after an offer changes the observation to none and leaves an independently prepared target alone", async () => {
+  const context = createDriverBeacon();
+
+  await startWithOffer(context);
+  context.emitter()?.prepared({ status: "ready", value: BODY });
+
+  const { prepared } = context.ota.state.get();
+
+  context.emitter()?.observation({
+    status: "none",
+    reason: "no-decision",
+    detail: "noUpdateAvailableOnServer",
+  });
+
+  expect(context.ota.state.get().observation).toMatchObject({
+    status: "none",
+    reason: "no-decision",
+  });
+  expect(context.ota.state.get().prepared).toBe(prepared);
+});
+
 test("LIFE-04 a driver that fails to open leaves an unrelated route usable, and says which failed", async () => {
   const broken = createFakeDriver({ failOpen: new Error("no native module") });
   const mock = createMockSource<Manifest>({ name: "manifest" });

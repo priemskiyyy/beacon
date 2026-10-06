@@ -97,6 +97,26 @@ test("VER-06 malformed and coercible-looking strings are rejected", () => {
   }
 });
 
+test("VER-06 a value that is no text is INVALID_VERSION, whatever an untyped caller hands over", () => {
+  const strays: unknown[] = [
+    undefined,
+    null,
+    1,
+    1n,
+    true,
+    Symbol("v"),
+    ["1.2.3"],
+    { toString: () => "1.2.3" },
+    Object.create(null),
+  ];
+
+  for (const input of strays) {
+    expect(() => Reflect.apply(strategy.parse, undefined, [input])).toThrow(
+      expect.objectContaining({ code: "INVALID_VERSION" }),
+    );
+  }
+});
+
 test("VER-07 numeric identifiers beyond the safe integer range compare exactly", () => {
   const huge = "9007199254740993";
   const nearby = "9007199254740992";

@@ -54,6 +54,25 @@ test("VER-09 signs, fractions, exponents, leading zeros and whitespace are rejec
   }
 });
 
+test("VER-09 a value that is neither a number nor a text is INVALID_VERSION, whatever an untyped caller hands over", () => {
+  const strays: unknown[] = [
+    undefined,
+    null,
+    1n,
+    true,
+    Symbol("v"),
+    [7],
+    { toString: () => "7" },
+    Object.create(null),
+  ];
+
+  for (const input of strays) {
+    expect(() => Reflect.apply(strategy.parse, undefined, [input])).toThrow(
+      expect.objectContaining({ code: "INVALID_VERSION" }),
+    );
+  }
+});
+
 test("a safe integer and its canonical string parse to the same value", () => {
   expect(strategy.parse(108)).toBe("108");
   expect(strategy.parse("108")).toBe("108");

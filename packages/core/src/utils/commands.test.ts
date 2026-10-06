@@ -632,6 +632,34 @@ test("a provider that later confirms the command failed releases what an abort l
   expect(web.state.get().operation).toEqual({ state: "idle" });
 });
 
+test("SAFE-11 an answer of the provider after the application acknowledged the lost command holds nothing and releases nothing twice", async () => {
+  const context = createWebCommandBeacon();
+  const log: string[] = [];
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+  const controller = new AbortController();
+
+  context.beacon.disruptions.register(createParticipant("drafts", log));
+
+  const reload = web.reload({ offer, signal: controller.signal });
+
+  await settle();
+  controller.abort();
+  await reload;
+
+  // The application decides to continue, and the guard is released once.
+  web.acknowledge();
+  expect(web.state.get().operation).toEqual({ state: "idle" });
+  expect(log.filter((entry) => entry === "drafts:release")).toHaveLength(1);
+
+  // Then the provider says the reload was accepted after all: the route is not held again for a command nobody waits for.
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+  await settle();
+
+  expect(web.state.get().operation).toEqual({ state: "idle" });
+  expect(log.filter((entry) => entry === "drafts:release")).toHaveLength(1);
+});
+
 test("a provider that did not open fails the command, releases the reservations, and leaves the route free", async () => {
   const context = createWebCommandBeacon({ failOpen: true });
   const log: string[] = [];

@@ -7,6 +7,7 @@ import {
 } from "src/utils/constants/versions";
 import { freezeList } from "src/utils/internal/common/freezeList";
 import { createInvalidVersionError } from "src/utils/internal/versions/createInvalidVersionError";
+import { createVersionTypeError } from "src/utils/internal/versions/createVersionTypeError";
 import { splitDotted } from "src/utils/internal/versions/splitDotted";
 
 const parseIdentifier = (value: string): SemVerIdentifier => {
@@ -19,6 +20,11 @@ const parseIdentifier = (value: string): SemVerIdentifier => {
 
 /** Parses a strict SemVer 2.0.0 string, guessing nothing: no `v`, no missing component. */
 export const parseSemVer = (input: string): SemVer => {
+  // A manifest, a store or a bridge hands over whatever it holds, whatever the type says.
+  if (typeof input !== "string") {
+    throw createVersionTypeError("semver", "a text");
+  }
+
   if (input.length > MAX_SEMVER_LENGTH) {
     throw createInvalidVersionError("semver", input.slice(0, 32));
   }

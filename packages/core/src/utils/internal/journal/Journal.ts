@@ -41,6 +41,9 @@ export class Journal {
   #store: ValueStore<TransitionState>;
   #transitions: StoredTransition[] = [];
   #queue: Promise<void> = Promise.resolve();
+  // What gives up on each call to the storage that is in flight, so a Beacon that ends leaves no deadline armed.
+  #deadlines = new Set<() => void>();
+  #closed = false;
   #hydrated = false;
   // The intents this boot gave their outcome: one read back with an outcome, or written by this boot, was judged at another moment.
   #judgedHere = new WeakSet<StoredTransition["intent"]>();
@@ -209,7 +212,13 @@ export class Journal {
   };
 
   close = () => {
+    this.#closed = true;
     this.#store.close();
+
+    // A call the storage has not answered is given up on now: its deadline is not left armed, and the queue behind it moves on to calls that are refused, since nothing is sent to the storage once the Beacon ended.
+    for (const giveUp of [...this.#deadlines]) {
+      giveUp();
+    }
   };
 
   // The record a call is about is fixed when it is made: the queue may run it after the scope changed.
@@ -237,12 +246,23 @@ export class Journal {
     operation: "read" | "write" | "remove",
     call: () => Promise<TValue>,
   ): Promise<TValue> {
+    // A privacy flow may still remove the record of a Beacon that ended, and nothing else is sent.
+    if (this.#closed && operation !== "remove") {
+      throw new BeaconError({
+        code: "JOURNAL_FAILED",
+        message: "The Beacon ended, so the journal storage was not called.",
+      });
+    }
+
     const { clock, record } = this.#config;
     const expired = createDeferred<never>();
 
     let abandoned = false;
 
-    const cancel = clock.setTimer(() => {
+    let cancel = () => {};
+
+    const giveUp = () => {
+      cancel();
       abandoned = true;
       expired.reject(
         new BeaconError({
@@ -250,7 +270,11 @@ export class Journal {
           message: "The journal storage did not answer in time.",
         }),
       );
-    }, timeout);
+    };
+
+    cancel = clock.setTimer(giveUp, timeout);
+
+    this.#deadlines.add(giveUp);
 
     const answer = new Promise<TValue>((resolve) => resolve(call()));
 
@@ -268,6 +292,7 @@ export class Journal {
     try {
       return await Promise.race([answer, expired.promise]);
     } finally {
+      this.#deadlines.delete(giveUp);
       cancel();
     }
   }

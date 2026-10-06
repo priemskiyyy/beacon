@@ -69,7 +69,7 @@ declare module "@priemskiyyy/beacon-svelte" {
 }
 ```
 
-`Register` is an interface so that you can merge into it. Without it, utilities accept any route name and give a loosely typed state, so register.
+`Register` is an interface so that you can merge into it. Without it, utilities accept any route name and give a loosely typed state, and a Beacon with named routes does not fit the `beacon` prop of `BeaconProvider`, so register.
 
 ## BeaconProvider
 
@@ -118,6 +118,8 @@ mount(Root, { target, props: { beacon, start: true } });
 | `children` | the content that reads the Beacon                                                            |
 
 With `start`, a pre effect calls `beacon.start()` and returns its stop as the cleanup. When the provider is destroyed, that ends only that session. It never disposes the Beacon, and it checks nothing. The effect reads both props, so a new `beacon` or `start` ends the old session first, and starts a new one when `start` is still set.
+
+Give `start` to one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider with `start` on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
 A pre effect runs before the effects of the children. The session therefore starts before any child's `onMount`, and a check there does not fail with `NOT_STARTED`. Checks are yours:
 
@@ -243,6 +245,29 @@ The selector runs when Beacon reports a change, and it runs untracked. A `$state
 ```
 
 Until the component is mounted, `current` holds the value from before any session. Effects run after mount, and then `current` reads the live value and follows it. The first render, on the server and in the browser, shows the value from before any session.
+
+### When the provider's Beacon changes
+
+`useBeacon().current` returns the new Beacon at once. Every other utility assigns its value in an effect that it creates when you call it, and Svelte runs effects in the order they were created. An `$effect` of yours that you write after the call reads the new Beacon and its value together. An `$effect` you write before the call runs first, with the new Beacon and the old value, and again with both new.
+
+```svelte
+<!-- src/SessionLabel.svelte -->
+<script lang="ts">
+  import { useBeacon, useStatus } from "@priemskiyyy/beacon-svelte";
+
+  const beacon = useBeacon();
+  const state = useStatus(({ state }) => state);
+
+  // Written after the utility, so both come from the same Beacon.
+  $effect(() => {
+    console.info(beacon.current.status.get().state, state.current);
+  });
+</script>
+
+<span>{state.current}</span>
+```
+
+Call the utilities first in a component, and do not start a command from a run that mixes the two.
 
 ### Why the utilities untrack
 

@@ -69,7 +69,7 @@ declare module "@priemskiyyy/beacon-vue" {
 }
 ```
 
-`Register` is an interface so that you can merge into it. Without it, composables accept any route name and give a loosely typed state, so register.
+`Register` is an interface so that you can merge into it. Without it, composables accept any route name and give a loosely typed state, and a Beacon with named routes does not fit the `beacon` prop of `BeaconProvider`, so register.
 
 ## BeaconProvider
 
@@ -111,6 +111,8 @@ createApp(Root, { beacon, start: true }).mount("#app");
 | `start`  | `false` by default. When set, the provider holds the observation session while it is mounted |
 
 With `start`, the provider calls `beacon.start()` just before it mounts and ends that session when it unmounts. It never disposes the Beacon, and it checks nothing. A new `beacon` or `start` prop ends the old session, and starts a new one when `start` is still set. Keep a Beacon that you swap in a `shallowRef`, since a deep `ref` would wrap it in a proxy.
+
+Give `start` to one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider with `start` on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
 The session starts before any child of the provider is created. A check in a child's `onMounted` therefore finds the session running and does not fail with `NOT_STARTED`. Checks are yours:
 

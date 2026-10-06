@@ -69,7 +69,7 @@ declare module "@priemskiyyy/beacon-solid" {
 }
 ```
 
-`Register` is an interface so that you can merge into it. Without it, primitives accept any route name and give a loosely typed state, so register.
+`Register` is an interface so that you can merge into it. Without it, primitives accept any route name and give a loosely typed state, and a Beacon with named routes does not fit the `beacon` prop of `BeaconProvider`, so register.
 
 ## BeaconProvider
 
@@ -104,7 +104,9 @@ render(
 | `beacon` | the registered Beacon to publish to the tree below                                           |
 | `start`  | `false` by default. When set, the provider holds the observation session while it is mounted |
 
-With `start`, an effect calls `beacon.start()` and returns its stop as the cleanup. When the provider is disposed, that ends only that session. It never disposes the Beacon, and it checks nothing. The effect reads both props, so a new `beacon` or `start` ends the old session, and starts a new one when `start` is still set.
+With `start`, an effect calls `beacon.start()` and returns its stop as the cleanup. When the provider is disposed, that ends only that session. It never disposes the Beacon, and it checks nothing. The effect reads both props, so a new `beacon` or `start` ends the old session, and starts a new one when `start` is still set. It calls `start` untracked: `start` notifies the listeners of the status at once, and whatever such a listener reads, such as a signal, does not become a dependency of the provider's effect and cannot restart the session.
+
+Give `start` to one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider with `start` on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
 The provider creates its effect before any child exists, and Solid runs effects in the order it created them. The session therefore starts before any child's `onMount`, and a check there does not fail with `NOT_STARTED`. Checks are yours:
 
@@ -241,9 +243,9 @@ While the component body runs, an accessor holds the value from before any sessi
 
 ### When the provider's Beacon changes
 
-The Beacon of the provider is a memo, so `useBeacon()` returns the new Beacon at once. The value behind every other primitive is written by an effect, which runs after the memo in the same update. For that one flush an accessor still holds a value selected from the old Beacon.
+The Beacon of the provider is a memo, so `useBeacon()` returns the new Beacon at once. The value behind every other primitive is written by an effect that the primitive creates when you call it, and that effect runs after the memo in the same update. Solid runs effects in the order they were created, so an effect of yours that you create after calling the primitive sees the new Beacon and its selection together.
 
-An effect that reads only the accessor never sees the stale value, since it runs when the new one is written. An effect that reads both `useBeacon()` and an accessor runs twice: first with the new Beacon and the old value, then with both new. A read inside a `batch` in that update sees the old value as well.
+An effect that you create before the call, or a read inside a `batch` in that update, still sees a value selected from the old Beacon for that one flush. An effect that reads both `useBeacon()` and an accessor and was created first runs twice: first with the new Beacon and the old value, then with both new.
 
 ```tsx
 // src/SessionLabel.tsx
@@ -254,8 +256,8 @@ export const SessionLabel = () => {
   const beacon = useBeacon();
   const state = useStatus(({ state }) => state);
 
+  // Created after the primitive, so it runs after the primitive's effect and both come from the same Beacon.
   createEffect(() => {
-    // For one run after a swap, `state()` still comes from the old Beacon.
     console.info(beacon().status.get().state, state());
   });
 
@@ -263,7 +265,7 @@ export const SessionLabel = () => {
 };
 ```
 
-Do not start a command from a run that mixes the two. In an effect that acts, read only one of them.
+Do not start a command from a run that mixes the two. Call the primitives first in a component and create your own effects after them, or in an effect that acts, read only one of them.
 
 ### Commands and checks
 

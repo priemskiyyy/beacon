@@ -63,10 +63,13 @@ const UpdateBanner = () => {
   useDisruption({
     name: "draft-editor",
     impacts: ["document-replacement"],
-    reserve: () =>
-      isDirty()
-        ? { status: "blocked", code: "unsaved-draft" }
-        : { status: "reserved", release: resume },
+    reserve: () => {
+      if (isDirty()) {
+        return { status: "blocked", code: "unsaved-draft" };
+      }
+
+      return { status: "reserved", release: resume };
+    },
   });
 
   return (

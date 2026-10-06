@@ -63,10 +63,13 @@ Call the utilities while a component initializes, as you would `getContext`, and
   useDisruption({
     name: "draft-editor",
     impacts: ["document-replacement"],
-    reserve: () =>
-      dirty
-        ? { status: "blocked", code: "unsaved-draft" }
-        : { status: "reserved", release: () => {} },
+    reserve: () => {
+      if (dirty) {
+        return { status: "blocked", code: "unsaved-draft" };
+      }
+
+      return { status: "reserved", release: () => {} };
+    },
   });
 </script>
 

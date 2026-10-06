@@ -69,7 +69,7 @@ declare module "@priemskiyyy/beacon-react" {
 }
 ```
 
-`Register` is an interface so that you can merge into it. Without it, hooks accept any route name and give a loosely typed state, so register.
+`Register` is an interface so that you can merge into it. Without it, hooks accept any route name and give a loosely typed state, and a Beacon with named routes does not fit the `beacon` prop of `BeaconProvider`, so register.
 
 ## BeaconProvider
 
@@ -101,7 +101,9 @@ createRoot(container).render(
 | `beacon` | the registered Beacon to publish to the tree below                                           |
 | `start`  | `false` by default. When set, the provider holds the observation session while it is mounted |
 
-With `start`, a layout effect calls `beacon.start()` and returns its stop as the cleanup. A layout effect runs before the passive effects of the whole tree, so the session is already running when a child's mount effect runs. On unmount it ends only that session. It never disposes the Beacon, and it checks nothing. A new `beacon` or `start` ends the old session and starts the new one.
+With `start`, a layout effect calls `beacon.start()` and returns its stop as the cleanup. A layout effect runs before the passive effects of the whole tree, so the session is already running when a child's `useEffect` runs. A child's `useLayoutEffect` runs before its parent's, so it finds the session not started yet. On unmount it ends only that session. It never disposes the Beacon, and it checks nothing. A new `beacon` or `start` ends the old session and starts the new one.
+
+Give `start` to one provider per Beacon. `start()` while a session is open answers the same stop, so a second provider with `start` on the same Beacon shares that session, and the first of them to unmount ends it for both.
 
 Checks are yours. A component checks in its own effect, and finds the session running:
 
@@ -147,9 +149,11 @@ export const App = () => (
 | `useDisruption`  | registers a participant while mounted; Beacon always asks the latest one you passed                        |
 | `useBeacon`      | the provider's Beacon, for commands (`reload`, `activate`, `download` and the rest) and for `check`        |
 
+The hooks read the provider's Beacon on every render, so a provider whose `beacon` changes moves every hook below it to the new Beacon, and `useDisruption` leaves the old one and joins the new one.
+
 ### Selectors
 
-Every reading hook takes a selector and an options object: `useRoute(name, selector, { isEqual })`. Without a selector you get the whole snapshot. With one, the component renders again only when the selection changes by `isEqual`, which is `Object.is` by default.
+Every reading hook takes a selector and an options object: `useRoute(name, selector, { isEqual })`. Without a selector you get the whole snapshot. With one, the component renders again only when the selection changes by `isEqual`, which is `Object.is` by default. The route name and the selector are read on every render, so they may change between renders, and a new selector selects again from the current value.
 
 ```tsx
 // src/RouteHooks.tsx
@@ -313,7 +317,9 @@ export const DraftEditor = ({ save }: DraftEditorProps) => {
 };
 ```
 
-A reservation a component holds stays valid after the component unmounts, as long as the service behind it lives. It is released when the command ends, not when the view goes. So a participant that guards real work should be owned by a service, and the hook is a convenient way to register it while a view exists. [Disruptions](disruptions.md) has the whole order of steps.
+A reservation a component holds stays valid after the component unmounts, as long as the service behind it lives. It is released when the command ends, not when the view goes. So a participant that guards real work should be owned by a service, and the hook is a convenient way to register it while a view exists.
+
+A subtree that `<Activity mode="hidden">` hides keeps its state but runs its effect cleanups, so a participant registered there is unregistered while the subtree is hidden and registered again when it is shown. The same holds for a provider with `start`: it ends its session while hidden. Keep such a participant in a service, or keep the subtree visible while it holds work. [Disruptions](disruptions.md) has the whole order of steps.
 
 ## Strict Mode
 
@@ -324,7 +330,7 @@ Strict Mode runs the provider's effect, cleans it up and runs it again. The resu
 The server and the hydrating render read every observable as it stood before any session, through `getInitial`. On the server that is what `renderToString` prints: the route is `unknown` with `not-checked`, and what runs is `pending`. The markup therefore matches whatever the client has learned by the time it hydrates, even when a boundary hydrates late and the live state has moved on. The live value is read on the render after hydration.
 
 - Design the first render for `unknown` and `pending`: show nothing until the observation is `available`.
-- Start the Beacon through the provider, and not before the hydrating render. The provider starts it in a layout effect, so it is running before any child's effect: a check in a component's mount effect does not fail with `NOT_STARTED`.
+- Start the Beacon through the provider, and not before the hydrating render. The provider starts it in a layout effect, so it is running before any child's `useEffect`: a check in a component's mount effect does not fail with `NOT_STARTED`.
 - A server render starts nothing and reads nothing. Create the Beacon for each request, and never start it on the server, so that two requests never share a session or a state.
 
 ```tsx

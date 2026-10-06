@@ -53,10 +53,13 @@ const UpdateBanner = () => {
   useDisruption({
     name: "draft-editor",
     impacts: ["document-replacement"],
-    reserve: () =>
-      isDirty()
-        ? { status: "blocked", code: "unsaved-draft" }
-        : { status: "reserved", release: resume },
+    reserve: () => {
+      if (isDirty()) {
+        return { status: "blocked", code: "unsaved-draft" };
+      }
+
+      return { status: "reserved", release: resume };
+    },
   });
 
   if (observation.status !== "available") {
@@ -93,4 +96,4 @@ Every selector hook takes `(selector, { isEqual })`: it renders again only when 
 
 ## Server rendering
 
-The server and the hydrating render read every observable as it stood before any session (`getInitial`), so the markup matches whatever the client has learned by then, and a boundary that hydrates late still matches. Start the Beacon through the provider and not before the hydrating render. The provider starts it when the tree mounts, before any child's effect runs, so a check in a component's mount effect finds the session running. A server render starts nothing and reads nothing, and two requests never share a session.
+The server and the hydrating render read every observable as it stood before any session (`getInitial`), so the markup matches whatever the client has learned by then, and a boundary that hydrates late still matches. Start the Beacon through the provider and not before the hydrating render. The provider starts it when the tree mounts, before any child's `useEffect` runs, so a check in a component's mount effect finds the session running. A child's `useLayoutEffect` runs before the provider's, so it does not. A server render starts nothing and reads nothing, and two requests never share a session.

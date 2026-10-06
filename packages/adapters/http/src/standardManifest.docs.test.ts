@@ -38,8 +38,8 @@ const parseExample = (text: string | undefined, order: OrderKind) => {
 };
 
 test("the manifest in the package README is a valid manifest for the routes it declares", () => {
-  const [example] = readExamples(path.join(here, "../README.md"));
-  const read = parseExample(example, "text");
+  const examples = readExamples(path.join(here, "../README.md"));
+  const read = parseExample(examples[1], "text");
 
   expect(read.document.routes.binary).toMatchObject({
     release: { order: "2.5.0" },
@@ -47,29 +47,35 @@ test("the manifest in the package README is a valid manifest for the routes it d
   expect(read.document.support?.remediationRoute).toBe("web");
 });
 
-test("the file of a static host in the documentation page is a manifest with nothing but the decision", () => {
-  const [example] = readExamples(path.join(here, "../../../../docs/http.md"));
+test.each([
+  ["package README", "../README.md"],
+  ["documentation page", "../../../../docs/http.md"],
+])(
+  "the file of a static host in the %s is a manifest with nothing but the decision",
+  (_name, file) => {
+    const [example] = readExamples(path.join(here, file));
 
-  const read = parseStandardManifest({
-    text: example ?? "",
-    scope: SCOPE,
-    routes: { web: { kind: "target" } },
-    now: NOW,
-  });
+    const read = parseStandardManifest({
+      text: example ?? "",
+      scope: SCOPE,
+      routes: { web: { kind: "target" } },
+      now: NOW,
+    });
 
-  expect(read.document.routes.web).toEqual({
-    kind: "target",
-    release: {
-      identity: {
-        status: "known",
-        authority: SCOPE.application,
-        domain: "web-artifact",
-        value: "a91b44e",
+    expect(read.document.routes.web).toEqual({
+      kind: "target",
+      release: {
+        identity: {
+          status: "known",
+          authority: SCOPE.application,
+          domain: "web-artifact",
+          value: "a91b44e",
+        },
       },
-    },
-  });
-  expect(read.revision).toBeUndefined();
-});
+    });
+    expect(read.revision).toBeUndefined();
+  },
+);
 
 test("the manifest in the documentation page is a valid manifest for the routes it declares", () => {
   const examples = readExamples(path.join(here, "../../../../docs/http.md"));

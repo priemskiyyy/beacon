@@ -48,6 +48,7 @@ web.requestReload();
 // @ts-expect-error -- a prepared reference never fits where an offer is asked for.
 web.requestReload({ prepared: { kind: "prepared", route: "web", id: 1 } });
 
+// BIND-05 The native handle of a typed route is the provider's own type, without an assertion.
 expectTypeOf(web.native.get()).toEqualTypeOf<BrowserNative | null>();
 
 export const receipt = async () => {

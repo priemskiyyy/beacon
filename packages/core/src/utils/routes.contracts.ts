@@ -11,6 +11,7 @@ import type { Release } from "src/types/Release";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RouteHandle } from "src/types/RouteHandle";
 import type { TargetDecision } from "src/types/TargetDecision";
+import type { Beacon } from "src/utils/Beacon";
 import { createReleaseDriver } from "src/utils/createReleaseDriver";
 import { createReleaseSource } from "src/utils/createReleaseSource";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
@@ -140,12 +141,14 @@ webHandle.requestReload({});
 // @ts-expect-error A reload needs an argument.
 webHandle.requestReload();
 
+// BIND-03 A reference of another route or another kind does not compile.
 // @ts-expect-error An offer of another route is refused at compile time.
 webHandle.requestReload({ offer: otherOffer });
 
 // @ts-expect-error A prepared reference is not an offer reference.
 webHandle.requestReload({ offer: webPrepared });
 
+// BIND-02 A route without a command has no method for it in its inferred type.
 // @ts-expect-error There is no universal install.
 webHandle.install({ offer: webOffer });
 
@@ -274,4 +277,25 @@ createUpdateMechanism({
   // @ts-expect-error A native handle is an object: null already means the route is not open.
   open: () => ({ native: null }),
   commands: {},
+});
+
+declare const beacon: Beacon<{ web: typeof web }>;
+
+// BIND-01 A route name that was never defined does not compile.
+// @ts-expect-error A route name that was never defined does not compile.
+beacon.route("nope");
+
+export const trains = custom({
+  name: "trains",
+  parse: (input: string) => ({ train: 1, sequence: Number(input) }),
+  compare: (candidate, current) => {
+    // BIND-04 The comparator receives the domain its parser returns, not a type of the caller's choosing.
+    expectTypeOf(candidate).toEqualTypeOf<{
+      train: number;
+      sequence: number;
+    }>();
+    expectTypeOf(current).toEqualTypeOf<{ train: number; sequence: number }>();
+
+    return "equal";
+  },
 });

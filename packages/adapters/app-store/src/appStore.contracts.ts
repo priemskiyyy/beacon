@@ -76,6 +76,10 @@ export const withOffer = handle.openStore({ offer });
 
 export const withoutOffer = handle.openStore();
 
+// BIND-02 A store route has no download or install method in its inferred type.
+// @ts-expect-error -- a store route cannot download.
+handle.download({ offer });
+
 // @ts-expect-error -- opening the store takes no parameters of its own.
 handle.openStore({ offer, country: "de" });
 

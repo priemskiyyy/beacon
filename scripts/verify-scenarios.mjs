@@ -5,7 +5,10 @@ import { format, resolveConfig } from "prettier";
 
 // The specification's regression scenarios: 202 rows in 14 groups. A test is
 // named after the row it proves, so the coverage below is read from the tests
-// and never typed by hand.
+// and never typed by hand. A rule only the compiler can prove is marked in its
+// contract file with a line comment naming the row, right above the
+// `@ts-expect-error` or `expectTypeOf` that proves it; a check no test can run
+// is marked the same way above its assertion in a script.
 const GROUPS = [
   ["CORE", "Core state and observations", 14],
   ["VER", "Identity, ordering, and revision", 18],
@@ -27,7 +30,7 @@ const DOC = "docs/verification.md";
 const START = "<!-- scenarios:start -->";
 const END = "<!-- scenarios:end -->";
 
-const findTests = (directory) =>
+const findFiles = (directory, pattern) =>
   readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     if (entry.name === "node_modules" || entry.name === "dist") {
       return [];
@@ -36,26 +39,66 @@ const findTests = (directory) =>
     const path = join(directory, entry.name);
 
     if (entry.isDirectory()) {
-      return findTests(path);
+      return findFiles(path, pattern);
     }
 
-    return /\.test\.tsx?$/.test(entry.name) ? [path] : [];
+    return pattern.test(entry.name) ? [path] : [];
   });
 
 const covered = new Map(GROUPS.map(([group]) => [group, new Set()]));
 
-for (const file of findTests("packages")) {
+const record = (file, group, row) => {
+  const known = GROUPS.find(([name]) => name === group);
+
+  assert(known, `${file} names the unknown scenario group ${group}.`);
+  assert(
+    Number(row) >= 1 && Number(row) <= known[2],
+    `${file} names ${group}-${row}, but ${group} has ${known[2]} rows.`,
+  );
+  covered.get(group).add(Number(row));
+};
+
+for (const file of findFiles("packages", /\.test\.tsx?$/)) {
   const source = readFileSync(file, "utf8");
 
   for (const [, group, row] of source.matchAll(/\btest\("([A-Z]+)-(\d+) /g)) {
-    const known = GROUPS.find(([name]) => name === group);
+    record(file, group, row);
+  }
+}
 
-    assert(known, `${file} names the unknown scenario group ${group}.`);
-    assert(
-      Number(row) >= 1 && Number(row) <= known[2],
-      `${file} names ${group}-${row}, but ${group} has ${known[2]} rows.`,
+// A marker proves nothing unless the line it stands over does.
+const markerFollowers = [
+  [/\.contracts\.tsx?$/, /@ts-expect-error|expectTypeOf\(/],
+  [/\.mjs$/, /assert/],
+];
+
+const markedFiles = [
+  ...findFiles("packages", /\.contracts\.tsx?$/),
+  ...findFiles("scripts", /\.mjs$/),
+];
+
+for (const file of markedFiles) {
+  const [, follower] = markerFollowers.find(([pattern]) => pattern.test(file));
+  const lines = readFileSync(file, "utf8").split("\n");
+
+  for (const [index, line] of lines.entries()) {
+    const marker = /^\s*\/\/ ([A-Z]+)-(\d+) /.exec(line);
+
+    if (marker === null) {
+      continue;
+    }
+
+    const rest = lines.slice(index + 1);
+
+    const next = rest.find(
+      (candidate) => !/^\s*\/\/ [A-Z]+-\d+ /.test(candidate),
     );
-    covered.get(group).add(Number(row));
+
+    assert(
+      next !== undefined && follower.test(next),
+      `${file}:${index + 1} marks ${marker[1]}-${marker[2]} above a line that proves nothing.`,
+    );
+    record(file, marker[1], marker[2]);
   }
 }
 

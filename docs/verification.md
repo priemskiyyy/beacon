@@ -1,6 +1,6 @@
 # Verification
 
-The specification lists 202 required regression scenarios in 14 groups. A test is named after the row it proves, such as `SAFE-03`, and one row can have several tests. The table below is read from the tests by `scripts/verify-scenarios.mjs`, which fails when it disagrees with them or when a test names a row that does not exist. It counts rows with a test, not rows a device has passed.
+The specification lists 202 required regression scenarios in 14 groups. A test is named after the row it proves, such as `SAFE-03`, and one row can have several tests. A type-level row is proven by a `*.contracts.ts` file that carries the row's marker, and a build-level row by a script that does. `pnpm test:package` checks that a built package imports only what its role allows. The table below is read from the tests, contract files and scripts by `scripts/verify-scenarios.mjs`, which fails when it disagrees with them or when a test names a row that does not exist. It counts rows with a test, not rows a device has passed.
 
 <!-- scenarios:start -->
 
@@ -15,12 +15,12 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | EXPO    | Expo Updates                        | 20        | 15     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 17, 18, 19, 20             |
 | PLAY    | Google Play native flows            | 18        | 12     | 01, 02, 04, 05, 08, 09, 10, 11, 12, 13, 14, 15                         |
 | STORE   | App Store metadata and handoff      | 10        | 6      | 01, 02, 03, 04, 05, 07                                                 |
-| SAFE    | Disruption coordination             | 14        | 11     | 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12                             |
+| SAFE    | Disruption coordination             | 14        | 12     | 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 14                         |
 | JOURNAL | Persistence and boot reconciliation | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
 | LIFE    | Sessions and resource ownership     | 12        | 9      | 01, 02, 03, 04, 05, 06, 07, 10, 12                                     |
 | SEC     | Security and diagnostics            | 12        | 8      | 01, 02, 03, 04, 05, 06, 07, 10                                         |
-| BIND    | Types, React, and SSR               | 10        | 2      | 01, 03                                                                 |
-| Total   |                                     | 202       | 143    |                                                                        |
+| BIND    | Types, React, and SSR               | 10        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10                                 |
+| Total   |                                     | 202       | 152    |                                                                        |
 
 <!-- scenarios:end -->
 

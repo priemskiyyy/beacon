@@ -1,5 +1,5 @@
 import { Beacon } from "@priemskiyyy/beacon";
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import type { ReleaseScope } from "@priemskiyyy/beacon";
 import { expect, test } from "vitest";
 
@@ -17,12 +17,6 @@ const SCOPE: ReleaseScope = {
   platform: "android",
   distribution: "play-store",
 };
-
-// Lets every queued promise continuation run before the test goes on.
-const settle = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
 
 const create = (info = availableInfo(412)) => {
   const fake = fakeBridge(info);

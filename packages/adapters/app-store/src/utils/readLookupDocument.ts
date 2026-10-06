@@ -1,10 +1,9 @@
-import { BeaconError } from "@priemskiyyy/beacon";
+import { BeaconError, parseUtcTimestamp } from "@priemskiyyy/beacon";
 
 import type { AppStoreDocument } from "src/types/AppStoreDocument";
 import type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";
 import { MARKETING_VERSION_DOMAIN } from "src/utils/constants/lookup";
 import { NO_MATCH } from "src/utils/constants/reasons";
-import { readReleaseDate } from "src/utils/readReleaseDate";
 
 type Expected = { appId: string; bundleId: string | undefined };
 
@@ -52,7 +51,7 @@ export const readLookupDocument = (
     );
   }
 
-  const releasedAt = readReleaseDate(entry.currentVersionReleaseDate);
+  const releasedAt = parseUtcTimestamp(entry.currentVersionReleaseDate);
 
   if (releasedAt === undefined) {
     throw invalidLookup(

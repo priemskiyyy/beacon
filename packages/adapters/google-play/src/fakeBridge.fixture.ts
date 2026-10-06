@@ -1,3 +1,5 @@
+import { createGate } from "@priemskiyyy/beacon/mock";
+
 import type { PlayBridge } from "src/types/PlayBridge";
 import type { PlayFlowResult } from "src/types/PlayFlowResult";
 import type { PlayInstallEvent } from "src/types/PlayInstallEvent";
@@ -47,26 +49,20 @@ export const fakeBridge = (
   const state: {
     info: PlayUpdateInfo;
     failure: Error | null;
-    holding: boolean;
     ignoringRemoval: boolean;
   } = {
     info: initial,
     failure: null,
-    holding: false,
     ignoringRemoval: false,
   };
 
-  const held: Array<() => void> = [];
+  const gate = createGate();
 
   const bridge: PlayBridge = {
     getUpdateInfo: async () => {
       calls.queries += 1;
 
-      if (state.holding) {
-        await new Promise<void>((resolve) => {
-          held.push(resolve);
-        });
-      }
+      await gate.wait();
 
       if (state.failure !== null) {
         throw state.failure;
@@ -107,16 +103,8 @@ export const fakeBridge = (
     setInfo: (info: PlayUpdateInfo) => {
       state.info = info;
     },
-    holdQueries: () => {
-      state.holding = true;
-    },
-    releaseQueries: () => {
-      state.holding = false;
-
-      for (const resolve of held.splice(0)) {
-        resolve();
-      }
-    },
+    holdQueries: gate.hold,
+    releaseQueries: gate.release,
     failQueries: (error: Error | null) => {
       state.failure = error;
     },

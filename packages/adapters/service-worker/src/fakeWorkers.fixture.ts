@@ -1,3 +1,5 @@
+import { createGate } from "@priemskiyyy/beacon/mock";
+
 import type { ContainerLike } from "src/types/ContainerLike";
 import type { RegistrationLike } from "src/types/RegistrationLike";
 import type { WorkerLike } from "src/types/WorkerLike";
@@ -68,8 +70,7 @@ export const fakeRegistration = ({
   const listeners = new Set<() => void>();
   const counts = { updates: 0 };
   const failures: Error[] = [];
-  const held: Array<() => void> = [];
-  const state = { holding: false };
+  const gate = createGate();
 
   const announce = () => {
     for (const listener of [...listeners]) {
@@ -84,11 +85,7 @@ export const fakeRegistration = ({
     update: async () => {
       counts.updates += 1;
 
-      if (state.holding) {
-        await new Promise<void>((resolve) => {
-          held.push(resolve);
-        });
-      }
+      await gate.wait();
 
       const failure = failures.shift();
 
@@ -129,16 +126,8 @@ export const fakeRegistration = ({
     failNextUpdate: (error) => {
       failures.push(error);
     },
-    holdUpdates: () => {
-      state.holding = true;
-    },
-    releaseUpdates: () => {
-      state.holding = false;
-
-      for (const resolve of held.splice(0)) {
-        resolve();
-      }
-    },
+    holdUpdates: gate.hold,
+    releaseUpdates: gate.release,
   };
 
   return registration;

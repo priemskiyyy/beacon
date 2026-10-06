@@ -23,7 +23,7 @@ const readIdentity = ({ updateId }: UpdatesLike): ReleaseIdentity => {
  * ```ts
  * new Beacon({
  *   scope,
- *   running: { boot: { id: BOOT_ID }, bundle: expoBundle(Updates) },
+ *   running: { boot: { id: createBootId() }, bundle: expoBundle(Updates) },
  *   routes: { ota: expoUpdates({ updates: Updates }) },
  * });
  * ```

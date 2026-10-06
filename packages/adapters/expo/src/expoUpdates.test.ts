@@ -1,5 +1,5 @@
 import { Beacon } from "@priemskiyyy/beacon";
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
 import type { ReleaseScope } from "@priemskiyyy/beacon";
 import { expect, test } from "vitest";
 
@@ -23,12 +23,6 @@ const SCOPE: ReleaseScope = {
   platform: "ios",
   distribution: "app-store",
 };
-
-// Lets every queued promise continuation run before the test goes on.
-const settle = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
 
 const create = (options: Parameters<typeof fakeUpdates>[0] = {}) => {
   const fake = fakeUpdates(options);

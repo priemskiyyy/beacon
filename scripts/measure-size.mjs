@@ -53,14 +53,15 @@ const ENTRIES = [
     files: ["adapters/device-info/dist/index.js"],
     budget: 1024,
   },
+  // The subpaths of the core are measured from its dist like any other entry: what a consumer of `/triggers` adds, with the core root not among it.
   {
     name: "triggers",
-    files: ["adapters/triggers/dist/index.js"],
+    files: ["core/dist/triggers.js"],
     budget: 2 * 1024,
   },
   {
     name: "triggers browser",
-    files: ["adapters/triggers/dist/browser.js"],
+    files: ["core/dist/triggers-browser.js"],
     budget: 1024,
   },
   { name: "react", files: ["react/dist/index.js"], budget: 1.5 * 1024 },

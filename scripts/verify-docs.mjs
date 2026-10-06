@@ -150,6 +150,8 @@ const entries = [
   "packages/core/src/index.ts",
   "packages/core/src/mock.ts",
   "packages/core/src/testing.ts",
+  "packages/core/src/triggers.ts",
+  "packages/core/src/triggers/browser.ts",
   "packages/core/src/versions.ts",
   "packages/react/src/index.ts",
   "packages/vue/src/index.ts",
@@ -157,7 +159,6 @@ const entries = [
   "packages/svelte/src/index.ts",
   "packages/devtools/src/index.ts",
   "packages/devtools/src/react.ts",
-  "packages/adapters/triggers/src/browser.ts",
   "packages/adapters/expo/src/mock.ts",
   ...listAdapterEntries(),
 ];
@@ -172,21 +173,23 @@ const sections = new Map(
     .map((section) => [section.split("\n")[0].trim(), section]),
 );
 
+// A subpath is named by where its entry sits under `src`: `mock` for `src/mock.ts`, `triggers/browser` for `src/triggers/browser.ts`.
 const readSectionTitle = (entry) => {
+  const source = entry.slice(0, entry.indexOf("/src/") + "/src".length);
   const { name } = JSON.parse(
     readFileSync(
-      path.join(workspace, path.dirname(path.dirname(entry)), "package.json"),
+      path.join(workspace, path.dirname(source), "package.json"),
       "utf8",
     ),
   );
 
-  const file = path.basename(entry, ".ts");
+  const subpath = entry.slice(source.length + 1, -".ts".length);
 
-  if (file === "index") {
+  if (subpath === "index") {
     return name;
   }
 
-  return `${name}/${file}`;
+  return `${name}/${subpath}`;
 };
 
 const exported = [];

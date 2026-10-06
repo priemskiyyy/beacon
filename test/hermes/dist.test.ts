@@ -11,6 +11,8 @@ const ENTRIES = [
   "packages/core/dist/index.js",
   "packages/core/dist/versions.js",
   "packages/core/dist/mock.js",
+  "packages/core/dist/triggers.js",
+  "packages/core/dist/triggers-browser.js",
   "packages/adapters/http/dist/index.js",
   "packages/adapters/expo/dist/index.js",
   "packages/adapters/google-play/dist/index.js",
@@ -18,7 +20,6 @@ const ENTRIES = [
   "packages/adapters/firebase-remote-config/dist/index.js",
   "packages/adapters/code-push/dist/index.js",
   "packages/adapters/device-info/dist/index.js",
-  "packages/adapters/triggers/dist/index.js",
 ];
 
 const BROWSER_GLOBALS = [

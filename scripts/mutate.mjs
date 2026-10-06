@@ -3,8 +3,8 @@
 // restored, and a red baseline stops the run.
 //
 //   node scripts/mutate.mjs                        every mutant
-//   node scripts/mutate.mjs --project triggers     only the mutants of that vitest project
-//   node scripts/mutate.mjs --project core --project triggers
+//   node scripts/mutate.mjs --project expo         only the mutants of that vitest project
+//   node scripts/mutate.mjs --project core --project expo
 //
 // `--project <name>` may be repeated. Only the baselines and the mutants of the
 // named projects run, and a name no mutant belongs to is refused. The check
@@ -16,7 +16,7 @@ const core = "packages/core/src/utils";
 const mock = "packages/core/src/mock";
 const testing = "packages/core/src/testing";
 const http = "packages/adapters/http/src";
-const triggers = "packages/adapters/triggers/src";
+const triggers = "packages/core/src/triggers";
 const devtools = "packages/devtools/src";
 const expo = "packages/adapters/expo/src";
 const appStore = "packages/adapters/app-store/src";
@@ -1509,42 +1509,42 @@ const MUTANTS = [
     file: `${triggers}/utils/openGate.ts`,
     find: "startup = true,",
     replace: "startup = false,",
-    project: "triggers",
+    project: "core",
     describes: "a session that opens and checks nothing until a trigger fires",
   },
   {
     file: `${triggers}/browser/foreground.ts`,
     find: "if (!event.persisted) {",
     replace: "if (false) {",
-    project: "triggers",
+    project: "core",
     describes: "a fresh page load taken for a page restored from the cache",
   },
   {
     file: `${triggers}/browser/foreground.ts`,
     find: "      if (!away) {\n        return;\n      }\n",
     replace: "",
-    project: "triggers",
+    project: "core",
     describes: "a tab shown again that was never hidden checking as a return",
   },
   {
     file: `${triggers}/browser/utils/getGlobalWindow.ts`,
     find: 'typeof window === "undefined" || typeof window.document !== "object"',
     replace: 'typeof window === "undefined"',
-    project: "triggers",
+    project: "core",
     describes: "the global object of React Native taken for a browser's window",
   },
   {
     file: `${triggers}/utils/openGate.ts`,
     find: 'const mode = reason === "reconnect" ? "after-current" : "join";',
     replace: 'const mode = "join";',
-    project: "triggers",
+    project: "core",
     describes: "a reconnect joining the read that met the dead network",
   },
   {
     file: `${triggers}/reconnect.ts`,
     find: "if (before !== false || isConnected !== true) {",
     replace: "if (isConnected !== true) {",
-    project: "triggers",
+    project: "core",
     describes:
       "the state NetInfo reports as soon as it is subscribed to taken for a reconnect",
   },
@@ -1552,21 +1552,21 @@ const MUTANTS = [
     file: `${triggers}/foreground.ts`,
     find: 'if (state !== "active" || !away) {',
     replace: 'if (state !== "active") {',
-    project: "triggers",
+    project: "core",
     describes: "an iOS system dialog taken for a return from the background",
   },
   {
     file: `${triggers}/utils/openGate.ts`,
     find: "    inFlight -= 1;\n\n    if (closed) {\n      return;\n    }\n",
     replace: "    inFlight -= 1;\n",
-    project: "triggers",
+    project: "core",
     describes: "a check that fails after the stop arming a wait and a retry",
   },
   {
     file: `${triggers}/utils/signalReturn.ts`,
     find: "observedAway !== null && observedAway < minAway",
     replace: "observedAway < minAway",
-    project: "triggers",
+    project: "core",
     describes: "a return whose absence nobody measured skipped as short",
   },
   {
@@ -1582,7 +1582,7 @@ const MUTANTS = [
     file: `${triggers}/utils/constants/defaults.ts`,
     find: '"foreground",\n  "interval",\n]);',
     replace: '"foreground",\n  "interval",\n  "retry",\n]);',
-    project: "triggers",
+    project: "core",
     describes:
       "a retry after a failed check dropped because the evidence it failed to renew is still fresh",
   },
@@ -1590,7 +1590,7 @@ const MUTANTS = [
     file: `${triggers}/utils/openGate.ts`,
     find: 'signal("expiry")',
     replace: 'signal("interval")',
-    project: "triggers",
+    project: "core",
     describes: "an expiry recheck labelled as the timer's",
   },
   // What Hermes lacks or reads differently: the projects that run a package in

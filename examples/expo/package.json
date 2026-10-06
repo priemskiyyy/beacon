@@ -16,7 +16,6 @@
     "@priemskiyyy/beacon": "workspace:*",
     "@priemskiyyy/beacon-expo": "workspace:*",
     "@priemskiyyy/beacon-react": "workspace:*",
-    "@priemskiyyy/beacon-triggers": "workspace:*",
     "example-shared": "workspace:*",
     "expo": "57.0.24",
     "expo-application": "57.0.3",

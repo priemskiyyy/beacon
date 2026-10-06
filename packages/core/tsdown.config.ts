@@ -6,6 +6,8 @@ export default defineConfig({
     versions: "src/versions.ts",
     mock: "src/mock.ts",
     testing: "src/testing.ts",
+    triggers: "src/triggers.ts",
+    "triggers-browser": "src/triggers/browser.ts",
   },
   format: ["esm"],
   target: "es2022",

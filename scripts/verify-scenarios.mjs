@@ -24,7 +24,7 @@ const GROUPS = [
   ["LIFE", "Sessions and resource ownership", 12],
   ["SEC", "Security and diagnostics", 12],
   ["BIND", "Types, React, and SSR", 10],
-  // Not in the specification: the triggers package has its own rows.
+  // Not in the specification: the triggers of the core have their own rows.
   ["TRIG", "Triggers and checks on events", 30],
 ];
 

@@ -10,7 +10,8 @@ const SETTLE = "packages/core/src/mock/settle.ts";
 const SUITE = "packages/core/src/testing/lint-probe.ts";
 const ADAPTER = "packages/adapters/http/src/lint-probe.ts";
 const NATIVE_ADAPTER = "packages/adapters/expo/src/lint-probe.ts";
-const TRIGGERS = "packages/adapters/triggers/src/lint-probe.ts";
+const TRIGGERS = "packages/core/src/triggers/lint-probe.ts";
+const TRIGGERS_BROWSER = "packages/core/src/triggers/browser/lint-probe.ts";
 const REACT = "packages/react/src/lint-probe.ts";
 const SOLID = "packages/solid/src/lint-probe.ts";
 const VUE = "packages/vue/src/lint-probe.ts";
@@ -211,6 +212,14 @@ const boundaries = [
   ["setTimeout(() => {}, 0);", "no-restricted-globals", TRIGGERS],
   ["const time = Date.now();", "no-restricted-syntax", TRIGGERS],
   ["const view = window;", "no-restricted-globals", TRIGGERS],
+  // The browser triggers are the one part of the core that reads a window, and still only the Beacon's clock and no SDK.
+  ["setTimeout(() => {}, 0);", "no-restricted-globals", TRIGGERS_BROWSER],
+  ["const time = Date.now();", "no-restricted-syntax", TRIGGERS_BROWSER],
+  [
+    'import NetInfo from "@react-native-community/netinfo";',
+    "no-restricted-imports",
+    TRIGGERS_BROWSER,
+  ],
   ['import { Platform } from "react-native";', "no-restricted-imports", REACT],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", CORE],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", REACT],
@@ -417,8 +426,9 @@ const allowed = [
   ],
   [
     'import NetInfo from "@react-native-community/netinfo";\n\nexport const sdk = NetInfo;',
-    "packages/adapters/triggers/src/checkOn.contracts.ts",
+    "packages/core/src/triggers/checkOn.contracts.ts",
   ],
+  ["export const view = window;", TRIGGERS_BROWSER],
   [
     'import type remoteConfig from "@react-native-firebase/remote-config";\n\nexport const sdk: typeof remoteConfig | null = null;',
     "packages/adapters/firebase-remote-config/src/firebaseRemoteConfig.contracts.ts",

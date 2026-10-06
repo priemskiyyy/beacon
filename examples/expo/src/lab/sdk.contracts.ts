@@ -1,6 +1,6 @@
 import { keyValueJournalStorage } from "@priemskiyyy/beacon";
 import { expoApplication } from "@priemskiyyy/beacon-expo";
-import { foreground } from "@priemskiyyy/beacon-triggers";
+import { foreground } from "@priemskiyyy/beacon/triggers";
 import * as Application from "expo-application";
 import keyValueStore from "expo-sqlite/kv-store";
 import { AppState } from "react-native";

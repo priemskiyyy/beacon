@@ -1,5 +1,5 @@
 import type { BeaconDiagnosticEvent } from "@priemskiyyy/beacon";
-import { checkOn, foreground } from "@priemskiyyy/beacon-triggers";
+import { checkOn, foreground } from "@priemskiyyy/beacon/triggers";
 import type React from "react";
 import { useEffect } from "react";
 import { AppState, ScrollView, StyleSheet, Text, View } from "react-native";

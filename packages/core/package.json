@@ -44,6 +44,16 @@
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js",
       "default": "./dist/testing.js"
+    },
+    "./triggers": {
+      "types": "./dist/triggers.d.ts",
+      "import": "./dist/triggers.js",
+      "default": "./dist/triggers.js"
+    },
+    "./triggers/browser": {
+      "types": "./dist/triggers-browser.d.ts",
+      "import": "./dist/triggers-browser.js",
+      "default": "./dist/triggers-browser.js"
     }
   },
   "scripts": {
@@ -61,6 +71,7 @@
     "expo-updates",
     "version-check",
     "force-update",
+    "check-on-foreground",
     "typescript",
     "react-native",
     "beacon"

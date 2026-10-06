@@ -10,8 +10,8 @@ import { rolldown } from "rolldown";
 // The built browser triggers in a real browser: `reconnect` over the `online` event that Chromium fires when its network really goes away and comes back, and the check at startup of `checkOn`. A hidden tab and the back-forward cache cannot be made in a headless page, so `foreground` is only run over a fake page, by its unit tests.
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CORE = path.join(ROOT, "packages/core/dist/index.js");
-const TRIGGERS = path.join(ROOT, "packages/adapters/triggers/dist/index.js");
-const BROWSER = path.join(ROOT, "packages/adapters/triggers/dist/browser.js");
+const TRIGGERS = path.join(ROOT, "packages/core/dist/triggers.js");
+const BROWSER = path.join(ROOT, "packages/core/dist/triggers-browser.js");
 
 const lab = { code: "", folder: "" };
 

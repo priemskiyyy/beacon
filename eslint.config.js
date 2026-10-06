@@ -136,10 +136,11 @@ const clockReads = toRestrictions([
 const entryPoints = [
   "packages/*/src/index.ts",
   "packages/adapters/*/src/index.ts",
-  "packages/adapters/triggers/src/browser.ts",
   "packages/adapters/expo/src/mock.ts",
   "packages/core/src/mock.ts",
   "packages/core/src/testing.ts",
+  "packages/core/src/triggers.ts",
+  "packages/core/src/triggers/browser.ts",
   "packages/core/src/versions.ts",
   "packages/devtools/src/react.ts",
 ];
@@ -515,17 +516,17 @@ export default tseslint.config(
     {
       // The adapters of what a React Native app runs.
       files: [
-        "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config,code-push,device-info,triggers}/src/**/*.ts",
+        "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config,code-push,device-info}/src/**/*.ts",
       ],
-      // The browser triggers of the triggers package are the one part of it that reads a window.
-      ignores: ["packages/adapters/triggers/src/browser/**"],
+      ignores: [],
       globals: [...hostGlobals, ...reactNativeGlobals],
       syntax: reactNativeSyntax,
     },
     {
+      // The browser triggers of the core are the one part of it that reads a window, so this block, which comes after the core's, is theirs.
       files: [
         "packages/adapters/{browser,service-worker}/src/**/*.ts",
-        "packages/adapters/triggers/src/browser/**/*.ts",
+        "packages/core/src/triggers/browser/**/*.ts",
       ],
       ignores: [],
       globals: [],

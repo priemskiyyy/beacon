@@ -182,9 +182,6 @@ importers:
       '@priemskiyyy/beacon-react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@priemskiyyy/beacon-triggers':
-        specifier: workspace:*
-        version: link:../../packages/adapters/triggers
       example-shared:
         specifier: workspace:*
         version: link:../shared
@@ -472,12 +469,6 @@ importers:
         version: link:../../core
 
   packages/adapters/service-worker:
-    devDependencies:
-      '@priemskiyyy/beacon':
-        specifier: workspace:*
-        version: link:../../core
-
-  packages/adapters/triggers:
     devDependencies:
       '@priemskiyyy/beacon':
         specifier: workspace:*

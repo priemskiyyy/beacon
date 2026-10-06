@@ -31,16 +31,16 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 
 ## Install
 
-| Package                              | Use it for                                                         |
-| ------------------------------------ | ------------------------------------------------------------------ |
-| `@priemskiyyy/beacon`                | The runtime, `./versions`, `./mock` and `./testing`                |
-| `@priemskiyyy/beacon-http`           | Your own release manifest endpoint, through your own client        |
-| `@priemskiyyy/beacon-browser`        | Reloading the browser document                                     |
-| `@priemskiyyy/beacon-service-worker` | A waiting service worker as an update that is ready                |
-| `@priemskiyyy/beacon-expo`           | Expo Updates                                                       |
-| `@priemskiyyy/beacon-google-play`    | Google Play in-app updates, over a native bridge you inject        |
-| `@priemskiyyy/beacon-app-store`      | App Store metadata and store handoff                               |
-| `@priemskiyyy/beacon-react`          | A provider and hooks, typed by the Beacon you register             |
+| Package                              | Use it for                                                  |
+| ------------------------------------ | ----------------------------------------------------------- |
+| `@priemskiyyy/beacon`                | The runtime, `./versions`, `./mock` and `./testing`         |
+| `@priemskiyyy/beacon-http`           | Your own release manifest endpoint, through your own client |
+| `@priemskiyyy/beacon-browser`        | Reloading the browser document                              |
+| `@priemskiyyy/beacon-service-worker` | A waiting service worker as an update that is ready         |
+| `@priemskiyyy/beacon-expo`           | Expo Updates                                                |
+| `@priemskiyyy/beacon-google-play`    | Google Play in-app updates, over a native bridge you inject |
+| `@priemskiyyy/beacon-app-store`      | App Store metadata and store handoff                        |
+| `@priemskiyyy/beacon-react`          | A provider and hooks, typed by the Beacon you register      |
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http @priemskiyyy/beacon-browser

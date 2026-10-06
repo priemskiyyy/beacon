@@ -34,6 +34,8 @@ type WebRoute = FeedRoute<
 declare global {
   const BOOT_ID: string;
   const scope: ReleaseScope;
+  // The application's Beacon, with the browser reload route the guides read.
+  const beacon: BeaconClass<{ web: WebRoute }>;
 }
 
 // snippets: readme-only
@@ -50,7 +52,6 @@ declare global {
   const APP_STORE_ID: string;
   const manifest: ReleaseSource<WebDocument>;
   const web: WebRoute;
-  const beacon: BeaconClass<{ web: WebRoute }>;
   const observation: Extract<
     Observation<"web", { release: Release<null> }>,
     { status: "available" }

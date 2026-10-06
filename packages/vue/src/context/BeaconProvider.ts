@@ -11,15 +11,15 @@ import { BEACON_CONTEXT } from "src/context/BeaconContext";
 import type { BeaconProviderProps } from "src/types/BeaconProviderProps";
 
 /**
- * Publishes one Beacon to the components below. With `start`, it holds the
- * observation session while mounted, before any child mounts, and ends only
- * that session on unmount;
- * it never disposes the Beacon, and it checks nothing. A server render
- * starts nothing, and a new `beacon` or `start` prop is followed.
+ * Publishes one Beacon to the components below and holds its observation
+ * session while mounted: it starts the session before any child mounts and
+ * ends only that session on unmount. `:start="false"` leaves the session to the
+ * application. It never disposes the Beacon, and it checks nothing. A server
+ * render starts nothing, and a new `beacon` or `start` prop is followed.
  *
  * @example
  * ```vue
- * <BeaconProvider :beacon="beacon" start>
+ * <BeaconProvider :beacon="beacon">
  *   <Application />
  * </BeaconProvider>
  * ```
@@ -50,6 +50,9 @@ export const BeaconProvider = defineComponent(
   },
   {
     name: "BeaconProvider",
-    props: { beacon: { type: Object, required: true }, start: Boolean },
+    props: {
+      beacon: { type: Object, required: true },
+      start: { type: Boolean, default: true },
+    },
   },
 );

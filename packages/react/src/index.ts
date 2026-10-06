@@ -4,7 +4,7 @@ export { useDisruption } from "src/hooks/useDisruption";
 export { useObservable } from "src/hooks/useObservable";
 export { useRoute } from "src/hooks/useRoute";
 export { useRunning } from "src/hooks/useRunning";
-export { useStatus } from "src/hooks/useStatus";
+export { useBeaconStatus } from "src/hooks/useBeaconStatus";
 export { useSupport } from "src/hooks/useSupport";
 export { useTransitions } from "src/hooks/useTransitions";
 

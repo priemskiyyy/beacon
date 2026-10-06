@@ -2,6 +2,7 @@ import type { CommandMap } from "src/types/CommandMap";
 import type { DriverContext } from "src/types/DriverContext";
 import type { DriverSession } from "src/types/DriverSession";
 import type { RouteBody } from "src/types/RouteBody";
+import type { RunningReader } from "src/types/RunningReader";
 import type { RunningSubject } from "src/types/RunningSubject";
 
 /**
@@ -30,6 +31,15 @@ export type ReleaseDriver<
   name: string;
   /** The running subject this provider replaces, so an intent can be read back against it. */
   subject: RunningSubject;
+  /**
+   * The local reader of what its subject runs, such as the update the bundle
+   * was made from, used only when the application passes no reader for that
+   * subject in `running`. It reads what the provider's own module says is
+   * running and writes no fact itself: a reader the application passes always
+   * wins, and two drivers that supply one subject need the application to
+   * choose.
+   */
+  running?: RunningReader<RunningSubject>;
   prepares: boolean;
   /**
    * The native manager this provider must have to itself, such as the one

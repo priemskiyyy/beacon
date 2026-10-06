@@ -8,6 +8,7 @@ import type { ObservationDraft } from "src/types/ObservationDraft";
 import type { PreparedState } from "src/types/PreparedState";
 import type { RouteBody } from "src/types/RouteBody";
 import type { RouteHandle } from "src/types/RouteHandle";
+import type { RunningReader } from "src/types/RunningReader";
 import { createReleaseDriver } from "src/utils/createReleaseDriver";
 
 type Native = { start: () => void };
@@ -81,3 +82,25 @@ context.running.set({ ...context.running.get(), revision: 0 });
 
 // @ts-expect-error A driver reports a fraction or null, not a label.
 context.emit.progress("half");
+
+declare const nativeReader: RunningReader<"native">;
+
+// A driver offers the local reader of its own subject, which the application's own reader replaces.
+export const reading = createReleaseDriver({
+  name: "reading",
+  subject: "native",
+  prepares: false,
+  running: nativeReader,
+  open: () => ({ native, check }),
+  commands: {},
+});
+
+createReleaseDriver({
+  name: "unreading",
+  subject: "native",
+  prepares: false,
+  // @ts-expect-error A reader is a function of the scope of the read, and never a value.
+  running: "a91b44e",
+  open: () => ({ native, check }),
+  commands: {},
+});

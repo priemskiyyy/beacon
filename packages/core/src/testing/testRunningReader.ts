@@ -1,8 +1,16 @@
 import { describe, expect, test } from "vitest";
 
 import type { RunningReaderConformanceOptions } from "src/testing/types/RunningReaderConformanceOptions";
+import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { RunningReader } from "src/types/RunningReader";
 import type { RunningRelease } from "src/types/RunningRelease";
+
+const SCOPE: ReleaseScope = {
+  application: "com.example.conformance",
+  environment: "test",
+  platform: "web",
+  distribution: "conformance",
+};
 
 const isPrimitive = (value: unknown) =>
   value === null ||
@@ -11,9 +19,9 @@ const isPrimitive = (value: unknown) =>
   typeof value === "number";
 
 // A reader that throws is tolerated by Beacon, which makes it a failed fact as it does a rejection, but it is how a reader says nothing useful: it answers an unknown identity, or rejects.
-const readWithoutThrowing = (reader: RunningReader) => {
+const readWithoutThrowing = (reader: RunningReader, scope: ReleaseScope) => {
   try {
-    return reader();
+    return reader({ scope: Object.freeze({ ...scope }) });
   } catch (cause) {
     throw new Error(
       "The reader threw. A reader answers a release, or rejects, and never throws.",
@@ -71,9 +79,12 @@ const expectRelease = ({ identity, label, raw }: RunningRelease) => {
  * numbers, booleans or null that survive a copy; it answers the same release
  * for the same state on every read; and it never throws, answering an unknown
  * identity where the host cannot name what runs, or rejecting, which Beacon
- * publishes as a failed fact. `situations` are the other states of the host,
- * each with the answer the reader must give in it. Call it at the top level of
- * a test file.
+ * publishes as a failed fact. It reads under a frozen scope, as Beacon does:
+ * pass the `scope` the reader is meant for when its answer depends on it, such
+ * as a native reader that takes the platform from it. `situations` are the
+ * other states of the host, each with the answer the reader must give in it,
+ * and a scope of its own when the scope is what changes. Call it at the top
+ * level of a test file.
  *
  * It cannot check that the identity is the one the host reports, or that it
  * is written in the domain the route that pairs with it compares: keep those
@@ -94,6 +105,7 @@ const expectRelease = ({ identity, label, raw }: RunningRelease) => {
 export const testRunningReader = ({
   name,
   create,
+  scope = SCOPE,
   situations = [],
 }: RunningReaderConformanceOptions) => {
   describe(`running reader: ${name}`, () => {
@@ -120,14 +132,14 @@ export const testRunningReader = ({
         return;
       }
 
-      await readWithoutThrowing(reader);
+      await readWithoutThrowing(reader, scope);
 
       expect(reads()).toBeGreaterThan(0);
     });
 
     test("it answers a release that names what runs, in the shape Beacon publishes", async () => {
       const { reader } = create();
-      const release = await readWithoutThrowing(reader);
+      const release = await readWithoutThrowing(reader, scope);
 
       expect(release.identity.status).toBe("known");
       expectRelease(release);
@@ -135,29 +147,30 @@ export const testRunningReader = ({
 
     test("it answers the same release for the same state on every read", async () => {
       const { reader } = create();
-      const first = await readWithoutThrowing(reader);
+      const first = await readWithoutThrowing(reader, scope);
 
-      expect(await readWithoutThrowing(reader)).toEqual(first);
-      expect(await readWithoutThrowing(reader)).toEqual(first);
+      expect(await readWithoutThrowing(reader, scope)).toEqual(first);
+      expect(await readWithoutThrowing(reader, scope)).toEqual(first);
     });
 
     for (const situation of situations) {
       test(`where ${situation.name}, it answers ${situation.answers}`, async () => {
         const { reader } = situation.create();
+        const read = situation.scope ?? scope;
 
         if (situation.answers === "rejection") {
           await expect(
-            Promise.resolve(readWithoutThrowing(reader)),
+            Promise.resolve(readWithoutThrowing(reader, read)),
           ).rejects.toBeDefined();
 
           return;
         }
 
-        const release = await readWithoutThrowing(reader);
+        const release = await readWithoutThrowing(reader, read);
 
         expect(release.identity.status).toBe(situation.answers);
         expectRelease(release);
-        expect(await readWithoutThrowing(reader)).toEqual(release);
+        expect(await readWithoutThrowing(reader, read)).toEqual(release);
       });
     }
   });

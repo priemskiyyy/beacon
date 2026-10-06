@@ -38,6 +38,7 @@ import { untilAborted } from "src/utils/internal/common/untilAborted";
 import { freezeList } from "src/utils/internal/common/freezeList";
 import { isSameData } from "src/utils/internal/common/isSameData";
 import { createDisposedError } from "src/utils/internal/errors/createDisposedError";
+import { createUnknownRouteError } from "src/utils/internal/errors/createUnknownRouteError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import { Listeners } from "src/utils/internal/observable/Listeners";
 import { resolveDuration } from "src/utils/internal/options/resolveDuration";
@@ -49,6 +50,7 @@ import { readCapabilities } from "src/utils/internal/routes/readCapabilities";
 import { RouteRegistry } from "src/utils/internal/routes/RouteRegistry";
 import { BeaconRuntime } from "src/utils/internal/runtime/BeaconRuntime";
 import { RunningRegistry } from "src/utils/internal/running/RunningRegistry";
+import { resolveRunningReaders } from "src/utils/internal/running/resolveRunningReaders";
 
 /**
  * One application-owned model of release awareness over named routes.
@@ -59,7 +61,7 @@ import { RunningRegistry } from "src/utils/internal/running/RunningRegistry";
  * ```ts
  * const beacon = new Beacon({
  *   scope,
- *   running: { boot: { id: createBootId() }, web: readWebRelease },
+ *   running: { web: readWebRelease },
  *   routes: { web },
  * });
  * const stop = beacon.start();
@@ -165,7 +167,7 @@ export class Beacon<
 
   constructor({
     scope,
-    running,
+    running = {},
     routes,
     policy,
     journal,
@@ -219,7 +221,8 @@ export class Beacon<
     const createListeners = () => new Listeners(reportListenerError);
 
     this.#running = new RunningRegistry({
-      readers: running,
+      readers: resolveRunningReaders(running, routes),
+      getScope: () => this.#scope,
       clock,
       timeout: runningTimeout,
       listeners: createListeners(),
@@ -333,7 +336,8 @@ export class Beacon<
   /**
    * The stable handle of one route. A name that was never defined fails to
    * compile, and throws `INVALID_CONFIGURATION` when it arrives from untyped
-   * code. Acquiring or observing it is passive.
+   * code, with the routes the Beacon has in its message. Acquiring or
+   * observing it is passive.
    *
    * @example
    * ```ts
@@ -344,10 +348,7 @@ export class Beacon<
     name: TName,
   ): RouteHandle<TName, TRoutes[TName]> => {
     if (!Object.hasOwn(this.#handles, name)) {
-      throw new BeaconError({
-        code: "INVALID_CONFIGURATION",
-        message: `The route "${name}" is not defined.`,
-      });
+      throw createUnknownRouteError(name, this.routeNames);
     }
 
     return this.#handles[name];
@@ -653,7 +654,8 @@ export class Beacon<
     return toErrorInfo(
       new BeaconError({
         code: "NOT_STARTED",
-        message: "An operation needs a started Beacon.",
+        message:
+          "The Beacon has no open session. Call beacon.start(), or mount a BeaconProvider that is not given start={false}.",
       }),
     );
   }

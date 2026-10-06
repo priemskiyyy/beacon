@@ -8,22 +8,30 @@ import { BeaconProvider } from "src/context/BeaconProvider";
 import { mountWithProvider } from "src/mount.fixture";
 import { useBeacon } from "src/primitives/useBeacon";
 
-test("the provider without start leaves the Beacon idle, and checks nothing", async () => {
+test("start false leaves the Beacon idle, for an application that starts the session itself, and checks nothing", async () => {
   const { beacon, mock } = createWebBeacon();
 
-  const { dispose } = mountWithProvider({ beacon: () => beacon }, () => {});
+  const { dispose } = mountWithProvider(
+    { beacon: () => beacon, start: () => false },
+    () => {},
+  );
 
   await settle();
 
   expect(beacon.status.get()).toEqual({ state: "idle" });
   expect(mock.stats().reads).toBe(0);
 
+  const stop = beacon.start();
+
   dispose();
 
-  expect(beacon.status.get()).toEqual({ state: "idle" });
+  // Unmounting a provider that did not start the session does not end the one the application opened.
+  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+
+  stop();
 });
 
-test("the provider starts the session while mounted and ends it on unmount, without disposing the Beacon", () => {
+test("start true says what the default says", () => {
   const { beacon } = createWebBeacon();
 
   const { dispose } = mountWithProvider(
@@ -32,6 +40,20 @@ test("the provider starts the session while mounted and ends it on unmount, with
   );
 
   expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+
+  dispose();
+
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("the provider starts the session while mounted and ends it on unmount, without disposing the Beacon and with no prop asked for", () => {
+  const { beacon, mock } = createWebBeacon();
+
+  const { dispose } = mountWithProvider({ beacon: () => beacon }, () => {});
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+  // Starting a session checks nothing.
+  expect(mock.stats().reads).toBe(0);
 
   dispose();
 
@@ -46,10 +68,7 @@ test("the provider starts the session while mounted and ends it on unmount, with
 test("the provider's stop ends the session a scope replacement restarted", () => {
   const { beacon } = createWebBeacon();
 
-  const { dispose } = mountWithProvider(
-    { beacon: () => beacon, start: () => true },
-    () => {},
-  );
+  const { dispose } = mountWithProvider({ beacon: () => beacon }, () => {});
 
   beacon.replaceScope({
     application: "com.example.notes",
@@ -69,14 +88,11 @@ test("a child that checks when it mounts finds the session already started", asy
   const { beacon } = createWebBeacon();
   const outcomes: string[] = [];
 
-  const { dispose } = mountWithProvider(
-    { beacon: () => beacon, start: () => true },
-    () => {
-      onMount(() => {
-        beacon.check().then(({ routes }) => outcomes.push(routes.web.status));
-      });
-    },
-  );
+  const { dispose } = mountWithProvider({ beacon: () => beacon }, () => {
+    onMount(() => {
+      beacon.check().then(({ routes }) => outcomes.push(routes.web.status));
+    });
+  });
 
   await settle();
 
@@ -87,7 +103,7 @@ test("a child that checks when it mounts finds the session already started", asy
 
 test("BIND-07 a provider mounted, unmounted and mounted again leaves one session running with no check or command", () => {
   const { beacon, mock } = createWebBeacon();
-  const props = { beacon: () => beacon, start: () => true };
+  const props = { beacon: () => beacon };
 
   mountWithProvider(props, () => {}).dispose();
 
@@ -136,10 +152,7 @@ test("the provider follows a new beacon: the old session ends and a new one star
   const second = createWebBeacon();
   const [beacon, setBeacon] = createSignal<WebBeacon>(first.beacon);
 
-  const { dispose } = mountWithProvider(
-    { beacon, start: () => true },
-    () => {},
-  );
+  const { dispose } = mountWithProvider({ beacon }, () => {});
 
   expect(first.beacon.status.get()).toEqual({ state: "running", session: 1 });
   expect(second.beacon.status.get()).toEqual({ state: "idle" });
@@ -164,10 +177,7 @@ test("what a listener reads while the provider starts the session does not resta
     seen.push(reads());
   });
 
-  const { dispose } = mountWithProvider(
-    { beacon: () => beacon, start: () => true },
-    () => {},
-  );
+  const { dispose } = mountWithProvider({ beacon: () => beacon }, () => {});
 
   expect(seen).toEqual([0]);
 
@@ -189,11 +199,13 @@ test("the nearest provider publishes its Beacon to the tree below it", () => {
 
     createComponent(BeaconProvider, {
       beacon: outer,
+      start: false,
       get children() {
         seen.push(useBeacon()());
 
         createComponent(BeaconProvider, {
           beacon: inner,
+          start: false,
           get children() {
             seen.push(useBeacon()());
 

@@ -1,6 +1,6 @@
 import type { BeaconStatus, SelectorOptions } from "@priemskiyyy/beacon";
 
-import { useBeacon } from "src/hooks/useBeacon";
+import { useProvidedBeacon } from "src/hooks/internal/useProvidedBeacon";
 import { useObservable } from "src/hooks/useObservable";
 import { selectValue } from "src/utils/selectValue";
 
@@ -9,19 +9,23 @@ import { selectValue } from "src/utils/selectValue";
  *
  * @example
  * ```ts
- * const active = useStatus(({ state }) => state === "running");
+ * const active = useBeaconStatus(({ state }) => state === "running");
  * ```
  */
-export function useStatus(): BeaconStatus;
+export function useBeaconStatus(): BeaconStatus;
 
-export function useStatus<TSelected>(
+export function useBeaconStatus<TSelected>(
   selector: (value: BeaconStatus) => TSelected,
   options?: SelectorOptions<NoInfer<TSelected>>,
 ): TSelected;
 
-export function useStatus(
+export function useBeaconStatus(
   selector: (value: BeaconStatus) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): unknown {
-  return useObservable(useBeacon().status, selector, options);
+  return useObservable(
+    useProvidedBeacon("useBeaconStatus").status,
+    selector,
+    options,
+  );
 }

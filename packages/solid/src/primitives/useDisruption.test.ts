@@ -18,16 +18,25 @@ const draftEditor = (
   ...overrides,
 });
 
+test("useDisruption without a provider above it is misused, and the error names it and the package that has the provider", () => {
+  expect(() => createRoot(() => useDisruption(draftEditor()))).toThrow(
+    "useDisruption needs a BeaconProvider (from @priemskiyyy/beacon-solid) above it.",
+  );
+});
+
 test("useDisruption registers while mounted and unregisters on unmount", async () => {
   const { beacon } = createWebBeacon();
 
-  const { dispose } = mountWithProvider({ beacon: () => beacon }, () => {
-    useDisruption(
-      draftEditor({
-        reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
-      }),
-    );
-  });
+  const { dispose } = mountWithProvider(
+    { beacon: () => beacon, start: () => false },
+    () => {
+      useDisruption(
+        draftEditor({
+          reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+        }),
+      );
+    },
+  );
 
   beacon.start();
 
@@ -49,7 +58,7 @@ test("useDisruption registers once, and Beacon asks the participant's closures f
   const asked = { count: 0 };
 
   const { dispose } = mountWithProvider(
-    { beacon: () => counted.beacon },
+    { beacon: () => counted.beacon, start: () => false },
     () => {
       useDisruption(
         draftEditor({
@@ -100,6 +109,7 @@ test("a provider whose beacon expression yields the same Beacon again does not r
 
         return counted.beacon;
       },
+      start: () => false,
     },
     () => {
       useDisruption(draftEditor());
@@ -120,7 +130,7 @@ test("useDisruption follows the provider's Beacon: it leaves the old one and joi
   const second = createWebBeacon();
   const [beacon, setBeacon] = createSignal<WebBeacon>(first.beacon);
 
-  const { dispose } = mountWithProvider({ beacon }, () => {
+  const { dispose } = mountWithProvider({ beacon, start: () => false }, () => {
     useDisruption(
       draftEditor({
         reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
@@ -166,22 +176,25 @@ test("SAFE-14 a reservation an owner held is released when the command ends, not
   const released = { count: 0 };
   const settling: { finish: () => void } = { finish: () => {} };
 
-  const { dispose } = mountWithProvider({ beacon: () => beacon }, () => {
-    useDisruption({
-      name: "draft-editor",
-      impacts: ["document-replacement"],
-      reserve: () => ({
-        status: "reserved",
-        settle: () =>
-          new Promise((resolve) => {
-            settling.finish = () => resolve({ status: "ready" });
-          }),
-        release: () => {
-          released.count += 1;
-        },
-      }),
-    });
-  });
+  const { dispose } = mountWithProvider(
+    { beacon: () => beacon, start: () => false },
+    () => {
+      useDisruption({
+        name: "draft-editor",
+        impacts: ["document-replacement"],
+        reserve: () => ({
+          status: "reserved",
+          settle: () =>
+            new Promise((resolve) => {
+              settling.finish = () => resolve({ status: "ready" });
+            }),
+          release: () => {
+            released.count += 1;
+          },
+        }),
+      });
+    },
+  );
 
   beacon.start();
 

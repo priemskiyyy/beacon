@@ -3,10 +3,11 @@ import type { BeaconDiagnosticEventType } from "src/types/BeaconDiagnosticEventT
 import type { DiagnosticDetails } from "src/types/internal/DiagnosticDetails";
 import type { Session } from "src/types/internal/Session";
 import type { ObservableValue } from "src/types/ObservableValue";
+import type { ReleaseScope } from "src/types/ReleaseScope";
+import type { ResolvedRunningReaders } from "src/types/internal/ResolvedRunningReaders";
 import type { RunningApplication } from "src/types/RunningApplication";
 import type { RunningFact } from "src/types/RunningFact";
 import type { RunningReader } from "src/types/RunningReader";
-import type { RunningReaders } from "src/types/RunningReaders";
 import type { RunningRelease } from "src/types/RunningRelease";
 import type { RunningSubject } from "src/types/RunningSubject";
 import { RUNNING_SUBJECTS } from "src/utils/constants/subjects";
@@ -21,7 +22,9 @@ import { ValueStore } from "src/utils/internal/observable/ValueStore";
 import { copyRunningRelease } from "src/utils/internal/running/copyRunningRelease";
 
 type RunningRegistryOptions = {
-  readers: RunningReaders;
+  readers: ResolvedRunningReaders;
+  /** The scope in force when a reader is asked, which is the next scope after a replacement. */
+  getScope: () => ReleaseScope;
   clock: BeaconClock;
   timeout: number;
   listeners: Listeners;
@@ -35,7 +38,9 @@ type Reads = Record<RunningSubject, Promise<void>>;
 
 // A subject with a reader is pending until the reader answers, and one
 // without stays unconfigured.
-const getInitialFact = (reader: RunningReader | undefined): RunningFact => {
+const getInitialFact = (
+  reader: RunningReader<RunningSubject> | undefined,
+): RunningFact => {
   if (reader === undefined) {
     return Object.freeze({ state: "unconfigured" });
   }
@@ -54,7 +59,8 @@ const withoutReadTime = (fact: RunningFact) => {
 
 /** Owns the executing facts: one local reader per subject, asked once for each session, and never written by a remote answer. */
 export class RunningRegistry {
-  #readers: RunningReaders;
+  #readers: ResolvedRunningReaders;
+  #getScope: () => ReleaseScope;
   #clock: BeaconClock;
   #timeout: number;
   #store: ValueStore<RunningApplication>;
@@ -65,12 +71,14 @@ export class RunningRegistry {
 
   constructor({
     readers,
+    getScope,
     clock,
     timeout,
     listeners,
     record,
   }: RunningRegistryOptions) {
     this.#readers = Object.freeze({ ...readers });
+    this.#getScope = getScope;
     this.#clock = clock;
     this.#timeout = timeout;
     this.#record = record;
@@ -149,7 +157,7 @@ export class RunningRegistry {
   // Never rejects: a throw, a rejection, an answer that is no release and a missed deadline are all a failed fact, and the end of the session is no fact at all.
   async #run(
     subject: RunningSubject,
-    reader: RunningReader,
+    reader: RunningReader<RunningSubject>,
     session: Session,
   ): Promise<RunningFact | null> {
     let cancel = () => {};
@@ -174,7 +182,9 @@ export class RunningRegistry {
       });
     });
 
-    const reading = new Promise<RunningRelease>((resolve) => resolve(reader()))
+    const reading = new Promise<RunningRelease>((resolve) =>
+      resolve(reader({ scope: this.#getScope() })),
+    )
       .then((answer) => this.#know(answer))
       .catch((cause) => this.#fail(cause));
 

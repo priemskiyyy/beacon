@@ -1,7 +1,7 @@
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
 import { useEffect, useInsertionEffect, useRef } from "react";
 
-import { useBeacon } from "src/hooks/useBeacon";
+import { useProvidedBeacon } from "src/hooks/internal/useProvidedBeacon";
 
 /**
  * Registers a participant while the component is mounted, and unregisters it
@@ -28,7 +28,7 @@ import { useBeacon } from "src/hooks/useBeacon";
  * ```
  */
 export const useDisruption = (participant: DisruptionParticipant) => {
-  const { disruptions } = useBeacon();
+  const { disruptions } = useProvidedBeacon("useDisruption");
   const latest = useRef(participant);
 
   // Before any layout or passive effect, so no call between a commit and its effects sees the previous closure.

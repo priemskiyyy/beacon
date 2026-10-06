@@ -33,7 +33,7 @@ export class FeedRoutes {
     feed.consumers.push(consumer);
 
     return {
-      dependsOn: [consumer.definition.subject],
+      dependsOn: [consumer.definition.mechanism.subject],
       open: (session) => this.#openMechanism(consumer, session),
       check: async (session, options) =>
         toCheckOutcome(
@@ -151,7 +151,7 @@ export class FeedRoutes {
     let opened: MechanismSession<object>;
 
     try {
-      opened = definition.mechanism.open();
+      opened = definition.mechanism.open({ scope: this.#options.getScope() });
     } catch {
       this.#options.record("route-failed", {
         route: name,

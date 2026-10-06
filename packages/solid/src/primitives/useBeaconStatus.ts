@@ -1,7 +1,7 @@
 import type { BeaconStatus, SelectorOptions } from "@priemskiyyy/beacon";
 import type { Accessor } from "solid-js";
 
-import { useBeacon } from "src/primitives/useBeacon";
+import { useProvidedBeacon } from "src/primitives/internal/useProvidedBeacon";
 import { useSelectedValue } from "src/primitives/internal/useSelectedValue";
 import { selectValue } from "src/utils/selectValue";
 
@@ -10,21 +10,21 @@ import { selectValue } from "src/utils/selectValue";
  *
  * @example
  * ```ts
- * const active = useStatus(({ state }) => state === "running");
+ * const active = useBeaconStatus(({ state }) => state === "running");
  * ```
  */
-export function useStatus(): Accessor<BeaconStatus>;
+export function useBeaconStatus(): Accessor<BeaconStatus>;
 
-export function useStatus<TSelected>(
+export function useBeaconStatus<TSelected>(
   selector: (value: BeaconStatus) => TSelected,
   options?: SelectorOptions<NoInfer<TSelected>>,
 ): Accessor<TSelected>;
 
-export function useStatus(
+export function useBeaconStatus(
   selector: (value: BeaconStatus) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): Accessor<unknown> {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useBeaconStatus");
 
   return useSelectedValue(() => beacon().status, selector, options);
 }

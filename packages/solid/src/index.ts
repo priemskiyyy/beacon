@@ -4,7 +4,7 @@ export { useDisruption } from "src/primitives/useDisruption";
 export { useObservable } from "src/primitives/useObservable";
 export { useRoute } from "src/primitives/useRoute";
 export { useRunning } from "src/primitives/useRunning";
-export { useStatus } from "src/primitives/useStatus";
+export { useBeaconStatus } from "src/primitives/useBeaconStatus";
 export { useSupport } from "src/primitives/useSupport";
 export { useTransitions } from "src/primitives/useTransitions";
 

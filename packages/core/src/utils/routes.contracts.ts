@@ -10,8 +10,10 @@ import type { Observation } from "src/types/Observation";
 import type { OfferReference } from "src/types/OfferReference";
 import type { PreparedReference } from "src/types/PreparedReference";
 import type { Release } from "src/types/Release";
+import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RouteHandle } from "src/types/RouteHandle";
+import type { RunningSubject } from "src/types/RunningSubject";
 import type { ScopeReplacement } from "src/types/ScopeReplacement";
 import type { TargetDecision } from "src/types/TargetDecision";
 import type { Beacon } from "src/utils/Beacon";
@@ -48,70 +50,112 @@ const manifest = createReleaseSource<Manifest>({
   },
 });
 
-const browserReload = createUpdateMechanism({
-  name: "browser-reload",
-  open: () => ({ native: browser }),
-  commands: {
-    reload: {
-      reference: "offer",
-      impacts: ["document-replacement"],
-      binding: "unpinned-navigation",
-      run: async (context): Promise<ProviderResult<ReloadReceipt>> => {
-        context.native.reload();
+const createReload = (subject: RunningSubject) =>
+  createUpdateMechanism({
+    name: "reload",
+    subject,
+    open: () => ({ native: browser }),
+    commands: {
+      reload: {
+        reference: "offer",
+        impacts: ["document-replacement"],
+        binding: "unpinned-navigation",
+        run: async (context): Promise<ProviderResult<ReloadReceipt>> => {
+          context.native.reload();
 
-        return { status: "accepted", receipt: { kind: "reload-requested" } };
+          return { status: "accepted", receipt: { kind: "reload-requested" } };
+        },
       },
     },
-  },
-});
+  });
+
+const browserReload = createReload("web");
+
+const storeReload = createReload("native");
 
 const web = targetRoute({
-  subject: "web",
   source: manifest.select((document) => document.web),
   mechanism: browserReload,
 });
 
 const binary = newerRoute({
-  subject: "native",
   source: manifest.select((document) => document.binary),
   version: semver(),
   current: (release) => release?.label ?? null,
-  mechanism: browserReload,
+  mechanism: storeReload,
 });
 
 targetRoute({
-  subject: "web",
   // @ts-expect-error A target route reads target decisions, not candidates.
   source: manifest.select((document) => document.binary),
   mechanism: browserReload,
 });
 
-newerRoute({
-  subject: "native",
-  // @ts-expect-error A newer route reads candidate decisions, not targets.
+targetRoute({
+  // @ts-expect-error The subject belongs to the mechanism, and the route has no option of its own.
+  subject: "web",
   source: manifest.select((document) => document.web),
-  version: semver(),
-  current: () => "1.0.0",
   mechanism: browserReload,
 });
 
 newerRoute({
-  subject: "native",
+  // @ts-expect-error A newer route reads candidate decisions, not targets.
+  source: manifest.select((document) => document.web),
+  version: semver(),
+  current: () => "1.0.0",
+  mechanism: storeReload,
+});
+
+newerRoute({
   // @ts-expect-error The strategy parses strings but the candidate order is a number.
   source: manifest.select((document) => document.build),
   version: semver(),
   // @ts-expect-error The current order must be the strategy's input type too.
   current: () => 1,
-  mechanism: browserReload,
+  mechanism: storeReload,
 });
 
 newerRoute({
-  subject: "native",
   source: manifest.select((document) => document.build),
   version: integer(),
   // @ts-expect-error The current order must be the strategy's input type.
   current: () => ({ train: "stable" }),
-  mechanism: browserReload,
+  mechanism: storeReload,
+});
+
+// @ts-expect-error A mechanism names the running subject its commands replace.
+createUpdateMechanism({
+  name: "no-subject",
+  open: () => ({ native: browser }),
+  commands: {},
+});
+
+createUpdateMechanism({
+  name: "wrong-subject",
+  // @ts-expect-error The subject is one of the running subjects.
+  subject: "desktop",
+  open: () => ({ native: browser }),
+  commands: {},
+});
+
+// A mechanism opens with the scope of its session, and with nothing else of it.
+export const scoped = createUpdateMechanism({
+  name: "scoped",
+  subject: "web",
+  open: ({ scope }) => {
+    expectTypeOf(scope).toEqualTypeOf<ReleaseScope>();
+
+    return { native: browser };
+  },
+  commands: {},
+});
+
+createUpdateMechanism({
+  name: "unscoped",
+  subject: "web",
+  // @ts-expect-error A mechanism is given the scope, not the running facts a driver reads.
+  open: ({ running }) => ({ native: running }),
+  commands: {},
 });
 
 export const routes = { web, binary } satisfies Record<string, RouteDefinition>;

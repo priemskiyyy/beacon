@@ -4,9 +4,16 @@ import { createMockSource } from "src/mock/createMockSource";
 import type { SourceReadContext } from "src/types/SourceReadContext";
 import type { CandidateDecision } from "src/types/CandidateDecision";
 import type { NoneDecision } from "src/types/NoneDecision";
+import type { RunningSubject } from "src/types/RunningSubject";
 import { settle } from "src/mock/settle";
-import { buildWebRelease, createRoutedBeacon } from "src/utils/Beacon.fixture";
+import {
+  buildWebRelease,
+  createBeacon,
+  createRoutedBeacon,
+  SCOPE,
+} from "src/utils/Beacon.fixture";
 import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
+import { buildNativeRelease, candidate } from "src/utils/policy.fixture";
 import { integer } from "src/utils/versions/integer";
 import { newerRoute } from "src/utils/newerRoute";
 import { targetRoute } from "src/utils/targetRoute";
@@ -129,6 +136,26 @@ test("BIND-01 a route name that was never defined throws for untyped callers", (
   );
   expect(() => Reflect.apply(beacon.route, beacon, ["constructor"])).toThrow(
     expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
+  );
+});
+
+test("BIND-01 the error for a route name that was never defined names it and lists the routes the Beacon has", () => {
+  const { beacon } = createTwoRouteBeacon();
+
+  expect(() => Reflect.apply(beacon.route, beacon, ["frist"])).toThrow(
+    'The route "frist" is not defined. The routes are "first" and "second".',
+  );
+
+  const { beacon: web } = createWebBeacon();
+
+  expect(() => Reflect.apply(web.route, web, ["missing"])).toThrow(
+    'The route "missing" is not defined. The only route is "web".',
+  );
+
+  const empty = createBeacon().beacon;
+
+  expect(() => Reflect.apply(empty.route, empty, ["web"])).toThrow(
+    'The route "web" is not defined. The Beacon has no routes.',
   );
 });
 
@@ -495,6 +522,101 @@ test("a check requested with a reason records it for diagnostics", async () => {
   expect(reasons).toContain("foreground");
 });
 
+test("a route compares an offer with the running subject of its mechanism, and with no other", async () => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+
+  const route = (subject: RunningSubject) =>
+    targetRoute({
+      source: mock.source.select((manifest) => manifest.web),
+      mechanism: createUpdateMechanism({
+        name: `${subject}-mechanism`,
+        subject,
+        open: () => ({ native: {} }),
+        commands: {},
+      }),
+    });
+
+  const { beacon } = createRoutedBeacon(
+    { onWeb: route("web"), onNative: route("native") },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => buildWebRelease("web-build-a"),
+        native: () => buildWebRelease("web-build-b"),
+      },
+    },
+  );
+
+  mock.answer({
+    document: { web: target("web-build-a"), policy: { minimum: "1.0.0" } },
+  });
+  beacon.start();
+  await beacon.check();
+
+  expect(beacon.route("onWeb").state.get().observation.status).toBe("none");
+  expect(beacon.route("onNative").state.get().observation.status).toBe(
+    "available",
+  );
+});
+
+test("a newer route orders a candidate against the running subject of its mechanism, and against no other", async () => {
+  const mock = createMockSource<CandidateManifest>({ name: "manifest" });
+
+  const route = (subject: RunningSubject) =>
+    newerRoute({
+      source: mock.source.select((manifest) => manifest.binary),
+      version: integer(),
+      current: (release) => Number(release?.raw["build"] ?? Number.NaN),
+      mechanism: createUpdateMechanism({
+        name: `${subject}-mechanism`,
+        subject,
+        open: () => ({ native: {} }),
+        commands: {},
+      }),
+    });
+
+  const { beacon } = createRoutedBeacon(
+    { onWeb: route("web"), onNative: route("native") },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => buildNativeRelease(100),
+        native: () => buildNativeRelease(150),
+      },
+    },
+  );
+
+  mock.answer({ document: { binary: candidate(120) } });
+  beacon.start();
+  await beacon.check();
+
+  expect(beacon.route("onWeb").state.get().observation.status).toBe(
+    "available",
+  );
+  expect(beacon.route("onNative").state.get().observation.status).toBe("none");
+});
+
+test("a check that says it is a retry or an expiry recheck carries that into its diagnostics", async () => {
+  const context = createWebBeacon();
+  const reasons: Array<string | null> = [];
+
+  context.beacon.diagnostics.events.subscribe(({ type, reason }) => {
+    reasons.push(type === "check-started" ? reason : null);
+  });
+
+  context.mock.answer({
+    document: { web: target("web-build-a"), policy: { minimum: "1.0.0" } },
+  });
+  context.beacon.start();
+  await context.beacon.check({ reason: "retry" });
+  await context.beacon.check({ reason: "expiry" });
+
+  expect(reasons.filter((reason) => reason !== null)).toEqual([
+    "retry",
+    "expiry",
+  ]);
+});
+
 test("CORE-07 a running fact that changes routes of several sources reaches a listener with every route already selected", async () => {
   const first = createMockSource<Manifest>({ name: "first" });
   const second = createMockSource<Manifest>({ name: "second" });
@@ -502,13 +624,13 @@ test("CORE-07 a running fact that changes routes of several sources reaches a li
 
   const inert = createUpdateMechanism({
     name: "inert",
+    subject: "web",
     open: () => ({ native: {} }),
     commands: {},
   });
 
   const route = (mock: typeof first) =>
     targetRoute({
-      subject: "web",
       source: mock.source.select((manifest) => manifest.web),
       mechanism: inert,
     });
@@ -553,7 +675,6 @@ test("CORE-02 a selection that fails when a running fact changes shows on the ch
   const running = { build: 100 };
 
   const binary = newerRoute({
-    subject: "native",
     source: mock.source.select((manifest) => manifest.binary),
     version: integer(),
     current: (release) => {
@@ -567,6 +688,7 @@ test("CORE-02 a selection that fails when a running fact changes shows on the ch
     },
     mechanism: createUpdateMechanism({
       name: "inert",
+      subject: "native",
       open: () => ({ native: {} }),
       commands: {},
     }),
@@ -663,15 +785,55 @@ test("CORE-01 every observable can be read as it was before any session, which i
   expect(web.state.get()).not.toEqual(web.state.getInitial());
 });
 
+test("a mechanism is opened with the scope its session runs under, and again with the new one after the scope is replaced", () => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+  const opened: string[] = [];
+
+  const web = targetRoute({
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism: createUpdateMechanism({
+      name: "scoped",
+      subject: "web",
+      open: ({ scope }) => {
+        opened.push(`${scope.environment}:${scope.distribution}`);
+
+        return { native: {} };
+      },
+      commands: {},
+    }),
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { web },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => buildWebRelease("web-build-b"),
+      },
+    },
+  );
+
+  beacon.start();
+
+  expect(opened).toEqual([`${SCOPE.environment}:${SCOPE.distribution}`]);
+
+  beacon.replaceScope({ ...SCOPE, environment: "staging" });
+
+  expect(opened).toEqual([
+    `${SCOPE.environment}:${SCOPE.distribution}`,
+    `staging:${SCOPE.distribution}`,
+  ]);
+});
+
 test("LIFE-04 a mechanism that throws while it opens fails its route's native handle and leaves start and the check alone", async () => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
   const events: string[] = [];
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: createUpdateMechanism({
       name: "broken",
+      subject: "web",
       open: () => {
         throw new Error("There is no window.");
       },

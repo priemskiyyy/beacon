@@ -5,6 +5,7 @@ import type { DisruptionParticipant } from "src/types/DisruptionParticipant";
 import type { JournalOptions } from "src/types/JournalOptions";
 import type { ProviderResult } from "src/types/ProviderResult";
 import type { RunningRelease } from "src/types/RunningRelease";
+import type { RunningSubject } from "src/types/RunningSubject";
 import type { ReserveResult } from "src/types/ReserveResult";
 import type { Settlement } from "src/types/Settlement";
 import { buildWebRelease, createRoutedBeacon } from "src/utils/Beacon.fixture";
@@ -36,12 +37,14 @@ type HeldRun = {
 // A mechanism whose reload is held until the test settles it, so a test decides exactly what interleaves with it.
 export const createHeldMechanism = ({
   failOpen = false,
-}: { failOpen?: boolean } = {}) => {
+  subject = "web",
+}: { failOpen?: boolean; subject?: RunningSubject } = {}) => {
   const runs: HeldRun[] = [];
   const warmed = { count: 0 };
 
   const mechanism = createUpdateMechanism({
     name: "held",
+    subject,
     open: () => {
       if (failOpen) {
         throw new Error("The provider could not be opened.");
@@ -100,8 +103,8 @@ export const takeRun = (runs: HeldRun[]) => {
 };
 
 type WebCommandOptions = {
-  /** The id of the boot, for a test that starts the same application again. */
-  boot?: string;
+  /** The id of the boot, for a test that starts the same application again, or `null` to leave it to the Beacon. */
+  boot?: string | null;
   /** The web build that runs, or `null` when nothing names it. */
   build?: string | null;
   /** Makes the web reader fail, so that no fact about the web build is known. */
@@ -136,7 +139,6 @@ export const createWebCommandBeacon = ({
   const held = createHeldMechanism({ failOpen });
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: held.mechanism,
   });
@@ -145,7 +147,7 @@ export const createWebCommandBeacon = ({
     { web },
     {
       running: {
-        boot: { id: boot },
+        ...(boot === null ? {} : { boot: { id: boot } }),
         web:
           reader ??
           (() => {
@@ -212,13 +214,11 @@ export const createTwoRouteCommandBeacon = () => {
   const held = createHeldMechanism();
 
   const first = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.first),
     mechanism: held.mechanism,
   });
 
   const second = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.second),
     mechanism: held.mechanism,
   });

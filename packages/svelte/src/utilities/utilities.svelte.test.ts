@@ -10,7 +10,7 @@ import { useBeacon } from "./useBeacon.js";
 import { useObservable } from "./useObservable.js";
 import { useRoute } from "./useRoute.js";
 import { useRunning } from "./useRunning.js";
-import { useStatus } from "./useStatus.js";
+import { useBeaconStatus } from "./useBeaconStatus.js";
 import { useSupport } from "./useSupport.js";
 import { useTransitions } from "./useTransitions.js";
 import View from "./View.fixture.svelte";
@@ -234,9 +234,12 @@ test("useRunning reads what is running, of the provider's Beacon", async () => {
   expect(all.value.current.web.state).toBe("known");
 });
 
-test("useStatus reads where the session stands", () => {
+test("useBeaconStatus reads where the session stands", () => {
   const { beacon } = createWebBeacon();
-  const { value } = mountView(beacon, () => useStatus(({ state }) => state));
+
+  const { value } = mountView(beacon, () =>
+    useBeaconStatus(({ state }) => state),
+  );
 
   expect(value.current).toBe("idle");
 
@@ -245,9 +248,9 @@ test("useStatus reads where the session stands", () => {
   expect(value.current).toBe("running");
 });
 
-test("useStatus without a selector reads the whole status", () => {
+test("useBeaconStatus without a selector reads the whole status", () => {
   const { beacon } = createWebBeacon();
-  const { value } = mountView(beacon, () => useStatus());
+  const { value } = mountView(beacon, () => useBeaconStatus());
 
   expect(value.current).toEqual({ state: "idle" });
 
@@ -301,18 +304,23 @@ test("useBeacon follows the provider's Beacon through current", () => {
   expect(value.current).toBe(beacon);
 });
 
-test("a utility without a provider above it is misused", () => {
+test("a utility without a provider above it is misused, and the error names the utility that was called and the package that has the provider", () => {
   const read = (use: () => unknown) => () =>
     render(View, { props: { read: use } });
+
+  const needs = (utility: string) =>
+    `${utility} needs a BeaconProvider (from @priemskiyyy/beacon-svelte) above it.`;
 
   expect(read(() => useBeacon())).toThrow(BeaconError);
   expect(read(() => useBeacon())).toThrow(
     expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
   );
-  expect(read(() => useRunning())).toThrow(
-    "useBeacon needs a BeaconProvider above it.",
-  );
-  expect(read(() => useRoute("web"))).toThrow(BeaconError);
+  expect(read(() => useBeacon())).toThrow(needs("useBeacon"));
+  expect(read(() => useRunning())).toThrow(needs("useRunning"));
+  expect(read(() => useRoute("web"))).toThrow(needs("useRoute"));
+  expect(read(() => useSupport())).toThrow(needs("useSupport"));
+  expect(read(() => useTransitions())).toThrow(needs("useTransitions"));
+  expect(read(() => useBeaconStatus())).toThrow(needs("useBeaconStatus"));
 });
 
 test("an effect that reads the provider's Beacon and a selection sees the new Beacon with its selection, never a mix", async () => {
@@ -324,7 +332,7 @@ test("an effect that reads the provider's Beacon and a selection sees the new Be
 
   const view = mountView(first.beacon, () => {
     const provided = useBeacon();
-    const state = useStatus(({ state }) => state);
+    const state = useBeaconStatus(({ state }) => state);
 
     $effect(() => {
       seen.push(`${provided.current.status.get().state}/${state.current}`);
@@ -341,7 +349,7 @@ test("an effect that reads the provider's Beacon and a selection sees the new Be
   expect(seen).toEqual(["idle/idle", "running/running"]);
 });
 
-test("a provider that publishes another Beacon moves what useRoute, useRunning and useStatus read", async () => {
+test("a provider that publishes another Beacon moves what useRoute, useRunning and useBeaconStatus read", async () => {
   const first = createWebBeacon();
   const second = createWebBeacon();
 
@@ -351,7 +359,7 @@ test("a provider that publishes another Beacon moves what useRoute, useRunning a
   const view = mountView(first.beacon, () => {
     const route = useRoute("web", ({ observation }) => observation.status);
     const running = useRunning(({ web }) => web.state);
-    const status = useStatus(({ state }) => state);
+    const status = useBeaconStatus(({ state }) => state);
 
     return {
       get current() {

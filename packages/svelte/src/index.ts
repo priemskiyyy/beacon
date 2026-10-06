@@ -4,7 +4,7 @@ export { useDisruption } from "./utilities/useDisruption.svelte.js";
 export { useObservable } from "./utilities/useObservable.js";
 export { useRoute } from "./utilities/useRoute.js";
 export { useRunning } from "./utilities/useRunning.js";
-export { useStatus } from "./utilities/useStatus.js";
+export { useBeaconStatus } from "./utilities/useBeaconStatus.js";
 export { useSupport } from "./utilities/useSupport.js";
 export { useTransitions } from "./utilities/useTransitions.js";
 

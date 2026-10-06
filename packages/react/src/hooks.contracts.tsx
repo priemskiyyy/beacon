@@ -1,6 +1,7 @@
 // Typechecked, never run: a route is named from the registered Beacon and its
 // state is inferred from that route, equality takes only the selected type, the
-// provider takes the registered Beacon, and the selector options are the core's.
+// provider takes the registered Beacon and a flag for whether it starts the
+// session, and the selector options are the core's.
 import type { SelectorOptions as CoreSelectorOptions } from "@priemskiyyy/beacon";
 import { expectTypeOf } from "vitest";
 
@@ -10,13 +11,20 @@ import { useBeacon } from "src/hooks/useBeacon";
 import { useObservable } from "src/hooks/useObservable";
 import { useRoute } from "src/hooks/useRoute";
 import { useRunning } from "src/hooks/useRunning";
-import { useStatus } from "src/hooks/useStatus";
+import { useBeaconStatus } from "src/hooks/useBeaconStatus";
 import type { SelectorOptions } from "src/index";
 import type { RegisteredBeacon } from "src/types/Register";
 
 declare const beacon: WebBeacon;
 
-export const provider = <BeaconProvider beacon={beacon} start />;
+export const provider = <BeaconProvider beacon={beacon} />;
+
+export const providerThatLeavesTheSessionToTheApplication = (
+  <BeaconProvider beacon={beacon} start={false} />
+);
+
+// @ts-expect-error -- whether the provider starts the session is a flag, not a word.
+export const providerWithAWord = <BeaconProvider beacon={beacon} start="no" />;
 
 expectTypeOf<RegisteredBeacon>().toEqualTypeOf<WebBeacon>();
 expectTypeOf<SelectorOptions<string>>().toEqualTypeOf<
@@ -35,7 +43,7 @@ export const useContracts = () => {
   );
 
   useRunning(({ web }) => web.state);
-  useStatus(({ state }) => state);
+  useBeaconStatus(({ state }) => state);
 
   expectTypeOf(useBeacon().route("web").state.get()).toEqualTypeOf<
     ReturnType<typeof useRoute<"web">>

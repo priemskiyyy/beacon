@@ -12,7 +12,7 @@ import { useBeacon } from "src/primitives/useBeacon";
 import { useObservable } from "src/primitives/useObservable";
 import { useRoute } from "src/primitives/useRoute";
 import { useRunning } from "src/primitives/useRunning";
-import { useStatus } from "src/primitives/useStatus";
+import { useBeaconStatus } from "src/primitives/useBeaconStatus";
 import { useSupport } from "src/primitives/useSupport";
 import { useTransitions } from "src/primitives/useTransitions";
 
@@ -35,9 +35,9 @@ const checkWith = async (
   await checking;
 };
 
-// The tree every primitive below reads from, as an application publishes its Beacon once.
+// The tree every primitive below reads from, as an application publishes its Beacon once, with `start={false}`: a test opens the session itself, or asserts that nothing did.
 const mount = <TValue>(beacon: WebBeacon, read: () => TValue) =>
-  mountWithProvider({ beacon: () => beacon }, read);
+  mountWithProvider({ beacon: () => beacon, start: () => false }, read);
 
 const expectMisuse = expect.objectContaining({
   name: "BeaconError",
@@ -226,11 +226,11 @@ test("useRunning reads what is running, of the provider's Beacon", async () => {
   dispose();
 });
 
-test("useStatus reads where the session stands", () => {
+test("useBeaconStatus reads where the session stands, until a session opens under a provider that does not start one", () => {
   const { beacon } = createWebBeacon();
 
   const { value: state, dispose } = mount(beacon, () =>
-    useStatus(({ state }) => state),
+    useBeaconStatus(({ state }) => state),
   );
 
   expect(state()).toBe("idle");
@@ -244,6 +244,21 @@ test("useStatus reads where the session stands", () => {
   expect(state()).toBe("stopped");
 
   dispose();
+});
+
+test("useBeaconStatus reads a session that is running under a provider that starts it", () => {
+  const { beacon } = createWebBeacon();
+
+  const { value: state, dispose } = mountWithProvider(
+    { beacon: () => beacon },
+    () => useBeaconStatus(({ state }) => state),
+  );
+
+  expect(state()).toBe("running");
+
+  dispose();
+
+  expect(beacon.status.get()).toEqual({ state: "stopped" });
 });
 
 test("useSupport reads support as it stands, which is unknown without a policy", () => {
@@ -290,7 +305,7 @@ test("every read primitive subscribes once mounted and lets go on dispose", () =
     useRunning();
     useSupport();
     useTransitions();
-    useStatus();
+    useBeaconStatus();
     during.listeners = counted.listeners();
   });
 
@@ -327,7 +342,9 @@ test("a selector reads what it needs untracked, so another signal never resubscr
 
   const selector = vi.fn(({ state }: BeaconStatus) => `${state}-${suffix()}`);
 
-  const { value: label, dispose } = mount(beacon, () => useStatus(selector));
+  const { value: label, dispose } = mount(beacon, () =>
+    useBeaconStatus(selector),
+  );
 
   // Once for the initial value, and once for the live value on mount.
   expect(label()).toBe("idle-a");
@@ -352,14 +369,17 @@ test("BIND-08 the primitives read the provider's Beacon and follow a new one, wi
   second.beacon.start();
   await settle();
 
-  const { value, dispose } = mountWithProvider({ beacon }, () => ({
-    provided: useBeacon(),
-    route: useRoute("web", ({ check }) => check.state),
-    status: useStatus(({ state }) => state),
-    running: useRunning(({ web }) => web.state),
-    support: useSupport(({ status }) => status),
-    transitions: useTransitions(({ journal }) => journal),
-  }));
+  const { value, dispose } = mountWithProvider(
+    { beacon, start: () => false },
+    () => ({
+      provided: useBeacon(),
+      route: useRoute("web", ({ check }) => check.state),
+      status: useBeaconStatus(({ state }) => state),
+      running: useRunning(({ web }) => web.state),
+      support: useSupport(({ status }) => status),
+      transitions: useTransitions(({ journal }) => journal),
+    }),
+  );
 
   expect(value.provided()).toBe(first.beacon);
   expect(value.status()).toBe("idle");
@@ -404,9 +424,9 @@ test("an effect that reads the provider's Beacon and a selection sees the new Be
 
   second.beacon.start();
 
-  const { dispose } = mountWithProvider({ beacon }, () => {
+  const { dispose } = mountWithProvider({ beacon, start: () => false }, () => {
     const provided = useBeacon();
-    const state = useStatus(({ state }) => state);
+    const state = useBeaconStatus(({ state }) => state);
 
     createEffect(() => {
       seen.push(`${provided().status.get().state}/${state()}`);
@@ -438,14 +458,20 @@ test("useBeacon returns the provider's Beacon, and its commands are the Beacon's
   dispose();
 });
 
-test("a primitive without a provider above it is misused, and says so as a BeaconError", () => {
+test("a primitive without a provider above it is misused, and says so as a BeaconError that names the primitive that was called and the package that has the provider", () => {
+  const needs = (primitive: string) =>
+    `${primitive} needs a BeaconProvider (from @priemskiyyy/beacon-solid) above it.`;
+
   expect(() => createRoot(() => useBeacon())).toThrow(BeaconError);
   expect(() => createRoot(() => useBeacon())).toThrow(expectMisuse);
-  expect(() => createRoot(() => useRunning())).toThrow(
-    "useBeacon needs a BeaconProvider above it.",
+  expect(() => createRoot(() => useBeacon())).toThrow(needs("useBeacon"));
+  expect(() => createRoot(() => useRunning())).toThrow(needs("useRunning"));
+  expect(() => createRoot(() => useRoute("web"))).toThrow(needs("useRoute"));
+  expect(() => createRoot(() => useSupport())).toThrow(needs("useSupport"));
+  expect(() => createRoot(() => useTransitions())).toThrow(
+    needs("useTransitions"),
   );
-  expect(() => createRoot(() => useRoute("web"))).toThrow(expectMisuse);
-  expect(() => createRoot(() => useSupport())).toThrow(expectMisuse);
-  expect(() => createRoot(() => useTransitions())).toThrow(expectMisuse);
-  expect(() => createRoot(() => useStatus())).toThrow(expectMisuse);
+  expect(() => createRoot(() => useBeaconStatus())).toThrow(
+    needs("useBeaconStatus"),
+  );
 });

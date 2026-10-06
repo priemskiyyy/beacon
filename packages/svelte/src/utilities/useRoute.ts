@@ -6,7 +6,7 @@ import type {
 } from "../types/Register.js";
 import { selectValue } from "../utils/selectValue.js";
 import { useSelectedValue } from "./internal/useSelectedValue.svelte.js";
-import { useBeacon } from "./useBeacon.js";
+import { useProvidedBeacon } from "./internal/useProvidedBeacon.js";
 
 /**
  * Reads the state of a route of the provider's Beacon, by name, through
@@ -35,7 +35,7 @@ export function useRoute<TName extends RegisteredRouteName>(
   selector: (snapshot: RegisteredRouteState<TName>) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): ReadableValue<unknown> {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useRoute");
 
   return useSelectedValue(
     () => beacon.current.route(name).state,

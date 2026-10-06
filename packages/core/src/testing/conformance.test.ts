@@ -110,6 +110,7 @@ testUpdateMechanism({
 
     const mechanism = createUpdateMechanism({
       name: "listening",
+      subject: "web",
       open: () => ({
         native: platform,
         dispose: platform.subscribe(() => {}),
@@ -303,11 +304,11 @@ const createBuildReader = (build: { id: string | null }) => {
       identity: {
         status: "known",
         authority: "com.example.notes",
-        domain: "native-android-build",
+        domain: "android-version-code",
         value: build.id,
       },
       label: `Build ${build.id}`,
-      raw: { channel: "production", build: 113, embedded: false },
+      raw: { channel: "production", build: "113", embedded: false },
     };
   };
 
@@ -339,7 +340,7 @@ testRunningReader({
   create: () => {
     const { reader, reads } = createBuildReader({ id: "113" });
 
-    return { reader: async () => reader(), reads };
+    return { reader: async (context) => reader(context), reads };
   },
 });
 

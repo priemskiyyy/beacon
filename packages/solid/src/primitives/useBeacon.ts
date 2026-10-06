@@ -1,8 +1,6 @@
-import { BeaconError } from "@priemskiyyy/beacon";
-import { useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 
-import { BeaconContext } from "src/context/BeaconContext";
+import { useProvidedBeacon } from "src/primitives/internal/useProvidedBeacon";
 import type { RegisteredBeacon } from "src/types/Register";
 
 /**
@@ -16,15 +14,5 @@ import type { RegisteredBeacon } from "src/types/Register";
  * const outcome = await beacon().route("web").reload({ offer });
  * ```
  */
-export const useBeacon = (): Accessor<RegisteredBeacon> => {
-  const beacon = useContext(BeaconContext);
-
-  if (beacon === undefined) {
-    throw new BeaconError({
-      code: "INVALID_CONFIGURATION",
-      message: "useBeacon needs a BeaconProvider above it.",
-    });
-  }
-
-  return beacon;
-};
+export const useBeacon = (): Accessor<RegisteredBeacon> =>
+  useProvidedBeacon("useBeacon");

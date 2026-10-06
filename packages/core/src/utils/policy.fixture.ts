@@ -5,6 +5,7 @@ import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import type { ReleaseSource } from "src/types/ReleaseSource";
 import type { RunningApplication } from "src/types/RunningApplication";
 import type { RunningRelease } from "src/types/RunningRelease";
+import type { RunningSubject } from "src/types/RunningSubject";
 import type { SupportVerdict } from "src/types/SupportVerdict";
 import type { TargetDecision } from "src/types/TargetDecision";
 import { buildWebRelease, createRoutedBeacon } from "src/utils/Beacon.fixture";
@@ -91,9 +92,10 @@ export const buildDocument = (
   ...overrides,
 });
 
-export const createPolicyRoutes = (source: ReleaseSource<PolicyManifest>) => {
-  const inert = createUpdateMechanism({
+const createInert = (subject: RunningSubject) =>
+  createUpdateMechanism({
     name: "inert",
+    subject,
     open: () => ({ native: {} }),
     commands: {
       prefetch: {
@@ -108,18 +110,17 @@ export const createPolicyRoutes = (source: ReleaseSource<PolicyManifest>) => {
     },
   });
 
+export const createPolicyRoutes = (source: ReleaseSource<PolicyManifest>) => {
   const web = targetRoute({
-    subject: "web",
     source: source.select((manifest) => manifest.web),
-    mechanism: inert,
+    mechanism: createInert("web"),
   });
 
   const binary = newerRoute({
-    subject: "native",
     source: source.select((manifest) => manifest.binary),
     version: integer(),
     current: (release) => Number(release?.raw["build"] ?? Number.NaN),
-    mechanism: inert,
+    mechanism: createInert("native"),
   });
 
   return { web, binary };

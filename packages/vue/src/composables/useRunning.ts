@@ -1,7 +1,7 @@
 import type { RunningApplication, SelectorOptions } from "@priemskiyyy/beacon";
 import type { ComputedRef } from "vue";
 
-import { useBeacon } from "src/composables/useBeacon";
+import { useProvidedBeacon } from "src/composables/internal/useProvidedBeacon";
 import { useSelectedValue } from "src/composables/internal/useSelectedValue";
 import { selectValue } from "src/utils/selectValue";
 
@@ -26,7 +26,7 @@ export function useRunning(
   selector: (value: RunningApplication) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): ComputedRef<unknown> {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useRunning");
 
   return useSelectedValue(() => beacon.value.running, selector, options);
 }

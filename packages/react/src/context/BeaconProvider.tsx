@@ -4,22 +4,23 @@ import { BeaconContext } from "src/context/BeaconContext";
 import type { BeaconProviderProps } from "src/types/BeaconProviderProps";
 
 /**
- * Publishes one Beacon to the tree below. With `start`, it holds the
- * observation session while mounted, before any child's `useEffect` runs, and
- * ends only that session on unmount; it never disposes the Beacon, and it
- * checks nothing. A child's `useLayoutEffect` runs before its parent's, so it
- * finds the session not started yet.
+ * Publishes one Beacon to the tree below and holds its observation session
+ * while mounted: it starts the session before any child's `useEffect` runs and
+ * ends only that session on unmount. `start={false}` leaves the session to the
+ * application. It never disposes the Beacon, and it checks nothing. A child's
+ * `useLayoutEffect` runs before its parent's, so it finds the session not
+ * started yet.
  *
  * @example
  * ```tsx
- * <BeaconProvider beacon={beacon} start>
+ * <BeaconProvider beacon={beacon}>
  *   <Application />
  * </BeaconProvider>
  * ```
  */
 export const BeaconProvider = ({
   beacon,
-  start = false,
+  start = true,
   children,
 }: BeaconProviderProps) => {
   // A layout effect runs before every passive effect of the tree, so what a child does when it mounts finds the session started.

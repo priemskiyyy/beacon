@@ -13,7 +13,7 @@ import { useBeacon } from "src/primitives/useBeacon";
 import { useObservable } from "src/primitives/useObservable";
 import { useRoute } from "src/primitives/useRoute";
 import { useRunning } from "src/primitives/useRunning";
-import { useStatus } from "src/primitives/useStatus";
+import { useBeaconStatus } from "src/primitives/useBeaconStatus";
 import type {
   RegisteredBeacon,
   RegisteredRouteState,
@@ -22,7 +22,20 @@ import type {
 declare const beacon: WebBeacon;
 
 export const provider = (
-  <BeaconProvider beacon={beacon} start>
+  <BeaconProvider beacon={beacon}>
+    <span />
+  </BeaconProvider>
+);
+
+export const providerThatLeavesTheSessionToTheApplication = (
+  <BeaconProvider beacon={beacon} start={false}>
+    <span />
+  </BeaconProvider>
+);
+
+export const providerWithAWord = (
+  // @ts-expect-error -- whether the provider starts the session is a flag, not a word.
+  <BeaconProvider beacon={beacon} start="no">
     <span />
   </BeaconProvider>
 );
@@ -42,7 +55,7 @@ export const useContracts = () => {
   );
 
   useRunning(({ web }) => web.state);
-  useStatus(({ state }) => state);
+  useBeaconStatus(({ state }) => state);
 
   const handle = useBeacon()().route("web");
 

@@ -4,7 +4,7 @@ export { useDisruption } from "src/composables/useDisruption";
 export { useObservable } from "src/composables/useObservable";
 export { useRoute } from "src/composables/useRoute";
 export { useRunning } from "src/composables/useRunning";
-export { useStatus } from "src/composables/useStatus";
+export { useBeaconStatus } from "src/composables/useBeaconStatus";
 export { useSupport } from "src/composables/useSupport";
 export { useTransitions } from "src/composables/useTransitions";
 

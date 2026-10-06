@@ -1,5 +1,5 @@
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
-import { useBeacon } from "./useBeacon.js";
+import { useProvidedBeacon } from "./internal/useProvidedBeacon.js";
 
 /**
  * Registers a participant while the component is mounted, and unregisters it
@@ -27,7 +27,7 @@ import { useBeacon } from "./useBeacon.js";
  * ```
  */
 export const useDisruption = (participant: DisruptionParticipant) => {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useDisruption");
 
   // Effects never run on the server, so a server render registers nothing.
   $effect(() => beacon.current.disruptions.register(participant));

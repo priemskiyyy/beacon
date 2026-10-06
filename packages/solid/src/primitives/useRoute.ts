@@ -1,7 +1,7 @@
 import type { SelectorOptions } from "@priemskiyyy/beacon";
 import type { Accessor } from "solid-js";
 
-import { useBeacon } from "src/primitives/useBeacon";
+import { useProvidedBeacon } from "src/primitives/internal/useProvidedBeacon";
 import { useSelectedValue } from "src/primitives/internal/useSelectedValue";
 import type {
   RegisteredRouteName,
@@ -37,7 +37,7 @@ export function useRoute<TName extends RegisteredRouteName>(
   selector: (snapshot: RegisteredRouteState<TName>) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): Accessor<unknown> {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useRoute");
 
   return useSelectedValue(() => beacon().route(name).state, selector, options);
 }

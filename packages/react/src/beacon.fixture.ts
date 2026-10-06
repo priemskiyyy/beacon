@@ -1,5 +1,6 @@
 import {
   Beacon,
+  createReleaseDriver,
   createUpdateMechanism,
   targetRoute,
 } from "@priemskiyyy/beacon";
@@ -38,10 +39,10 @@ export const createWebBeacon = () => {
   });
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: createUpdateMechanism({
       name: "inert",
+      subject: "web",
       open: () => ({ native: {} }),
       commands: {
         prefetch: {
@@ -97,3 +98,28 @@ export const countListeners = <TValue>(value: ObservableValue<TValue>) => {
 
   return { observable, listeners: () => counts.live };
 };
+
+// A Beacon over a provider's driver route with a native handle, which is what an Expo application has, for what a hook must accept besides a feed route.
+export const createDriverBeacon = () =>
+  new Beacon({
+    scope: SCOPE,
+    running: { boot: { id: "boot-1" } },
+    routes: {
+      ota: createReleaseDriver({
+        name: "ota",
+        subject: "bundle",
+        prepares: false,
+        open: () => ({
+          native: { channel: "production" },
+          check: async () => ({
+            status: "none",
+            reason: "no-decision",
+            detail: null,
+          }),
+        }),
+        commands: {},
+      }),
+    },
+  });
+
+export type DriverBeacon = ReturnType<typeof createDriverBeacon>;

@@ -41,9 +41,7 @@ test("the server subscribes to nothing", async () => {
     return () => h("span", state.value.observation.status);
   });
 
-  const app = createSSRApp(() =>
-    h(BeaconProvider, { beacon, start: true }, () => h(View)),
-  );
+  const app = createSSRApp(() => h(BeaconProvider, { beacon }, () => h(View)));
 
   expect(await renderToString(app)).toBe(
     "<!--[--><span>unknown</span><!--]-->",
@@ -64,9 +62,7 @@ test("the server registers no disruption participant", async () => {
     return () => h("span");
   });
 
-  const app = createSSRApp(() =>
-    h(BeaconProvider, { beacon, start: true }, () => h(View)),
-  );
+  const app = createSSRApp(() => h(BeaconProvider, { beacon }, () => h(View)));
 
   await renderToString(app);
   beacon.start();

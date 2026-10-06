@@ -1,5 +1,5 @@
 import type { SelectorOptions } from "@priemskiyyy/beacon";
-import { useBeacon } from "src/hooks/useBeacon";
+import { useProvidedBeacon } from "src/hooks/internal/useProvidedBeacon";
 import { useObservable } from "src/hooks/useObservable";
 import type {
   RegisteredRouteName,
@@ -34,5 +34,9 @@ export function useRoute<TName extends RegisteredRouteName>(
   selector: (snapshot: RegisteredRouteState<TName>) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): unknown {
-  return useObservable(useBeacon().route(name).state, selector, options);
+  return useObservable(
+    useProvidedBeacon("useRoute").route(name).state,
+    selector,
+    options,
+  );
 }

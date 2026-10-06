@@ -1,7 +1,7 @@
 {
   "name": "@priemskiyyy/beacon-react",
   "version": "0.1.0",
-  "description": "React bindings for Beacon: hooks that read route state and what is running without starting anything, and a provider that can hold the observation session.",
+  "description": "React bindings for Beacon: hooks that read route state and what is running without starting anything, and a provider that holds the observation session while it is mounted.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -38,7 +38,7 @@
   },
   "peerDependencies": {
     "@priemskiyyy/beacon": ">=0.1.0 <0.2",
-    "react": ">=19.2.0 <20"
+    "react": ">=18.3.0 <20"
   },
   "devDependencies": {
     "@priemskiyyy/beacon": "workspace:*",

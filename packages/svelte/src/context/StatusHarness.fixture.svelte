@@ -11,6 +11,6 @@
   const props: Props = $props();
 </script>
 
-<BeaconProvider beacon={props.beacon} start>
+<BeaconProvider beacon={props.beacon}>
   <Status seen={props.seen} />
 </BeaconProvider>

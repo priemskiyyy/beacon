@@ -453,10 +453,10 @@ const createHungBeacon = (journal?: JournalOptions) => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: createUpdateMechanism({
       name: "inert",
+      subject: "web",
       open: () => ({ native: {} }),
       commands: {},
     }),

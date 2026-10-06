@@ -4,7 +4,9 @@ import { listFailed, runCollected } from "src/testing/collectChecks.fixture";
 import { testRunningReader } from "src/testing/testRunningReader";
 import type { RunningReaderFixture } from "src/testing/types/RunningReaderFixture";
 import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
+import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { RunningRelease } from "src/types/RunningRelease";
+import { SCOPE } from "src/utils/Beacon.fixture";
 
 vi.mock("vitest", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
@@ -12,6 +14,9 @@ vi.mock("vitest", async (importOriginal) => {
 
   return { ...actual, describe: collect.describe, test: collect.test };
 });
+
+const isSameScope = (left: ReleaseScope, right: ReleaseScope) =>
+  JSON.stringify(left) === JSON.stringify(right);
 
 // Registers the suite over these options, runs every check, and answers how each one ended.
 const runSuite = (options: Parameters<typeof testRunningReader>[0]) =>
@@ -134,7 +139,7 @@ describe("a reader that breaks the contract fails the check that names it", () =
       create: () => {
         const fixture = createHosted(() => RELEASE);
 
-        fixture.reader();
+        fixture.reader({ scope: SCOPE });
 
         return fixture;
       },
@@ -304,5 +309,75 @@ describe("a reader that breaks the contract fails the check that names it", () =
     });
 
     expect(listFailed(outcomes)).toEqual([CHECKS.stable]);
+  });
+});
+
+describe("the scope a reader is asked under", () => {
+  const collect = () => {
+    const scopes: ReleaseScope[] = [];
+
+    const fixture: RunningReaderFixture = {
+      reader: ({ scope }) => {
+        scopes.push(scope);
+
+        return RELEASE;
+      },
+    };
+
+    return { scopes, fixture };
+  };
+
+  test("the suite's own scope is the default, given frozen", async () => {
+    const { scopes, fixture } = collect();
+
+    await runSuite({ name: "default", create: () => fixture });
+
+    expect(scopes.length).toBeGreaterThan(0);
+    expect(
+      scopes.every(
+        ({ application }) => application === "com.example.conformance",
+      ),
+    ).toBe(true);
+    expect(scopes.every((scope) => Object.isFrozen(scope))).toBe(true);
+  });
+
+  test("the scope of the options replaces it, and a situation has a scope of its own", async () => {
+    const { scopes, fixture } = collect();
+    const apart = collect();
+    const ios: ReleaseScope = { ...SCOPE, platform: "ios" };
+
+    await runSuite({
+      name: "scoped",
+      scope: SCOPE,
+      create: () => fixture,
+      situations: [
+        {
+          name: "the platform is another",
+          answers: "known",
+          scope: ios,
+          create: () => apart.fixture,
+        },
+      ],
+    });
+
+    expect(scopes.length).toBeGreaterThan(0);
+    expect(scopes.every((scope) => isSameScope(scope, SCOPE))).toBe(true);
+    expect(apart.scopes.length).toBeGreaterThan(0);
+    expect(apart.scopes.every((scope) => isSameScope(scope, ios))).toBe(true);
+  });
+
+  test("a reader that changes the scope it is given fails the checks that read it", async () => {
+    const outcomes = await runSuite({
+      name: "meddling",
+      create: () => ({
+        reader: ({ scope }) => {
+          scope.environment = "changed";
+
+          return RELEASE;
+        },
+      }),
+    });
+
+    expect(listFailed(outcomes)).toEqual([CHECKS.release, CHECKS.stable]);
   });
 });

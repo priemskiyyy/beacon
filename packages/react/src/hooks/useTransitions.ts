@@ -1,6 +1,6 @@
 import type { SelectorOptions, TransitionState } from "@priemskiyyy/beacon";
 
-import { useBeacon } from "src/hooks/useBeacon";
+import { useProvidedBeacon } from "src/hooks/internal/useProvidedBeacon";
 import { useObservable } from "src/hooks/useObservable";
 import { selectValue } from "src/utils/selectValue";
 
@@ -23,5 +23,9 @@ export function useTransitions(
   selector: (value: TransitionState) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): unknown {
-  return useObservable(useBeacon().transitions, selector, options);
+  return useObservable(
+    useProvidedBeacon("useTransitions").transitions,
+    selector,
+    options,
+  );
 }

@@ -45,11 +45,11 @@ test("importing the built package reads no DOM global, in an environment with no
     expect(Object.keys(api).sort()).toEqual([
       "BeaconProvider",
       "useBeacon",
+      "useBeaconStatus",
       "useDisruption",
       "useObservable",
       "useRoute",
       "useRunning",
-      "useStatus",
       "useSupport",
       "useTransitions",
     ]);

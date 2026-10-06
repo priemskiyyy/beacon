@@ -12,14 +12,19 @@ import { useBeacon } from "src/composables/useBeacon";
 import { useObservable } from "src/composables/useObservable";
 import { useRoute } from "src/composables/useRoute";
 import { useRunning } from "src/composables/useRunning";
-import { useStatus } from "src/composables/useStatus";
+import { useBeaconStatus } from "src/composables/useBeaconStatus";
 import { BeaconProvider } from "src/context/BeaconProvider";
 import type { SelectorOptions } from "src/index";
 import type { RegisteredBeacon } from "src/types/Register";
 
 declare const beacon: WebBeacon;
 
-export const provider = h(BeaconProvider, { beacon, start: true });
+export const provider = h(BeaconProvider, { beacon });
+
+export const providerThatLeavesTheSessionToTheApplication = h(BeaconProvider, {
+  beacon,
+  start: false,
+});
 
 // @ts-expect-error -- a provider without a Beacon publishes nothing.
 h(BeaconProvider, {});
@@ -42,7 +47,7 @@ export const useContracts = () => {
   );
 
   useRunning(({ web }) => web.state);
-  useStatus(({ state }) => state);
+  useBeaconStatus(({ state }) => state);
 
   expectTypeOf(useBeacon().value.route("web").state.get()).toEqualTypeOf<
     ReturnType<typeof useRoute<"web">>["value"]

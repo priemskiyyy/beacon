@@ -1,7 +1,7 @@
 import type { SelectorOptions } from "@priemskiyyy/beacon";
 import type { ComputedRef } from "vue";
 
-import { useBeacon } from "src/composables/useBeacon";
+import { useProvidedBeacon } from "src/composables/internal/useProvidedBeacon";
 import { useSelectedValue } from "src/composables/internal/useSelectedValue";
 import type {
   RegisteredRouteName,
@@ -36,7 +36,7 @@ export function useRoute<TName extends RegisteredRouteName>(
   selector: (snapshot: RegisteredRouteState<TName>) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): ComputedRef<unknown> {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useRoute");
 
   return useSelectedValue(
     () => beacon.value.route(name).state,

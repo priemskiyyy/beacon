@@ -14,7 +14,7 @@ import { useBeacon } from "./utilities/useBeacon.js";
 import { useObservable } from "./utilities/useObservable.js";
 import { useRoute } from "./utilities/useRoute.js";
 import { useRunning } from "./utilities/useRunning.js";
-import { useStatus } from "./utilities/useStatus.js";
+import { useBeaconStatus } from "./utilities/useBeaconStatus.js";
 
 expectTypeOf<RegisteredBeacon>().toEqualTypeOf<WebBeacon>();
 expectTypeOf<SelectorOptions<string>>().toEqualTypeOf<
@@ -23,6 +23,11 @@ expectTypeOf<SelectorOptions<string>>().toEqualTypeOf<
 expectTypeOf<
   ComponentProps<typeof BeaconProvider>["beacon"]
 >().toEqualTypeOf<WebBeacon>();
+
+// Whether the provider starts the session is a flag that may be left out, and then it starts.
+expectTypeOf<ComponentProps<typeof BeaconProvider>["start"]>().toEqualTypeOf<
+  boolean | undefined
+>();
 
 export const useContracts = () => {
   const status: ReadableValue<
@@ -35,7 +40,7 @@ export const useContracts = () => {
   );
 
   useRunning(({ web }) => web.state);
-  useStatus(({ state }) => state);
+  useBeaconStatus(({ state }) => state);
 
   expectTypeOf(useBeacon().current).toEqualTypeOf<WebBeacon>();
 

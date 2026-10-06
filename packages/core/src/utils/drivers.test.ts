@@ -6,7 +6,7 @@ import type { ObservationDraft } from "src/types/ObservationDraft";
 import type { ProviderResult } from "src/types/ProviderResult";
 import type { RouteBody } from "src/types/RouteBody";
 import { settle } from "src/mock/settle";
-import { createRoutedBeacon } from "src/utils/Beacon.fixture";
+import { buildWebRelease, createRoutedBeacon } from "src/utils/Beacon.fixture";
 import {
   BODY,
   createDriverBeacon,
@@ -74,16 +74,19 @@ test("LIFE-04 a driver that fails to open leaves an unrelated route usable, and 
   const events: string[] = [];
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: createUpdateMechanism({
       name: "inert",
+      subject: "web",
       open: () => ({ native: {} }),
       commands: {},
     }),
   });
 
-  const { beacon } = createRoutedBeacon({ ota: broken.route, web });
+  const { beacon } = createRoutedBeacon(
+    { ota: broken.route, web },
+    { running: { web: () => buildWebRelease("web-build-b") } },
+  );
 
   beacon.diagnostics.events.subscribe((event) => {
     events.push(`${event.type}:${event.route}:${event.reason}`);

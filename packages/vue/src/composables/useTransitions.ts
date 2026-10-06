@@ -1,7 +1,7 @@
 import type { SelectorOptions, TransitionState } from "@priemskiyyy/beacon";
 import type { ComputedRef } from "vue";
 
-import { useBeacon } from "src/composables/useBeacon";
+import { useProvidedBeacon } from "src/composables/internal/useProvidedBeacon";
 import { useSelectedValue } from "src/composables/internal/useSelectedValue";
 import { selectValue } from "src/utils/selectValue";
 
@@ -27,7 +27,7 @@ export function useTransitions(
   selector: (value: TransitionState) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): ComputedRef<unknown> {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useTransitions");
 
   return useSelectedValue(() => beacon.value.transitions, selector, options);
 }

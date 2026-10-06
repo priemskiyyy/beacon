@@ -5,11 +5,11 @@ test("the entry exports the provider and the utilities, and nothing else", () =>
   expect(Object.keys(api).sort()).toEqual([
     "BeaconProvider",
     "useBeacon",
+    "useBeaconStatus",
     "useDisruption",
     "useObservable",
     "useRoute",
     "useRunning",
-    "useStatus",
     "useSupport",
     "useTransitions",
   ]);

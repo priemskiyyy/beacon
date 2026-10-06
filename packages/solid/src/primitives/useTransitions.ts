@@ -1,7 +1,7 @@
 import type { SelectorOptions, TransitionState } from "@priemskiyyy/beacon";
 import type { Accessor } from "solid-js";
 
-import { useBeacon } from "src/primitives/useBeacon";
+import { useProvidedBeacon } from "src/primitives/internal/useProvidedBeacon";
 import { useSelectedValue } from "src/primitives/internal/useSelectedValue";
 import { selectValue } from "src/utils/selectValue";
 
@@ -24,7 +24,7 @@ export function useTransitions(
   selector: (value: TransitionState) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): Accessor<unknown> {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useTransitions");
 
   return useSelectedValue(() => beacon().transitions, selector, options);
 }

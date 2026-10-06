@@ -25,7 +25,7 @@ const create = () => {
   };
 
   const view = (
-    <BeaconProvider beacon={context.beacon} start>
+    <BeaconProvider beacon={context.beacon}>
       <View />
     </BeaconProvider>
   );
@@ -59,7 +59,7 @@ test("the server subscribes to nothing and registers no participant", async () =
 
   expect(
     renderToString(
-      <BeaconProvider beacon={beacon} start>
+      <BeaconProvider beacon={beacon}>
         <View />
       </BeaconProvider>,
     ),

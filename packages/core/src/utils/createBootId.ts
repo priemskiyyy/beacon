@@ -36,8 +36,9 @@ const formatVersion4 = (bytes: number[]) => {
  * where the host has it, else `crypto.getRandomValues`, else `Math.random`, which
  * is how it works on Hermes without a polyfill. It never throws and never reads
  * the clock. Uniqueness is what a boot id needs, not secrecy: two boots must
- * not share one, and nothing is protected by it being hard to guess. Make it
- * once per runtime and pass it as `running.boot.id`.
+ * not share one, and nothing is protected by it being hard to guess. A Beacon
+ * made without `running.boot` mints one for the whole runtime and shares it,
+ * so you need this only for an id of your own.
  *
  * @example
  * ```ts

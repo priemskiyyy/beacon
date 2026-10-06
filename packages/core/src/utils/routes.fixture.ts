@@ -33,6 +33,7 @@ export const createReloadMechanism = () => {
 
   const mechanism = createUpdateMechanism({
     name: "test-reload",
+    subject: "web",
     open: () => ({ native: environment }),
     commands: {
       reload: {
@@ -61,7 +62,6 @@ export const createWebBeacon = (options: WebOptions = {}) => {
   const { mechanism, environment } = createReloadMechanism();
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism,
   });
@@ -91,13 +91,11 @@ export const createTwoRouteBeacon = () => {
   const { mechanism } = createReloadMechanism();
 
   const first = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.first),
     mechanism,
   });
 
   const second = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.second),
     mechanism,
   });

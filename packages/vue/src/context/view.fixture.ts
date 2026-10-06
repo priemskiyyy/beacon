@@ -5,7 +5,7 @@ import { useRoute } from "src/composables/useRoute";
 import { useRunning } from "src/composables/useRunning";
 import { BeaconProvider } from "src/context/BeaconProvider";
 
-// A Beacon over a web route, and a view that reads it below a provider that starts the session.
+// A Beacon over a web route, and a view that reads it below a provider, which starts the session.
 export const createView = () => {
   const context = createWebBeacon();
 
@@ -22,7 +22,7 @@ export const createView = () => {
 
   const createApp = () =>
     createSSRApp(() =>
-      h(BeaconProvider, { beacon: context.beacon, start: true }, () => h(View)),
+      h(BeaconProvider, { beacon: context.beacon }, () => h(View)),
     );
 
   return { ...context, createApp };

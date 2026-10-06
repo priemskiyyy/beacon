@@ -297,16 +297,19 @@ test("a provider that starts the next session while its route is released leaves
   let restart = () => {};
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: createUpdateMechanism({
       name: "restarting",
+      subject: "web",
       open: () => ({ native: {}, dispose: () => restart() }),
       commands: {},
     }),
   });
 
-  const { beacon } = createRoutedBeacon({ web });
+  const { beacon } = createRoutedBeacon(
+    { web },
+    { running: { web: () => buildWebRelease("web-build-b") } },
+  );
 
   restart = () => {
     restart = () => {};
@@ -327,10 +330,10 @@ test("a reader that ends the session while it is asked leaves the later readers,
   const later = vi.fn(() => buildWebRelease("web-build-b"));
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: createUpdateMechanism({
       name: "counting",
+      subject: "web",
       open: opens,
       commands: {},
     }),
@@ -366,10 +369,10 @@ test("a provider that ends the session while its route opens leaves the journal 
   const memory = createMockJournalStorage();
 
   const web = targetRoute({
-    subject: "web",
     source: mock.source.select((manifest) => manifest.web),
     mechanism: createUpdateMechanism({
       name: "stopping",
+      subject: "web",
       open: () => {
         beacon.stop();
 
@@ -381,7 +384,10 @@ test("a provider that ends the session while its route opens leaves the journal 
 
   const { beacon } = createRoutedBeacon(
     { web },
-    { journal: { mode: "best-effort", storage: memory } },
+    {
+      running: { web: () => buildWebRelease("web-build-b") },
+      journal: { mode: "best-effort", storage: memory },
+    },
   );
 
   beacon.start();
@@ -504,7 +510,8 @@ const NOT_STARTED = {
   attempt: 0,
   error: {
     code: "NOT_STARTED",
-    message: "An operation needs a started Beacon.",
+    message:
+      "The Beacon has no open session. Call beacon.start(), or mount a BeaconProvider that is not given start={false}.",
   },
 };
 

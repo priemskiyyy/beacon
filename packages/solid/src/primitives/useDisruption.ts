@@ -1,7 +1,7 @@
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
 import { createEffect, onCleanup } from "solid-js";
 
-import { useBeacon } from "src/primitives/useBeacon";
+import { useProvidedBeacon } from "src/primitives/internal/useProvidedBeacon";
 
 /**
  * Registers a participant on the provider's Beacon while mounted, and
@@ -28,7 +28,7 @@ import { useBeacon } from "src/primitives/useBeacon";
  * ```
  */
 export const useDisruption = (participant: DisruptionParticipant) => {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useDisruption");
 
   // An effect never runs on the server, and a provider's Beacon can change, so the registration follows it.
   createEffect(() => {

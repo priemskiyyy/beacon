@@ -1,7 +1,7 @@
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
 import { onMounted, onWatcherCleanup, watch } from "vue";
 
-import { useBeacon } from "src/composables/useBeacon";
+import { useProvidedBeacon } from "src/composables/internal/useProvidedBeacon";
 
 /**
  * Registers a participant while the component is mounted, and unregisters it
@@ -28,7 +28,7 @@ import { useBeacon } from "src/composables/useBeacon";
  * ```
  */
 export const useDisruption = (participant: DisruptionParticipant) => {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useDisruption");
 
   onMounted(() => {
     watch(

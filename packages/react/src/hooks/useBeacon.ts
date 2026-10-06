@@ -1,7 +1,4 @@
-import { BeaconError } from "@priemskiyyy/beacon";
-import { useContext } from "react";
-
-import { BeaconContext } from "src/context/BeaconContext";
+import { useProvidedBeacon } from "src/hooks/internal/useProvidedBeacon";
 import type { RegisteredBeacon } from "src/types/Register";
 
 /**
@@ -14,15 +11,4 @@ import type { RegisteredBeacon } from "src/types/Register";
  * const outcome = await useBeacon().route("web").reload({ offer });
  * ```
  */
-export const useBeacon = (): RegisteredBeacon => {
-  const beacon = useContext(BeaconContext);
-
-  if (beacon === undefined) {
-    throw new BeaconError({
-      code: "INVALID_CONFIGURATION",
-      message: "useBeacon needs a BeaconProvider above it.",
-    });
-  }
-
-  return beacon;
-};
+export const useBeacon = (): RegisteredBeacon => useProvidedBeacon("useBeacon");

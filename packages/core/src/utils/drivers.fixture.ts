@@ -2,6 +2,7 @@ import type { DriverEmitter } from "src/types/DriverEmitter";
 import type { ObservationDraft } from "src/types/ObservationDraft";
 import type { ProviderResult } from "src/types/ProviderResult";
 import type { RouteBody } from "src/types/RouteBody";
+import type { RunningReader } from "src/types/RunningReader";
 import { createRoutedBeacon } from "src/utils/Beacon.fixture";
 import { createReleaseDriver } from "src/utils/createReleaseDriver";
 
@@ -34,6 +35,8 @@ type Script = {
   reconcile: (signal: AbortSignal) => Promise<void>;
   /** Makes `dispose` throw, as a provider whose unsubscribe fails does. */
   throwOnDispose: Error | null;
+  /** The reader of the provider's own subject that the driver offers by default, which it has none of unless a test gives one. */
+  running: RunningReader;
 };
 
 // A provider driver whose session, emitter and commands a test controls.
@@ -41,7 +44,7 @@ export const createFakeDriver = (
   script: Partial<Script> = {},
   exclusive: object | null = null,
 ) => {
-  const { reconcile } = script;
+  const { reconcile, running } = script;
 
   const answers: ObservationDraft<RouteBody> = script.answers ?? {
     status: "available",
@@ -76,6 +79,7 @@ export const createFakeDriver = (
     subject: "native",
     prepares: true,
     ...(exclusive === null ? {} : { exclusive }),
+    ...(running === undefined ? {} : { running }),
     open: ({ emit }) => {
       counts.opens += 1;
 

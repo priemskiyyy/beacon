@@ -1,8 +1,6 @@
-import { BeaconError } from "@priemskiyyy/beacon";
-import { inject } from "vue";
 import type { ComputedRef } from "vue";
 
-import { BEACON_CONTEXT } from "src/context/BeaconContext";
+import { useProvidedBeacon } from "src/composables/internal/useProvidedBeacon";
 import type { RegisteredBeacon } from "src/types/Register";
 
 /**
@@ -17,15 +15,5 @@ import type { RegisteredBeacon } from "src/types/Register";
  * const outcome = await beacon.value.route("web").reload({ offer });
  * ```
  */
-export const useBeacon = (): ComputedRef<RegisteredBeacon> => {
-  const beacon = inject(BEACON_CONTEXT, undefined);
-
-  if (beacon === undefined) {
-    throw new BeaconError({
-      code: "INVALID_CONFIGURATION",
-      message: "useBeacon needs a BeaconProvider above it.",
-    });
-  }
-
-  return beacon;
-};
+export const useBeacon = (): ComputedRef<RegisteredBeacon> =>
+  useProvidedBeacon("useBeacon");

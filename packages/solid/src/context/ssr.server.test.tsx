@@ -52,7 +52,7 @@ test("the server subscribes to nothing and registers no participant", async () =
 
   expect(
     renderToString(() => (
-      <BeaconProvider beacon={beacon} start>
+      <BeaconProvider beacon={beacon}>
         <View />
       </BeaconProvider>
     )),

@@ -1,7 +1,7 @@
 import type { BeaconStatus, SelectorOptions } from "@priemskiyyy/beacon";
 import type { ComputedRef } from "vue";
 
-import { useBeacon } from "src/composables/useBeacon";
+import { useProvidedBeacon } from "src/composables/internal/useProvidedBeacon";
 import { useSelectedValue } from "src/composables/internal/useSelectedValue";
 import { selectValue } from "src/utils/selectValue";
 
@@ -12,21 +12,21 @@ import { selectValue } from "src/utils/selectValue";
  *
  * @example
  * ```ts
- * const active = useStatus(({ state }) => state === "running");
+ * const active = useBeaconStatus(({ state }) => state === "running");
  * ```
  */
-export function useStatus(): ComputedRef<BeaconStatus>;
+export function useBeaconStatus(): ComputedRef<BeaconStatus>;
 
-export function useStatus<TSelected>(
+export function useBeaconStatus<TSelected>(
   selector: (value: BeaconStatus) => TSelected,
   options?: SelectorOptions<NoInfer<TSelected>>,
 ): ComputedRef<TSelected>;
 
-export function useStatus(
+export function useBeaconStatus(
   selector: (value: BeaconStatus) => unknown = selectValue,
   options: SelectorOptions<unknown> = {},
 ): ComputedRef<unknown> {
-  const beacon = useBeacon();
+  const beacon = useProvidedBeacon("useBeaconStatus");
 
   return useSelectedValue(() => beacon.value.status, selector, options);
 }

@@ -6,10 +6,16 @@ export { createReleaseDriver } from "src/utils/createReleaseDriver";
 export { createReleaseSource } from "src/utils/createReleaseSource";
 export { createUpdateMechanism } from "src/utils/createUpdateMechanism";
 export { keyValueJournalStorage } from "src/utils/keyValueJournalStorage";
+export { minimumBuild } from "src/utils/minimumBuild";
 export { newerRoute } from "src/utils/newerRoute";
 export { parseUtcTimestamp } from "src/utils/parseUtcTimestamp";
 export { supportPolicy } from "src/utils/supportPolicy";
 export { targetRoute } from "src/utils/targetRoute";
+export {
+  ANDROID_VERSION_CODE_DOMAIN,
+  IOS_BUILD_DOMAIN,
+  WEB_ARTIFACT_DOMAIN,
+} from "src/utils/constants/domains";
 
 export type { BeaconClock } from "src/types/BeaconClock";
 export type { BeaconDiagnosticCounters } from "src/types/BeaconDiagnosticCounters";
@@ -55,7 +61,9 @@ export type { JournalOptions } from "src/types/JournalOptions";
 export type { JournalStorage } from "src/types/JournalStorage";
 export type { KeyValueJournalOptions } from "src/types/KeyValueJournalOptions";
 export type { KeyValueStoreLike } from "src/types/KeyValueStoreLike";
+export type { MechanismContext } from "src/types/MechanismContext";
 export type { MechanismSession } from "src/types/MechanismSession";
+export type { MinimumBuildOptions } from "src/types/MinimumBuildOptions";
 export type { NewerRouteOptions } from "src/types/NewerRouteOptions";
 export type { NoneDecision } from "src/types/NoneDecision";
 export type { NoOfferReason } from "src/types/NoOfferReason";
@@ -94,6 +102,7 @@ export type { RouteSnapshotOf } from "src/types/RouteSnapshotOf";
 export type { RunningApplication } from "src/types/RunningApplication";
 export type { RunningFact } from "src/types/RunningFact";
 export type { RunningReader } from "src/types/RunningReader";
+export type { RunningReaderContext } from "src/types/RunningReaderContext";
 export type { RunningReaders } from "src/types/RunningReaders";
 export type { RunningRelease } from "src/types/RunningRelease";
 export type { RunningSubject } from "src/types/RunningSubject";

@@ -15,7 +15,6 @@ import { selectNewer } from "src/utils/internal/selection/selectNewer";
  * @example
  * ```ts
  * const binary = newerRoute({
- *   subject: "native",
  *   source: lookup.select((document) => document.decision),
  *   version: semver(),
  *   current: (release) => release?.label ?? null,
@@ -31,7 +30,6 @@ export const newerRoute = <
   TNative extends object,
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 >({
-  subject,
   source,
   version,
   current,
@@ -50,10 +48,9 @@ export const newerRoute = <
   TCommands
 > => ({
   kind: "feed",
-  subject,
   source: source.source,
   select: (document, running) => {
-    const release = readRunningRelease(running, subject);
+    const release = readRunningRelease(running, mechanism.subject);
 
     return selectNewer({
       decision: source.project(document),

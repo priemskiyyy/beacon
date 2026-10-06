@@ -12,7 +12,7 @@ const Status = () => {
 
 // The application's root: one provider that holds the session, and a view of the route and of what runs.
 export const StatusView = (props: { beacon: WebBeacon }) => (
-  <BeaconProvider beacon={props.beacon} start>
+  <BeaconProvider beacon={props.beacon}>
     <Status />
   </BeaconProvider>
 );

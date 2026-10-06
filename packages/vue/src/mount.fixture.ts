@@ -25,13 +25,15 @@ export const mount = <TValue>(read: () => TValue, provision?: Provision) => {
       return h(Probe);
     }
 
-    const { beacon, start = false } = provision;
+    const { beacon, start } = provision;
 
-    return h(
-      BeaconProvider,
-      { beacon: toValue(beacon), start: toValue(start) },
-      () => h(Probe),
-    );
+    // A start left out is left out of the props, so what a test sees is the provider's own default.
+    const props =
+      start === undefined
+        ? { beacon: toValue(beacon) }
+        : { beacon: toValue(beacon), start: toValue(start) };
+
+    return h(BeaconProvider, props, () => h(Probe));
   });
 
   const app = createApp(Root);

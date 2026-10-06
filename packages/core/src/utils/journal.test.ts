@@ -1,12 +1,21 @@
 import { expect, test } from "vitest";
 
 import type { RunningRelease } from "src/types/RunningRelease";
+import { createMockSource } from "src/mock/createMockSource";
 import { settle } from "src/mock/settle";
-import { buildWebRelease, SCOPE } from "src/utils/Beacon.fixture";
+import {
+  buildWebRelease,
+  createRoutedBeacon,
+  SCOPE,
+} from "src/utils/Beacon.fixture";
+import { buildNativeRelease } from "src/utils/policy.fixture";
+import type { Manifest } from "src/utils/routes.fixture";
+import { targetRoute } from "src/utils/targetRoute";
 import { DEFAULT_RUNNING_TIMEOUT } from "src/utils/constants/defaults";
 import {
   ACCEPTED_RELOAD,
   answerWithBuild,
+  createHeldMechanism,
   createParticipant,
   createWebCommandBeacon,
   startWithOffer,
@@ -187,6 +196,37 @@ test("an intent names what ran as it was known: an unnamed build as unknown, and
   expect(readRecord(unread)[0]?.intent).toMatchObject({
     current: null,
     target: null,
+  });
+});
+
+test("an intent names the subject of the route's mechanism, and the build that subject runs", async () => {
+  const memory = createMockJournalStorage();
+  const held = createHeldMechanism({ subject: "native" });
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+
+  const web = targetRoute({
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism: held.mechanism,
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { web },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        web: () => buildWebRelease("web-build-b"),
+        native: () => buildNativeRelease(100),
+      },
+      journal: { mode: "required", storage: memory },
+    },
+  );
+
+  beacon.start();
+  await beacon.route("web").refresh();
+
+  expect(readRecord(memory)[0]?.intent).toMatchObject({
+    subject: "native",
+    current: { status: "known", domain: "android-version-code", value: "100" },
   });
 });
 

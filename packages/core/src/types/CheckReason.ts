@@ -9,9 +9,19 @@
  * ```
  */
 export type CheckReason =
+  /** The first check of a session. */
   | "startup"
+  /** A check the application made on its own, such as a button. */
   | "manual"
+  /** The application returned to the foreground. */
   | "foreground"
+  /** The network came back. */
   | "reconnect"
+  /** A source said something changed, such as a push. */
   | "invalidation"
-  | "interval";
+  /** A timer asked again without knowing anything changed. */
+  | "interval"
+  /** A check that follows a failed one, after a wait. */
+  | "retry"
+  /** A recheck because the evidence of a route expired. */
+  | "expiry";

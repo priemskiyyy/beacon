@@ -18,7 +18,7 @@ import { useDisruption } from "src/hooks/useDisruption";
 import { useObservable } from "src/hooks/useObservable";
 import { useRoute } from "src/hooks/useRoute";
 import { useRunning } from "src/hooks/useRunning";
-import { useStatus } from "src/hooks/useStatus";
+import { useBeaconStatus } from "src/hooks/useBeaconStatus";
 import { useSupport } from "src/hooks/useSupport";
 import { useTransitions } from "src/hooks/useTransitions";
 
@@ -33,18 +33,27 @@ const answer = (context: ReturnType<typeof createWebBeacon>, build: string) => {
   });
 };
 
-// The tree every hook below reads from, as an application publishes its Beacon once.
+// The tree every hook below reads from, as an application publishes its Beacon once: the provider starts the session.
 const providerOf =
   (beacon: WebBeacon) =>
   ({ children }: PropsWithChildren) => (
     <BeaconProvider beacon={beacon}>{children}</BeaconProvider>
   );
 
+// The same tree with `start={false}`, for a test that opens the session itself or asserts that nothing did.
+const idleProviderOf =
+  (beacon: WebBeacon) =>
+  ({ children }: PropsWithChildren) => (
+    <BeaconProvider beacon={beacon} start={false}>
+      {children}
+    </BeaconProvider>
+  );
+
 test("useRoute reads the route by name as it stands, and starts nothing", () => {
   const { beacon, mock } = createWebBeacon();
 
   const { result } = renderHook(() => useRoute("web"), {
-    wrapper: providerOf(beacon),
+    wrapper: idleProviderOf(beacon),
   });
 
   expect(result.current).toMatchObject({
@@ -62,8 +71,6 @@ test("useRoute renders the offer once a check is accepted", async () => {
   const { result } = renderHook(() => useRoute("web"), {
     wrapper: providerOf(context.beacon),
   });
-
-  context.beacon.start();
 
   const checking = web.check();
 
@@ -99,8 +106,6 @@ test("BIND-06 useRoute with a selector renders again only when the selection cha
   );
 
   expect(result.current).toBe("unknown");
-
-  context.beacon.start();
 
   const checking = web.check();
 
@@ -187,10 +192,12 @@ test("useObservable reads any observable of the Beacon, such as a route's native
 test("useRunning reads what is running, of the provider's Beacon", async () => {
   const { beacon } = createWebBeacon();
 
-  const all = renderHook(() => useRunning(), { wrapper: providerOf(beacon) });
+  const all = renderHook(() => useRunning(), {
+    wrapper: idleProviderOf(beacon),
+  });
 
   const web = renderHook(() => useRunning(({ web }) => web.state), {
-    wrapper: providerOf(beacon),
+    wrapper: idleProviderOf(beacon),
   });
 
   expect(all.result.current.web.state).toBe("pending");
@@ -204,56 +211,99 @@ test("useRunning reads what is running, of the provider's Beacon", async () => {
   expect(web.result.current).toBe("known");
 });
 
-test("useStatus reads where the session stands", () => {
-  const { beacon } = createWebBeacon();
+test("useBeaconStatus reads where the session stands: running under a provider that starts it, and idle until a session opens under one that does not", () => {
+  const started = createWebBeacon();
+  const idle = createWebBeacon();
 
-  const { result } = renderHook(() => useStatus(({ state }) => state), {
-    wrapper: providerOf(beacon),
+  const running = renderHook(() => useBeaconStatus(({ state }) => state), {
+    wrapper: providerOf(started.beacon),
   });
 
-  expect(result.current).toBe("idle");
+  const waiting = renderHook(() => useBeaconStatus(({ state }) => state), {
+    wrapper: idleProviderOf(idle.beacon),
+  });
+
+  expect(running.result.current).toBe("running");
+  expect(waiting.result.current).toBe("idle");
 
   act(() => {
-    beacon.start();
+    idle.beacon.start();
   });
 
-  expect(result.current).toBe("running");
+  expect(waiting.result.current).toBe("running");
 });
 
-test("a hook without a provider above it is misused", () => {
+test("a hook without a provider above it is misused, and the error names the hook that was called and the package that has the provider", () => {
+  const needs = (hook: string) =>
+    `${hook} needs a BeaconProvider (from @priemskiyyy/beacon-react) above it.`;
+
   expect(() => renderHook(() => useBeacon())).toThrow(BeaconError);
-  expect(() => renderHook(() => useRunning())).toThrow(
-    "useBeacon needs a BeaconProvider above it.",
+  expect(() => renderHook(() => useBeacon())).toThrow(needs("useBeacon"));
+  expect(() => renderHook(() => useRoute("web"))).toThrow(needs("useRoute"));
+  expect(() => renderHook(() => useRunning())).toThrow(needs("useRunning"));
+  expect(() => renderHook(() => useSupport())).toThrow(needs("useSupport"));
+  expect(() => renderHook(() => useTransitions())).toThrow(
+    needs("useTransitions"),
   );
-  expect(() => renderHook(() => useRoute("web"))).toThrow(BeaconError);
+  expect(() => renderHook(() => useBeaconStatus())).toThrow(
+    needs("useBeaconStatus"),
+  );
+  expect(() => renderHook(() => useDisruption(draftEditor()))).toThrow(
+    needs("useDisruption"),
+  );
 });
 
-test("the provider starts the session while mounted and ends it on unmount", () => {
-  const { beacon } = createWebBeacon();
+test("the provider starts the session while mounted and ends it on unmount, with no prop asked for", () => {
+  const { beacon, mock } = createWebBeacon();
 
   const { unmount } = render(
-    <BeaconProvider beacon={beacon} start>
+    <BeaconProvider beacon={beacon}>
       <span />
     </BeaconProvider>,
   );
 
   expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+  // Starting a session checks nothing.
+  expect(mock.stats().reads).toBe(0);
 
   unmount();
 
   expect(beacon.status.get()).toEqual({ state: "stopped" });
 });
 
-test("the provider without start leaves the Beacon idle", () => {
+test("start true says what the default says", () => {
   const { beacon } = createWebBeacon();
 
   render(
-    <BeaconProvider beacon={beacon}>
+    <BeaconProvider beacon={beacon} start>
+      <span />
+    </BeaconProvider>,
+  );
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+});
+
+test("start false leaves the Beacon idle, for an application that starts the session itself", () => {
+  const { beacon } = createWebBeacon();
+
+  const { unmount } = render(
+    <BeaconProvider beacon={beacon} start={false}>
       <span />
     </BeaconProvider>,
   );
 
   expect(beacon.status.get()).toEqual({ state: "idle" });
+
+  const stop = beacon.start();
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+
+  // Unmounting a provider that did not start the session does not end the one the application opened.
+  unmount();
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
+
+  stop();
 });
 
 test("the provider follows start: it holds the session only while start is true", () => {
@@ -280,6 +330,17 @@ test("the provider follows start: it holds the session only while start is true"
   rerender(view(true));
 
   expect(beacon.status.get()).toEqual({ state: "running", session: 2 });
+
+  rerender(view(false));
+
+  // A start that is left out is the default, which starts.
+  rerender(
+    <BeaconProvider beacon={beacon}>
+      <span />
+    </BeaconProvider>,
+  );
+
+  expect(beacon.status.get()).toEqual({ state: "running", session: 3 });
 });
 
 test("the provider's stop ends the session a scope replacement restarted, on unmount, when start turns false and when the Beacon is swapped", () => {
@@ -326,7 +387,7 @@ test("the provider follows a new beacon: the old session ends and a new one star
   const second = createWebBeacon();
 
   const view = (beacon: WebBeacon) => (
-    <BeaconProvider beacon={beacon} start>
+    <BeaconProvider beacon={beacon}>
       <span />
     </BeaconProvider>
   );
@@ -346,11 +407,11 @@ test("the provider follows a new beacon: the old session ends and a new one star
   expect(second.beacon.status.get()).toEqual({ state: "stopped" });
 });
 
-test("a second provider with start shares the session, and the first of them to unmount ends it for both", () => {
+test("a second provider shares the session, and the first of them to unmount ends it for both", () => {
   const { beacon } = createWebBeacon();
 
   const view = (inner: boolean) => (
-    <BeaconProvider beacon={beacon} start>
+    <BeaconProvider beacon={beacon}>
       <BeaconProvider beacon={beacon} start={inner}>
         <span />
       </BeaconProvider>
@@ -376,7 +437,7 @@ test("the hooks read the provider's Beacon and follow a new one", async () => {
   });
 
   const Probe = () => {
-    const state = useStatus(({ state }) => state);
+    const state = useBeaconStatus(({ state }) => state);
     const route = useRoute("web", ({ check }) => check.state);
     const running = useRunning(({ web }) => web.state);
 
@@ -384,7 +445,7 @@ test("the hooks read the provider's Beacon and follow a new one", async () => {
   };
 
   const view = (beacon: WebBeacon) => (
-    <BeaconProvider beacon={beacon}>
+    <BeaconProvider beacon={beacon} start={false}>
       <Probe />
     </BeaconProvider>
   );
@@ -411,7 +472,7 @@ test("BIND-07 strict mode starts, stops and starts again, and leaves one session
 
   render(
     <StrictMode>
-      <BeaconProvider beacon={beacon} start>
+      <BeaconProvider beacon={beacon}>
         <span />
       </BeaconProvider>
     </StrictMode>,
@@ -444,7 +505,7 @@ test("strict mode leaves one subscription and one registration for a hook that r
 
   const { unmount } = render(
     <StrictMode>
-      <BeaconProvider beacon={beacon} start>
+      <BeaconProvider beacon={beacon}>
         <View />
       </BeaconProvider>
     </StrictMode>,
@@ -477,7 +538,7 @@ test("a child that checks when it mounts finds the session already started", asy
 
   render(
     <StrictMode>
-      <BeaconProvider beacon={beacon} start>
+      <BeaconProvider beacon={beacon}>
         <Child />
       </BeaconProvider>
     </StrictMode>,
@@ -505,7 +566,7 @@ test("the session starts after a child's layout effect and before its passive ef
   };
 
   render(
-    <BeaconProvider beacon={beacon} start>
+    <BeaconProvider beacon={beacon}>
       <Child />
     </BeaconProvider>,
   );
@@ -532,7 +593,7 @@ test("useDisruption registers while mounted and unregisters on unmount", async (
           reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
         }),
       ),
-    { wrapper: providerOf(beacon) },
+    { wrapper: idleProviderOf(beacon) },
   );
 
   beacon.start();
@@ -568,7 +629,7 @@ test("useDisruption asks the latest participant, without registering again", asy
           },
         }),
       ),
-    { initialProps: { dirty: true }, wrapper: providerOf(beacon) },
+    { initialProps: { dirty: true }, wrapper: idleProviderOf(beacon) },
   );
 
   beacon.start();
@@ -601,7 +662,7 @@ test("a participant in a subtree that Activity hides is unregistered while it is
   };
 
   const view = (mode: "visible" | "hidden") => (
-    <BeaconProvider beacon={beacon}>
+    <BeaconProvider beacon={beacon} start={false}>
       <Activity mode={mode}>
         <Editor />
       </Activity>
@@ -647,7 +708,7 @@ test("useDisruption asks the latest name and impacts too", async () => {
         name: "draft-editor",
         impacts: ["javascript-restart"],
       },
-      wrapper: providerOf(beacon),
+      wrapper: idleProviderOf(beacon),
     },
   );
 
@@ -682,7 +743,7 @@ test("useDisruption follows the provider's Beacon: it leaves the old one and joi
   };
 
   const view = (beacon: WebBeacon) => (
-    <BeaconProvider beacon={beacon}>
+    <BeaconProvider beacon={beacon} start={false}>
       <Editor />
     </BeaconProvider>
   );
@@ -780,7 +841,7 @@ test("SAFE-14 a reservation a component held is released when the command ends, 
           },
         }),
       }),
-    { wrapper: providerOf(beacon) },
+    { wrapper: idleProviderOf(beacon) },
   );
 
   beacon.start();

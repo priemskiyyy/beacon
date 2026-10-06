@@ -162,7 +162,7 @@ export class RouteRegistry {
 
       return {
         name,
-        subject: definition.subject,
+        subject: definition.mechanism.subject,
         commands: definition.mechanism.commands,
         record,
         runtime,

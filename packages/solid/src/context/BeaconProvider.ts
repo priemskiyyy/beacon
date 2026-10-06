@@ -10,14 +10,15 @@ import { BeaconContext } from "src/context/BeaconContext";
 import type { BeaconProviderProps } from "src/types/BeaconProviderProps";
 
 /**
- * Publishes one Beacon to the tree below. With `start`, it holds the
- * observation session while mounted and ends only that session on unmount;
- * it never disposes the Beacon, and it checks nothing. It follows a new
- * `beacon` or `start`: the old session ends and a new one starts.
+ * Publishes one Beacon to the tree below and holds its observation session
+ * while mounted: it starts the session and ends only that session on unmount.
+ * `start={false}` leaves the session to the application. It never disposes the
+ * Beacon, and it checks nothing. It follows a new `beacon` or `start`: the old
+ * session ends and a new one starts.
  *
  * @example
  * ```tsx
- * <BeaconProvider beacon={beacon} start>
+ * <BeaconProvider beacon={beacon}>
  *   <Application />
  * </BeaconProvider>
  * ```
@@ -25,7 +26,7 @@ import type { BeaconProviderProps } from "src/types/BeaconProviderProps";
 export const BeaconProvider = (props: BeaconProviderProps) => {
   // An effect never runs on the server, so a server render starts no session, and this one is queued before the effects of the children, so what a child does when it mounts finds the session started.
   createEffect(() => {
-    if (!props.start) {
+    if (props.start === false) {
       return;
     }
 

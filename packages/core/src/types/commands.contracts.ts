@@ -172,6 +172,7 @@ export type Bare = ProviderResult<{ updated: true }>;
 
 createUpdateMechanism({
   name: "mistyped",
+  subject: "web",
   open: () => ({ native }),
   commands: {
     first: {
@@ -200,6 +201,7 @@ createUpdateMechanism({
 
 createUpdateMechanism({
   name: "colliding",
+  subject: "web",
   open: () => ({ native }),
   commands: {
     // @ts-expect-error A command cannot take the name of a member every route handle has: state.
@@ -239,6 +241,7 @@ expectTypeOf<keyof CommandParameters>().toEqualTypeOf<CallKeys>();
 
 createUpdateMechanism({
   name: "reserved",
+  subject: "web",
   open: () => ({ native }),
   commands: {
     first: {

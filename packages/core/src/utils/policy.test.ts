@@ -301,7 +301,13 @@ test("POL-10 a policy that names a route the Beacon does not have fails, and cre
     }),
   });
 
-  const { beacon } = createRoutedBeacon(routes, { policy });
+  const { beacon } = createRoutedBeacon(routes, {
+    policy,
+    running: {
+      web: () => buildWebRelease("web-build-b"),
+      native: () => buildNativeRelease(100),
+    },
+  });
 
   beacon.start();
 

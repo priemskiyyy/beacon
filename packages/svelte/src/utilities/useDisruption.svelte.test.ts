@@ -6,6 +6,7 @@ import { afterEach, expect, test } from "vitest";
 import { createWebBeacon } from "../beacon.fixture.js";
 import type { WebBeacon } from "../beacon.fixture.js";
 import { useDisruption } from "./useDisruption.svelte.js";
+import View from "./View.fixture.svelte";
 import ViewHarness from "./ViewHarness.fixture.svelte";
 
 afterEach(cleanup);
@@ -53,6 +54,14 @@ const countRegistrations = (beacon: WebBeacon) => {
 
   return counts;
 };
+
+test("useDisruption without a provider above it is misused, and the error names it and the package that has the provider", () => {
+  expect(() =>
+    render(View, { props: { read: () => useDisruption(draftEditor()) } }),
+  ).toThrow(
+    "useDisruption needs a BeaconProvider (from @priemskiyyy/beacon-svelte) above it.",
+  );
+});
 
 test("useDisruption registers while mounted and unregisters on unmount", async () => {
   const { beacon } = createWebBeacon();

@@ -65,6 +65,32 @@ test("an entry with no version is refused", () => {
   ).toThrow("no version");
 });
 
+test.each([
+  [".5", 500],
+  [".05", 50],
+  [".123", 123],
+])(
+  "the fraction %s of a second in a release date is read as %i milliseconds",
+  (fraction, milliseconds) => {
+    const currentVersionReleaseDate = `2026-09-02T09:15:00${fraction}Z`;
+
+    expect(
+      readLookupDocument(
+        { results: [entry({ currentVersionReleaseDate })] },
+        EXPECTED,
+      ),
+    ).toMatchObject({
+      decision: {
+        release: {
+          metadata: {
+            releasedAt: Date.parse("2026-09-02T09:15:00Z") + milliseconds,
+          },
+        },
+      },
+    });
+  },
+);
+
 test("a malformed release date is refused, however leniently a date parser would read it", () => {
   for (const currentVersionReleaseDate of [
     "yesterday",
@@ -75,6 +101,7 @@ test("a malformed release date is refused, however leniently a date parser would
     "12",
     "Not a date 5",
     "2026-09-02T09:15:00+02:00",
+    "2026-09-02T09:15:00.1234Z",
   ]) {
     expect(() =>
       readLookupDocument(
@@ -85,8 +112,17 @@ test("a malformed release date is refused, however leniently a date parser would
   }
 });
 
-test("a refusal is a source failure", () => {
-  expect(() =>
-    readLookupDocument({ results: [entry({ version: "" })] }, EXPECTED),
-  ).toThrow(expect.objectContaining({ code: "SOURCE_FAILED" }));
-});
+test.each([
+  ["several entries", [entry(), entry({ version: "3.4.0" })]],
+  ["another app", [entry({ trackId: 1 })]],
+  ["another bundle", [entry({ bundleId: "com.example.other" })]],
+  ["no version", [entry({ version: "" })]],
+  ["a malformed release date", [entry({ currentVersionReleaseDate: "soon" })]],
+])(
+  "a lookup with %s is an invalid document, like a manifest that breaks its contract",
+  (_name, results) => {
+    expect(() => readLookupDocument({ results }, EXPECTED)).toThrow(
+      expect.objectContaining({ code: "INVALID_DOCUMENT" }),
+    );
+  },
+);

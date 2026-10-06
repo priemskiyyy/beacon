@@ -7,8 +7,7 @@ import type { StandardManifest } from "src/types/StandardManifest";
 import { DEFAULT_LIMITS } from "src/utils/constants/limits";
 import { REFUSED_STATUSES } from "src/utils/constants/statuses";
 import { invalidManifest } from "src/utils/invalidManifest";
-import { parseStandardManifest } from "src/utils/parseStandardManifest";
-import { readResponseText } from "src/utils/readResponseText";
+import { parseStandardManifest } from "src/parseStandardManifest";
 
 const isJson = (contentType: string | null) => {
   const type = contentType?.split(";")[0]?.trim().toLowerCase();
@@ -21,9 +20,10 @@ const isJson = (contentType: string | null) => {
  * endpoint. Only `200` with a JSON body is read, and `304` renews what the
  * source holds. Every other outcome throws, so none is taken for a decision
  * of no release: a login page or an empty body, `204` and `404`, `401` and
- * `403`, `429`, a server error, a redirect, and a body over the size limit
- * each fail the read with a message that names it. The `ETag` becomes the
- * validator for the next read and is never a revision.
+ * `403`, `429`, a server error, a redirect where the response says it was
+ * one, and a body over the size limit each fail the read with a message that
+ * names it. The `ETag` becomes the validator for the next read and is never a
+ * revision.
  *
  * @example
  * ```ts
@@ -75,10 +75,14 @@ export const readStandardManifest = async <
   }
 
   const bounds = { ...DEFAULT_LIMITS, ...limits };
-  const text = await readResponseText(response, bounds.bytes);
+
+  // A declared length over the limit is refused without reading the body. With none declared the text is read whole and its size is checked as it is parsed.
+  if (Number(response.headers.get("content-length")) > bounds.bytes) {
+    throw invalidManifest(`The manifest is larger than ${bounds.bytes} bytes.`);
+  }
 
   const read = parseStandardManifest({
-    text,
+    text: await response.text(),
     scope,
     routes,
     now,

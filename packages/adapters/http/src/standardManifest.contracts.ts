@@ -16,8 +16,8 @@ import type { ManifestResponse } from "src/types/ManifestResponse";
 import type { RouteDeclarations } from "src/types/RouteDeclarations";
 import type { StandardManifest } from "src/types/StandardManifest";
 import type { StandardRead } from "src/types/StandardRead";
-import { parseStandardManifest } from "src/utils/parseStandardManifest";
-import { readStandardManifest } from "src/utils/readStandardManifest";
+import { parseStandardManifest } from "src/parseStandardManifest";
+import { readStandardManifest } from "src/readStandardManifest";
 
 declare const scope: ReleaseScope;
 declare const response: ManifestResponse;

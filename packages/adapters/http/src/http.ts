@@ -1,12 +1,11 @@
 import { BeaconError, createReleaseSource } from "@priemskiyyy/beacon";
-import type { ReleaseSource } from "@priemskiyyy/beacon";
+import type {
+  ReleaseScope,
+  ReleaseSource,
+  SourceRead,
+} from "@priemskiyyy/beacon";
 
 import type { HttpAdapterOptions } from "src/types/HttpAdapterOptions";
-import type { HttpMemory } from "src/types/internal/HttpMemory";
-import {
-  NOT_MODIFIED_WITHOUT_DOCUMENT,
-  UNKNOWN_ANSWER,
-} from "src/utils/constants/errors";
 import { toSourceRead } from "src/utils/toSourceRead";
 
 /**
@@ -31,7 +30,12 @@ export const http = <TDocument>({
   name = "http",
   fetch: fetchAnswer,
 }: HttpAdapterOptions<TDocument>): ReleaseSource<TDocument> => {
-  let memory: HttpMemory<TDocument> | null = null;
+  // The last answer accepted and the scope it speaks for. The scope is matched by identity, since Beacon hands over the same frozen scope for as long as it is in force: a copy is another scope and finds nothing held, which costs one unconditional read and never shares an account's answer.
+  let memory: {
+    scope: ReleaseScope;
+    validator: string | null;
+    read: SourceRead<TDocument>;
+  } | null = null;
 
   return createReleaseSource<TDocument>({
     name,
@@ -61,14 +65,15 @@ export const http = <TDocument>({
       if (answer.status !== "not-modified") {
         throw new BeaconError({
           code: "SOURCE_FAILED",
-          message: UNKNOWN_ANSWER,
+          message: "The client answered neither changed nor not modified.",
         });
       }
 
       if (held === null) {
         throw new BeaconError({
           code: "SOURCE_FAILED",
-          message: NOT_MODIFIED_WITHOUT_DOCUMENT,
+          message:
+            "The backend answered not modified, but this source holds no document to renew.",
         });
       }
 

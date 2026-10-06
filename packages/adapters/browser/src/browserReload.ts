@@ -3,7 +3,7 @@ import type { ProviderResult } from "@priemskiyyy/beacon";
 
 import type { BrowserReloadOptions } from "src/types/BrowserReloadOptions";
 import type { BrowserReloadReceipt } from "src/types/BrowserReloadReceipt";
-import { NO_DOCUMENT } from "src/utils/constants/reload";
+import { NO_DOCUMENT } from "src/utils/constants/reasons";
 import { getWindow } from "src/utils/getWindow";
 
 /**
@@ -27,7 +27,7 @@ import { getWindow } from "src/utils/getWindow";
 export const browserReload = ({ target }: BrowserReloadOptions = {}) =>
   createUpdateMechanism({
     name: "browser-reload",
-    open: () => ({ native: { window: getWindow(target) } }),
+    open: () => ({ native: { window: target ?? getWindow() } }),
     commands: {
       reload: {
         reference: "offer",

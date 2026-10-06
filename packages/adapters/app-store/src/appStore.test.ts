@@ -1,6 +1,6 @@
 import { Beacon, newerRoute } from "@priemskiyyy/beacon";
 import { createTestClock } from "@priemskiyyy/beacon/mock";
-import type { ReleaseScope, RunningRelease } from "@priemskiyyy/beacon";
+import type { RunningRelease } from "@priemskiyyy/beacon";
 import { expect, test } from "vitest";
 
 import { appleMarketingVersion } from "src/appleMarketingVersion";
@@ -13,14 +13,8 @@ import {
   entry,
   fakeLinking,
   fakeStore,
+  SCOPE,
 } from "src/fakeStore.fixture";
-
-const SCOPE: ReleaseScope = {
-  application: BUNDLE_ID,
-  environment: "production",
-  platform: "ios",
-  distribution: "app-store",
-};
 
 const nativeRelease = (shortVersion: string | null): RunningRelease => ({
   identity: {
@@ -31,7 +25,9 @@ const nativeRelease = (shortVersion: string | null): RunningRelease => ({
   },
   label: null,
   raw:
-    shortVersion === null ? { build: "412" } : { shortVersion, build: "412" },
+    shortVersion === null
+      ? { buildNumber: "412" }
+      : { shortVersion, buildNumber: "412" },
 });
 
 const create = (
@@ -200,7 +196,7 @@ test("STORE-09 a build outside the store is offered nothing by it, and the store
   expect(store.fetches).toEqual([]);
 });
 
-test("an ambiguous lookup fails the check as a source failure, never resolved by guessing", async () => {
+test("an ambiguous lookup fails the check as an invalid document, never resolved by guessing", async () => {
   const { beacon, binary, store } = create("3.2.0");
 
   store.publish([entry(), entry({ version: "3.4.0" })]);
@@ -208,7 +204,7 @@ test("an ambiguous lookup fails the check as a source failure, never resolved by
 
   await expect(binary.check()).resolves.toMatchObject({
     status: "failed",
-    error: { code: "SOURCE_FAILED" },
+    error: { code: "INVALID_DOCUMENT" },
   });
 });
 

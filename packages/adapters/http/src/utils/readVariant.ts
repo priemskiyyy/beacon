@@ -1,4 +1,4 @@
-import type { FieldReader } from "src/types/internal/FieldReader";
+import type { VariantReader } from "src/types/internal/VariantReader";
 import { readField } from "src/utils/readField";
 import { invalidManifest } from "src/utils/invalidManifest";
 import { readRecord } from "src/utils/readRecord";
@@ -9,7 +9,7 @@ type ReadVariantOptions<TValue> = {
   field: string;
   /** The field that names the variant. */
   tag: "kind" | "status";
-  readers: Record<string, FieldReader<TValue>>;
+  readers: Record<string, VariantReader<TValue>>;
 };
 
 /** The variant an object names, read by its own reader; a name no reader has is refused. */

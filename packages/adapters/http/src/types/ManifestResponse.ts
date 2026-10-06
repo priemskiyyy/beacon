@@ -10,6 +10,7 @@
  */
 export type ManifestResponse = {
   status: number;
+  /** Absent where the runtime cannot say, as in React Native: a redirect is then not refused. */
   redirected?: boolean;
   headers: { get(name: string): string | null };
   text(): Promise<string>;

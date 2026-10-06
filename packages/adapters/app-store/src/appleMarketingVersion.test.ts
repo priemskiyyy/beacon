@@ -7,7 +7,7 @@ test("the marketing version is the short version fact of the running native rele
     appleMarketingVersion({
       identity: { status: "unknown", reason: "native" },
       label: null,
-      raw: { shortVersion: "3.2.1", build: "412" },
+      raw: { shortVersion: "3.2.1", buildNumber: "412" },
     }),
   ).toBe("3.2.1");
 });
@@ -17,7 +17,7 @@ test("STORE-04 without the short version, or a release, the order of what runs i
     appleMarketingVersion({
       identity: { status: "unknown", reason: "native" },
       label: null,
-      raw: { build: "412", shortVersion: 3 },
+      raw: { buildNumber: "412", shortVersion: 3 },
     }),
   ).toBeNull();
   expect(appleMarketingVersion(null)).toBeNull();

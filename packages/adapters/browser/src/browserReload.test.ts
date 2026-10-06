@@ -9,7 +9,7 @@ import type {
 import { expect, test } from "vitest";
 
 import { browserReload } from "src/browserReload";
-import { fakeStorage } from "src/fakeStorage.fixture";
+import { fakeJournalStorage } from "src/fakeJournalStorage.fixture";
 import { fakeWindow } from "src/fakeWindow.fixture";
 
 const SCOPE: ReleaseScope = {
@@ -197,7 +197,7 @@ test("without a window a reload is unsupported, and nothing is claimed", async (
 });
 
 test("WEB-06 the intent is persisted before the reload is dispatched, never after it", async () => {
-  const storage = fakeStorage();
+  const storage = fakeJournalStorage();
   const context = createWebBeacon(fakeWindow(), { mode: "required", storage });
   const offer = await startWithOffer(context);
 
@@ -228,7 +228,7 @@ test("WEB-11 without a journal the limitation is visible and a reload still proc
 });
 
 test("WEB-11 a required journal that cannot persist blocks the reload", async () => {
-  const storage = fakeStorage();
+  const storage = fakeJournalStorage();
   const context = createWebBeacon(fakeWindow(), { mode: "required", storage });
   const offer = await startWithOffer(context);
 
@@ -244,7 +244,7 @@ test("WEB-11 a required journal that cannot persist blocks the reload", async ()
 });
 
 test("WEB-10 a document restored from the back-forward cache is the same boot, and starting the session again reports no update boot", async () => {
-  const storage = fakeStorage();
+  const storage = fakeJournalStorage();
 
   const context = createWebBeacon(fakeWindow(), {
     mode: "best-effort",

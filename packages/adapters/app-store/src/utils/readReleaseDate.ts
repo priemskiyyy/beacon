@@ -8,20 +8,26 @@ const SECONDS_LENGTH = 19;
  * Epoch milliseconds of a UTC timestamp such as `2026-09-02T09:15:00Z`, or
  * `undefined` when it is not one. The engine would roll `2026-02-31` over to
  * March and read `12` as a date, so a timestamp counts only when it names an
- * instant that exists.
+ * instant that exists. A fraction of one or two digits is not in the format
+ * the language defines, so the engine reads whole seconds and the fraction is
+ * added here.
  */
 export const readReleaseDate = (text: string): number | undefined => {
-  const milliseconds = Date.parse(text);
-
-  if (!TIMESTAMP.test(text) || Number.isNaN(milliseconds)) {
+  if (!TIMESTAMP.test(text)) {
     return undefined;
   }
 
-  const instant = new Date(milliseconds).toISOString();
+  const seconds = text.slice(0, SECONDS_LENGTH);
+  const milliseconds = Date.parse(`${seconds}Z`);
 
-  if (instant.slice(0, SECONDS_LENGTH) !== text.slice(0, SECONDS_LENGTH)) {
+  if (
+    Number.isNaN(milliseconds) ||
+    new Date(milliseconds).toISOString().slice(0, SECONDS_LENGTH) !== seconds
+  ) {
     return undefined;
   }
 
-  return milliseconds;
+  return (
+    milliseconds + Number(text.slice(SECONDS_LENGTH + 1, -1).padEnd(3, "0"))
+  );
 };

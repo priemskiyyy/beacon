@@ -1,13 +1,13 @@
 import type { DecisionRevision } from "@priemskiyyy/beacon";
 
-import type { FieldReader } from "src/types/internal/FieldReader";
+import type { VariantReader } from "src/types/internal/VariantReader";
 import { readField } from "src/utils/readField";
 import { readText } from "src/utils/readText";
 import { readVariant } from "src/utils/readVariant";
 
 const READERS: Record<
   DecisionRevision["kind"],
-  FieldReader<DecisionRevision>
+  VariantReader<DecisionRevision>
 > = {
   opaque: (record, field) => ({
     kind: "opaque",

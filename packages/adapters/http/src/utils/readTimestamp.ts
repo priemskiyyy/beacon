@@ -9,25 +9,29 @@ const SECONDS_LENGTH = 19;
 /**
  * Epoch milliseconds of a UTC timestamp such as `2026-09-27T10:00:00Z`. The
  * engine would roll `2026-02-31` over to March, so a timestamp counts only
- * when it names an instant that exists.
+ * when it names an instant that exists. A fraction of one or two digits is not
+ * in the format the language defines, so the engine reads whole seconds and
+ * the fraction is added here.
  */
 export const readTimestamp = (value: unknown, field: string): number => {
   if (typeof value !== "string") {
     throw invalidManifest(`${field} must be a timestamp.`);
   }
 
-  const milliseconds = Date.parse(value);
+  const seconds = value.slice(0, SECONDS_LENGTH);
+  const milliseconds = Date.parse(`${seconds}Z`);
 
   if (
     !TIMESTAMP.test(value) ||
     Number.isNaN(milliseconds) ||
-    new Date(milliseconds).toISOString().slice(0, SECONDS_LENGTH) !==
-      value.slice(0, SECONDS_LENGTH)
+    new Date(milliseconds).toISOString().slice(0, SECONDS_LENGTH) !== seconds
   ) {
     throw invalidManifest(
       `${field} must be a UTC timestamp such as 2026-09-27T10:00:00Z.`,
     );
   }
 
-  return milliseconds;
+  return (
+    milliseconds + Number(value.slice(SECONDS_LENGTH + 1, -1).padEnd(3, "0"))
+  );
 };

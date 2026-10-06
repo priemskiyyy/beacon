@@ -3,11 +3,17 @@ import type { RouteDeclarations } from "src/types/RouteDeclarations";
 import type { StandardSupport } from "src/types/StandardSupport";
 import { SUBJECTS } from "src/utils/constants/subjects";
 import { invalidManifest } from "src/utils/invalidManifest";
-import { isRouteName } from "src/utils/isRouteName";
 import { readField } from "src/utils/readField";
 import { readList } from "src/utils/readList";
 import { readRecord } from "src/utils/readRecord";
 import { readText } from "src/utils/readText";
+
+// Whether a name is one of the routes the application declared, which is what tells the compiler it is a key of them.
+const isRouteName = <TDeclarations extends RouteDeclarations>(
+  declarations: TDeclarations,
+  name: string,
+): name is keyof TDeclarations & string =>
+  Object.keys(declarations).includes(name);
 
 /** The support facts of a manifest, or `null` when it has none; the remediation route has to be one the application declared. */
 export const readSupport = <TDeclarations extends RouteDeclarations>(

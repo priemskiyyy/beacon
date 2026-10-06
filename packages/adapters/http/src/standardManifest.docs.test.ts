@@ -5,7 +5,7 @@ import { expect, test } from "vitest";
 import { SCOPE } from "src/fakeBackend.fixture";
 import { NOW } from "src/standardManifest.fixture";
 import type { OrderKind } from "src/types/OrderKind";
-import { parseStandardManifest } from "src/utils/parseStandardManifest";
+import { parseStandardManifest } from "src/parseStandardManifest";
 
 // The manifest a page shows is the one its own declared routes read.
 const readExample = (url: URL) => {

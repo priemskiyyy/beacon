@@ -1,6 +1,6 @@
 import type { JournalStorage } from "@priemskiyyy/beacon";
 
-export type FakeStorage = JournalStorage & {
+export type FakeJournalStorage = JournalStorage & {
   writes: () => number;
   holdWrites: () => void;
   releaseWrites: () => void;
@@ -8,7 +8,7 @@ export type FakeStorage = JournalStorage & {
 };
 
 // A journal storage that counts its writes and can hold or refuse them, so a test can prove what happens before one lands.
-export const fakeStorage = (): FakeStorage => {
+export const fakeJournalStorage = (): FakeJournalStorage => {
   const values = new Map<string, string>();
   const held: Array<() => void> = [];
   const state = { holding: false, failing: false, writes: 0 };

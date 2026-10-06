@@ -1,3 +1,5 @@
+import type { ReleaseScope } from "@priemskiyyy/beacon";
+
 import type { AppStoreLookupEntry } from "src/types/AppStoreLookupEntry";
 import type { AppStoreFetchContext } from "src/types/AppStoreFetchContext";
 import type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";
@@ -5,6 +7,13 @@ import type { LinkingLike } from "src/types/LinkingLike";
 
 export const APP_ID = "284882215";
 export const BUNDLE_ID = "com.example.notes";
+
+export const SCOPE: ReleaseScope = {
+  application: BUNDLE_ID,
+  environment: "production",
+  platform: "ios",
+  distribution: "app-store",
+};
 
 export const entry = (
   overrides: Partial<AppStoreLookupEntry> = {},

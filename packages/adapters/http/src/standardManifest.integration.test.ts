@@ -18,7 +18,7 @@ import {
   NOW,
   ROUTES,
 } from "src/standardManifest.fixture";
-import { readStandardManifest } from "src/utils/readStandardManifest";
+import { readStandardManifest } from "src/readStandardManifest";
 
 const inert = createUpdateMechanism({
   name: "inert",

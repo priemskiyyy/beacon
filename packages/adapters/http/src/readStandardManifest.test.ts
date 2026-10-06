@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { SCOPE } from "src/fakeBackend.fixture";
 import { fakeResponse, NOW, ROUTES } from "src/standardManifest.fixture";
-import { readStandardManifest } from "src/utils/readStandardManifest";
+import { readStandardManifest } from "src/readStandardManifest";
 
 const read = (response: ReturnType<typeof fakeResponse>) =>
   readStandardManifest({ response, scope: SCOPE, routes: ROUTES, now: NOW });

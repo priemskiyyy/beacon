@@ -14,7 +14,7 @@ import {
 import type { OrderKind } from "src/types/OrderKind";
 import type { RouteDeclaration } from "src/types/RouteDeclaration";
 import type { RouteDeclarations } from "src/types/RouteDeclarations";
-import { parseStandardManifest } from "src/utils/parseStandardManifest";
+import { parseStandardManifest } from "src/parseStandardManifest";
 
 const parse = (text: string) =>
   parseStandardManifest({ text, scope: SCOPE, routes: ROUTES, now: NOW });
@@ -493,6 +493,7 @@ describe("the times of a manifest hold or the manifest is refused", () => {
     ["a date without a time", "2026-09-27"],
     ["a number", 1_790_503_200_000],
     ["a word", "yesterday"],
+    ["four digits of a second", "2026-09-27T10:00:00.1234Z"],
   ])("%s is not a timestamp", (_name, issuedAt) => {
     expectRefused(
       withTimes(issuedAt, "2026-09-27T10:10:00Z"),
@@ -500,13 +501,23 @@ describe("the times of a manifest hold or the manifest is refused", () => {
     );
   });
 
-  test("fractions of a second are read", () => {
-    const read = parse(
-      withTimes("2026-09-27T10:00:00Z", "2026-09-27T10:10:00.5Z"),
-    );
+  test.each([
+    [".5", 500],
+    [".05", 50],
+    [".50", 500],
+    [".123", 123],
+  ])(
+    "the fraction %s of a second is read as %i milliseconds",
+    (fraction, milliseconds) => {
+      const read = parse(
+        withTimes("2026-09-27T10:00:00Z", `2026-09-27T10:10:00${fraction}Z`),
+      );
 
-    expect(read.expiresAt).toBe(Date.parse("2026-09-27T10:10:00.500Z"));
-  });
+      expect(read.expiresAt).toBe(
+        Date.parse("2026-09-27T10:10:00Z") + milliseconds,
+      );
+    },
+  );
 
   test("a manifest does not expire before it is issued", () => {
     expectRefused(

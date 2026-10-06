@@ -7,21 +7,11 @@ import {
 import { appleVersion } from "src/appleVersion";
 import { appStoreHandoff } from "src/appStoreHandoff";
 import { appStoreLookup } from "src/appStoreLookup";
-import {
-  APP_ID,
-  BUNDLE_ID,
-  fakeLinking,
-  fakeStore,
-} from "src/fakeStore.fixture";
+import { APP_ID, fakeLinking, fakeStore, SCOPE } from "src/fakeStore.fixture";
 
 testReleaseSource({
   name: "app-store-lookup",
-  scope: {
-    application: BUNDLE_ID,
-    environment: "production",
-    platform: "ios",
-    distribution: "app-store",
-  },
+  scope: SCOPE,
   create: () => {
     const store = fakeStore();
 

@@ -1,15 +1,16 @@
 import { expect, test } from "vitest";
 
 import { appStoreLookup } from "src/appStoreLookup";
-import { APP_ID, BUNDLE_ID, entry, fakeStore } from "src/fakeStore.fixture";
+import {
+  APP_ID,
+  BUNDLE_ID,
+  entry,
+  fakeStore,
+  SCOPE,
+} from "src/fakeStore.fixture";
 
 const buildRead = () => ({
-  scope: {
-    application: BUNDLE_ID,
-    environment: "production",
-    platform: "ios",
-    distribution: "app-store",
-  },
+  scope: SCOPE,
   signal: new AbortController().signal,
   attempt: 1,
 });

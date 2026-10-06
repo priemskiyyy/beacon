@@ -16,5 +16,5 @@ export type { StandardManifest } from "src/types/StandardManifest";
 export type { StandardRead } from "src/types/StandardRead";
 export type { StandardSupport } from "src/types/StandardSupport";
 
-export { parseStandardManifest } from "src/utils/parseStandardManifest";
-export { readStandardManifest } from "src/utils/readStandardManifest";
+export { parseStandardManifest } from "src/parseStandardManifest";
+export { readStandardManifest } from "src/readStandardManifest";

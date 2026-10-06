@@ -3,25 +3,20 @@ import { BeaconError } from "@priemskiyyy/beacon";
 import type { AppStoreDocument } from "src/types/AppStoreDocument";
 import type { AppStoreLookupResponse } from "src/types/AppStoreLookupResponse";
 import { MARKETING_VERSION_DOMAIN } from "src/utils/constants/lookup";
-import {
-  AMBIGUOUS_LOOKUP,
-  APP_ID_MISMATCH,
-  BUNDLE_ID_MISMATCH,
-  MALFORMED_RELEASE_DATE,
-  MISSING_VERSION,
-} from "src/utils/constants/messages";
+import { NO_MATCH } from "src/utils/constants/reasons";
 import { readReleaseDate } from "src/utils/readReleaseDate";
 
 type Expected = { appId: string; bundleId: string | undefined };
 
-const refuse = (message: string) =>
-  new BeaconError({ code: "SOURCE_FAILED", message });
+const invalidLookup = (message: string) =>
+  new BeaconError({ code: "INVALID_DOCUMENT", message });
 
 /**
  * The decision one lookup stands for. No entry means nothing matched in that
  * lookup context, which is not proof that no update exists. Several entries,
- * another app or bundle, a missing version and a malformed date are refused,
- * each with its own message, and never repaired into an answer.
+ * another app or bundle, a missing version and a malformed date are refused
+ * as an invalid document, each with its own message, and never repaired into
+ * an answer.
  */
 export const readLookupDocument = (
   { results }: AppStoreLookupResponse,
@@ -30,29 +25,39 @@ export const readLookupDocument = (
   const [entry, ...others] = results;
 
   if (entry === undefined) {
-    return { decision: { kind: "none", reason: "no-match" } };
+    return { decision: { kind: "none", reason: NO_MATCH } };
   }
 
   if (others.length > 0) {
-    throw refuse(AMBIGUOUS_LOOKUP);
+    throw invalidLookup(
+      "The App Store lookup answered several entries for one app.",
+    );
   }
 
   if (String(entry.trackId) !== appId) {
-    throw refuse(APP_ID_MISMATCH);
+    throw invalidLookup(
+      "The App Store lookup answered an entry for another app id.",
+    );
   }
 
   if (bundleId !== undefined && entry.bundleId !== bundleId) {
-    throw refuse(BUNDLE_ID_MISMATCH);
+    throw invalidLookup(
+      "The App Store lookup answered an entry for another bundle id.",
+    );
   }
 
   if (entry.version === "") {
-    throw refuse(MISSING_VERSION);
+    throw invalidLookup(
+      "The App Store lookup answered an entry with no version.",
+    );
   }
 
   const releasedAt = readReleaseDate(entry.currentVersionReleaseDate);
 
   if (releasedAt === undefined) {
-    throw refuse(MALFORMED_RELEASE_DATE);
+    throw invalidLookup(
+      "The App Store lookup answered an entry with a malformed release date.",
+    );
   }
 
   return {

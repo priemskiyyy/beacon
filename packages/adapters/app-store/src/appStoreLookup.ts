@@ -1,15 +1,11 @@
-import { createReleaseSource } from "@priemskiyyy/beacon";
+import { BeaconError, createReleaseSource } from "@priemskiyyy/beacon";
 import type { ReleaseSource } from "@priemskiyyy/beacon";
 
 import type { AppStoreDocument } from "src/types/AppStoreDocument";
 import type { AppStoreLookupOptions } from "src/types/AppStoreLookupOptions";
 import { assertAppId } from "src/utils/assertAppId";
-import { assertCountry } from "src/utils/assertCountry";
-import {
-  APP_STORE_DISTRIBUTION,
-  LOOKUP_URL,
-  OTHER_DISTRIBUTION,
-} from "src/utils/constants/lookup";
+import { APP_STORE_DISTRIBUTION, LOOKUP_URL } from "src/utils/constants/lookup";
+import { OTHER_DISTRIBUTION } from "src/utils/constants/reasons";
 import { readLookupDocument } from "src/utils/readLookupDocument";
 
 /**
@@ -42,7 +38,13 @@ export const appStoreLookup = ({
   fetch: fetchLookup,
 }: AppStoreLookupOptions): ReleaseSource<AppStoreDocument> => {
   assertAppId(appId);
-  assertCountry(country);
+
+  if (!/^[a-z]{2}$/.test(country)) {
+    throw new BeaconError({
+      code: "INVALID_CONFIGURATION",
+      message: "A storefront is a two-letter country code.",
+    });
+  }
 
   const url = `${LOOKUP_URL}?id=${appId}&country=${country}`;
 

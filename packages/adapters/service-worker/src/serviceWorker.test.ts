@@ -36,7 +36,19 @@ const createWorkerBeacon = (
 
   const beacon = new Beacon({
     scope: SCOPE,
-    running: { boot: { id: "boot-1" } },
+    running: {
+      boot: { id: "boot-1" },
+      web: () => ({
+        identity: {
+          status: "known",
+          authority: "com.example.notes",
+          domain: "web-artifact",
+          value: "web-build-b",
+        },
+        label: "Build web-build-b",
+        raw: {},
+      }),
+    },
     routes: {
       worker: serviceWorker({
         container,
@@ -142,7 +154,7 @@ test("a worker an update finds is reported as it installs, without a check", asy
   expect(worker.state.get().observation).toMatchObject({ status: "available" });
 });
 
-test("activating the waiting worker posts the skip-waiting message and proves no activation", async () => {
+test("SW-05 activating the waiting worker posts the skip-waiting message and proves no activation", async () => {
   const registration = updateReady();
   const { beacon, worker } = createWorkerBeacon(registration);
 
@@ -412,4 +424,77 @@ test("the route declares a takeover for the activation and a document replacemen
       binding: "provider-current",
     },
   });
+});
+
+test("SW-04 a worker that becomes redundant during the activation request invents no activation", async () => {
+  const registration = updateReady();
+  const { beacon, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+
+  const { observation } = worker.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  await worker.activateWaiting({ offer: observation.offer.ref });
+
+  const redundant = registration.waiting;
+
+  registration.waiting = null;
+  redundant?.transition("redundant");
+
+  expect(worker.state.get().prepared).toMatchObject({ status: "none" });
+  expect(worker.state.get().observation).toMatchObject({ status: "none" });
+});
+
+test("SW-07 a worker that activated has not reloaded the document, so the running web build is the old one", async () => {
+  const registration = updateReady();
+  const { beacon, worker } = createWorkerBeacon(registration);
+
+  beacon.start();
+  await settle();
+  registration.activate();
+
+  expect(worker.state.get().prepared).toMatchObject({ status: "ready" });
+  expect(beacon.running.get().web).toMatchObject({
+    state: "known",
+    release: { identity: { value: "web-build-b" } },
+  });
+});
+
+test("SW-14 reading the route, its capabilities and the diagnostics registers, updates and activates nothing", async () => {
+  const registration = updateReady();
+  const { beacon, worker, container } = createWorkerBeacon(registration);
+
+  worker.state.get();
+  worker.native.get();
+  Object.keys(worker.capabilities);
+  beacon.diagnostics.subscribe(() => {});
+  beacon.diagnostics.events.subscribe(() => {});
+  await settle();
+
+  expect(container.registrationReads()).toBe(0);
+  expect(registration.updates()).toBe(0);
+  expect(registration.waiting?.messages).toEqual([]);
+  expect(beacon.status.get()).toEqual({ state: "idle" });
+});
+
+test("LIFE-10 a registration the application owns keeps its own listeners when the session stops", async () => {
+  const registration = updateReady();
+  const { beacon } = createWorkerBeacon(registration);
+
+  const own = () => {};
+
+  registration.addEventListener("updatefound", own);
+  beacon.start();
+  await settle();
+
+  expect(registration.listeners()).toBe(2);
+
+  beacon.stop();
+
+  expect(registration.listeners()).toBe(1);
 });

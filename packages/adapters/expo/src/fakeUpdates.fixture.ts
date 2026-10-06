@@ -45,12 +45,19 @@ export const fetchedRollback = (): FetchResultLike => ({
   manifest: undefined,
 });
 
-type Options = { isEnabled?: boolean; updateId?: string | null };
+type Options = {
+  isEnabled?: boolean;
+  updateId?: string | null;
+  isEmbeddedLaunch?: boolean;
+  isEmergencyLaunch?: boolean;
+};
 
 // An `expo-updates` module whose answers a test scripts, and whose calls it counts.
 export const fakeUpdates = ({
   isEnabled = true,
   updateId = EMBEDDED,
+  isEmbeddedLaunch = true,
+  isEmergencyLaunch = false,
 }: Options = {}) => {
   const calls = { checks: 0, fetches: 0, reloads: 0 };
   const checks: Array<CheckResultLike | Error> = [];
@@ -72,8 +79,8 @@ export const fakeUpdates = ({
     updateId,
     channel: "production",
     runtimeVersion: "1.0.0",
-    isEmbeddedLaunch: true,
-    isEmergencyLaunch: false,
+    isEmbeddedLaunch,
+    isEmergencyLaunch,
     checkForUpdateAsync: async () => {
       calls.checks += 1;
 

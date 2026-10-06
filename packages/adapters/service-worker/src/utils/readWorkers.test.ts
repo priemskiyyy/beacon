@@ -25,7 +25,7 @@ test("SW-01 the first installation is not an update, even when it waits", () => 
   });
 });
 
-test("a waiting worker next to an active one is an update that is ready, whose build is unknown", () => {
+test("SW-12 a waiting worker next to an active one is an update that is ready, whose build is unknown", () => {
   const waiting = fakeWorker();
 
   const registration = fakeRegistration({

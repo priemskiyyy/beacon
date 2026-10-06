@@ -192,6 +192,28 @@ test("JOURNAL-04 a next boot that runs the comparable target has reached it, and
   });
 });
 
+test("WEB-04 a reload after which the same build is served is read back as not reached, and counted", async () => {
+  const memory = createMemoryStorage();
+  const first = createJournaled(memory);
+  const offer = await startWithOffer(first);
+
+  await reload(first, offer);
+
+  const next = createJournaled(memory, "required", {
+    boot: "boot-2",
+    build: "web-build-b",
+  });
+
+  next.beacon.start();
+  await settle();
+
+  expect(next.beacon.transitions.get().latest).toMatchObject({
+    outcome: "target-not-running",
+    attempts: 1,
+    exhausted: false,
+  });
+});
+
 test("JOURNAL-05 an identity that is unknown or incomparable makes the reconciliation inconclusive", async () => {
   const memory = createMemoryStorage();
 
@@ -210,7 +232,7 @@ test("JOURNAL-05 an identity that is unknown or incomparable makes the reconcili
   });
 });
 
-test("a next boot that runs something else than it aimed at keeps what actually runs", async () => {
+test("WEB-05 a next boot that runs something else than it aimed at keeps what actually runs", async () => {
   const memory = createMemoryStorage();
 
   seed(memory, [buildStored(buildIntent())]);

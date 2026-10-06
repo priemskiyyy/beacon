@@ -40,3 +40,16 @@ test("the reader looks at the constants when it is read, not when it is created"
 
   expect(read().identity).toMatchObject({ status: "unknown" });
 });
+
+test("EXPO-17 an emergency launch is a fact of the running bundle, read as the SDK reports it", () => {
+  const { updates } = fakeUpdates({
+    updateId: UPDATE_A,
+    isEmbeddedLaunch: true,
+    isEmergencyLaunch: true,
+  });
+
+  expect(expoBundle(updates)().raw).toMatchObject({
+    embedded: true,
+    emergency: true,
+  });
+});

@@ -366,3 +366,102 @@ test("the route declares each flow's own impacts, so a participant is asked only
     },
   });
 });
+
+test("PLAY-04 the same start called twice at once is one flow, joined by the second call", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const first = context.binary.startFlexibleUpdate({ offer: offer.ref });
+  const second = context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+  await settle();
+  context.install(installEvent("downloaded"));
+
+  const outcomes = await Promise.all([first, second]);
+
+  expect(outcomes[0]).toEqual(outcomes[1]);
+  expect(context.calls.flexible).toBe(1);
+});
+
+test("PLAY-05 a start with no Activity to launch from fails, and is never a successful no-update", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.bridge.startImmediate = async () => {
+    throw new Error("no current Activity");
+  };
+
+  await expect(
+    context.binary.startImmediateUpdate({ offer: offer.ref }),
+  ).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "COMMAND_FAILED" },
+  });
+  expect(context.binary.state.get().operation).toEqual({ state: "idle" });
+});
+
+test("PLAY-09 a completion with a prepared reference a later download replaced is refused before the native call", async () => {
+  const context = create();
+  const first = await checkOffer(context);
+  const starting = context.binary.startFlexibleUpdate({ offer: first.ref });
+
+  await settle();
+  context.install(installEvent("downloaded"));
+  await starting;
+
+  const { prepared: old } = context.binary.state.get();
+
+  context.setInfo(availableInfo(413));
+  await context.binary.check();
+
+  const { observation } = context.binary.state.get();
+
+  if (observation.status !== "available" || old.status !== "ready") {
+    throw new Error("The route is not where the test expects.");
+  }
+
+  const again = context.binary.startFlexibleUpdate({
+    offer: observation.offer.ref,
+  });
+
+  await settle();
+  context.install(installEvent("downloaded"));
+  await again;
+
+  await expect(
+    context.binary.completeUpdate({ prepared: old.value.ref }),
+  ).resolves.toEqual({
+    status: "stale",
+    reason: "replaced",
+  });
+  expect(context.calls.completions).toBe(0);
+});
+
+test("PLAY-15 Play reporting an install without a new boot leaves the running facts and the prepared target as they were", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+  await settle();
+  context.install(installEvent("downloaded"));
+  await starting;
+
+  const before = context.binary.state.get();
+  const running = context.beacon.running.get();
+
+  context.install(installEvent("installing"));
+  context.install(installEvent("installed"));
+
+  expect(context.binary.state.get()).toBe(before);
+  expect(context.beacon.running.get()).toBe(running);
+});
+
+test("SEC-10 a bridge call made outside Beacon is not claimed as an operation, a reservation or a journal entry", async () => {
+  const context = create();
+
+  context.beacon.start();
+  await settle();
+  await context.bridge.startImmediate();
+
+  expect(context.binary.state.get().operation).toEqual({ state: "idle" });
+  expect(context.beacon.transitions.get().latest).toBeNull();
+});

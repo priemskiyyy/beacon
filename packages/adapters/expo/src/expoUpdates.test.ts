@@ -250,7 +250,7 @@ test("EXPO-10 a downloaded update survives a check that fails", async () => {
   expect(context.ota.state.get().prepared).toBe(prepared);
 });
 
-test("downloading may activate on the next start, which the route declares before the user agrees", () => {
+test("SAFE-12 downloading may activate on the next start, which the route declares before the user agrees", () => {
   const { ota } = create();
 
   expect(ota.capabilities.download).toEqual({
@@ -375,4 +375,64 @@ test("a download after the session ended reports nothing to the route", async ()
     error: { code: "NOT_STARTED" },
   });
   expect(context.ota.state.get()).toBe(before);
+});
+
+test("EXPO-09 a prepared reference that a later download replaced is refused before the reload", async () => {
+  const context = create();
+
+  context.willCheck(available(UPDATE_A));
+  context.willFetch(fetchedNew(UPDATE_A));
+
+  const first = await checkOffer(context);
+
+  await context.ota.download({ offer: first.ref });
+
+  const { prepared: old } = context.ota.state.get();
+
+  context.willCheck(available(UPDATE_B));
+  context.willFetch(fetchedNew(UPDATE_B));
+  await context.ota.check();
+
+  const { observation } = context.ota.state.get();
+
+  if (observation.status !== "available" || old.status !== "ready") {
+    throw new Error("The route is not where the test expects.");
+  }
+
+  await context.ota.download({ offer: observation.offer.ref });
+
+  await expect(
+    context.ota.requestReload({ prepared: old.value.ref }),
+  ).resolves.toEqual({ status: "stale", reason: "replaced" });
+  expect(context.calls.reloads).toBe(0);
+});
+
+test("EXPO-11 a session that starts without a prepared query does not know what is prepared, not that nothing is", async () => {
+  const context = create();
+
+  context.beacon.start();
+  await context.ota.check();
+
+  expect(context.ota.state.get().prepared).toEqual({ status: "unknown" });
+});
+
+test("EXPO-19 the route has the commands it declares and no way to override the update URL, headers or signing", () => {
+  const { ota } = create();
+
+  expect(Object.keys(ota.capabilities).sort()).toEqual([
+    "download",
+    "requestReload",
+  ]);
+  expect(
+    Object.keys(ota).filter((key) => /override|url|header|sign/i.test(key)),
+  ).toEqual([]);
+});
+
+test("EXPO-20 the application reporting ready calls nothing of the SDK, and infers no commit", () => {
+  const context = create();
+
+  context.beacon.start();
+  context.beacon.reportReady({ checkpoint: "primary-screen" });
+
+  expect(context.calls).toEqual({ checks: 0, fetches: 0, reloads: 0 });
 });

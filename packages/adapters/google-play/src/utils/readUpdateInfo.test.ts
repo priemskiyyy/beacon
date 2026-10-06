@@ -19,7 +19,7 @@ test("not available is no offer here, and says nothing about other releases", ()
   });
 });
 
-test("unknown, as without Play services, is an environment that cannot say, not no update", () => {
+test("PLAY-02 unknown, as without Play services, is an environment that cannot say, not no update", () => {
   expect(
     readUpdateInfo({ availability: "unknown" }, APPLICATION).observation,
   ).toEqual({

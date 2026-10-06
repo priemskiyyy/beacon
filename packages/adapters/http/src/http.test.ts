@@ -88,7 +88,7 @@ test("the next read sends the validator the last accepted answer gave", async ()
   ]);
 });
 
-test("not modified renews the document the source holds, with the new expiry", async () => {
+test("HTTP-06 not modified renews the document the source holds, with the new expiry", async () => {
   const backend = fakeBackend();
   const source = http({ request: backend.request });
   const first = await source.read(buildRead());
@@ -145,7 +145,7 @@ test("a new document replaces the held one and its validator", async () => {
   ]);
 });
 
-test("not modified with no document to renew fails the read", async () => {
+test("HTTP-07 not modified with no document to renew fails the read, never as no offer", async () => {
   const source = http({ request: () => ({ status: "not-modified" }) });
 
   await expect(source.read(buildRead())).rejects.toMatchObject({

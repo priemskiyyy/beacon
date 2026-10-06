@@ -23,7 +23,6 @@ const manifest = standardManifestSource({
 });
 
 export const web = targetRoute({
-  subject: "web",
   source: manifest.select((document) => document.routes.web),
   mechanism: browserReload(),
 });
@@ -127,9 +126,39 @@ export const manifest = http({
 | a `document`, or `changed` | the validated `document`, its `validator` for the next read, and the evidence Beacon judges it by: `revision`, `digest`, `issuer`, `expiresAt` |
 | `not-modified`             | the document this source holds is still the authority's answer. It renews that document; with a new `expiresAt` it also moves the expiry       |
 
-An answer with a `document` is a changed answer, so you do not write the status. A `not-modified` without an `expiresAt` keeps the old expiry, so an answer is never fresher than the backend said. The exception is an answer that says it `holdsFor` a window, which is what a backend with no expiry of its own gets: the confirmation starts the window again. A `not-modified` when the source holds nothing to renew, such as after the scope changed, fails the read with `SOURCE_FAILED`. It never invents a document. An answer of any other status, which a client without types can still give, fails the read the same way and renews nothing.
+An answer with a `document` is a changed answer, so you do not write the status. A `not-modified` without an `expiresAt` keeps the old expiry, so an answer is never fresher than the backend said. A `not-modified` when the source holds nothing to renew, such as after the scope changed, fails the read with `SOURCE_FAILED`. It never invents a document. An answer of any other status, which a client without types can still give, fails the read the same way and renews nothing.
 
 The source remembers the last answer it accepted, only for the scope it was read for. The `validator` you receive is the one of that scope, so a validator or a document never crosses from one account to another. See [scopes](scopes.md#partitions).
+
+### Advanced: a window of the client's own
+
+An answer that claims no expiry of its own, which is what a standard manifest without an `expiresAt` is, holds for a window the client sets. Say so with `holdsFor`, the milliseconds the window lasts, next to an `expiresAt` that counts it once from now: a later `not-modified` then counts it again from the moment the backend confirmed the document, instead of keeping an expiry that has already passed. `standardManifestSource` and `readStandardManifest` do this for you, with `limits.lifetime` as the window. An answer with an `expiresAt` the backend claimed is never given a `holdsFor`: a confirmation cannot make it fresher than the authority said.
+
+```ts
+import { http } from "@priemskiyyy/beacon-http";
+
+export const versionFile = http<{ build: string }>({
+  fetch: async ({ signal, validator, clock }) => {
+    const response = await fetch("/version.json", {
+      signal,
+      headers: validator === null ? {} : { "if-none-match": validator },
+    });
+
+    if (response.status === 304) {
+      return { status: "not-modified" };
+    }
+
+    const etag = response.headers.get("etag");
+
+    return {
+      document: await response.json(),
+      expiresAt: clock.now() + 600_000,
+      holdsFor: 600_000,
+      ...(etag === null ? {} : { validator: etag }),
+    };
+  },
+});
+```
 
 ## The standard manifest
 

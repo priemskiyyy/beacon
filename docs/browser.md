@@ -153,7 +153,6 @@ const versionFile = http<{ build: string }>({
 });
 
 export const web = targetRoute({
-  subject: "web",
   source: versionFile.select((file) => ({
     kind: "target",
     release: webRelease({ authority: "com.example.notes", id: file.build }),

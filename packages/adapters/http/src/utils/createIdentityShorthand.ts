@@ -1,8 +1,8 @@
+import { WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon";
 import type { ReleaseScope } from "@priemskiyyy/beacon";
 
 import type { IdentityShorthand } from "src/types/internal/IdentityShorthand";
 import type { RouteDeclaration } from "src/types/RouteDeclaration";
-import { WEB_ARTIFACT_DOMAIN } from "src/utils/constants/domains";
 
 /**
  * What an identity written as a text means on a route: the application

@@ -27,7 +27,10 @@ test("a web release names the build the way the running reader does, in the appl
 test("it is the identity webBuild reads back, whatever padding or label the id came with", async () => {
   for (const id of ["a91b44e", " a91b44e\n", "b7"]) {
     const release = webRelease({ authority: APPLICATION, id, label: "Sept" });
-    const running = await webBuild({ authority: APPLICATION, id })();
+
+    const running = await webBuild({ authority: APPLICATION, id })({
+      scope: SCOPE,
+    });
 
     expect(compareIdentities(release.identity, running.identity)).toBe("same");
   }
@@ -76,7 +79,6 @@ const createBeacon = (running: string, deployed: string) => {
     },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: mock.source.select((file) => ({
           kind: "target",
           release: webRelease({ authority: APPLICATION, id: file.build }),

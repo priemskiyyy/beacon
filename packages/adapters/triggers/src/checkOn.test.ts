@@ -689,7 +689,7 @@ test("TRIG-16 the retry of a failed check is not skipped while the evidence it f
   const { beacon, mock, clock, network, reasons } = create();
 
   checkOn(beacon, {
-    triggers: [startup(), reconnect({ netInfo: network.netInfo })],
+    triggers: [reconnect({ netInfo: network.netInfo })],
     whileFresh: "skip",
     backoff: { first: 10_000, max: 10_000, jitter: 0 },
     minInterval: 1,

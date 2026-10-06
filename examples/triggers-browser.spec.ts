@@ -62,11 +62,11 @@ window.removeEventListener = (type, listener, options) => {
 };
 window.watch = (options) => {
   const source = Lab.createReleaseSource({ name: "manifest", read: async () => ({ document: { kind: "none", reason: "up-to-date" } }) });
-  const mechanism = Lab.createUpdateMechanism({ name: "inert", open: () => ({ native: {} }), commands: {} });
+  const mechanism = Lab.createUpdateMechanism({ name: "inert", subject: "web", open: () => ({ native: {} }), commands: {} });
   const beacon = new Lab.Beacon({
     scope: { application: "com.example.notes", environment: "production", platform: "web", distribution: "public-web" },
-    running: { boot: { id: "boot-1" }, web: () => ({ identity: { status: "known", authority: "com.example.notes", domain: "web-artifact", value: "a" }, label: "a", raw: {} }) },
-    routes: { web: Lab.targetRoute({ subject: "web", source: source.select((document) => document), mechanism }) },
+    running: { web: () => ({ identity: { status: "known", authority: "com.example.notes", domain: "web-artifact", value: "a" }, label: "a", raw: {} }) },
+    routes: { web: Lab.targetRoute({ source: source.select((document) => document), mechanism }) },
   });
   beacon.diagnostics.events.subscribe((event) => { if (event.type === "check-started") { window.reasons.push(event.reason); } });
   window.stopChecking = Lab.checkOn(beacon, options(Lab));

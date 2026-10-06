@@ -905,7 +905,6 @@ test("a source read is given the clock the Beacon runs on, so a source reads no 
   const { beacon, clock } = createRoutedBeacon(
     {
       web: targetRoute({
-        subject: "web",
         source: source.select((document) => document),
         mechanism: createReloadMechanism().mechanism,
       }),

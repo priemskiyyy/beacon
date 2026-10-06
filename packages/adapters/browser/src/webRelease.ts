@@ -1,9 +1,8 @@
-import { BeaconError } from "@priemskiyyy/beacon";
+import { BeaconError, WEB_ARTIFACT_DOMAIN } from "@priemskiyyy/beacon";
 import type { Release } from "@priemskiyyy/beacon";
 
 import type { WebReleaseOptions } from "src/types/WebReleaseOptions";
 import { assertIdentityText } from "src/utils/assertIdentityText";
-import { WEB_ARTIFACT_DOMAIN } from "src/utils/constants/authority";
 import { readBuildText } from "src/utils/readBuildText";
 
 /**
@@ -22,7 +21,6 @@ import { readBuildText } from "src/utils/readBuildText";
  * declare const versionFile: ReleaseSource<{ build: string }>;
  *
  * const web = targetRoute({
- *   subject: "web",
  *   source: versionFile.select((file) => ({
  *     kind: "target",
  *     release: webRelease({ authority: "com.example.notes", id: file.build }),

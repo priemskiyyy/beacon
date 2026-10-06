@@ -17,6 +17,7 @@ const DAY = 86_400_000;
 
 const inert = createUpdateMechanism({
   name: "inert",
+  subject: "web",
   open: () => ({ native: {} }),
   commands: {},
 });
@@ -66,7 +67,6 @@ const create = (initial = "a91b44e") => {
     running: { boot: { id: "boot-1" }, web: () => running("build-a") },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: manifest.select((document) => document.routes.web),
         mechanism: inert,
       }),
@@ -180,7 +180,6 @@ test("a file that is not the manifest fails the check and keeps what was accepte
     running: { boot: { id: "boot-1" }, web: () => running("build-a") },
     routes: {
       web: targetRoute({
-        subject: "web",
         source: manifest.select((document) => document.routes.web),
         mechanism: inert,
       }),

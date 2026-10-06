@@ -21,7 +21,6 @@ const manifest = standardManifestSource({
 });
 
 const web = targetRoute({
-  subject: "web",
   source: manifest.select((document) => document.routes.web),
   mechanism: browserReload(),
 });

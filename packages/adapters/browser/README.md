@@ -78,7 +78,6 @@ import { browserReload, webRelease } from "@priemskiyyy/beacon-browser";
 declare const versionFile: ReleaseSource<{ build: string }>;
 
 const web = targetRoute({
-  subject: "web",
   source: versionFile.select((file) => ({
     kind: "target",
     release: webRelease({ authority: scope.application, id: file.build }),

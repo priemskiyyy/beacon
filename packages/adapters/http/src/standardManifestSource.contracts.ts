@@ -14,6 +14,7 @@ expectTypeOf(fetch).toExtend<ManifestFetch>();
 
 const inert = createUpdateMechanism({
   name: "inert",
+  subject: "web",
   open: () => ({ native: {} }),
   commands: {},
 });
@@ -28,7 +29,6 @@ expectTypeOf(manifest).toEqualTypeOf<
 >();
 
 export const web = targetRoute({
-  subject: "web",
   source: manifest.select((document) => document.routes.web),
   mechanism: inert,
 });

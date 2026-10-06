@@ -1,4 +1,5 @@
 import { BeaconError } from "@priemskiyyy/beacon";
+import { createTestClock } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 
 import { buildRead, fakeBackend, SCOPE } from "src/fakeBackend.fixture";
@@ -21,18 +22,26 @@ test("the source is named for diagnostics, and http by default", () => {
   );
 });
 
-test("the first read hands the client the scope, the signal, the attempt and no validator", async () => {
+test("the first read hands the client the scope, the signal, the attempt, the Beacon's clock and no validator", async () => {
   const backend = fakeBackend();
   const controller = new AbortController();
+  const clock = createTestClock({ now: 7_000 });
 
   await http({ fetch: backend.fetch }).read({
     scope: SCOPE,
     signal: controller.signal,
     attempt: 3,
+    clock,
   });
 
   expect(backend.fetches).toEqual([
-    { scope: SCOPE, signal: controller.signal, attempt: 3, validator: null },
+    {
+      scope: SCOPE,
+      signal: controller.signal,
+      attempt: 3,
+      clock,
+      validator: null,
+    },
   ]);
 });
 

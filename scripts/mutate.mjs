@@ -864,6 +864,15 @@ const MUTANTS = [
     project: "triggers",
     describes: "a return whose absence nobody measured skipped as short",
   },
+  {
+    file: `${core}/internal/feeds/FeedRecord.ts`,
+    find: "source.read({ scope: getScope(), signal, attempt, clock }),",
+    replace:
+      "source.read({ scope: getScope(), signal, attempt, clock: { ...clock, now: () => 0 } }),",
+    project: "core",
+    describes:
+      "a source read handed a clock other than the one the Beacon runs on",
+  },
   // What Hermes lacks or reads differently: the projects that run a package in
   // the environment of a React Native app must notice where the plain ones do not.
   {

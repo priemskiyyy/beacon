@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { createTestClock } from "src/mock/createTestClock";
 import type { ReleaseSourceConformanceOptions } from "src/testing/types/ReleaseSourceConformanceOptions";
 import type { ReleaseSourceFixture } from "src/testing/types/ReleaseSourceFixture";
 import type { DecisionRevision } from "src/types/DecisionRevision";
@@ -21,6 +22,7 @@ const read = <TDocument>(
     scope,
     signal: new AbortController().signal,
     attempt: 1,
+    clock: createTestClock({ now: 1_000_000 }),
   });
 
 const expectTimes = ({ expiresAt }: SourceRead<unknown>) => {

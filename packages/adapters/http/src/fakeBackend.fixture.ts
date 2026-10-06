@@ -4,6 +4,7 @@ import type {
   ReleaseScope,
   TargetDecision,
 } from "@priemskiyyy/beacon";
+import { createTestClock } from "@priemskiyyy/beacon/mock";
 
 import type { HttpAnswer } from "src/types/HttpAnswer";
 import type { HttpFetchContext } from "src/types/HttpFetchContext";
@@ -23,6 +24,7 @@ export const buildRead = (
   scope: SCOPE,
   signal,
   attempt: 1,
+  clock: createTestClock(),
 });
 
 const buildManifest = (build: string): FakeManifest => ({

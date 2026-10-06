@@ -44,7 +44,7 @@ export class FeedRecord {
       clock,
       timeout,
       perform: ({ attempt, signal }) =>
-        source.read({ scope: getScope(), signal, attempt }),
+        source.read({ scope: getScope(), signal, attempt, clock }),
       accept: (attempt, read) => this.#judge(attempt, read),
       hooks: {
         started: hooks.started,

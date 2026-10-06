@@ -1,11 +1,12 @@
-import type { ReleaseScope } from "@priemskiyyy/beacon";
+import type { BeaconClock, ReleaseScope } from "@priemskiyyy/beacon";
 
 /**
  * What one read hands the application's client: the scope the answer must
  * speak for, the signal that aborts once nobody waits for it, the number of
- * the attempt, and the validator of the answer this source holds for that
- * scope. Send the validator as `If-None-Match` to let the backend answer that
- * nothing changed.
+ * the attempt, the clock the Beacon runs on, and the validator of the answer
+ * this source holds for that scope. Send the validator as `If-None-Match` to
+ * let the backend answer that nothing changed, and read the time from `clock`
+ * after the response arrived, never from the host.
  *
  * @example
  * ```ts
@@ -17,5 +18,6 @@ export type HttpFetchContext = {
   scope: ReleaseScope;
   signal: AbortSignal;
   attempt: number;
+  clock: BeaconClock;
   validator: string | null;
 };

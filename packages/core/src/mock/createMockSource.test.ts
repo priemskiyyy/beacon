@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import { createMockSource } from "src/mock/createMockSource";
+import { createTestClock } from "src/mock/createTestClock";
 import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { SourceReadContext } from "src/types/SourceReadContext";
 
@@ -20,6 +21,7 @@ const startRead = (
     scope: SCOPE,
     signal: controller.signal,
     attempt,
+    clock: createTestClock(),
   };
 
   return mock.source.read(context);

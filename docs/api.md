@@ -81,7 +81,7 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 | `ReleaseSource`        | a reader of one release authority, with `read` and `select`                          |
 | `ReleaseSourceOptions` | a name and a `read` for `createReleaseSource`                                        |
 | `SourceRead`           | what a source answers: a validated document and the evidence to judge it             |
-| `SourceReadContext`    | what a read is given: the scope, a signal and the attempt number                     |
+| `SourceReadContext`    | what a read is given: the scope, a signal, the attempt number and the Beacon's clock |
 | `Projection`           | one typed view of a source's document, sharing its one read                          |
 | `Evidence`             | what backs an observation: source, origin, times, freshness, issuer, revision        |
 | `EvidenceOrigin`       | `network`, `provider`, `application` or `persisted`                                  |

@@ -40,13 +40,14 @@ export const http = <TDocument>({
   return createReleaseSource<TDocument>({
     name,
     read: async (context) => {
-      const { scope, signal, attempt } = context;
+      const { scope, signal, attempt, clock } = context;
       const held = memory?.scope === scope ? memory : null;
 
       const answer = await fetchAnswer({
         scope,
         signal,
         attempt,
+        clock,
         validator: held?.validator ?? null,
       });
 

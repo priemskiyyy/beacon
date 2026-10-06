@@ -47,7 +47,7 @@ export const deployments = createReleaseSource<Deployment>({
 });
 ```
 
-`read` receives the scope, a signal that aborts when nobody waits for the answer, and the attempt number. It answers a `SourceRead`, or it rejects. A source that cannot answer rejects, because no answer ever means "no release".
+`read` receives the scope, a signal that aborts when nobody waits for the answer, the attempt number and the `clock` the Beacon runs on, which a source reads for the time of its answer instead of the host's. It answers a `SourceRead`, or it rejects. A source that cannot answer rejects, because no answer ever means "no release".
 
 Besides `document`, a read may carry what Beacon needs to judge it.
 

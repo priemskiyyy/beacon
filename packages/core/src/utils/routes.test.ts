@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import { createMockSource } from "src/mock/createMockSource";
+import type { SourceReadContext } from "src/types/SourceReadContext";
 import type { CandidateDecision } from "src/types/CandidateDecision";
 import type { NoneDecision } from "src/types/NoneDecision";
 import { settle } from "src/mock/settle";
@@ -9,7 +10,9 @@ import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
 import { integer } from "src/utils/versions/integer";
 import { newerRoute } from "src/utils/newerRoute";
 import { targetRoute } from "src/utils/targetRoute";
+import { createReleaseSource } from "src/utils/createReleaseSource";
 import {
+  createReloadMechanism,
   createTwoRouteBeacon,
   createWebBeacon,
   target,
@@ -721,4 +724,39 @@ test("CORE-02 a document that expires while a newer read is under way leaves tha
 
   context.mock.reject(new Error("offline"));
   await second;
+});
+
+test("a source read is given the clock the Beacon runs on, so a source reads no time of its own", async () => {
+  const seen: SourceReadContext[] = [];
+  const times: number[] = [];
+
+  const source = createReleaseSource<Manifest["web"]>({
+    name: "manifest",
+    read: async (context) => {
+      seen.push(context);
+      times.push(context.clock.now());
+
+      return { document: target("web-build-a") };
+    },
+  });
+
+  const { beacon, clock } = createRoutedBeacon(
+    {
+      web: targetRoute({
+        subject: "web",
+        source: source.select((document) => document),
+        mechanism: createReloadMechanism().mechanism,
+      }),
+    },
+    { running: { boot: { id: "boot-1" }, web: () => buildWebRelease("b") } },
+  );
+
+  beacon.start();
+  await beacon.check();
+  clock.advance(5_000);
+  await beacon.check();
+
+  expect(seen).toHaveLength(2);
+  expect(times).toEqual([1_000, 6_000]);
+  expect(seen[0]?.clock).toBe(beacon.clock);
 });

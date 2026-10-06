@@ -1,3 +1,4 @@
+import { createTestClock } from "@priemskiyyy/beacon/mock";
 import { expect, test } from "vitest";
 
 import { appStoreLookup } from "src/appStoreLookup";
@@ -13,6 +14,7 @@ const buildRead = () => ({
   scope: SCOPE,
   signal: new AbortController().signal,
   attempt: 1,
+  clock: createTestClock(),
 });
 
 test("creating the source makes no request", () => {

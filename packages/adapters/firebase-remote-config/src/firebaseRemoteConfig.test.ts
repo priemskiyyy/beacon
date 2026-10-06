@@ -16,6 +16,7 @@ const buildRead = () => ({
   scope: SCOPE,
   signal: new AbortController().signal,
   attempt: 1,
+  clock: createTestClock(),
 });
 
 const minimumBuild = ({ remote }: RemoteParameters) => ({

@@ -26,6 +26,7 @@
 - `createGate()` and `settle()` under `./mock` fake a provider that answers later: a gate is open until the test holds it, and `release()` lets every waiter go.
 - `keyValueJournalStorage(store, { verify, key })` adapts any store with `getItem`, `setItem` and `removeItem`, such as AsyncStorage, `expo-sqlite/kv-store`, MMKV through a recipe, `localStorage` and `sessionStorage`, to the journal's storage: a call that throws at once is a rejection, a write is read back, and a journal key can be mapped to the store's own. `createMockJournalStorage()` under `./mock` is an in-memory journal storage with `records`, call counts, and knobs to hold and to refuse reads and writes, and `testJournalStorage({ name, create })` under `./testing` holds a storage to the contract.
 - `testRunningReader({ name, create, situations })` under `./testing` holds a running reader to the contract: it asks its host for nothing until read, answers a release with a known identity that has no empty part or space around it or an unknown one with a reason, answers the same release on every read, and answers an unknown identity or rejects where its host cannot name what runs.
+- A source read is given `clock`, the `BeaconClock` the Beacon runs on, so a source that dates its answer reads the time from it after the response arrived, and a test clock moves it with everything else.
 - Not built yet: the scheduler. See `docs/decisions.md`.
 
 ## @priemskiyyy/beacon-http 0.1.0 - Unreleased

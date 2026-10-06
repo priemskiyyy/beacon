@@ -23,6 +23,7 @@ const safety = section(
 );
 
 const tabs = section("Cross-tab coordination");
+const triggers = section("Checks on an event or a timer");
 const proof = section("What a test proves");
 
 // WEB-09 A navigation another framework starts is named an external action, and no global guard is claimed.
@@ -41,6 +42,17 @@ assert.match(tabs, /never asserts the safety of another/);
 
 // SW-16 With no cross-tab lock the documented scope stays local, and no global lock is simulated.
 assert.match(tabs, /no simulated global lock/);
+
+// A check on a timer claims no more than the runtime that runs it, and a background runtime may run none.
+assert.match(triggers, /makes no runtime run/);
+assert.match(triggers, /throttled, suspended or never fire/);
+
+// An away time is an estimate that only throttles, and a reconnect never proves the authority reachable.
+assert.match(triggers, /is an estimate that only throttles a check/);
+assert.match(triggers, /never that the authority is reachable/);
+
+// A gate is per JavaScript runtime, so another tab is another gate and another read.
+assert.match(triggers, /N tabs make N reads/);
 
 // PLAY-18 A suite over a fake bridge is never presented as a verified installation.
 assert.match(proof, /never that a Play update installed/);

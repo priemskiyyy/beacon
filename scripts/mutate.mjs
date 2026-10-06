@@ -8,6 +8,7 @@ const core = "packages/core/src/utils";
 const mock = "packages/core/src/mock";
 const testing = "packages/core/src/testing";
 const http = "packages/adapters/http/src";
+const triggers = "packages/adapters/triggers/src";
 const devtools = "packages/devtools/src";
 
 const MUTANTS = [
@@ -826,6 +827,42 @@ const MUTANTS = [
     replace: "",
     project: "browser",
     describes: "a blocked storage rejecting without the browser's own error",
+  },
+  {
+    file: `${triggers}/utils/openGate.ts`,
+    find: 'const mode = reason === "reconnect" ? "after-current" : "join";',
+    replace: 'const mode = "join";',
+    project: "triggers",
+    describes: "a reconnect joining the read that met the dead network",
+  },
+  {
+    file: `${triggers}/reconnect.ts`,
+    find: "if (before !== false || isConnected !== true) {",
+    replace: "if (isConnected !== true) {",
+    project: "triggers",
+    describes:
+      "the state NetInfo reports as soon as it is subscribed to taken for a reconnect",
+  },
+  {
+    file: `${triggers}/foreground.ts`,
+    find: 'if (state !== "active" || !away) {',
+    replace: 'if (state !== "active") {',
+    project: "triggers",
+    describes: "an iOS system dialog taken for a return from the background",
+  },
+  {
+    file: `${triggers}/utils/openGate.ts`,
+    find: "    inFlight -= 1;\n\n    if (closed) {\n      return;\n    }\n",
+    replace: "    inFlight -= 1;\n",
+    project: "triggers",
+    describes: "a check that fails after the stop arming a wait and a retry",
+  },
+  {
+    file: `${triggers}/utils/signalReturn.ts`,
+    find: "observedAway !== null && observedAway < minAway",
+    replace: "observedAway < minAway",
+    project: "triggers",
+    describes: "a return whose absence nobody measured skipped as short",
   },
   // What Hermes lacks or reads differently: the projects that run a package in
   // the environment of a React Native app must notice where the plain ones do not.

@@ -66,6 +66,7 @@ const HERMES: Array<[string, string]> = [
   ["packages/adapters", "firebase-remote-config"],
   ["packages/adapters", "code-push"],
   ["packages/adapters", "native"],
+  ["packages/adapters", "triggers"],
 ];
 
 const hermesProject = (directory: string, folder: string) =>

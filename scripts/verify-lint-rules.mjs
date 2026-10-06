@@ -10,6 +10,7 @@ const SETTLE = "packages/core/src/mock/settle.ts";
 const SUITE = "packages/core/src/testing/lint-probe.ts";
 const ADAPTER = "packages/adapters/http/src/lint-probe.ts";
 const NATIVE_ADAPTER = "packages/adapters/expo/src/lint-probe.ts";
+const TRIGGERS = "packages/adapters/triggers/src/lint-probe.ts";
 const REACT = "packages/react/src/lint-probe.ts";
 const SOLID = "packages/solid/src/lint-probe.ts";
 const VUE = "packages/vue/src/lint-probe.ts";
@@ -191,6 +192,25 @@ const boundaries = [
     "no-restricted-imports",
     ADAPTER,
   ],
+  // The triggers take AppState, NetInfo, a Pulse and a Reach condition as structural types, and never import them.
+  [
+    'import NetInfo from "@react-native-community/netinfo";',
+    "no-restricted-imports",
+    TRIGGERS,
+  ],
+  [
+    'import { Pulse } from "@priemskiyyy/pulse";',
+    "no-restricted-imports",
+    TRIGGERS,
+  ],
+  [
+    'import { Reach } from "@priemskiyyy/reach";',
+    "no-restricted-imports",
+    TRIGGERS,
+  ],
+  ["setTimeout(() => {}, 0);", "no-restricted-globals", TRIGGERS],
+  ["const time = Date.now();", "no-restricted-syntax", TRIGGERS],
+  ["const view = window;", "no-restricted-globals", TRIGGERS],
   ['import { Platform } from "react-native";', "no-restricted-imports", REACT],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", CORE],
   ['import { createSignal } from "solid-js";', "no-restricted-imports", REACT],
@@ -393,6 +413,10 @@ const allowed = [
   [
     'import * as Updates from "expo-updates";\n\nexport const sdk = Updates;',
     "packages/adapters/expo/src/expoUpdates.contracts.ts",
+  ],
+  [
+    'import NetInfo from "@react-native-community/netinfo";\n\nexport const sdk = NetInfo;',
+    "packages/adapters/triggers/src/checkOn.contracts.ts",
   ],
   [
     'import type remoteConfig from "@react-native-firebase/remote-config";\n\nexport const sdk: typeof remoteConfig | null = null;',

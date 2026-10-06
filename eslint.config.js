@@ -200,6 +200,8 @@ const sdks = {
     "@bravemobile/react-native-code-push",
     "@appzung/react-native-code-push",
     "@react-native-community/netinfo",
+    "@priemskiyyy/pulse",
+    "@priemskiyyy/reach",
     "firebase",
   ],
   groups: [
@@ -214,6 +216,8 @@ const sdks = {
     "@appzung/react-native-code-push/*",
     "@react-native-firebase/*",
     "@react-native-community/netinfo/*",
+    "@priemskiyyy/pulse/*",
+    "@priemskiyyy/reach/*",
     "firebase/*",
   ],
   message:
@@ -509,7 +513,7 @@ export default tseslint.config(
     {
       // The adapters of what a React Native app runs.
       files: [
-        "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config,code-push,native}/src/**/*.ts",
+        "packages/adapters/{expo,google-play,app-store,http,firebase-remote-config,code-push,native,triggers}/src/**/*.ts",
       ],
       globals: [...hostGlobals, ...reactNativeGlobals],
       syntax: reactNativeSyntax,

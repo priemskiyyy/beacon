@@ -18,7 +18,7 @@ test("exactly the failure types are failures", () => {
 
   for (const type of [
     "session-started",
-    "check-requested",
+    "check-started",
     "read-abandoned",
     "command-settled",
     "journal-ignored",

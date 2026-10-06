@@ -14,7 +14,7 @@ export type BeaconDiagnosticEventType =
   | "disposed"
   | "running-read"
   | "running-failed"
-  | "check-requested"
+  | "check-started"
   | "route-failed"
   | "policy-failed"
   | "journal-read"

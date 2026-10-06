@@ -42,7 +42,7 @@ const NON_FAILURES: BeaconDiagnosticEventType[] = [
   "session-stopped",
   "disposed",
   "running-read",
-  "check-requested",
+  "check-started",
   "journal-read",
   "journal-ignored",
   "ready-reported",

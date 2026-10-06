@@ -118,13 +118,13 @@ test("events are listed newest first", async () => {
   const mounted = mountEmitting();
 
   mounted.emit({ type: "session-started" });
-  mounted.emit({ type: "check-requested" });
+  mounted.emit({ type: "check-started" });
   mounted.emit({ type: "read-accepted" });
   await settle();
 
   expect(types(mounted)).toEqual([
     "read-accepted",
-    "check-requested",
+    "check-started",
     "session-started",
   ]);
   mounted.devtools.unmount();
@@ -210,7 +210,7 @@ test("the selected type keeps its chip after a clear, so the filter that hides e
 test("the search matches the type, the route, the command, the reason, the session, the attempt and the operation, ignoring case and spaces around", async () => {
   const mounted = mountEmitting();
 
-  mounted.emit({ type: "check-requested", route: "web", reason: "Manual" });
+  mounted.emit({ type: "check-started", route: "web", reason: "Manual" });
   mounted.emit({
     type: "command-admitted",
     route: "ota",
@@ -232,7 +232,7 @@ test("the search matches the type, the route, the command, the reason, the sessi
     return types(mounted);
   };
 
-  expect(await find("  MANUAL ")).toEqual(["check-requested"]);
+  expect(await find("  MANUAL ")).toEqual(["check-started"]);
   expect(await find("download")).toEqual(["command-admitted"]);
   expect(await find("ota")).toEqual(["command-admitted"]);
   expect(await find("session-stopped")).toEqual(["session-stopped"]);
@@ -260,20 +260,20 @@ test("selecting a route keeps its own events and those of no route, and drops an
   const mounted = mountEmitting();
 
   mounted.emit({ type: "session-started" });
-  mounted.emit({ type: "check-requested", route: "web" });
-  mounted.emit({ type: "check-requested", route: "ota" });
+  mounted.emit({ type: "check-started", route: "web" });
+  mounted.emit({ type: "check-started", route: "ota" });
   mounted.emit({ type: "read-failed", route: "web" });
   await settle();
 
   fireEvent.click(mounted.view().getByRole("button", { name: /^web/ }));
   expect(types(mounted)).toEqual([
     "read-failed",
-    "check-requested",
+    "check-started",
     "session-started",
   ]);
 
   fireEvent.click(mounted.view().getByRole("button", { name: /^ota/ }));
-  expect(types(mounted)).toEqual(["check-requested", "session-started"]);
+  expect(types(mounted)).toEqual(["check-started", "session-started"]);
 
   fireEvent.click(mounted.view().getByRole("button", { name: /^Overview/ }));
   expect(types(mounted)).toHaveLength(4);
@@ -295,7 +295,7 @@ test("pausing stops the recording and releases the subscription, resuming record
       .getByRole("button", { name: "Resume" })
       .getAttribute("aria-pressed"),
   ).toBe("true");
-  mounted.emit({ type: "check-requested" });
+  mounted.emit({ type: "check-started" });
   await settle();
   expect(types(mounted)).toEqual(["session-started"]);
 
@@ -517,7 +517,7 @@ test("a route's own events arrive from the real Beacon through the same timeline
   );
 
   expect(listed).toContain("session-started");
-  expect(listed).toContain("check-requested");
+  expect(listed).toContain("check-started");
   expect(listed).toContain("read-accepted");
   expect(listed).toContain("running-read");
   devtools.unmount();

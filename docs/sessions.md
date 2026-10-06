@@ -123,14 +123,14 @@ The snapshot has the status, the number of the open session or `null`, and three
 
 Events never replay, and one is built only while someone listens. An event has a `type`, a `timestamp` on the Beacon clock, and the `session`, `route`, `command`, `attempt`, `operation` and `reason` that apply, each `null` otherwise. It names things by number and name and a short reason code, never a URL, a manifest, a release note, a credential or a provider payload.
 
-| Group     | Types                                                                                               |
-| --------- | --------------------------------------------------------------------------------------------------- |
-| session   | `session-started`, `session-stopped`, `disposed`                                                    |
-| running   | `running-read`, `running-failed`                                                                    |
-| checks    | `check-requested`, `read-started`, `read-accepted`, `read-renewed`, `read-failed`, `read-abandoned` |
-| failures  | `route-failed`, `policy-failed`, `journal-failed`, `journal-ignored`                                |
-| journal   | `journal-read`, `ready-reported`                                                                    |
-| commands  | `command-admitted`, `command-settled`                                                               |
-| contained | `late-callback`, `listener-error`, `cleanup-error`                                                  |
+| Group     | Types                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------- |
+| session   | `session-started`, `session-stopped`, `disposed`                                                  |
+| running   | `running-read`, `running-failed`                                                                  |
+| checks    | `check-started`, `read-started`, `read-accepted`, `read-renewed`, `read-failed`, `read-abandoned` |
+| failures  | `route-failed`, `policy-failed`, `journal-failed`, `journal-ignored`                              |
+| journal   | `journal-read`, `ready-reported`                                                                  |
+| commands  | `command-admitted`, `command-settled`                                                             |
+| contained | `late-callback`, `listener-error`, `cleanup-error`                                                |
 
 Event names describe observed facts. An accepted store handoff is never called an installation.

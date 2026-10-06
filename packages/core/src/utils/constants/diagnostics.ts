@@ -9,7 +9,7 @@ export const COUNTED_EVENTS = {
   disposed: null,
   "running-read": null,
   "running-failed": null,
-  "check-requested": null,
+  "check-started": null,
   "route-failed": null,
   "policy-failed": null,
   "journal-read": null,

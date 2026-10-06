@@ -365,7 +365,7 @@ test("a check requested with a reason records it for diagnostics", async () => {
   const reasons: Array<string | null> = [];
 
   context.beacon.diagnostics.events.subscribe(({ type, reason }) => {
-    reasons.push(type === "check-requested" ? reason : null);
+    reasons.push(type === "check-started" ? reason : null);
   });
 
   context.mock.answer({

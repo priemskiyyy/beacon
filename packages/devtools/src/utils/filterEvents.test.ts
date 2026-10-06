@@ -20,7 +20,7 @@ const record = (id: number, patch: Partial<RecordedEvent>): RecordedEvent => ({
 const events = [
   record(1, { type: "session-started", session: 1 }),
   record(2, {
-    type: "check-requested",
+    type: "check-started",
     route: "web",
     session: 1,
     reason: "Manual",

@@ -546,7 +546,7 @@ export class Beacon<
     }
 
     for (const { name } of entries) {
-      this.#diagnostics.record("check-requested", {
+      this.#diagnostics.record("check-started", {
         route: name,
         ...(options.reason === undefined ? {} : { reason: options.reason }),
       });

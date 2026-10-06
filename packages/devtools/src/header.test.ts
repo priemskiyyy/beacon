@@ -112,7 +112,7 @@ test("Check now asks once with the reason manual, needs a running session, never
     .querySelectorAll(".event");
 
   const requested = Array.from(requests).filter((row) =>
-    row.textContent?.includes("check-requested"),
+    row.textContent?.includes("check-started"),
   );
 
   expect(requested).toHaveLength(3);

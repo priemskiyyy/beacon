@@ -11,7 +11,7 @@ export const EVENT_FAILURES = {
   disposed: false,
   "running-read": false,
   "running-failed": true,
-  "check-requested": false,
+  "check-started": false,
   "route-failed": true,
   "policy-failed": true,
   "journal-read": false,

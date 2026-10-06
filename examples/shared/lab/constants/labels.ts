@@ -22,7 +22,7 @@ export const DIAGNOSTIC_LABELS: Record<BeaconDiagnosticEventType, string> = {
   disposed: "Disposed",
   "running-read": "Read what runs",
   "running-failed": "Reading what runs failed",
-  "check-requested": "Check requested",
+  "check-started": "Check started",
   "route-failed": "Route failed",
   "policy-failed": "Support policy failed",
   "journal-read": "Journal read",

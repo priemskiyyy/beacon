@@ -450,7 +450,7 @@ test("the timeline lists diagnostics, journal changes and world changes, newest 
 
   expect(lines).toContain("A new document boots and runs build 1");
   expect(lines).toContain("Build 2 is published");
-  expect(lines).toContain("Check requested (web, startup)");
+  expect(lines).toContain("Check started (web, startup)");
   expect(lines).toContain("Command admitted (web.reload, operation 1)");
   expect(lines).toContain(
     "Command settled (web.reload, operation 1, accepted)",

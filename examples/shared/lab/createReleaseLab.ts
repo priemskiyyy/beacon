@@ -57,7 +57,7 @@ export const createReleaseLab = ({
 
   // The browser the lab plays: a reload is a request, and the navigation completes when `install` says so.
   const browser: LabNative = {
-    requestReload: () => announce({ type: "reload-requested" }),
+    reload: () => announce({ type: "reload-requested" }),
   };
 
   const createBoot = (): LabBoot => {

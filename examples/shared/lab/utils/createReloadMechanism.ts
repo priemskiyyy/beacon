@@ -19,7 +19,7 @@ export const createReloadMechanism = (browser: LabNative) =>
         impacts: ["document-replacement"],
         binding: "unpinned-navigation",
         run: async ({ native }): Promise<ProviderResult<ReloadReceipt>> => {
-          native.requestReload();
+          native.reload();
 
           return { status: "accepted", receipt: { kind: "reload-requested" } };
         },

@@ -12,6 +12,7 @@ import type { ReloadReceipt } from "example-shared/lab/types/ReloadReceipt";
 export const createReloadMechanism = (browser: LabNative) =>
   createUpdateMechanism({
     name: "lab-reload",
+    subject: "web",
     open: () => ({ native: browser }),
     commands: {
       reload: {

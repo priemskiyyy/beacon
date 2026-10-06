@@ -1,4 +1,4 @@
-import { useObservable, useStatus } from "@priemskiyyy/beacon-react";
+import { useObservable, useBeaconStatus } from "@priemskiyyy/beacon-react";
 import type React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -10,7 +10,7 @@ import { Button } from "src/components/Button/Button";
 type HeaderProps = { lab: ReleaseLab };
 
 export const Header: React.FunctionComponent<HeaderProps> = ({ lab }) => {
-  const { state } = useStatus();
+  const { state } = useBeaconStatus();
   const { number } = useObservable(lab.boot);
 
   return (

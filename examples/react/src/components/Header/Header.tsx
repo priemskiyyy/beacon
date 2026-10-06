@@ -1,5 +1,5 @@
 import { ArrowCounterClockwise, Broadcast } from "@phosphor-icons/react";
-import { useObservable, useStatus } from "@priemskiyyy/beacon-react";
+import { useObservable, useBeaconStatus } from "@priemskiyyy/beacon-react";
 import type React from "react";
 
 import type { ReleaseLab } from "example-shared/lab/types/ReleaseLab";
@@ -12,7 +12,7 @@ import { SectionNav } from "src/components/Section/SectionNav";
 type HeaderProps = { lab: ReleaseLab };
 
 export const Header: React.FunctionComponent<HeaderProps> = ({ lab }) => {
-  const { state } = useStatus();
+  const { state } = useBeaconStatus();
   const { number } = useObservable(lab.boot);
 
   return (

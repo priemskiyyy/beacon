@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useObservable, useStatus } from "@priemskiyyy/beacon-svelte";
+  import { useObservable, useBeaconStatus } from "@priemskiyyy/beacon-svelte";
 
   import { SESSION_TONES } from "example-shared/ui/constants/tones";
   import { buttonStyles } from "example-shared/ui/styles/buttonStyles";
@@ -10,7 +10,7 @@
   import { useLab } from "src/hooks/useLab";
 
   const lab = useLab();
-  const status = useStatus();
+  const status = useBeaconStatus();
   const boot = useObservable(lab.boot);
 </script>
 

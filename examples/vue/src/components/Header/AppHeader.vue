@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useObservable, useStatus } from "@priemskiyyy/beacon-vue";
+import { useObservable, useBeaconStatus } from "@priemskiyyy/beacon-vue";
 
 import type { ReleaseLab } from "example-shared/lab/types/ReleaseLab";
 import { SESSION_TONES } from "example-shared/ui/constants/tones";
@@ -12,7 +12,7 @@ import SectionNav from "src/components/Section/SectionNav.vue";
 type Props = { lab: ReleaseLab };
 
 const props = defineProps<Props>();
-const state = useStatus(({ state: session }) => session);
+const state = useBeaconStatus(({ state: session }) => session);
 const number = useObservable(props.lab.boot, ({ number: boot }) => boot);
 </script>
 

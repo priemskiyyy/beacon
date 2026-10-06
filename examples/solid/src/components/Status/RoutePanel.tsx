@@ -1,4 +1,4 @@
-import { useRoute, useStatus } from "@priemskiyyy/beacon-solid";
+import { useRoute, useBeaconStatus } from "@priemskiyyy/beacon-solid";
 import { Show } from "solid-js";
 import type { Component } from "solid-js";
 
@@ -17,7 +17,7 @@ import { Panel } from "src/components/Panel/Panel";
 import { EvidenceFact } from "src/components/Status/EvidenceFact";
 
 export const RoutePanel: Component = () => {
-  const status = useStatus();
+  const status = useBeaconStatus();
   const check = useRoute("web", (route) => route.check);
   const observation = useRoute("web", (route) => route.observation);
   const operation = useRoute("web", (route) => route.operation);

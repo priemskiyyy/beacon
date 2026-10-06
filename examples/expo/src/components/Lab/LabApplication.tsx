@@ -26,7 +26,7 @@ export const LabApplication: React.FunctionComponent<LabApplicationProps> = ({
 
   return (
     // A new document is a new tree, as a launch would be.
-    <BeaconProvider key={number} beacon={beacon} start>
+    <BeaconProvider key={number} beacon={beacon}>
       <View style={styles.root}>
         <Header lab={lab} />
         <ScrollView contentContainerStyle={styles.content}>

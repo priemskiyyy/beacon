@@ -10,7 +10,7 @@
 
 <!-- A new document is a new tree, as a page load would be. -->
 {#key boot.current.number}
-  <BeaconProvider beacon={boot.current.beacon} start>
+  <BeaconProvider beacon={boot.current.beacon}>
     <Page />
   </BeaconProvider>
 {/key}

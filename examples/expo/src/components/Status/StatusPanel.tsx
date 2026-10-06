@@ -1,7 +1,7 @@
 import {
   useRoute,
   useRunning,
-  useStatus,
+  useBeaconStatus,
   useSupport,
 } from "@priemskiyyy/beacon-react";
 import type React from "react";
@@ -27,7 +27,7 @@ type StatusPanelProps = { runtime: string };
 export const StatusPanel: React.FunctionComponent<StatusPanelProps> = ({
   runtime,
 }) => {
-  const status = useStatus();
+  const status = useBeaconStatus();
   const { check, observation, operation } = useRoute("web");
   const web = useRunning(({ web: fact }) => fact);
   const boot = useRunning(({ boot: identity }) => identity.id);

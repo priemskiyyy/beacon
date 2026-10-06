@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { OperationState } from "@priemskiyyy/beacon";
-  import { useRoute, useStatus } from "@priemskiyyy/beacon-svelte";
+  import { useRoute, useBeaconStatus } from "@priemskiyyy/beacon-svelte";
 
   import { formatCheck } from "example-shared/formatting/formatCheck";
   import { formatClockTime } from "example-shared/formatting/formatClockTime";
@@ -16,7 +16,7 @@
   import Panel from "src/components/Panel/Panel.svelte";
   import EvidenceFact from "src/components/Status/EvidenceFact.svelte";
 
-  const status = useStatus();
+  const status = useBeaconStatus();
   const check = useRoute("web", (snapshot) => snapshot.check);
   const observation = useRoute("web", (snapshot) => snapshot.observation);
   const operation = useRoute("web", (snapshot) => snapshot.operation);

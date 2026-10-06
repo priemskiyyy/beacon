@@ -33,7 +33,7 @@ const readRunning = ({
   boot,
   application,
 }: NativeBeaconOptions): RunningReaders => {
-  const running: RunningReaders = { boot, bundle: expoBundle(updates) };
+  const running: RunningReaders = { boot, bundle: expoBundle({ updates }) };
 
   if (application === undefined) {
     return running;

@@ -14,7 +14,7 @@ export const Application: Component<ApplicationProps> = (props) => {
   return (
     <Show when={boot()} keyed>
       {(current) => (
-        <BeaconProvider beacon={current.beacon} start>
+        <BeaconProvider beacon={current.beacon}>
           <Document lab={props.lab} />
         </BeaconProvider>
       )}

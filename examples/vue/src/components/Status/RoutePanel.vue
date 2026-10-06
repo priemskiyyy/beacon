@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useRoute, useStatus } from "@priemskiyyy/beacon-vue";
+import { useRoute, useBeaconStatus } from "@priemskiyyy/beacon-vue";
 import { computed } from "vue";
 
 import { formatCheck } from "example-shared/formatting/formatCheck";
@@ -16,7 +16,7 @@ import Fact from "src/components/Fact/Fact.vue";
 import Panel from "src/components/Panel/Panel.vue";
 import EvidenceFact from "src/components/Status/EvidenceFact.vue";
 
-const session = useStatus(({ state }) => state);
+const session = useBeaconStatus(({ state }) => state);
 const check = useRoute("web", ({ check: attempt }) => attempt);
 const observation = useRoute("web", ({ observation: seen }) => seen);
 const operation = useRoute("web", ({ operation: running }) => running);

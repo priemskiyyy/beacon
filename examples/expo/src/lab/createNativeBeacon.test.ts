@@ -1,5 +1,5 @@
 import type { RunningApplication } from "@priemskiyyy/beacon";
-import { settle } from "@priemskiyyy/beacon/mock";
+import { createMockJournalStorage, settle } from "@priemskiyyy/beacon/mock";
 import type { UpdatesLike } from "@priemskiyyy/beacon-expo";
 import { expect, test } from "vitest";
 
@@ -146,24 +146,8 @@ test("an update the backend ended is unsupported and the OTA route is the way ou
   );
 });
 
-// A key-value store that keeps what the journal writes, as the next boot's storage does.
-const memoryJournal = () => {
-  const values = new Map<string, string>();
-
-  return {
-    values,
-    read: async (key: string) => values.get(key) ?? null,
-    write: async (key: string, value: string) => {
-      values.set(key, value);
-    },
-    remove: async (key: string) => {
-      values.delete(key);
-    },
-  };
-};
-
 test("a reload writes its intent to the journal, and the next boot says it reached the update it asked for", async () => {
-  const journal = memoryJournal();
+  const journal = createMockJournalStorage();
   const { updates } = fakeUpdates(true);
 
   const beacon = createNativeBeacon({
@@ -195,7 +179,7 @@ test("a reload writes its intent to the journal, and the next boot says it reach
 
   await ota.reload({ prepared: prepared.value.ref });
 
-  expect(journal.values.size).toBe(1);
+  expect(journal.records.size).toBe(1);
   beacon.dispose();
 
   // The JavaScript runtime was replaced: a new Beacon, the same storage, and the update now runs.

@@ -28,7 +28,7 @@ export const Application: React.FunctionComponent<ApplicationProps> = ({
 
   return (
     // A new document is a new tree, as a page load would be.
-    <BeaconProvider key={number} beacon={beacon} start>
+    <BeaconProvider key={number} beacon={beacon}>
       <Header lab={lab} />
       <main className="mx-auto flex max-w-7xl flex-col gap-16 px-4 py-8 sm:px-6">
         <Hero />

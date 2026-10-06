@@ -1,4 +1,4 @@
-import { useObservable, useStatus } from "@priemskiyyy/beacon-solid";
+import { useObservable, useBeaconStatus } from "@priemskiyyy/beacon-solid";
 import type { Component } from "solid-js";
 
 import type { ReleaseLab } from "example-shared/lab/types/ReleaseLab";
@@ -12,7 +12,7 @@ import { SectionNav } from "src/components/Section/SectionNav";
 type HeaderProps = { lab: ReleaseLab };
 
 export const Header: Component<HeaderProps> = (props) => {
-  const status = useStatus();
+  const status = useBeaconStatus();
   const number = useObservable(props.lab.boot, (boot) => boot.number);
 
   return (

@@ -31,7 +31,7 @@ const readBundle = async (folder: string) => {
 
   writeFileSync(
     entry,
-    `export { Beacon, createReleaseSource, targetRoute } from ${JSON.stringify(CORE)};\nexport { browserReload, browserStorage, webBuild } from ${JSON.stringify(BROWSER)};\n`,
+    `export { Beacon, createBootId, createReleaseSource, targetRoute } from ${JSON.stringify(CORE)};\nexport { browserReload, browserStorage, webBuild } from ${JSON.stringify(BROWSER)};\n`,
   );
 
   const bundle = await rolldown({ input: entry, logLevel: "silent" });
@@ -69,8 +69,8 @@ window.boot = async (options = {}) => {
   const source = Lab.createReleaseSource({ name: "manifest", read: async () => ({ document: { kind: "target", release: { identity: { status: "known", authority: scope.application, domain: "web-artifact", value: "build-b" }, label: "b" } } }) });
   const beacon = new Lab.Beacon({
     scope,
-    running: { boot: { id: crypto.randomUUID() }, web: Lab.webBuild({ authority: scope.application, id: BUILD }) },
-    routes: { web: Lab.targetRoute({ subject: "web", source: source.select((document) => document), mechanism: Lab.browserReload() }) },
+    running: { boot: { id: Lab.createBootId() }, web: Lab.webBuild({ authority: scope.application, id: BUILD }) },
+    routes: { web: Lab.targetRoute({ source: source.select((document) => document), mechanism: Lab.browserReload() }) },
     journal: { mode: "required", storage: Lab.browserStorage(options) },
   });
   window.beacon = beacon;

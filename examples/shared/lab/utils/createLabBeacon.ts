@@ -40,7 +40,6 @@ export const createLabBeacon = ({
   clock,
 }: LabBeaconOptions) => {
   const web = targetRoute({
-    subject: "web",
     source: manifest.select((document) => document.web),
     mechanism: createReloadMechanism(browser),
   });

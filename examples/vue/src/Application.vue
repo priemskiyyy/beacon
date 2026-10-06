@@ -30,7 +30,7 @@ watch(() => boot.value.beacon, checkAtStartup, { flush: "post" });
 
 <template>
   <!-- A new document is a new tree, as a page load would be. -->
-  <BeaconProvider :key="boot.number" :beacon="boot.beacon" start>
+  <BeaconProvider :key="boot.number" :beacon="boot.beacon">
     <AppHeader :lab="lab" />
     <main class="mx-auto flex max-w-7xl flex-col gap-16 px-4 py-8 sm:px-6">
       <HeroSection />

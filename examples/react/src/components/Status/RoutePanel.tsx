@@ -1,5 +1,5 @@
 import { Path } from "@phosphor-icons/react";
-import { useRoute, useStatus } from "@priemskiyyy/beacon-react";
+import { useRoute, useBeaconStatus } from "@priemskiyyy/beacon-react";
 import type React from "react";
 
 import { formatCheck } from "example-shared/formatting/formatCheck";
@@ -17,7 +17,7 @@ import { Panel } from "src/components/Panel/Panel";
 import { EvidenceFact } from "src/components/Status/EvidenceFact";
 
 export const RoutePanel: React.FunctionComponent = () => {
-  const status = useStatus();
+  const status = useBeaconStatus();
   const { check, observation, operation } = useRoute("web");
 
   return (

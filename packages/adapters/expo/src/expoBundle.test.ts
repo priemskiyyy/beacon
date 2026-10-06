@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 
 import { expoBundle } from "src/expoBundle";
-import { fakeUpdates, UPDATE_A } from "src/fakeUpdates.fixture";
+import { fakeUpdates, SCOPE, UPDATE_A } from "src/fakeUpdates.fixture";
 
-test("the running bundle is the update that launched, with where it came from", () => {
+test("the running bundle is the update that launched, with where it came from", async () => {
   const { updates } = fakeUpdates({ updateId: UPDATE_A });
 
-  expect(expoBundle({ updates })()).toEqual({
+  expect(await expoBundle({ updates })({ scope: SCOPE })).toEqual({
     identity: {
       status: "known",
       authority: "expo-updates",
@@ -23,32 +23,34 @@ test("the running bundle is the update that launched, with where it came from", 
   });
 });
 
-test("where updates are disabled the running bundle has no identity", () => {
+test("where updates are disabled the running bundle has no identity", async () => {
   const { updates } = fakeUpdates({ updateId: null, isEnabled: false });
 
-  expect(expoBundle({ updates })().identity).toEqual({
+  expect((await expoBundle({ updates })({ scope: SCOPE })).identity).toEqual({
     status: "unknown",
     reason: "updates-disabled",
   });
 });
 
-test("the reader looks at the constants when it is read, not when it is created", () => {
+test("the reader looks at the constants when it is read, not when it is created", async () => {
   const { updates } = fakeUpdates({ updateId: UPDATE_A });
   const read = expoBundle({ updates });
 
   updates.updateId = null;
 
-  expect(read().identity).toMatchObject({ status: "unknown" });
+  expect((await read({ scope: SCOPE })).identity).toMatchObject({
+    status: "unknown",
+  });
 });
 
-test("EXPO-17 an emergency launch is a fact of the running bundle, read as the SDK reports it", () => {
+test("EXPO-17 an emergency launch is a fact of the running bundle, read as the SDK reports it", async () => {
   const { updates } = fakeUpdates({
     updateId: UPDATE_A,
     isEmbeddedLaunch: true,
     isEmergencyLaunch: true,
   });
 
-  expect(expoBundle({ updates })().raw).toMatchObject({
+  expect((await expoBundle({ updates })({ scope: SCOPE })).raw).toMatchObject({
     embedded: true,
     emergency: true,
   });

@@ -1,4 +1,4 @@
-import type { ReleaseIdentity, RunningRelease } from "@priemskiyyy/beacon";
+import type { ReleaseIdentity, RunningReader } from "@priemskiyyy/beacon";
 
 import type { ExpoOptions } from "src/types/ExpoOptions";
 import type { UpdatesLike } from "src/types/UpdatesLike";
@@ -18,20 +18,23 @@ const readIdentity = ({ updateId }: UpdatesLike): ReleaseIdentity => {
  * constants: the id of the update that launched, and whether it is the
  * embedded one, an emergency fallback, and which runtime and channel it runs
  * on. Where updates are disabled, as in development, the identity is unknown.
- * Pass it as the `bundle` reader; the route never writes it.
+ * `expoUpdates` supplies it for its own route, so pass it in `running.bundle`
+ * only to override that, or where no `expoUpdates` route is given: it is made
+ * for the `bundle` subject, and the route never writes it.
  *
  * @example
  * ```ts
  * new Beacon({
  *   scope,
- *   running: { boot: { id: createBootId() }, bundle: expoBundle({ updates: Updates }) },
+ *   // The route supplies this reader itself: passing one is the override.
+ *   running: { bundle: expoBundle({ updates: Updates }) },
  *   routes: { ota: expoUpdates({ updates: Updates }) },
  * });
  * ```
  */
 export const expoBundle =
-  ({ updates }: ExpoOptions) =>
-  (): RunningRelease => ({
+  ({ updates }: ExpoOptions): RunningReader<"bundle"> =>
+  () => ({
     identity: readIdentity(updates),
     label: null,
     raw: {

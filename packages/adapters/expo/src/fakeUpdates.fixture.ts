@@ -1,8 +1,16 @@
+import type { ReleaseScope } from "@priemskiyyy/beacon";
 import { createGate } from "@priemskiyyy/beacon/mock";
 
 import type { CheckResultLike } from "src/types/CheckResultLike";
 import type { FetchResultLike } from "src/types/FetchResultLike";
 import type { UpdatesLike } from "src/types/UpdatesLike";
+
+export const SCOPE: ReleaseScope = {
+  application: "com.example.notes",
+  environment: "production",
+  platform: "ios",
+  distribution: "app-store",
+};
 
 export const UPDATE_A = "8b2d5c1e-0a3f-4c8e-9d1b-6e7f2a4c5b90";
 export const UPDATE_B = "3f9a7d20-51c4-4b6e-8a02-c1d4e9b7f356";

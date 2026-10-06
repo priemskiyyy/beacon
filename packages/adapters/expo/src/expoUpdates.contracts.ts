@@ -7,6 +7,7 @@ import type {
   OfferReference,
   PreparedReference,
   RouteHandle,
+  RunningReader,
   RunningReaders,
 } from "@priemskiyyy/beacon";
 import type * as Updates from "expo-updates";
@@ -41,6 +42,14 @@ export const swapped = expoUpdates({
 expectTypeOf(createFakeUpdates()).toExtend<UpdatesLike>();
 
 export const bundle: RunningReaders["bundle"] = expoBundle({ updates: sdk });
+
+export const reader: RunningReader<"bundle"> = expoBundle({ updates: sdk });
+
+export const slots: RunningReaders = {
+  bundle: reader,
+  // @ts-expect-error -- the reader of the expo bundle is made for the bundle subject, not the web build.
+  web: reader,
+};
 
 // @ts-expect-error -- the module is the SDK's, not a random object.
 expoUpdates({ updates: {} });

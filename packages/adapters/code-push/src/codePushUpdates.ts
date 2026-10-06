@@ -1,6 +1,7 @@
 import { createReleaseDriver } from "@priemskiyyy/beacon";
 import type { CommandMap, ProviderResult } from "@priemskiyyy/beacon";
 
+import { codePushBundle } from "src/codePushBundle";
 import type { CodePushDownloadReceipt } from "src/types/CodePushDownloadReceipt";
 import type { CodePushNative } from "src/types/CodePushNative";
 import type { CodePushOffer } from "src/types/CodePushOffer";
@@ -48,9 +49,11 @@ const commands = {
  * `allowRestart`, never installs immediately and configures nothing: the app's
  * own `CodePush({ checkFrequency: MANUAL })` decorator is what stops the
  * library from checking and installing by itself, and calling
- * `notifyAppReady()` is the app's too. The module belongs to one open session
- * at a time: a second Beacon that opens a route on it fails to open it, as
- * `DRIVER_FAILED`.
+ * `notifyAppReady()` is the app's too. The route reads the running bundle too,
+ * from the same module (`codePushBundle`), so the journal knows which package
+ * a reload reached with no `running.bundle`; a reader the application passes
+ * for the bundle wins. The module belongs to one open session at a time: a
+ * second Beacon that opens a route on it fails to open it, as `DRIVER_FAILED`.
  *
  * @example
  * ```ts
@@ -68,6 +71,7 @@ export const codePushUpdates = ({ codePush }: CodePushOptions) =>
   >({
     name: "code-push",
     subject: "bundle",
+    running: codePushBundle({ codePush }),
     prepares: true,
     exclusive: codePush,
     open: ({ emit }) => {

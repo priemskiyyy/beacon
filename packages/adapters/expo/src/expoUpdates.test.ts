@@ -1,9 +1,12 @@
 import { Beacon } from "@priemskiyyy/beacon";
-import { createTestClock, settle } from "@priemskiyyy/beacon/mock";
+import {
+  createMockJournalStorage,
+  createTestClock,
+  settle,
+} from "@priemskiyyy/beacon/mock";
 import type { ReleaseScope } from "@priemskiyyy/beacon";
 import { expect, test } from "vitest";
 
-import { expoBundle } from "src/expoBundle";
 import { expoUpdates } from "src/expoUpdates";
 import {
   available,
@@ -29,10 +32,6 @@ const create = (options: Parameters<typeof fakeUpdates>[0] = {}) => {
 
   const beacon = new Beacon({
     scope: SCOPE,
-    running: {
-      boot: { id: "boot-1" },
-      bundle: expoBundle({ updates: fake.updates }),
-    },
     routes: { ota: expoUpdates({ updates: fake.updates }) },
     clock: createTestClock({ now: 1_000 }),
   });
@@ -379,7 +378,7 @@ test("a download that ends with its session prepares nothing in the route and re
   expect(context.beacon.diagnostics.get().counters.lateCallbacks).toBe(0);
 });
 
-test("the running bundle is read from the constants, and never written by the route", async () => {
+test("the running bundle is read from the constants by the route's own reader, and never written by the route", async () => {
   const context = create();
 
   context.beacon.start();
@@ -388,6 +387,93 @@ test("the running bundle is read from the constants, and never written by the ro
   expect(context.beacon.running.get().bundle).toMatchObject({
     state: "known",
     release: { identity: { value: "00000000-0000-4000-8000-000000000001" } },
+  });
+});
+
+test("a reader the application passes for the bundle wins over the route's own", async () => {
+  const fake = fakeUpdates();
+
+  const beacon = new Beacon({
+    scope: SCOPE,
+    running: {
+      bundle: () => ({
+        identity: {
+          status: "known",
+          authority: "expo-updates",
+          domain: "update",
+          value: "from-the-application",
+        },
+        label: null,
+        raw: {},
+      }),
+    },
+    routes: { ota: expoUpdates({ updates: fake.updates }) },
+    clock: createTestClock({ now: 1_000 }),
+  });
+
+  beacon.start();
+  await settle();
+
+  expect(beacon.running.get().bundle).toMatchObject({
+    state: "known",
+    release: { identity: { value: "from-the-application" } },
+  });
+});
+
+test("a route alone gives the journal a known bundle: the reload is read back as reached by the next launch", async () => {
+  const fake = fakeUpdates();
+  const storage = createMockJournalStorage();
+
+  const open = (boot: string) =>
+    new Beacon({
+      scope: SCOPE,
+      running: { boot: { id: boot } },
+      routes: { ota: expoUpdates({ updates: fake.updates }) },
+      journal: { mode: "required", storage },
+      clock: createTestClock({ now: 1_000 }),
+    });
+
+  const first = open("boot-1");
+  const route = first.route("ota");
+
+  fake.willCheck(available(UPDATE_A));
+  fake.willFetch(fetchedNew(UPDATE_A));
+  first.start();
+  await route.check();
+
+  const { observation } = route.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  await route.download({ offer: observation.offer });
+
+  const { prepared } = route.state.get();
+
+  if (prepared.status !== "ready") {
+    throw new Error("The route has nothing prepared.");
+  }
+
+  await expect(
+    route.reload({ prepared: prepared.value }),
+  ).resolves.toMatchObject({ status: "accepted" });
+
+  first.stop();
+  fake.updates.updateId = UPDATE_A;
+
+  const second = open("boot-2");
+
+  second.start();
+  await settle();
+
+  expect(second.running.get().bundle).toMatchObject({
+    state: "known",
+    release: { identity: { value: UPDATE_A } },
+  });
+  expect(second.transitions.get().latest).toMatchObject({
+    outcome: "target-running",
+    intent: { route: "ota", command: "reload" },
   });
 });
 
@@ -498,10 +584,6 @@ test("LIFE-11 a second Beacon on the same module cannot open the route, and says
   const open = () =>
     new Beacon({
       scope: SCOPE,
-      running: {
-        boot: { id: "boot-1" },
-        bundle: expoBundle({ updates: fake.updates }),
-      },
       routes: { ota: expoUpdates({ updates: fake.updates }) },
       clock: createTestClock({ now: 1_000 }),
     });

@@ -1,4 +1,5 @@
 import { Beacon, compareIdentities } from "@priemskiyyy/beacon";
+import type { RunningReaders, RunningRelease } from "@priemskiyyy/beacon";
 import {
   createMockJournalStorage,
   createTestClock,
@@ -17,7 +18,7 @@ import {
 } from "src/fakeCodePush.fixture";
 
 type Options = {
-  // The running bundle is read from CodePush too, so a test that watches the route's own reads leaves it out.
+  // The route reads the running bundle from CodePush too, so a test that watches the route's own reads passes a reader that reads nothing.
   bundle?: boolean;
 };
 
@@ -27,12 +28,7 @@ const create = ({ bundle = true }: Options = {}) => {
 
   const beacon = new Beacon({
     scope: SCOPE,
-    running: {
-      boot: { id: "boot-1" },
-      ...(bundle
-        ? { bundle: codePushBundle({ codePush: fake.codePush }) }
-        : {}),
-    },
+    running: bundle ? {} : { bundle: () => NOT_READ },
     routes: { update: codePushUpdates({ codePush: fake.codePush }) },
     clock,
   });
@@ -41,6 +37,12 @@ const create = ({ bundle = true }: Options = {}) => {
 };
 
 type Context = ReturnType<typeof create>;
+
+const NOT_READ: RunningRelease = {
+  identity: { status: "unknown", reason: "not-read" },
+  label: null,
+  raw: {},
+};
 
 const checkOffer = async (context: Context) => {
   context.beacon.start();
@@ -1024,10 +1026,50 @@ test("the package a download prepared is named the way the bundle reader names i
 
   context.launchAgain();
 
-  const running = await codePushBundle({ codePush: context.codePush })();
+  const running = await codePushBundle({ codePush: context.codePush })({
+    scope: SCOPE,
+  });
 
   expect(compareIdentities(prepared.release.identity, running.identity)).toBe(
     "same",
+  );
+});
+
+test("the route reads the running bundle from CodePush, and a reader the application passes wins", async () => {
+  const create = (running: RunningReaders) => {
+    const fake = fakeCodePush({ running: localPackage(HASH_A) });
+
+    const beacon = new Beacon({
+      scope: SCOPE,
+      running,
+      routes: { update: codePushUpdates({ codePush: fake.codePush }) },
+      clock: createTestClock({ now: 1_000 }),
+    });
+
+    return { fake, beacon };
+  };
+
+  const routeOnly = create({});
+
+  routeOnly.beacon.start();
+  await settle();
+
+  expect(routeOnly.beacon.running.get().bundle).toMatchObject({
+    state: "known",
+    release: { identity: { status: "known", value: HASH_A } },
+  });
+
+  const explicit = create({ bundle: () => NOT_READ });
+
+  explicit.beacon.start();
+  await settle();
+
+  expect(explicit.beacon.running.get().bundle).toMatchObject({
+    state: "known",
+    release: { identity: { reason: "not-read" } },
+  });
+  expect(explicit.fake.metadata).not.toContain(
+    explicit.fake.updateState.RUNNING,
   );
 });
 
@@ -1038,10 +1080,7 @@ test("the journal reads a reload back as reached when the next launch runs the s
   const open = (boot: string) =>
     new Beacon({
       scope: SCOPE,
-      running: {
-        boot: { id: boot },
-        bundle: codePushBundle({ codePush: fake.codePush }),
-      },
+      running: { boot: { id: boot } },
       routes: { update: codePushUpdates({ codePush: fake.codePush }) },
       journal: { mode: "required", storage },
       clock: createTestClock({ now: 1_000 }),
@@ -1102,7 +1141,6 @@ test("the route calls only the members its type lists, and checks with no argume
 
   const beacon = new Beacon({
     scope: SCOPE,
-    running: { boot: { id: "boot-1" }, bundle: codePushBundle({ codePush }) },
     routes: { update: codePushUpdates({ codePush }) },
     clock: createTestClock({ now: 1_000 }),
   });

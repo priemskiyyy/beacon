@@ -1,4 +1,4 @@
-import type { RunningRelease } from "@priemskiyyy/beacon";
+import type { RunningReader, RunningRelease } from "@priemskiyyy/beacon";
 
 import type { CodePushOptions } from "src/types/CodePushOptions";
 import { EMBEDDED_IDENTITY } from "src/utils/constants/identities";
@@ -11,8 +11,10 @@ import { readLabel } from "src/utils/readLabel";
  * so its identity is unknown with the reason `embedded-bundle`, and so is a
  * package the forks flag as only on disk while the binary's own bundle runs.
  * A package is named by its hash, in the words the route uses, so a journal
- * compares what a reload asked for with what runs. Pass it as the `bundle`
- * reader; the route never writes it.
+ * compares what a reload asked for with what runs. `codePushUpdates` supplies
+ * it for its own route, so pass it in `running.bundle` only to override that,
+ * or where no `codePushUpdates` route is given: it is made for the `bundle`
+ * subject, and the route never writes it.
  *
  * @example
  * ```ts
@@ -20,13 +22,14 @@ import { readLabel } from "src/utils/readLabel";
  *
  * new Beacon({
  *   scope,
- *   running: { boot: { id: createBootId() }, bundle: codePushBundle({ codePush: CodePush }) },
+ *   // The route supplies this reader itself: passing one is the override.
+ *   running: { bundle: codePushBundle({ codePush: CodePush }) },
  *   routes: { update: codePushUpdates({ codePush: CodePush }) },
  * });
  * ```
  */
 export const codePushBundle =
-  ({ codePush }: CodePushOptions) =>
+  ({ codePush }: CodePushOptions): RunningReader<"bundle"> =>
   async (): Promise<RunningRelease> => {
     const running = await codePush.getUpdateMetadata(
       codePush.UpdateState.RUNNING,

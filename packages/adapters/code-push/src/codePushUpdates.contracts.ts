@@ -9,6 +9,7 @@ import type {
   OfferReference,
   PreparedReference,
   RouteHandle,
+  RunningReader,
   RunningReaders,
 } from "@priemskiyyy/beacon";
 import type AppZungDecorator from "@appzung/react-native-code-push";
@@ -54,6 +55,16 @@ export const update = codePushUpdates({ codePush: microsoft });
 export const bundle: RunningReaders["bundle"] = codePushBundle({
   codePush: microsoft,
 });
+
+export const reader: RunningReader<"bundle"> = codePushBundle({
+  codePush: microsoft,
+});
+
+export const slots: RunningReaders = {
+  bundle: reader,
+  // @ts-expect-error -- the reader of the CodePush bundle is made for the bundle subject, not the web build.
+  web: reader,
+};
 
 export const forks = [
   codePushUpdates({ codePush: revopush }),

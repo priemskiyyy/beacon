@@ -5,6 +5,7 @@ import type {
   ProviderResult,
 } from "@priemskiyyy/beacon";
 
+import { expoBundle } from "src/expoBundle";
 import type { ExpoBody } from "src/types/ExpoBody";
 import type { ExpoDownloadReceipt } from "src/types/ExpoDownloadReceipt";
 import type { ExpoNative } from "src/types/ExpoNative";
@@ -82,8 +83,11 @@ const commands = {
  * later start, so it declares that before the user agrees. The module belongs
  * to one open session at a time: a second Beacon that opens a route on it
  * fails to open it, as `DRIVER_FAILED`. `reload` restarts the JavaScript
- * runtime and guarantees no code after it. Autonomous native startup checks
- * are not observed, and no configuration is ever changed.
+ * runtime and guarantees no code after it. The route reads the running bundle
+ * too, from the same module (`expoBundle`), so the journal knows which update
+ * a reload reached with no `running.bundle`; a reader the application passes
+ * for the bundle wins. Autonomous native startup checks are not observed, and
+ * no configuration is ever changed.
  *
  * @example
  * ```ts
@@ -96,6 +100,7 @@ export const expoUpdates = ({ updates }: ExpoOptions) =>
   createReleaseDriver<ExpoNative, ExpoBody, ExpoBody, typeof commands>({
     name: "expo-updates",
     subject: "bundle",
+    running: expoBundle({ updates }),
     prepares: true,
     exclusive: updates,
     open: ({ emit }) => {

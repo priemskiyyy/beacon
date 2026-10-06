@@ -16,26 +16,30 @@ test("the running bundle is the package CodePush says runs, named by its hash", 
     running: localPackage(HASH_A, { label: "v3" }),
   });
 
-  await expect(codePushBundle({ codePush })()).resolves.toEqual({
-    identity: {
-      status: "known",
-      authority: "code-push",
-      domain: "package-hash",
-      value: HASH_A,
+  await expect(codePushBundle({ codePush })({ scope: SCOPE })).resolves.toEqual(
+    {
+      identity: {
+        status: "known",
+        authority: "code-push",
+        domain: "package-hash",
+        value: HASH_A,
+      },
+      label: "v3",
+      raw: { label: "v3", embedded: false },
     },
-    label: "v3",
-    raw: { label: "v3", embedded: false },
-  });
+  );
 });
 
 test("the bundle inside the binary has no identity: CodePush reports no package for it", async () => {
   const { codePush } = fakeCodePush();
 
-  await expect(codePushBundle({ codePush })()).resolves.toEqual({
-    identity: { status: "unknown", reason: "embedded-bundle" },
-    label: null,
-    raw: { label: null, embedded: true },
-  });
+  await expect(codePushBundle({ codePush })({ scope: SCOPE })).resolves.toEqual(
+    {
+      identity: { status: "unknown", reason: "embedded-bundle" },
+      label: null,
+      raw: { label: null, embedded: true },
+    },
+  );
 });
 
 test("a package that sits on disk while the binary's own bundle runs is not the running bundle", async () => {
@@ -43,7 +47,9 @@ test("a package that sits on disk while the binary's own bundle runs is not the 
     running: { ...localPackage(HASH_A), _isDebugOnly: true },
   });
 
-  await expect(codePushBundle({ codePush })()).resolves.toMatchObject({
+  await expect(
+    codePushBundle({ codePush })({ scope: SCOPE }),
+  ).resolves.toMatchObject({
     identity: { status: "unknown", reason: "embedded-bundle" },
     raw: { embedded: true },
   });
@@ -52,7 +58,9 @@ test("a package that sits on disk while the binary's own bundle runs is not the 
 test("a running package with no hash has no identity, and is never the text undefined", async () => {
   const { codePush } = fakeCodePush({ running: localPackage(" ") });
 
-  await expect(codePushBundle({ codePush })()).resolves.toMatchObject({
+  await expect(
+    codePushBundle({ codePush })({ scope: SCOPE }),
+  ).resolves.toMatchObject({
     identity: { status: "unknown", reason: "package-hash-missing" },
   });
 });
@@ -63,7 +71,7 @@ test("the reader asks for what runs, and never for what is pending", async () =>
   fake.setPending(localPackage(HASH_B));
 
   await expect(
-    codePushBundle({ codePush: fake.codePush })(),
+    codePushBundle({ codePush: fake.codePush })({ scope: SCOPE }),
   ).resolves.toMatchObject({
     identity: { value: HASH_A },
   });
@@ -78,7 +86,9 @@ test("the reader looks at CodePush when it is read, not when it is created", asy
 
   fake.setRunning(localPackage(HASH_B));
 
-  await expect(read()).resolves.toMatchObject({ identity: { value: HASH_B } });
+  await expect(read({ scope: SCOPE })).resolves.toMatchObject({
+    identity: { value: HASH_B },
+  });
 });
 
 test("a reader whose CodePush fails passes the failure on, and the route's running fact says it failed", async () => {
@@ -100,9 +110,9 @@ test("a reader whose CodePush fails passes the failure on, and the route's runni
 
   beacon.start();
 
-  await expect(codePushBundle({ codePush: fake.codePush })()).rejects.toThrow(
-    "no native module",
-  );
+  await expect(
+    codePushBundle({ codePush: fake.codePush })({ scope: SCOPE }),
+  ).rejects.toThrow("no native module");
   await settle();
 
   expect(beacon.running.get().bundle).toMatchObject({ state: "failed" });

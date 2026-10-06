@@ -144,6 +144,25 @@ test("a feed route whose subject has no reader cannot be built, and the error na
   );
 });
 
+// A driver route supplies its own bundle reader and needs none, so a feed route of the bundle subject is a source and a mechanism of the application's own, and the Expo reader is no fix for it.
+test("a feed route of the bundle subject asks for a reader of your own, and names no adapter's", () => {
+  const mock = createMockSource<Manifest>({ name: "manifest" });
+  const { mechanism } = createHeldMechanism({ subject: "bundle" });
+
+  const ota = targetRoute({
+    source: mock.source.select((manifest) => manifest.web),
+    mechanism,
+  });
+
+  expect(() => createRoutedBeacon({ ota }, { running: {} })).toThrow(
+    expect.objectContaining({
+      code: "INVALID_CONFIGURATION",
+      message:
+        'Route "ota" compares against the "bundle" subject, but running.bundle has no reader. Pass a reader of your own.',
+    }),
+  );
+});
+
 test("a feed route is not satisfied by a reader of another subject", () => {
   const web = createWebRoute();
 

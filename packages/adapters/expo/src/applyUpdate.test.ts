@@ -4,7 +4,6 @@ import type { ReleaseScope } from "@priemskiyyy/beacon";
 import { expect, test } from "vitest";
 
 import { applyUpdate } from "src/applyUpdate";
-import { expoBundle } from "src/expoBundle";
 import { expoUpdates } from "src/expoUpdates";
 import {
   available,
@@ -28,10 +27,6 @@ const create = () => {
 
   const beacon = new Beacon({
     scope: SCOPE,
-    running: {
-      boot: { id: "boot-1" },
-      bundle: expoBundle({ updates: fake.updates }),
-    },
     routes: { ota: expoUpdates({ updates: fake.updates }) },
     clock: createTestClock({ now: 1_000 }),
   });

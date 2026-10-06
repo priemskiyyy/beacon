@@ -1,4 +1,5 @@
 import type { ReadFlight } from "src/types/internal/ReadFlight";
+import type { ReadOptions } from "src/types/internal/ReadOptions";
 import type { ReadResult } from "src/types/internal/ReadResult";
 import type {
   ReadWaiter,
@@ -8,11 +9,6 @@ import type { Session } from "src/types/internal/Session";
 import type { SharedReadOptions } from "src/types/internal/SharedReadOptions";
 import { BeaconError } from "src/utils/BeaconError";
 import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
-
-type ReadOptions = {
-  mode: "join" | "after-current";
-  signal: AbortSignal | undefined;
-};
 
 /**
  * One question asked of one authority at a time, however many callers want the

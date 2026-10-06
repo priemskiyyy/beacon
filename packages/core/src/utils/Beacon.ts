@@ -7,6 +7,7 @@ import type { CheckReport } from "src/types/CheckReport";
 import type { CommandInput } from "src/types/internal/CommandInput";
 import type { CommandTarget } from "src/types/internal/CommandTarget";
 import type { Disruptions } from "src/types/Disruptions";
+import type { RouteEntry } from "src/types/internal/RouteEntry";
 import type { Session } from "src/types/internal/Session";
 import type { ObservableValue } from "src/types/ObservableValue";
 import type { ReleaseScope } from "src/types/ReleaseScope";
@@ -76,6 +77,7 @@ export class Beacon<
   #commands: CommandCoordinator;
   #diagnostics: Diagnostics;
   #names: Array<keyof TRoutes & string>;
+  #entries: RouteEntry[];
   #handles: {
     [TName in keyof TRoutes & string]: RouteHandle<TName, TRoutes[TName]>;
   };
@@ -270,8 +272,9 @@ export class Beacon<
     });
 
     this.#names = Object.keys(routes);
-    this.#handles = mapHandles<TRoutes>(this.#names, (name) =>
-      this.#createHandle(name),
+    this.#entries = this.#routes.getEntries();
+    this.#handles = mapHandles<TRoutes>(this.#entries, (entry) =>
+      this.#createHandle(entry),
     );
     this.status = this.#runtime.status;
     this.running = this.#running.state;
@@ -387,7 +390,9 @@ export class Beacon<
     options: CheckOptions = {},
   ): Promise<CheckReport<keyof TRoutes & string>> => {
     const [outcomes, support] = await Promise.all([
-      Promise.all(this.#names.map((name) => this.#checkRoute(name, options))),
+      Promise.all(
+        this.#entries.map((entry) => this.#checkRoute(entry, options)),
+      ),
       this.#checkSupport(options),
     ]);
 
@@ -457,16 +462,7 @@ export class Beacon<
     return session.id;
   }
 
-  #createHandle(name: string) {
-    const entry = this.#routes.getEntry(name);
-
-    if (entry === undefined) {
-      throw new BeaconError({
-        code: "INVALID_CONFIGURATION",
-        message: `The route "${name}" is not defined.`,
-      });
-    }
-
+  #createHandle(entry: RouteEntry) {
     const commands = Object.entries(getCommands(entry.definition)).flatMap(
       ([commandName, command]) => {
         if (command === undefined) {
@@ -489,7 +485,7 @@ export class Beacon<
       state: entry.record.state,
       native: entry.record.native,
       capabilities: readCapabilities(entry.definition),
-      check: (options: CheckOptions = {}) => this.#checkRoute(name, options),
+      check: (options: CheckOptions = {}) => this.#checkRoute(entry, options),
       acknowledge: () => this.#commands.acknowledge(entry),
     };
   }
@@ -512,7 +508,7 @@ export class Beacon<
   }
 
   async #checkRoute(
-    name: string,
+    entry: RouteEntry,
     options: CheckOptions,
   ): Promise<CheckOutcome> {
     const session = this.#runtime.getSession();
@@ -522,12 +518,12 @@ export class Beacon<
     }
 
     this.#diagnostics.record("check-requested", {
-      route: name,
+      route: entry.name,
       ...(options.reason === undefined ? {} : { reason: options.reason }),
     });
 
     const running = await this.#awaitRunning(
-      this.#getSubjects(name),
+      getSubjects(entry.definition),
       options.signal,
     );
 
@@ -539,7 +535,7 @@ export class Beacon<
       return { status: "superseded" };
     }
 
-    return this.#routes.check(session, name, {
+    return entry.runtime.check(session, {
       mode: options.mode ?? "join",
       signal: options.signal,
     });
@@ -564,16 +560,6 @@ export class Beacon<
     }
 
     return "ready";
-  }
-
-  #getSubjects(name: string) {
-    const entry = this.#routes.getEntry(name);
-
-    if (entry === undefined) {
-      return [];
-    }
-
-    return getSubjects(entry.definition);
   }
 
   #isCurrent(session: Session) {

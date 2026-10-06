@@ -1,3 +1,4 @@
+import type { RouteEntry } from "src/types/internal/RouteEntry";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RouteHandle } from "src/types/RouteHandle";
 
@@ -18,13 +19,13 @@ export function mapNames(
 
 // The same pair for handles, whose type depends on the route each name stands for.
 export function mapHandles<TRoutes extends Record<string, RouteDefinition>>(
-  names: Array<keyof TRoutes & string>,
-  make: (name: string) => object,
+  entries: RouteEntry[],
+  make: (entry: RouteEntry) => object,
 ): { [TName in keyof TRoutes & string]: RouteHandle<TName, TRoutes[TName]> };
 
 export function mapHandles(
-  names: string[],
-  make: (name: string) => object,
+  entries: RouteEntry[],
+  make: (entry: RouteEntry) => object,
 ): Record<string, object> {
-  return Object.fromEntries(names.map((name) => [name, make(name)]));
+  return Object.fromEntries(entries.map((entry) => [entry.name, make(entry)]));
 }

@@ -2,6 +2,7 @@ import type { BeaconClock } from "src/types/BeaconClock";
 import type { Evidence } from "src/types/Evidence";
 import type { AcceptedFeed } from "src/types/internal/AcceptedFeed";
 import type { FeedHooks } from "src/types/internal/FeedHooks";
+import type { ReadOptions } from "src/types/internal/ReadOptions";
 import type { Session } from "src/types/internal/Session";
 import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { ReleaseSource } from "src/types/ReleaseSource";
@@ -19,11 +20,6 @@ type FeedRecordOptions = {
   timeout: number;
   getScope: () => ReleaseScope;
   hooks: FeedHooks;
-};
-
-type ReadOptions = {
-  mode: "join" | "after-current";
-  signal: AbortSignal | undefined;
 };
 
 type Verdict = { accepted: AcceptedFeed; isRenewal: boolean };

@@ -85,6 +85,7 @@ export type { RouteCapabilities } from "src/types/RouteCapabilities";
 export type { RouteDefinition } from "src/types/RouteDefinition";
 export type { RouteHandle } from "src/types/RouteHandle";
 export type { RouteSnapshot } from "src/types/RouteSnapshot";
+export type { RouteSnapshotOf } from "src/types/RouteSnapshotOf";
 export type { RunningApplication } from "src/types/RunningApplication";
 export type { RunningFact } from "src/types/RunningFact";
 export type { RunningReader } from "src/types/RunningReader";

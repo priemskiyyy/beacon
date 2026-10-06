@@ -1,0 +1,55 @@
+{
+  "name": "@priemskiyyy/beacon-browser",
+  "version": "0.1.0",
+  "description": "Reloading the browser document as a Beacon update mechanism: a request to navigate, never a claim that a new build is running.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priemskiyyy/beacon.git",
+    "directory": "packages/adapters/browser"
+  },
+  "bugs": {
+    "url": "https://github.com/priemskiyyy/beacon/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint:typescript": "tsc --noEmit -p .",
+    "lint:eslint": "eslint src",
+    "test:unit": "vitest run --root ../../.. --project browser"
+  },
+  "peerDependencies": {
+    "@priemskiyyy/beacon": ">=0.1.0 <0.2"
+  },
+  "devDependencies": {
+    "@priemskiyyy/beacon": "workspace:*"
+  },
+  "keywords": [
+    "browser",
+    "reload",
+    "web",
+    "release",
+    "update",
+    "typescript",
+    "beacon",
+    "adapter"
+  ]
+}

@@ -392,6 +392,7 @@ export default tseslint.config(
     files: [
       "packages/*/src/types/Register.ts",
       "packages/*/src/register.fixture.ts",
+      "examples/*/src/beacon.ts",
     ],
     rules: {
       "@typescript-eslint/consistent-type-definitions": "off",

@@ -1,0 +1,61 @@
+name: browser-test
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "packages/**"
+      - "examples/**"
+      - ".github/actions/setup/**"
+      - ".github/workflows/browser.test.yml"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "packages/**"
+      - "examples/**"
+      - ".github/actions/setup/**"
+      - ".github/workflows/browser.test.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # The release lab and its Expo web export run in a real browser against the built packages.
+      - name: Labs in Chromium
+        run: pnpm test:browser
+
+      # Metro resolves the packages' exports for both native platforms; a device still has to run them.
+      - name: Expo native bundles
+        run: pnpm --filter example-expo build:native
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: example-results
+          path: .artifacts/example-results
+          retention-days: 7

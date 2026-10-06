@@ -21,7 +21,9 @@ export const Header: React.FunctionComponent<HeaderProps> = ({ lab }) => {
         <div className="mr-auto flex min-w-0 flex-wrap items-center gap-2">
           <IconTile icon={Broadcast} size="small" />
           <h1 className="text-lg font-semibold">Release lab</h1>
-          <Badge tone={SESSION_TONES[state]}>session {state}</Badge>
+          <Badge tone={SESSION_TONES[state]} dot>
+            session {state}
+          </Badge>
           <Badge tone="neutral">document {number}</Badge>
         </div>
         <div className="order-last w-full min-w-0 lg:order-none lg:w-auto">

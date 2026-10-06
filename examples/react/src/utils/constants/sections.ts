@@ -7,7 +7,7 @@ export const SECTIONS: Record<SectionId, Section> = {
     title: "What this document knows, and no more",
     label: "Status",
   },
-  update: { number: 2, title: "The update offer", label: "Update" },
+  update: { number: 2, title: "The update offer", label: "Offer" },
   simulation: { number: 3, title: "Script the world", label: "Simulation" },
   timeline: { number: 4, title: "Watch it happen", label: "Timeline" },
 };

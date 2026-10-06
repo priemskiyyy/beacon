@@ -21,6 +21,7 @@
     "test:limits": "node scripts/verify-limits.mjs",
     "test:size": "node scripts/measure-size.mjs",
     "test:mutation": "node scripts/mutate.mjs",
+    "test:browser": "pnpm build && playwright test -c examples/playwright.config.ts",
     "build:docs": "vitepress build docs",
     "dev:docs": "vitepress dev docs",
     "verify:docs": "node scripts/verify-docs.mjs",

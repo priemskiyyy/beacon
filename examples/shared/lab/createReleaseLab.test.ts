@@ -336,6 +336,7 @@ test("an expired answer stays observed as expired, and a command with its offer 
   expect(beacon().support.get()).toMatchObject({
     status: "unknown",
     reason: "expired",
+    evaluation: { status: "supported" },
   });
   await expect(web().reload({ offer: shown })).resolves.toEqual({
     status: "stale",

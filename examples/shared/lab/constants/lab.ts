@@ -42,3 +42,6 @@ export const SCOPE: ReleaseScope = {
   platform: "web",
   distribution: "public-web",
 };
+
+/** Milliseconds the release service takes to answer in the apps, as a network does. */
+export const REQUEST_LATENCY = 400;

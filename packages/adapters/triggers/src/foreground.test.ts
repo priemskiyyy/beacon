@@ -15,6 +15,7 @@ const create = (currentState: string | null = "active", minAway?: number) => {
   context.mock.answer({ document: deploy("update-2") });
 
   const stop = checkOn(context.beacon, {
+    startup: false,
     triggers: [
       foreground({
         appState: app.appState,
@@ -133,6 +134,7 @@ test("TRIG-22 a skipped return still ends the absence, so an interval waits its 
 
   mock.answer({ document: deploy("update-2") });
   checkOn(beacon, {
+    startup: false,
     triggers: [
       foreground({ appState: app.appState, minAway: 3_600_000 }),
       interval({ every: 60_000 }),

@@ -13,6 +13,7 @@ const create = (isConnected: boolean | null) => {
   context.mock.answer({ document: deploy("update-2") });
 
   checkOn(context.beacon, {
+    startup: false,
     triggers: [reconnect({ netInfo: network.netInfo })],
     minInterval: 1,
   });

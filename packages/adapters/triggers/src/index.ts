@@ -5,7 +5,6 @@ export { invalidation } from "src/invalidation";
 export { pulseForeground } from "src/pulseForeground";
 export { reachReconnect } from "src/reachReconnect";
 export { reconnect } from "src/reconnect";
-export { startup } from "src/startup";
 
 export type { AppStateLike } from "src/types/AppStateLike";
 export type { BeaconTrigger } from "src/types/BeaconTrigger";

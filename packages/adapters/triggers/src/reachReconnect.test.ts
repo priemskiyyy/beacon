@@ -13,6 +13,7 @@ const create = (status: "met" | "unmet" | "unknown") => {
   context.mock.answer({ document: deploy("update-2") });
 
   const stop = checkOn(context.beacon, {
+    startup: false,
     triggers: [reachReconnect({ condition: connected.condition })],
     minInterval: 1,
   });

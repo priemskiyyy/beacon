@@ -18,7 +18,6 @@ import { foreground } from "src/foreground";
 import { interval } from "src/interval";
 import { invalidation } from "src/invalidation";
 import { reconnect } from "src/reconnect";
-import { startup } from "src/startup";
 import type { BeaconTrigger } from "src/types/BeaconTrigger";
 
 afterEach(() => {
@@ -38,7 +37,6 @@ const create = () => {
     network,
     channel,
     triggers: [
-      startup(),
       foreground({ appState: app.appState }),
       reconnect({ netInfo: network.netInfo }),
       invalidation({ source: channel.source }),
@@ -162,6 +160,28 @@ test("TRIG-04 the triggers follow the session: its end takes them back, and the 
   expect(reasons()).toEqual(["startup", "startup"]);
 
   stop();
+});
+
+test("TRIG-04 a session that opens checks at startup whatever its triggers are, and startup false leaves the first check to them", async () => {
+  const first = createTestBeacon();
+  const second = createTestBeacon();
+
+  first.mock.answer({ document: deploy("update-2") });
+  second.mock.answer({ document: deploy("update-2") });
+
+  const stop = checkOn(first.beacon, { triggers: [] });
+  const stopQuiet = checkOn(second.beacon, { triggers: [], startup: false });
+
+  first.beacon.start();
+  second.beacon.start();
+  await settle();
+
+  expect(first.reasons()).toEqual(["startup"]);
+  expect(second.reasons()).toEqual([]);
+  expect(second.mock.stats().reads).toBe(0);
+
+  stop();
+  stopQuiet();
 });
 
 test("TRIG-05 a new scope starts the triggers again with nothing carried over: no listener leaks, startup checks, and the wait after a failure is forgotten", async () => {
@@ -297,7 +317,7 @@ test("TRIG-10 a reconnect during a read that began before it gets a read that be
   const { beacon, mock, clock, network } = create();
 
   checkOn(beacon, {
-    triggers: [startup(), reconnect({ netInfo: network.netInfo })],
+    triggers: [reconnect({ netInfo: network.netInfo })],
   });
   beacon.start();
   await settle();
@@ -329,7 +349,7 @@ test("TRIG-11 signals inside the minimum interval become one later start", async
 
   mock.answer({ document: deploy("update-2") });
   checkOn(beacon, {
-    triggers: [startup(), foreground({ appState: app.appState })],
+    triggers: [foreground({ appState: app.appState })],
   });
   beacon.start();
   await settle();
@@ -359,7 +379,7 @@ test("TRIG-12 a failed check backs off, retries by itself as often as attempts a
   const { beacon, mock, clock, app, reasons } = create();
 
   checkOn(beacon, {
-    triggers: [startup(), foreground({ appState: app.appState })],
+    triggers: [foreground({ appState: app.appState })],
     minInterval: 1_000,
     backoff: { first: 10_000, max: 40_000, jitter: 0, attempts: 1 },
   });
@@ -419,7 +439,7 @@ test("TRIG-13 a wait after a failure doubles with each one, with the default jit
   const { beacon, mock, clock } = createTestBeacon();
 
   checkOn(beacon, {
-    triggers: [startup()],
+    triggers: [],
     minInterval: 1,
     backoff: { first: 10_000, max: 100_000 },
     random: () => 0.5,
@@ -478,7 +498,7 @@ test("TRIG-13 a wait never goes past its maximum, the jitter included", async ()
   const { beacon, mock, clock } = createTestBeacon();
 
   checkOn(beacon, {
-    triggers: [startup()],
+    triggers: [],
     minInterval: 1,
     backoff: { first: 10_000, max: 25_000, attempts: 4 },
     random: () => 0.5,
@@ -526,7 +546,6 @@ test("TRIG-14 a reconnect does not wait out a backoff, and a return does, and th
 
   checkOn(beacon, {
     triggers: [
-      startup(),
       foreground({ appState: app.appState }),
       reconnect({ netInfo: network.netInfo }),
     ],
@@ -561,7 +580,7 @@ test("TRIG-15 a read that fails after checkOn was stopped costs no wait and no r
   const { beacon, mock, clock } = createTestBeacon();
 
   const stop = checkOn(beacon, {
-    triggers: [startup()],
+    triggers: [],
     backoff: { first: 10_000, max: 10_000 },
   });
 
@@ -579,7 +598,7 @@ test("TRIG-15 a read that fails after checkOn was stopped costs no wait and no r
   expect(mock.stats().reads).toBe(1);
 
   checkOn(beacon, {
-    triggers: [startup()],
+    triggers: [],
     backoff: { first: 10_000, max: 10_000 },
   });
   await settle();
@@ -603,7 +622,7 @@ test("TRIG-15 a wait that was armed before checkOn was stopped goes with it", as
   const { beacon, mock, clock } = createTestBeacon();
 
   const stop = checkOn(beacon, {
-    triggers: [startup()],
+    triggers: [],
     backoff: { first: 10_000, max: 10_000 },
   });
 
@@ -633,7 +652,6 @@ test("TRIG-16 while every route holds fresh evidence that can expire, a return i
   });
   checkOn(beacon, {
     triggers: [
-      startup(),
       foreground({ appState: app.appState }),
       reconnect({ netInfo: network.netInfo }),
       invalidation({ source: channel.source }),
@@ -672,7 +690,7 @@ test("TRIG-16 evidence that never expires is not fresh enough to skip a return",
 
   mock.answer({ document: deploy("update-2") });
   checkOn(beacon, {
-    triggers: [startup(), foreground({ appState: app.appState })],
+    triggers: [foreground({ appState: app.appState })],
     whileFresh: "skip",
     minInterval: 1,
   });
@@ -713,7 +731,7 @@ test("TRIG-18 a check starts when the authority's own expiresAt passes, without 
     document: deploy("update-2"),
     expiresAt: clock.now() + 600_000,
   });
-  checkOn(beacon, { triggers: [startup()], onExpiry: true, minInterval: 1 });
+  checkOn(beacon, { triggers: [], onExpiry: true, minInterval: 1 });
   beacon.start();
   await settle();
   clock.advance(1);
@@ -741,7 +759,7 @@ test("TRIG-18 an expiry that nothing renewed does not start a check for every ch
     document: deploy("update-2"),
     expiresAt: clock.now() + 600_000,
   });
-  checkOn(beacon, { triggers: [startup()], onExpiry: true, minInterval: 1 });
+  checkOn(beacon, { triggers: [], onExpiry: true, minInterval: 1 });
   beacon.start();
   await settle();
   mock.hold();
@@ -775,7 +793,7 @@ test("TRIG-18 stopping takes the expiry listener back with the rest", async () =
   });
 
   const stop = checkOn(beacon, {
-    triggers: [startup()],
+    triggers: [],
     onExpiry: true,
     minInterval: 1,
   });
@@ -834,6 +852,7 @@ test("TRIG-30 a clock that cannot arm a timer costs the wait it would have made,
 
   mock.answer({ document: deploy("update-2") });
   checkOn(beacon, {
+    startup: false,
     triggers: [
       foreground({ appState: app.appState }),
       interval({ every: 60_000 }),

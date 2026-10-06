@@ -11,6 +11,5 @@ test("the package root exports exactly its supported runtime names", () => {
     "pulseForeground",
     "reachReconnect",
     "reconnect",
-    "startup",
   ]);
 });

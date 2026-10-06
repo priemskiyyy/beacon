@@ -41,6 +41,7 @@ export const openGate = <TRoutes extends Record<string, RouteDefinition>>(
     whileFresh = "check",
     onExpiry = false,
     random = Math.random,
+    startup = true,
   } = options;
 
   const { clock } = beacon;
@@ -228,6 +229,11 @@ export const openGate = <TRoutes extends Record<string, RouteDefinition>>(
       };
     },
   };
+
+  // The first check of a session is the gate's, so that no trigger has to be listed for it and none can be forgotten.
+  if (startup) {
+    signal("startup");
+  }
 
   for (const trigger of triggers) {
     try {

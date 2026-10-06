@@ -2,21 +2,24 @@ import type { BeaconTrigger } from "src/types/BeaconTrigger";
 
 /**
  * Options for `checkOn()`: which moments check, and how the gate behind them
- * treats a burst, a failure and a fresh answer. Durations are milliseconds.
+ * treats a burst and a failure. The first check of each session is the gate's:
+ * `startup` is on unless you turn it off. `minInterval` and `backoff` are the
+ * ones most applications set; the rest is advanced, and its defaults are the
+ * right ones until a real authority says otherwise. Durations are
+ * milliseconds.
  *
  * @example
  * ```ts
  * const options: CheckOnOptions = {
- *   triggers: [startup(), interval({ every: 30 * 60_000, jitter: 0.2 })],
- *   minInterval: 10_000,
+ *   triggers: [interval({ every: 30 * 60_000, jitter: 0.2 })],
  *   backoff: { first: 10_000, max: 15 * 60_000 },
- *   whileFresh: "skip",
- *   onExpiry: true,
  * };
  * ```
  */
 export type CheckOnOptions = {
   triggers: BeaconTrigger[];
+  /** Checks once each time a session opens, including the one `replaceScope` starts, `true` by default. `false` leaves the first check to the triggers. */
+  startup?: boolean;
   /** The least time between two starts of a check, 5,000 by default. Signals inside it become one later start. */
   minInterval?: number;
   /**
@@ -32,14 +35,14 @@ export type CheckOnOptions = {
         max: number;
         /** The share of the wait added at random, from 0 to 1, 0.2 by default. */
         jitter?: number;
-        /** The retries the gate starts by itself before it waits for the next signal, 3 by default. */
+        /** Advanced: the retries the gate starts by itself before it waits for the next signal, 3 by default. */
         attempts?: number;
       }
     | false;
-  /** `skip` drops a foreground or interval signal while every route holds fresh evidence that can expire. `check`, the default, never drops one. */
+  /** Advanced: `skip` drops a foreground or interval signal while every route holds fresh evidence that can expire. `check`, the default, never drops one. */
   whileFresh?: "check" | "skip";
-  /** Checks when the authority's own `expiresAt` passes, heard through the route state. It arms no timer of its own. */
+  /** Advanced: checks when the authority's own `expiresAt` passes, heard through the route state. It arms no timer of its own. */
   onExpiry?: boolean;
-  /** The random source of the jitter, `Math.random` by default. */
+  /** Advanced: the random source of the jitter, `Math.random` by default. */
   random?: () => number;
 };

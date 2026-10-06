@@ -17,7 +17,6 @@ import { invalidation } from "src/invalidation";
 import { pulseForeground } from "src/pulseForeground";
 import { reachReconnect } from "src/reachReconnect";
 import { reconnect } from "src/reconnect";
-import { startup } from "src/startup";
 import type { AppStateLike } from "src/types/AppStateLike";
 import type { BeaconTrigger } from "src/types/BeaconTrigger";
 import type { ConditionLike } from "src/types/ConditionLike";
@@ -54,11 +53,11 @@ expectTypeOf(beacon.running).toExtend<Subscribable>();
 
 export const stop = checkOn(beacon, {
   triggers: [
-    startup(),
     foreground({ appState: AppState, minAway: 30_000 }),
     reconnect({ netInfo: NetInfo }),
     interval({ every: 30 * 60_000, jitter: 0.2 }),
   ],
+  startup: true,
   minInterval: 10_000,
   backoff: { first: 10_000, max: 15 * 60_000, jitter: 0.2, attempts: 3 },
   whileFresh: "skip",
@@ -125,3 +124,9 @@ export const custom: BeaconTrigger = (target) => {
 
   return () => {};
 };
+
+// The first check of a session needs no trigger, and it is an option that is on or off.
+export const quiet = checkOn(beacon, { triggers: [], startup: false });
+
+// @ts-expect-error -- the startup check is a boolean, not a trigger to list.
+checkOn(beacon, { triggers: [], startup: foreground({ appState: AppState }) });

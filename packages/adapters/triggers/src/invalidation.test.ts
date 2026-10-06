@@ -14,6 +14,7 @@ test("TRIG-29 a push checks once, for the invalidation, and what the authority s
   mock.answer({ document: deploy("update-1") });
 
   const stop = checkOn(beacon, {
+    startup: false,
     triggers: [invalidation({ source: channel.source })],
   });
 

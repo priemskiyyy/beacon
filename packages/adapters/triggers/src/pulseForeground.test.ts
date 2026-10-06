@@ -16,6 +16,7 @@ test("TRIG-27 a return after less than minAway is skipped, an unknown absence is
   mock.answer({ document: deploy("update-2") });
 
   const stop = checkOn(beacon, {
+    startup: false,
     triggers: [pulseForeground({ source: pulse.source, minAway: 30_000 })],
     minInterval: 1,
   });
@@ -51,6 +52,7 @@ test("TRIG-27 the interval pauses while the source says the app is away, and wai
 
   mock.answer({ document: deploy("update-2") });
   checkOn(beacon, {
+    startup: false,
     triggers: [
       pulseForeground({ source: pulse.source, minAway: 3_600_000 }),
       interval({ every: 60_000 }),
@@ -98,6 +100,7 @@ test("TRIG-27 the real Pulse over its own mock adapter says how long the app was
   pulse.start();
 
   const stop = checkOn(beacon, {
+    startup: false,
     triggers: [pulseForeground({ source: pulse, minAway: 30_000 })],
     minInterval: 1,
   });

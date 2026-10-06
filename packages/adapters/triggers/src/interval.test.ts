@@ -6,13 +6,12 @@ import { createTestBeacon, deploy } from "src/checkOn.fixture";
 import { fakeChannel } from "src/fakeSources.fixture";
 import { interval } from "src/interval";
 import { invalidation } from "src/invalidation";
-import { startup } from "src/startup";
 
 test("TRIG-24 the interval checks every delay, arms one timer, and subscribes to nothing", async () => {
   const { beacon, mock, clock, reasons } = createTestBeacon();
 
   mock.answer({ document: deploy("update-2") });
-  checkOn(beacon, { triggers: [interval({ every: 60_000 })] });
+  checkOn(beacon, { startup: false, triggers: [interval({ every: 60_000 })] });
   beacon.start();
   await settle();
 
@@ -40,6 +39,7 @@ test("TRIG-24 the delay is measured from the last check that settled, whoever st
 
   mock.answer({ document: deploy("update-2") });
   checkOn(beacon, {
+    startup: false,
     triggers: [
       invalidation({ source: channel.source }),
       interval({ every: 60_000 }),
@@ -68,6 +68,7 @@ test("TRIG-25 the jitter adds up to its share of the delay at random", async () 
 
   mock.answer({ document: deploy("update-2") });
   checkOn(beacon, {
+    startup: false,
     triggers: [interval({ every: 60_000, jitter: 0.5 })],
     random: () => 0.5,
   });
@@ -91,7 +92,7 @@ test("TRIG-26 a tick the gate drops as fresh does not end the cadence", async ()
     expiresAt: clock.now() + 590_000,
   });
   checkOn(beacon, {
-    triggers: [startup(), interval({ every: 60_000 })],
+    triggers: [interval({ every: 60_000 })],
     whileFresh: "skip",
   });
   beacon.start();

@@ -82,6 +82,7 @@ const PREPARED: RouteState = {
 const createRecord = (
   evaluate: () => SupportVerdict,
   getRoute: () => RouteState | undefined = () => undefined,
+  runsWithoutOffer: () => boolean = () => false,
 ) => {
   const calls = { evaluations: 0 };
   const failures: BeaconError[] = [];
@@ -104,6 +105,7 @@ const createRecord = (
     policy,
     listeners: new Listeners(() => {}),
     getRoute,
+    runsWithoutOffer,
     onFailure: (error) => failures.push(error),
     now: () => 0,
   });
@@ -207,6 +209,37 @@ test("a remediation is usable when its route has an offer or a prepared target n
   expect(usable()).toEqual([true]);
 
   route.state = NOTHING;
+  update(accepted);
+  expect(usable()).toEqual([false]);
+  expect(calls.evaluations).toBe(1);
+});
+
+test("a remediation is usable when its route can act with no offer at all, such as a store page, for as long as it can", () => {
+  const route = { open: false };
+
+  const { calls, record, update } = createRecord(
+    () => ({
+      status: "unsupported",
+      reasons: [],
+      remediation: [{ route: "binary", level: "required" }],
+    }),
+    () => NOTHING,
+    () => route.open,
+  );
+
+  const accepted = createAccepted();
+
+  const usable = () =>
+    record.state.get().evaluation?.remediation.map((entry) => entry.usable);
+
+  update(accepted);
+  expect(usable()).toEqual([false]);
+
+  route.open = true;
+  update(accepted);
+  expect(usable()).toEqual([true]);
+
+  route.open = false;
   update(accepted);
   expect(usable()).toEqual([false]);
   expect(calls.evaluations).toBe(1);

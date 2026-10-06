@@ -1,6 +1,15 @@
-import { Beacon } from "@priemskiyyy/beacon";
+import {
+  ANDROID_VERSION_CODE_DOMAIN,
+  Beacon,
+  IOS_BUILD_DOMAIN,
+  minimumBuild,
+} from "@priemskiyyy/beacon";
 import type { OfferReference, RunningRelease } from "@priemskiyyy/beacon";
-import { createTestClock } from "@priemskiyyy/beacon/mock";
+import {
+  createMockSource,
+  createTestClock,
+  settle,
+} from "@priemskiyyy/beacon/mock";
 import {
   APP_STORE_DISTRIBUTION,
   appStore,
@@ -85,6 +94,66 @@ test("a forced upgrade is one call on either platform: the route is named the sa
       receipt: { kind: "store-handoff-requested" },
     });
     expect(opener.opened).toEqual([url]);
+  }
+});
+
+// Neither store route has a download, so what makes it usable is that its page can be opened, whichever store it is.
+test("a forced upgrade that names the store route finds it usable on either platform, since a store page needs no offer", async () => {
+  const domains: Array<{ platform: Platform; domain: string }> = [
+    { platform: "ios", domain: IOS_BUILD_DOMAIN },
+    { platform: "android", domain: ANDROID_VERSION_CODE_DOMAIN },
+  ];
+
+  for (const { platform, domain } of domains) {
+    const config = createMockSource<{ minimumBuild: number }>({
+      name: "config",
+    });
+
+    const beacon = new Beacon({
+      scope: {
+        application: "com.example.notes",
+        environment: "production",
+        platform,
+        distribution:
+          platform === "ios"
+            ? APP_STORE_DISTRIBUTION
+            : GOOGLE_PLAY_DISTRIBUTION,
+      },
+      running: {
+        boot: { id: "boot-1" },
+        native: (): RunningRelease => ({
+          identity: {
+            status: "known",
+            authority: "com.example.notes",
+            domain,
+            value: "90",
+          },
+          label: null,
+          raw: {},
+        }),
+      },
+      routes: { store: readStoreRoute(platform, createOpener()) },
+      policy: minimumBuild({
+        source: config.source.select((document) => document.minimumBuild),
+        remediation: "store",
+      }),
+      clock: createTestClock({ now: 1_000 }),
+    });
+
+    beacon.start();
+
+    const checking = beacon.check();
+
+    await settle();
+    config.resolve({ document: { minimumBuild: 100 } });
+    await checking;
+
+    expect(beacon.support.get()).toMatchObject({
+      status: "unsupported",
+      evaluation: {
+        remediation: [{ route: "store", level: "required", usable: true }],
+      },
+    });
   }
 });
 

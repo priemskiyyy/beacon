@@ -57,6 +57,7 @@ export class RouteRegistry {
       policy: options.policy,
       listeners: options.createListeners(),
       getRoute: (name) => this.#entries.get(name)?.record.state.get(),
+      runsWithoutOffer: (name) => this.#runsWithoutOffer(name),
       onFailure: (error, cause) =>
         options.record("policy-failed", { reason: error.code, cause }),
       now: () => options.clock.now(),
@@ -188,6 +189,19 @@ export class RouteRegistry {
     }
 
     return assertUnreachable(definition);
+  }
+
+  // Open, with a command that takes an offer only when there is one: the provider may still refuse it, as a store handoff does a build of another distribution, and its outcome says why.
+  #runsWithoutOffer(name: string) {
+    const entry = this.#entries.get(name);
+
+    if (entry === undefined || entry.record.native.get() === null) {
+      return false;
+    }
+
+    return Object.values(entry.commands).some(
+      ({ reference }) => reference === "optional-offer",
+    );
   }
 
   // The support policy reads routes to say which remediation is usable, so it follows every change of one.

@@ -1357,6 +1357,30 @@ const MUTANTS = [
       "a package downloaded again after it was installed, which deletes the folder CodePush runs from",
   },
   {
+    file: `${core}/internal/policy/PolicyRecord.ts`,
+    find: "this.#options.runsWithoutOffer(route)",
+    replace: "false",
+    project: "core",
+    describes:
+      "a store route read as not usable for a forced upgrade, because it has no offer to download",
+  },
+  {
+    file: `${core}/internal/routes/RouteRegistry.ts`,
+    find: 'reference === "optional-offer"',
+    replace: 'reference === "none"',
+    project: "core",
+    describes:
+      "a route whose command needs an offer read as one that can act without",
+  },
+  {
+    file: `${core}/internal/routes/RouteRegistry.ts`,
+    find: "entry.record.native.get() === null",
+    replace: "false",
+    project: "core",
+    describes:
+      "a store route that never opened read as usable for a forced upgrade",
+  },
+  {
     file: `${core}/internal/running/describeMissingRunning.ts`,
     find: 'if (state === "failed") {',
     replace: "if (false) {",

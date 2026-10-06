@@ -122,7 +122,7 @@ if (status === "unsupported" && evaluation !== null) {
 | `evaluation` | the last evaluation: status, reasons, remediation, the running revision it was reached under, and its evidence         |
 | `error`      | the failure of the latest evaluation, kept beside the last valid one, or of the last read when it left support unknown |
 
-Each remediation in an evaluation adds `usable`: its route has an offer or a prepared target now. A route with nothing usable is honest information, not an error.
+Each remediation in an evaluation adds `usable`: its route has an offer or a prepared target now, or it is open and has a command that takes an offer only when there is one, such as `openStore` of `appStore()` and `playStore()`, which has nothing to download and is usable as soon as the session opens. Usable says there is something to run, and the provider may still refuse it: `openStore` is `unsupported` with `other-distribution` for a build outside its store, and its outcome says so. A route with nothing usable is honest information, not an error.
 
 ### When support is unknown
 

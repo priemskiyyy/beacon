@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import { createMockSource } from "src/mock/createMockSource";
+import type { NoneDecision } from "src/types/NoneDecision";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RunningRelease } from "src/types/RunningRelease";
 import type { SupportVerdict } from "src/types/SupportVerdict";
@@ -12,8 +13,10 @@ import {
 } from "src/utils/Beacon.fixture";
 import { DEFAULT_RUNNING_TIMEOUT } from "src/utils/constants/defaults";
 import { createReleaseSource } from "src/utils/createReleaseSource";
+import { createUpdateMechanism } from "src/utils/createUpdateMechanism";
 import { createDeferred } from "src/utils/internal/common/createDeferred";
 import { supportPolicy } from "src/utils/supportPolicy";
+import { targetRoute } from "src/utils/targetRoute";
 import {
   answer,
   buildDocument,
@@ -23,7 +26,7 @@ import {
   createPolicyRoutes,
   evaluateSupport,
 } from "src/utils/policy.fixture";
-import type { PolicyManifest } from "src/utils/policy.fixture";
+import type { PolicyManifest, Support } from "src/utils/policy.fixture";
 
 const checkWith = async (
   context: ReturnType<typeof createPolicyBeacon>,
@@ -446,6 +449,85 @@ test("a required route that has an offer is a usable remediation", async () => {
 
   expect(context.beacon.support.get().evaluation?.remediation).toEqual([
     { route: "binary", level: "required", usable: true },
+  ]);
+});
+
+// A store route offers nothing to download: its one command opens a page, with an offer or without one.
+const createStoreBeacon = () => {
+  const mock = createMockSource<{ store: NoneDecision; support: Support }>({
+    name: "manifest",
+  });
+
+  const store = targetRoute({
+    source: mock.source.select((manifest) => manifest.store),
+    mechanism: createUpdateMechanism({
+      name: "store-handoff",
+      subject: "native",
+      open: () => ({ native: {} }),
+      commands: {
+        openStore: {
+          reference: "optional-offer",
+          impacts: ["external-handoff"],
+          binding: "store-destination",
+          run: async () => ({
+            status: "accepted",
+            receipt: { kind: "store-handoff-requested" },
+          }),
+        },
+      },
+    }),
+  });
+
+  const { beacon } = createRoutedBeacon(
+    { store },
+    {
+      running: {
+        boot: { id: "boot-1" },
+        native: () => buildNativeRelease(90),
+      },
+      policy: supportPolicy({
+        source: mock.source.select((manifest) => manifest.support),
+        evaluate: (): SupportVerdict<"store"> => ({
+          status: "unsupported",
+          reasons: [{ code: "native-build-too-old", subject: "native" }],
+          remediation: [{ route: "store", level: "required" }],
+        }),
+      }),
+    },
+  );
+
+  return { beacon, mock };
+};
+
+test("POL-14 a store route, which has no offer to give, is a usable remediation while its provider is open", async () => {
+  const { beacon, mock } = createStoreBeacon();
+
+  beacon.start();
+
+  const checking = beacon.check();
+
+  await settle();
+  mock.resolve({
+    document: {
+      store: { kind: "none", reason: "no-release" },
+      support: { minimumBuild: 108, deprecatedBelow: 100 },
+    },
+    revision: { kind: "opaque", value: "1" },
+    expiresAt: 601_000,
+  });
+  await checking;
+
+  expect(beacon.route("store").state.get().observation).toMatchObject({
+    status: "none",
+  });
+  expect(beacon.support.get().evaluation?.remediation).toEqual([
+    { route: "store", level: "required", usable: true },
+  ]);
+
+  beacon.stop();
+
+  expect(beacon.support.get().evaluation?.remediation).toEqual([
+    { route: "store", level: "required", usable: false },
   ]);
 });
 

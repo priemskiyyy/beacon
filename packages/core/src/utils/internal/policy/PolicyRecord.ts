@@ -303,13 +303,14 @@ export class PolicyRecord {
     });
   }
 
-  // A route is usable when it has an offer to act on or a prepared target to finish.
+  // A route is usable when it has an offer to act on or a prepared target to finish, or can act with none, as a store page does.
   #isUsable(route: string) {
     const state = this.#options.getRoute(route);
 
     return (
       state?.observation.status === "available" ||
-      state?.prepared.status === "ready"
+      state?.prepared.status === "ready" ||
+      this.#options.runsWithoutOffer(route)
     );
   }
 }

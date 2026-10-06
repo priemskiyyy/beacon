@@ -62,7 +62,7 @@ test("creating the route and the beacon call the SDK not at all", () => {
   expect(calls).toEqual({ checks: 0, fetches: 0, reloads: 0 });
 });
 
-test("EXPO-10 a check reports an available update as an offer, and downloads nothing", async () => {
+test("a check reports an available update as an offer, and downloads nothing", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -77,7 +77,7 @@ test("EXPO-10 a check reports an available update as an offer, and downloads not
   expect(context.ota.state.get().prepared).toEqual({ status: "unknown" });
 });
 
-test("EXPO-11 a rollback directive is an actionable offer, not no update", async () => {
+test("a rollback directive is an actionable offer, not no update", async () => {
   const context = create();
 
   context.willCheck(rollbackCheck());
@@ -87,7 +87,7 @@ test("EXPO-11 a rollback directive is an actionable offer, not no update", async
   });
 });
 
-test("EXPO-12 a valid check with nothing to offer is no offer with the SDK's reason", async () => {
+test("a valid check with nothing to offer is no offer with the SDK's reason", async () => {
   const context = create();
 
   context.willCheck(notAvailable("noUpdateAvailableOnServer"));
@@ -100,7 +100,7 @@ test("EXPO-12 a valid check with nothing to offer is no offer with the SDK's rea
   });
 });
 
-test("EXPO-13 a rejected check fails the check and keeps what was observed", async () => {
+test("EXPO-04 a rejected check fails the check and keeps what was observed", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -119,7 +119,7 @@ test("EXPO-13 a rejected check fails the check and keeps what was observed", asy
   });
 });
 
-test("EXPO-14 disabled updates are an environment that cannot check, never no update", async () => {
+test("disabled updates are an environment that cannot check, never no update", async () => {
   const context = create({ isEnabled: false, updateId: null });
 
   context.beacon.start();
@@ -132,7 +132,7 @@ test("EXPO-14 disabled updates are an environment that cannot check, never no up
   expect(context.calls.checks).toBe(0);
 });
 
-test("EXPO-15 downloading prepares the update the provider chose, and says it is the one offered", async () => {
+test("EXPO-05 downloading prepares the update the provider chose, and says it is the one offered", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -156,7 +156,7 @@ test("EXPO-15 downloading prepares the update the provider chose, and says it is
   expect(context.ota.state.get().operation).toEqual({ state: "idle" });
 });
 
-test("EXPO-16 a different update than the one offered is reported as different, with a prepared reference of its own", async () => {
+test("EXPO-08 a different update than the one offered is reported as different, with a prepared reference of its own", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -179,7 +179,7 @@ test("EXPO-16 a different update than the one offered is reported as different, 
   });
 });
 
-test("EXPO-17 a valid download that is not new prepares nothing and leaves what was known", async () => {
+test("EXPO-07 a valid download that is not new prepares nothing and leaves what was known", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -196,7 +196,7 @@ test("EXPO-17 a valid download that is not new prepares nothing and leaves what 
   expect(context.ota.state.get().prepared).toEqual({ status: "unknown" });
 });
 
-test("EXPO-18 a rollback download is prepared as a rollback", async () => {
+test("EXPO-06 a rollback download is prepared as a rollback", async () => {
   const context = create();
 
   context.willCheck(rollbackCheck());
@@ -215,7 +215,7 @@ test("EXPO-18 a rollback download is prepared as a rollback", async () => {
   });
 });
 
-test("EXPO-19 a download that fails is a failed command, and prepares nothing", async () => {
+test("a download that fails is a failed command, and prepares nothing", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -232,7 +232,7 @@ test("EXPO-19 a download that fails is a failed command, and prepares nothing", 
   expect(context.ota.state.get().prepared).toEqual({ status: "unknown" });
 });
 
-test("EXPO-20 a downloaded update survives a check that fails", async () => {
+test("EXPO-10 a downloaded update survives a check that fails", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -250,7 +250,7 @@ test("EXPO-20 a downloaded update survives a check that fails", async () => {
   expect(context.ota.state.get().prepared).toBe(prepared);
 });
 
-test("EXPO-21 downloading may activate on the next start, which the route declares before the user agrees", () => {
+test("downloading may activate on the next start, which the route declares before the user agrees", () => {
   const { ota } = create();
 
   expect(ota.capabilities.download).toEqual({
@@ -265,7 +265,7 @@ test("EXPO-21 downloading may activate on the next start, which the route declar
   });
 });
 
-test("EXPO-22 a reload restarts the runtime, and the route is unresolved until the application acknowledges", async () => {
+test("EXPO-18 a reload restarts the runtime, and the route is unresolved until the application acknowledges", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -294,7 +294,7 @@ test("EXPO-22 a reload restarts the runtime, and the route is unresolved until t
   });
 });
 
-test("EXPO-23 a reload the SDK rejects is a failed command", async () => {
+test("a reload the SDK rejects is a failed command", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -319,7 +319,7 @@ test("EXPO-23 a reload the SDK rejects is a failed command", async () => {
   expect(context.ota.state.get().operation).toEqual({ state: "idle" });
 });
 
-test("EXPO-24 a command in an environment with updates disabled is unsupported", async () => {
+test("a command in an environment with updates disabled is unsupported", async () => {
   const context = create();
 
   context.willCheck(available(UPDATE_A));
@@ -335,7 +335,7 @@ test("EXPO-24 a command in an environment with updates disabled is unsupported",
   expect(context.calls.fetches).toBe(0);
 });
 
-test("EXPO-25 the running bundle is read from the constants, and never written by the route", async () => {
+test("the running bundle is read from the constants, and never written by the route", async () => {
   const context = create();
 
   context.beacon.start();
@@ -347,7 +347,7 @@ test("EXPO-25 the running bundle is read from the constants, and never written b
   });
 });
 
-test("EXPO-26 the native handle is the injected module while a session runs", () => {
+test("the native handle is the injected module while a session runs", () => {
   const context = create();
 
   expect(context.ota.native.get()).toBeNull();

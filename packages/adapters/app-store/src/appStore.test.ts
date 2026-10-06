@@ -63,7 +63,7 @@ const create = (running: string | null = "3.2.0") => {
   return { beacon, store, link, binary: beacon.route("binary") };
 };
 
-test("STORE-21 a newer marketing version in the store is an offer, whose metadata is advisory", async () => {
+test("a newer marketing version in the store is an offer, whose metadata is advisory", async () => {
   const { beacon, binary } = create("3.2.0");
 
   beacon.start();
@@ -76,7 +76,7 @@ test("STORE-21 a newer marketing version in the store is an offer, whose metadat
   });
 });
 
-test("STORE-22 the same marketing version is not an offer", async () => {
+test("the same marketing version is not an offer", async () => {
   const { beacon, binary } = create("3.3.0");
 
   beacon.start();
@@ -85,7 +85,7 @@ test("STORE-22 the same marketing version is not an offer", async () => {
   expect(binary.state.get().observation).toMatchObject({ status: "none" });
 });
 
-test("STORE-23 an older marketing version in the store is not an offer", async () => {
+test("an older marketing version in the store is not an offer", async () => {
   const { beacon, binary } = create("3.4.0");
 
   beacon.start();
@@ -97,7 +97,7 @@ test("STORE-23 an older marketing version in the store is not an offer", async (
   });
 });
 
-test("STORE-24 without the running marketing version nothing claims a newer one", async () => {
+test("STORE-04 without the running marketing version nothing claims a newer one", async () => {
   const { beacon, binary } = create(null);
 
   beacon.start();
@@ -109,7 +109,7 @@ test("STORE-24 without the running marketing version nothing claims a newer one"
   });
 });
 
-test("STORE-25 opening the store with the offer is accepted as a handoff, and installs nothing", async () => {
+test("STORE-05 opening the store with the offer is accepted as a handoff, and installs nothing", async () => {
   const { beacon, binary, link } = create("3.2.0");
 
   beacon.start();
@@ -132,7 +132,7 @@ test("STORE-25 opening the store with the offer is accepted as a handoff, and in
   expect(binary.state.get().operation).toEqual({ state: "idle" });
 });
 
-test("STORE-26 opening the store needs no offer, so remediation can send a user there", async () => {
+test("opening the store needs no offer, so remediation can send a user there", async () => {
   const { beacon, binary, link } = create(null);
 
   beacon.start();
@@ -143,7 +143,7 @@ test("STORE-26 opening the store needs no offer, so remediation can send a user 
   expect(link.opened).toHaveLength(1);
 });
 
-test("STORE-27 a store that cannot be opened is a failed command", async () => {
+test("a store that cannot be opened is a failed command", async () => {
   const { beacon, binary, link } = create(null);
 
   link.fail(new Error("no handler"));
@@ -155,7 +155,7 @@ test("STORE-27 a store that cannot be opened is a failed command", async () => {
   });
 });
 
-test("STORE-28 a lookup that throws fails the check and keeps the last observation", async () => {
+test("a lookup that throws fails the check and keeps the last observation", async () => {
   const { beacon, binary, store } = create("3.2.0");
 
   beacon.start();
@@ -169,7 +169,7 @@ test("STORE-28 a lookup that throws fails the check and keeps the last observati
   expect(binary.state.get().observation).toBe(observed);
 });
 
-test("STORE-29 a lookup that matched nothing is no offer in that storefront", async () => {
+test("STORE-01 a lookup that matched nothing is no offer in that storefront", async () => {
   const { beacon, binary, store } = create("3.2.0");
 
   store.publish([]);
@@ -183,7 +183,7 @@ test("STORE-29 a lookup that matched nothing is no offer in that storefront", as
   });
 });
 
-test("STORE-30 an ambiguous lookup fails the check as a source failure, never resolved by guessing", async () => {
+test("an ambiguous lookup fails the check as a source failure, never resolved by guessing", async () => {
   const { beacon, binary, store } = create("3.2.0");
 
   store.publish([entry(), entry({ version: "3.4.0" })]);

@@ -5,7 +5,7 @@ import { readLookupEntry } from "src/utils/readLookupEntry";
 
 const EXPECTED = { appId: APP_ID, bundleId: BUNDLE_ID };
 
-test("STORE-01 a matching entry is a candidate marketing version, bound to the configured app", () => {
+test("a matching entry is a candidate marketing version, bound to the configured app", () => {
   expect(readLookupEntry({ results: [entry()] }, EXPECTED)).toEqual({
     decision: {
       kind: "candidate",
@@ -24,13 +24,13 @@ test("STORE-01 a matching entry is a candidate marketing version, bound to the c
   });
 });
 
-test("STORE-02 no entry is nothing matched in that lookup context, not proof that no update exists", () => {
+test("STORE-01 no entry is nothing matched in that lookup context, not proof that no update exists", () => {
   expect(readLookupEntry({ results: [] }, EXPECTED)).toEqual({
     decision: { kind: "none", reason: "no-match" },
   });
 });
 
-test("STORE-03 several entries for one app are refused, not resolved by guessing", () => {
+test("several entries for one app are refused, not resolved by guessing", () => {
   expect(() =>
     readLookupEntry(
       { results: [entry(), entry({ version: "3.4.0" })] },
@@ -39,13 +39,13 @@ test("STORE-03 several entries for one app are refused, not resolved by guessing
   ).toThrow("several entries");
 });
 
-test("STORE-04 an entry of another app is refused", () => {
+test("STORE-02 an entry of another app is refused", () => {
   expect(() =>
     readLookupEntry({ results: [entry({ trackId: 1 })] }, EXPECTED),
   ).toThrow("another app id");
 });
 
-test("STORE-05 an entry of another bundle is refused, and the bundle is checked only when configured", () => {
+test("STORE-02 an entry of another bundle is refused, and the bundle is checked only when configured", () => {
   const other = entry({ bundleId: "com.example.other" });
 
   expect(() => readLookupEntry({ results: [other] }, EXPECTED)).toThrow(
@@ -59,13 +59,13 @@ test("STORE-05 an entry of another bundle is refused, and the bundle is checked 
   ).toMatchObject({ decision: { kind: "candidate" } });
 });
 
-test("STORE-06 an entry with no version is refused", () => {
+test("an entry with no version is refused", () => {
   expect(() =>
     readLookupEntry({ results: [entry({ version: "" })] }, EXPECTED),
   ).toThrow("no version");
 });
 
-test("STORE-07 a malformed release date is refused", () => {
+test("a malformed release date is refused", () => {
   expect(() =>
     readLookupEntry(
       { results: [entry({ currentVersionReleaseDate: "yesterday" })] },

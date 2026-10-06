@@ -5,7 +5,7 @@ import { readUpdateInfo } from "src/utils/readUpdateInfo";
 
 const APPLICATION = "com.example.notes";
 
-test("PLAY-01 not available is no offer here, and says nothing about other releases", () => {
+test("not available is no offer here, and says nothing about other releases", () => {
   expect(
     readUpdateInfo({ availability: "not-available" }, APPLICATION),
   ).toEqual({
@@ -19,7 +19,7 @@ test("PLAY-01 not available is no offer here, and says nothing about other relea
   });
 });
 
-test("PLAY-02 unknown, as without Play services, is an environment that cannot say, not no update", () => {
+test("unknown, as without Play services, is an environment that cannot say, not no update", () => {
   expect(
     readUpdateInfo({ availability: "unknown" }, APPLICATION).observation,
   ).toEqual({
@@ -28,7 +28,7 @@ test("PLAY-02 unknown, as without Play services, is an environment that cannot s
   });
 });
 
-test("PLAY-03 an available update is named by its version code, with the flows Play allows and its own facts", () => {
+test("an available update is named by its version code, with the flows Play allows and its own facts", () => {
   const { observation, release } = readUpdateInfo(
     availableInfo(412, { immediate: false, priority: 4, stalenessDays: 11 }),
     APPLICATION,
@@ -54,7 +54,7 @@ test("PLAY-03 an available update is named by its version code, with the flows P
   expect(release).not.toBeNull();
 });
 
-test("PLAY-04 both flows are offered when Play allows both", () => {
+test("both flows are offered when Play allows both", () => {
   const { observation } = readUpdateInfo(availableInfo(412), APPLICATION);
 
   expect(observation).toMatchObject({
@@ -62,7 +62,7 @@ test("PLAY-04 both flows are offered when Play allows both", () => {
   });
 });
 
-test("PLAY-05 a flow Play still holds is offered as a continuation with no version to name", () => {
+test("a flow Play still holds is offered as a continuation with no version to name", () => {
   const { observation, installStatus } = readUpdateInfo(
     { availability: "in-progress", installStatus: "downloading" },
     APPLICATION,

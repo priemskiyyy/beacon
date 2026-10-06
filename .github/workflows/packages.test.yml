@@ -1,0 +1,56 @@
+name: packages-test
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+
+# Named, not derived from the workflow: when a caller runs this workflow, every
+# called workflow shares the caller's name and they would cancel each other.
+concurrency:
+  group: packages-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest supported Node and the newest.
+        node: ["22.18.0", "24"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+        with:
+          node-version: ${{ matrix.node }}
+
+      # The adapters and the React binding import the core by its package name.
+      - name: Build packages
+        run: pnpm build
+
+      - name: Linting Typescript
+        run: pnpm lint:typescript
+
+      - name: Linting Eslint
+        run: pnpm lint:eslint
+
+      # Each probe proves one lint rule still rejects what it was written for.
+      - name: Lint rule probes
+        run: pnpm test:lint
+
+      # Every provider SDK and the clock are faked in process, so the whole
+      # suite runs here with no device, no network and no credentials.
+      - name: Unit tests
+        run: pnpm test:unit

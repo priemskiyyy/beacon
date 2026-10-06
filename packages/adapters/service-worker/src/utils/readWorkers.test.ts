@@ -4,7 +4,7 @@ import { fakeRegistration, fakeWorker } from "src/fakeWorkers.fixture";
 import { getWorkerId } from "src/utils/getWorkerId";
 import { readWorkers } from "src/utils/readWorkers";
 
-test("SW-01 without a registration there is nothing to update", () => {
+test("without a registration there is nothing to update", () => {
   expect(readWorkers(undefined, null)).toEqual({
     observation: {
       status: "none",
@@ -15,7 +15,7 @@ test("SW-01 without a registration there is nothing to update", () => {
   });
 });
 
-test("SW-02 the first installation is not an update, even when it waits", () => {
+test("SW-01 the first installation is not an update, even when it waits", () => {
   const registration = fakeRegistration({ waiting: fakeWorker() });
 
   expect(readWorkers(registration, null).observation).toEqual({
@@ -25,7 +25,7 @@ test("SW-02 the first installation is not an update, even when it waits", () => 
   });
 });
 
-test("SW-03 a waiting worker next to an active one is an update that is ready, whose build is unknown", () => {
+test("a waiting worker next to an active one is an update that is ready, whose build is unknown", () => {
   const waiting = fakeWorker();
 
   const registration = fakeRegistration({
@@ -46,7 +46,7 @@ test("SW-03 a waiting worker next to an active one is an update that is ready, w
   });
 });
 
-test("SW-04 a worker that is still installing is not ready to activate", () => {
+test("a worker that is still installing is not ready to activate", () => {
   const registration = fakeRegistration({ active: fakeWorker("activated") });
 
   registration.found(fakeWorker());
@@ -67,7 +67,7 @@ test("an idle registration has no update and nothing prepared", () => {
   });
 });
 
-test("SW-05 a skip-waiting request alone prepares nothing until the active worker was replaced", () => {
+test("a skip-waiting request alone prepares nothing until the active worker was replaced", () => {
   const registration = fakeRegistration({
     active: fakeWorker("activated"),
     waiting: fakeWorker(),
@@ -92,7 +92,7 @@ test("SW-05 a skip-waiting request alone prepares nothing until the active worke
   });
 });
 
-test("SW-06 a worker that activates after a first installation is not a prepared update", () => {
+test("SW-08 a worker that activates after a first installation is not a prepared update", () => {
   const registration = fakeRegistration({ waiting: fakeWorker() });
 
   registration.activate();

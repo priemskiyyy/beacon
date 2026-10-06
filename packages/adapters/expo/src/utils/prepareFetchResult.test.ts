@@ -12,7 +12,7 @@ import { prepareFetchResult } from "src/utils/prepareFetchResult";
 
 const offeredA = createUpdateIdentity(UPDATE_A);
 
-test("EXPO-04 a new update is prepared, and says it is the one that was offered", () => {
+test("EXPO-05 a new update is prepared, and says it is the one that was offered", () => {
   expect(prepareFetchResult(fetchedNew(UPDATE_A), offeredA)).toEqual({
     prepared: {
       status: "ready",
@@ -26,7 +26,7 @@ test("EXPO-04 a new update is prepared, and says it is the one that was offered"
   });
 });
 
-test("EXPO-05 a different update than the one offered is prepared, and says it differs", () => {
+test("EXPO-08 a different update than the one offered is prepared, and says it differs", () => {
   const { receipt } = prepareFetchResult(fetchedNew(UPDATE_B), offeredA);
 
   expect(receipt).toEqual({
@@ -36,14 +36,14 @@ test("EXPO-05 a different update than the one offered is prepared, and says it d
   });
 });
 
-test("EXPO-06 a valid answer that is not new prepares nothing and claims nothing prepared", () => {
+test("EXPO-07 a valid answer that is not new prepares nothing and claims nothing prepared", () => {
   expect(prepareFetchResult(fetchedNothing(), offeredA)).toEqual({
     prepared: null,
     receipt: { kind: "no-new-preparation" },
   });
 });
 
-test("EXPO-07 a rollback is prepared without a manifest, and cannot be compared with an offer", () => {
+test("EXPO-06 a rollback is prepared without a manifest, and cannot be compared with an offer", () => {
   const { prepared, receipt } = prepareFetchResult(fetchedRollback(), offeredA);
 
   expect(prepared).toMatchObject({

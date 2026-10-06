@@ -317,7 +317,7 @@ test("SAFE-06 a participant registered while settling changes the safety context
   expect(log).toEqual(["drafts:reserve", "drafts:settle", "drafts:release"]);
 });
 
-test("SAFE-07 an offer replaced while settling is stale, and nothing is dispatched", async () => {
+test("an offer replaced while settling is stale, and nothing is dispatched", async () => {
   const context = createWebCommandBeacon();
   const log: string[] = [];
   const offer = await startWithOffer(context);

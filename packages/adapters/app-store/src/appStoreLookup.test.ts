@@ -22,7 +22,7 @@ test("creating the source makes no request", () => {
   expect(store.requests).toEqual([]);
 });
 
-test("STORE-14 a read asks for the configured app in the configured storefront", async () => {
+test("a read asks for the configured app in the configured storefront", async () => {
   const store = fakeStore();
   const read = buildRead();
 
@@ -40,7 +40,7 @@ test("STORE-14 a read asks for the configured app in the configured storefront",
   ]);
 });
 
-test("STORE-15 the answer is the decision, from the store as its issuer", async () => {
+test("the answer is the decision, from the store as its issuer", async () => {
   const store = fakeStore([entry({ version: "3.4.0" })]);
 
   const answer = await appStoreLookup({
@@ -56,7 +56,7 @@ test("STORE-15 the answer is the decision, from the store as its issuer", async 
   });
 });
 
-test("STORE-16 a client that throws fails the read as it was thrown", async () => {
+test("a client that throws fails the read as it was thrown", async () => {
   const store = fakeStore();
   const failure = new Error("rate limited");
 
@@ -71,7 +71,7 @@ test("STORE-16 a client that throws fails the read as it was thrown", async () =
   ).rejects.toBe(failure);
 });
 
-test("STORE-17 an id that is not a number, or a storefront that is not a country, is refused at construction", () => {
+test("STORE-03 an id that is not a number, or a storefront that is not a country, is refused at construction", () => {
   const store = fakeStore();
 
   expect(() =>

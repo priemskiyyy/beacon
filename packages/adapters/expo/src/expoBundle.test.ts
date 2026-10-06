@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { expoBundle } from "src/expoBundle";
 import { fakeUpdates, UPDATE_A } from "src/fakeUpdates.fixture";
 
-test("EXPO-08 the running bundle is the update that launched, with where it came from", () => {
+test("the running bundle is the update that launched, with where it came from", () => {
   const { updates } = fakeUpdates({ updateId: UPDATE_A });
 
   expect(expoBundle(updates)()).toEqual({
@@ -23,7 +23,7 @@ test("EXPO-08 the running bundle is the update that launched, with where it came
   });
 });
 
-test("EXPO-09 where updates are disabled the running bundle has no identity", () => {
+test("where updates are disabled the running bundle has no identity", () => {
   const { updates } = fakeUpdates({ updateId: null, isEnabled: false });
 
   expect(expoBundle(updates)().identity).toEqual({

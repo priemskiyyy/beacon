@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { appleMarketingVersion } from "src/appleMarketingVersion";
 
-test("STORE-12 the marketing version is the short version fact of the running native release", () => {
+test("the marketing version is the short version fact of the running native release", () => {
   expect(
     appleMarketingVersion({
       identity: { status: "unknown", reason: "native" },
@@ -12,7 +12,7 @@ test("STORE-12 the marketing version is the short version fact of the running na
   ).toBe("3.2.1");
 });
 
-test("STORE-13 without the short version, or a release, the order of what runs is unknown", () => {
+test("STORE-04 without the short version, or a release, the order of what runs is unknown", () => {
   expect(
     appleMarketingVersion({
       identity: { status: "unknown", reason: "native" },

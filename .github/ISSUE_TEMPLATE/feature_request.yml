@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a capability, an adapter or a change to the API.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the release-awareness or update problem, not the API you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to see?
+      description: Describe the behavior you expect. If it is a provider, name the SDK and link its documentation.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What did you try instead?
+      description: Describe what you do today and why it falls short.

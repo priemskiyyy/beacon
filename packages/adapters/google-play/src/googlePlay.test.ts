@@ -57,7 +57,7 @@ test("creating the route and the beacon ask Play for nothing", () => {
   expect(listeners()).toBe(0);
 });
 
-test("PLAY-06 the install listener is in place before any flow can start", async () => {
+test("the install listener is in place before any flow can start", async () => {
   const context = create();
 
   context.beacon.start();
@@ -66,7 +66,7 @@ test("PLAY-06 the install listener is in place before any flow can start", async
   expect(context.listeners()).toBe(1);
 });
 
-test("PLAY-07 a check is a fresh query, and starts no flow", async () => {
+test("a check is a fresh query, and starts no flow", async () => {
   const context = create();
   const offer = await checkOffer(context);
 
@@ -108,7 +108,7 @@ test("PLAY-08 a flexible update is prepared when Play says it downloaded, and pr
   expect(context.binary.state.get().operation).toEqual({ state: "idle" });
 });
 
-test("PLAY-09 a download is not an installation: completing it is a separate command that restarts nothing by itself", async () => {
+test("PLAY-08 a download is not an installation: completing it is a separate command that restarts nothing by itself", async () => {
   const context = create();
   const offer = await checkOffer(context);
   const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
@@ -134,7 +134,7 @@ test("PLAY-09 a download is not an installation: completing it is a separate com
   expect(context.calls.completions).toBe(1);
 });
 
-test("PLAY-10 a user who declines the consent dialog cancels the command, and nothing downloads", async () => {
+test("PLAY-11 a user who declines the consent dialog cancels the command, and nothing downloads", async () => {
   const context = create();
   const offer = await checkOffer(context);
 
@@ -149,7 +149,7 @@ test("PLAY-10 a user who declines the consent dialog cancels the command, and no
   expect(context.binary.state.get().prepared).toEqual({ status: "unknown" });
 });
 
-test("PLAY-11 a download Play reports as failed is a failed command", async () => {
+test("a download Play reports as failed is a failed command", async () => {
   const context = create();
   const offer = await checkOffer(context);
   const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
@@ -164,7 +164,7 @@ test("PLAY-11 a download Play reports as failed is a failed command", async () =
   expect(context.binary.state.get().operation).toEqual({ state: "idle" });
 });
 
-test("PLAY-12 a flow Play reports as failed at the consent step is a failed command", async () => {
+test("a flow Play reports as failed at the consent step is a failed command", async () => {
   const context = create();
   const offer = await checkOffer(context);
 
@@ -177,7 +177,7 @@ test("PLAY-12 a flow Play reports as failed at the consent step is a failed comm
   });
 });
 
-test("PLAY-13 an offer Play no longer makes is stale, and no flow starts", async () => {
+test("an offer Play no longer makes is stale, and no flow starts", async () => {
   const context = create();
   const offer = await checkOffer(context);
 
@@ -192,7 +192,7 @@ test("PLAY-13 an offer Play no longer makes is stale, and no flow starts", async
   expect(context.calls.flexible).toBe(0);
 });
 
-test("PLAY-14 a flow Play does not allow for this update is unsupported, and no flow starts", async () => {
+test("PLAY-01 a flow Play does not allow for this update is unsupported, and no flow starts", async () => {
   const context = create(availableInfo(412, { immediate: false }));
   const offer = await checkOffer(context);
 
@@ -205,7 +205,7 @@ test("PLAY-14 a flow Play does not allow for this update is unsupported, and no 
   expect(context.calls.immediate).toBe(0);
 });
 
-test("PLAY-15 an immediate flow is disruptive, so a participant is asked, and the route is unresolved once Play took over", async () => {
+test("an immediate flow is disruptive, so a participant is asked, and the route is unresolved once Play took over", async () => {
   const context = create();
   const offer = await checkOffer(context);
   const asked: string[] = [];
@@ -233,7 +233,7 @@ test("PLAY-15 an immediate flow is disruptive, so a participant is asked, and th
   });
 });
 
-test("PLAY-16 an immediate flow the user declines is cancelled and releases the route", async () => {
+test("PLAY-11 an immediate flow the user declines is cancelled and releases the route", async () => {
   const context = create();
   const offer = await checkOffer(context);
 
@@ -248,7 +248,7 @@ test("PLAY-16 an immediate flow the user declines is cancelled and releases the 
   expect(context.binary.state.get().operation).toEqual({ state: "idle" });
 });
 
-test("PLAY-17 a flow Play still holds after a restart is offered as a continuation", async () => {
+test("PLAY-12 a flow Play still holds after a restart is offered as a continuation", async () => {
   const context = create({
     availability: "in-progress",
     installStatus: "downloading",
@@ -266,7 +266,7 @@ test("PLAY-17 a flow Play still holds after a restart is offered as a continuati
   expect(context.calls.immediate).toBe(1);
 });
 
-test("PLAY-18 an update already downloaded when the app starts is prepared without a command", async () => {
+test("PLAY-13 an update already downloaded when the app starts is prepared without a command", async () => {
   const context = create(availableInfo(412, { installStatus: "downloaded" }));
 
   context.beacon.start();
@@ -278,7 +278,7 @@ test("PLAY-18 an update already downloaded when the app starts is prepared witho
   });
 });
 
-test("PLAY-19 a callback lost after the dispatch leaves the command running, and a restart finds the download", async () => {
+test("PLAY-14 a callback lost after the dispatch leaves the command running, and a restart finds the download", async () => {
   const context = create();
   const offer = await checkOffer(context);
   const controller = new AbortController();
@@ -295,7 +295,7 @@ test("PLAY-19 a callback lost after the dispatch leaves the command running, and
   expect(context.binary.state.get().operation.state).toBe("indeterminate");
 });
 
-test("PLAY-20 ending the session while a download is awaited leaves the outcome unknown", async () => {
+test("ending the session while a download is awaited leaves the outcome unknown", async () => {
   const context = create();
   const offer = await checkOffer(context);
   const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
@@ -306,7 +306,7 @@ test("PLAY-20 ending the session while a download is awaited leaves the outcome 
   await expect(starting).resolves.toMatchObject({ status: "indeterminate" });
 });
 
-test("PLAY-21 a query that fails fails the check and keeps what was observed", async () => {
+test("a query that fails fails the check and keeps what was observed", async () => {
   const context = create();
 
   await checkOffer(context);
@@ -321,7 +321,7 @@ test("PLAY-21 a query that fails fails the check and keeps what was observed", a
   });
 });
 
-test("PLAY-22 stopping the session removes the install listener", async () => {
+test("stopping the session removes the install listener", async () => {
   const context = create();
 
   context.beacon.start();
@@ -331,7 +331,7 @@ test("PLAY-22 stopping the session removes the install listener", async () => {
   expect(context.listeners()).toBe(0);
 });
 
-test("PLAY-23 an install event after the session stopped changes nothing", async () => {
+test("an install event after the session stopped changes nothing", async () => {
   const context = create();
 
   context.beacon.start();

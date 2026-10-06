@@ -11,7 +11,7 @@ test("creating the mechanism opens nothing", () => {
   expect(opened).toEqual([]);
 });
 
-test("STORE-18 the store page is built from the configured id alone", async () => {
+test("STORE-07 the store page is built from the configured id alone", async () => {
   const { opened, linking } = fakeLinking();
   const mechanism = appStoreHandoff({ appId: APP_ID, linking });
   const { native } = mechanism.open();
@@ -26,7 +26,7 @@ test("STORE-18 the store page is built from the configured id alone", async () =
   expect(opened).toEqual([`https://apps.apple.com/app/id${APP_ID}`]);
 });
 
-test("STORE-19 an id that is not a number is refused at construction", () => {
+test("an id that is not a number is refused at construction", () => {
   const { linking } = fakeLinking();
 
   expect(() => appStoreHandoff({ appId: "284882215/../x", linking })).toThrow(
@@ -34,7 +34,7 @@ test("STORE-19 an id that is not a number is refused at construction", () => {
   );
 });
 
-test("STORE-20 opening the store is an external handoff to a store destination, with or without an offer", () => {
+test("opening the store is an external handoff to a store destination, with or without an offer", () => {
   const { linking } = fakeLinking();
   const { commands } = appStoreHandoff({ appId: APP_ID, linking });
 

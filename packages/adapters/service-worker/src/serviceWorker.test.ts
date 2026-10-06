@@ -67,7 +67,7 @@ test("creating the route touches neither the container nor the registration", ()
   expect(state.registration?.listeners()).toBe(0);
 });
 
-test("SW-03 starting reads the registration and shows the waiting worker as an update that is ready", async () => {
+test("SW-02 starting reads the registration and shows the waiting worker as an update that is ready", async () => {
   const { beacon, worker } = createWorkerBeacon(updateReady());
 
   beacon.start();
@@ -142,7 +142,7 @@ test("a worker an update finds is reported as it installs, without a check", asy
   expect(worker.state.get().observation).toMatchObject({ status: "available" });
 });
 
-test("SW-07 activating the waiting worker posts the skip-waiting message and proves no activation", async () => {
+test("activating the waiting worker posts the skip-waiting message and proves no activation", async () => {
   const registration = updateReady();
   const { beacon, worker } = createWorkerBeacon(registration);
 
@@ -169,7 +169,7 @@ test("SW-07 activating the waiting worker posts the skip-waiting message and pro
   expect(worker.state.get().prepared).toMatchObject({ status: "none" });
 });
 
-test("SW-08 the message the worker listens for is the application's", async () => {
+test("the message the worker listens for is the application's", async () => {
   const registration = updateReady();
 
   const { beacon, worker } = createWorkerBeacon(registration, {
@@ -190,7 +190,7 @@ test("SW-08 the message the worker listens for is the application's", async () =
   expect(registration.waiting?.messages).toEqual([{ type: "ACTIVATE_NOW" }]);
 });
 
-test("SW-09 a waiting worker that changed without the route hearing of it is refused as stale", async () => {
+test("SW-03 a waiting worker that changed without the route hearing of it is refused as stale", async () => {
   const registration = updateReady();
   const { beacon, worker } = createWorkerBeacon(registration);
 
@@ -214,7 +214,7 @@ test("SW-09 a waiting worker that changed without the route hearing of it is ref
   expect(registration.waiting.messages).toEqual([]);
 });
 
-test("SW-10 once the active worker is replaced the route has a prepared target, and a reload replaces the document", async () => {
+test("once the active worker is replaced the route has a prepared target, and a reload replaces the document", async () => {
   const registration = updateReady();
   const { beacon, worker, reloads } = createWorkerBeacon(registration);
 
@@ -237,7 +237,7 @@ test("SW-10 once the active worker is replaced the route has a prepared target, 
   expect(reloads.count).toBe(1);
 });
 
-test("SW-11 a controller change is reported without waiting for a check", async () => {
+test("a controller change is reported without waiting for a check", async () => {
   const registration = updateReady();
   const { beacon, worker, container } = createWorkerBeacon(registration);
 
@@ -252,7 +252,7 @@ test("SW-11 a controller change is reported without waiting for a check", async 
   expect(worker.state.get().prepared).toMatchObject({ status: "ready" });
 });
 
-test("SW-12 without a registration an activation is unsupported", async () => {
+test("without a registration an activation is unsupported", async () => {
   const registration = updateReady();
   const { beacon, worker, state } = createWorkerBeacon(registration);
 
@@ -275,7 +275,7 @@ test("SW-12 without a registration an activation is unsupported", async () => {
   });
 });
 
-test("SW-13 a registration the application makes later is found by the next check", async () => {
+test("a registration the application makes later is found by the next check", async () => {
   const { beacon, worker, state } = createWorkerBeacon(undefined);
 
   beacon.start();
@@ -292,7 +292,7 @@ test("SW-13 a registration the application makes later is found by the next chec
   expect(worker.state.get().observation).toMatchObject({ status: "available" });
 });
 
-test("SW-14 a registration the application passes in is used without the container's", async () => {
+test("a registration the application passes in is used without the container's", async () => {
   const given: RegistrationLike = updateReady();
 
   const { beacon, worker, container } = createWorkerBeacon(undefined, {
@@ -306,7 +306,7 @@ test("SW-14 a registration the application passes in is used without the contain
   expect(container.registrationReads()).toBe(0);
 });
 
-test("SW-15 a registration found by a function the application passes in is used", async () => {
+test("a registration found by a function the application passes in is used", async () => {
   const found = updateReady();
 
   const { beacon, worker } = createWorkerBeacon(undefined, {
@@ -319,7 +319,7 @@ test("SW-15 a registration found by a function the application passes in is used
   expect(worker.state.get().observation).toMatchObject({ status: "available" });
 });
 
-test("SW-16 stopping the session removes every listener from the registration, its workers and the container", async () => {
+test("SW-13 stopping the session removes every listener from the registration, its workers and the container", async () => {
   const registration = updateReady();
   const { beacon, container } = createWorkerBeacon(registration);
 
@@ -334,7 +334,7 @@ test("SW-16 stopping the session removes every listener from the registration, i
   expect(countListeners(registration, container)).toBe(0);
 });
 
-test("SW-17 a change after the session stopped is not reported", async () => {
+test("a change after the session stopped is not reported", async () => {
   const registration = updateReady();
   const { beacon, worker } = createWorkerBeacon(registration);
 
@@ -349,7 +349,7 @@ test("SW-17 a change after the session stopped is not reported", async () => {
   expect(worker.state.get()).toBe(before);
 });
 
-test("SW-18 without a container or a registration, as in a server render, there is nothing to update and no listener", async () => {
+test("without a container or a registration, as in a server render, there is nothing to update and no listener", async () => {
   const beacon = new Beacon({
     scope: SCOPE,
     running: { boot: { id: "boot-1" } },

@@ -12,6 +12,7 @@ import { useDisruption } from "src/hooks/useDisruption";
 import { useRoute } from "src/hooks/useRoute";
 import { useRunning } from "src/hooks/useRunning";
 import { useSupport } from "src/hooks/useSupport";
+import { useTransitions } from "src/hooks/useTransitions";
 
 afterEach(cleanup);
 
@@ -275,4 +276,27 @@ test("useSupport with a selector renders the selection of the provider's Beacon"
   );
 
   expect(result.current).toBe("unknown");
+});
+
+test("useTransitions reads the journal as it stands, which is off without one", () => {
+  const { beacon } = createWebBeacon();
+  const { result } = renderHook(() => useTransitions(beacon));
+
+  expect(result.current).toMatchObject({ journal: "off", latest: null });
+});
+
+test("useTransitions renders again when a checkpoint is reported", () => {
+  const { beacon } = createWebBeacon();
+
+  const { result } = renderHook(() =>
+    useTransitions(beacon, ({ checkpoints }) => checkpoints),
+  );
+
+  expect(result.current).toEqual([]);
+
+  act(() => {
+    beacon.reportReady({ checkpoint: "primary-screen" });
+  });
+
+  expect(result.current).toEqual(["primary-screen"]);
 });

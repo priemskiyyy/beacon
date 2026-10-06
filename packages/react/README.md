@@ -55,6 +55,7 @@ const UpdateBanner = () => {
 | `BeaconProvider` | publishes a Beacon; with `start` it holds the session while mounted and ends only that session on unmount       |
 | `useRoute`       | a route's state from its typed handle, optionally selected, with the types of its own offer and prepared target |
 | `useRunning`     | what is running per subject; a subject that is not read yet is pending, never an old version                    |
+| `useTransitions` | what the journal knows: its latest intent and what a later boot says about it, and this boot's checkpoints      |
 | `useDisruption`  | registers a participant while mounted; Beacon always asks the latest one you passed                             |
 | `useBeacon`      | the provider's Beacon                                                                                           |
 

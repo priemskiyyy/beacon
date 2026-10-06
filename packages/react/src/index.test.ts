@@ -10,5 +10,6 @@ test("the entry exports the provider and the hooks, and nothing else", () => {
     "useRoute",
     "useRunning",
     "useSupport",
+    "useTransitions",
   ]);
 });

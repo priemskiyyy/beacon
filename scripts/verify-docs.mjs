@@ -152,29 +152,69 @@ const entries = [
   "packages/core/src/testing.ts",
   "packages/core/src/versions.ts",
   "packages/react/src/index.ts",
+  "packages/vue/src/index.ts",
+  "packages/solid/src/index.ts",
+  "packages/svelte/src/index.ts",
   ...listAdapterEntries(),
 ];
 
 const api = readFileSync(path.join(docs, "api.md"), "utf8");
-const exported = new Set();
+
+// The text under each `## @scope/name` heading, so an export must be listed in the section of its own entry point.
+const sections = new Map(
+  api
+    .split(/^## /m)
+    .slice(1)
+    .map((section) => [section.split("\n")[0].trim(), section]),
+);
+
+const readSectionTitle = (entry) => {
+  const { name } = JSON.parse(
+    readFileSync(
+      path.join(workspace, path.dirname(path.dirname(entry)), "package.json"),
+      "utf8",
+    ),
+  );
+
+  const file = path.basename(entry, ".ts");
+
+  if (file === "index") {
+    return name;
+  }
+
+  return `${name}/${file}`;
+};
+
+const exported = [];
 
 for (const entry of entries) {
   const source = readFileSync(path.join(workspace, entry), "utf8");
+  const title = readSectionTitle(entry);
+  const section = sections.get(title);
+
+  if (section === undefined) {
+    failures.push(`docs/api.md has no section "${title}" for ${entry}.`);
+    continue;
+  }
 
   for (const [, list] of source.matchAll(/export (?:type )?\{([^}]*)\}/g)) {
     for (const piece of list.split(",")) {
-      const name = piece.trim();
+      // The public name of `default as Name` is Name, as the Svelte component is exported.
+      const name = piece
+        .trim()
+        .split(/\s+as\s+/)
+        .at(-1);
 
-      if (name !== "") {
-        exported.add(name);
+      if (name === "") {
+        continue;
+      }
+
+      exported.push(name);
+
+      if (!section.includes(`\`${name}\``)) {
+        failures.push(`docs/api.md does not list ${name} under "${title}".`);
       }
     }
-  }
-}
-
-for (const name of exported) {
-  if (!api.includes(`\`${name}\``)) {
-    failures.push(`docs/api.md does not list the export ${name}.`);
   }
 }
 
@@ -184,5 +224,5 @@ assert.deepEqual(
   `Documentation problems:\n${failures.join("\n")}`,
 );
 console.log(
-  `Verified ${pages.length} pages, ${prose.length} prose files and ${exported.size} exports.`,
+  `Verified ${pages.length} pages, ${prose.length} prose files and ${exported.length} exports.`,
 );

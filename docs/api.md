@@ -1,10 +1,10 @@
 ---
-description: "Every public export of every Beacon package with one line each: the core and its subpaths, the adapters and the React binding."
+description: "Every public export of every Beacon package with one line each: the core and its subpaths, the adapters and the React, Vue, Solid and Svelte bindings."
 ---
 
 # API
 
-Every name a package root exports, with one line each. A package's `index.test.ts` checks that its root exports exactly the runtime names listed here, and `pnpm verify:docs` checks that this page lists every name of every entry point. Each type has a JSDoc with an example, so your editor shows more than a line.
+Every name a package root exports, with one line each. A package's `index.test.ts` checks that its root exports exactly the runtime names listed here, and `pnpm verify:docs` checks that this page lists every name of every entry point under that entry point's heading. Each type has a JSDoc with an example, so your editor shows more than a line.
 
 ## @priemskiyyy/beacon
 
@@ -373,3 +373,76 @@ See [React](react.md).
 | `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
 | `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
 | `SelectorOptions`      | type      | `{ isEqual }`, how a hook decides that a selection is the same      |
+
+## @priemskiyyy/beacon-vue
+
+See [Vue](vue.md).
+
+| Export                 | Kind       | What it is                                                                    |
+| ---------------------- | ---------- | ----------------------------------------------------------------------------- |
+| `BeaconProvider`       | component  | publishes a Beacon; with `start` it holds the session while mounted           |
+| `useRoute`             | composable | a route's state by its name, optionally selected, as a read-only computed ref |
+| `useRunning`           | composable | what is running per subject                                                   |
+| `useSupport`           | composable | what the support policy says about what runs                                  |
+| `useTransitions`       | composable | what the journal knows                                                        |
+| `useStatus`            | composable | where the session stands                                                      |
+| `useObservable`        | composable | any other observable of Beacon                                                |
+| `useDisruption`        | composable | registers a participant while mounted                                         |
+| `useBeacon`            | composable | the provider's Beacon, as a computed ref                                      |
+| `Register`             | interface  | merge `beacon` into it so the composables know your routes                    |
+| `RegisteredBeacon`     | type       | the Beacon you registered                                                     |
+| `RegisteredRoutes`     | type       | the routes of the registered Beacon                                           |
+| `RegisteredRouteName`  | type       | the name of a route of the registered Beacon                                  |
+| `RegisteredRoute`      | type       | the handle of a route of the registered Beacon                                |
+| `RegisteredRouteState` | type       | the state of a route of the registered Beacon                                 |
+| `BeaconProviderProps`  | type       | the Beacon to publish, and whether to start                                   |
+| `SelectorOptions`      | type       | `{ isEqual }`, how a composable decides that a selection is the same          |
+
+## @priemskiyyy/beacon-solid
+
+See [Solid](solid.md).
+
+| Export                 | Kind      | What it is                                                          |
+| ---------------------- | --------- | ------------------------------------------------------------------- |
+| `BeaconProvider`       | component | publishes a Beacon; with `start` it holds the session while mounted |
+| `useRoute`             | primitive | a route's state by its name, optionally selected, as an accessor    |
+| `useRunning`           | primitive | what is running per subject                                         |
+| `useSupport`           | primitive | what the support policy says about what runs                        |
+| `useTransitions`       | primitive | what the journal knows                                              |
+| `useStatus`            | primitive | where the session stands                                            |
+| `useObservable`        | primitive | any other observable of Beacon                                      |
+| `useDisruption`        | primitive | registers a participant while mounted                               |
+| `useBeacon`            | primitive | the provider's Beacon, as an accessor                               |
+| `Register`             | interface | merge `beacon` into it so the primitives know your routes           |
+| `RegisteredBeacon`     | type      | the Beacon you registered                                           |
+| `RegisteredRoutes`     | type      | the routes of the registered Beacon                                 |
+| `RegisteredRouteName`  | type      | the name of a route of the registered Beacon                        |
+| `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                      |
+| `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
+| `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
+| `SelectorOptions`      | type      | `{ isEqual }`, how a primitive decides that a selection is the same |
+
+## @priemskiyyy/beacon-svelte
+
+See [Svelte](svelte.md).
+
+| Export                 | Kind      | What it is                                                          |
+| ---------------------- | --------- | ------------------------------------------------------------------- |
+| `BeaconProvider`       | component | publishes a Beacon; with `start` it holds the session while mounted |
+| `useRoute`             | utility   | a route's state by its name, optionally selected, through `current` |
+| `useRunning`           | utility   | what is running per subject                                         |
+| `useSupport`           | utility   | what the support policy says about what runs                        |
+| `useTransitions`       | utility   | what the journal knows                                              |
+| `useStatus`            | utility   | where the session stands                                            |
+| `useObservable`        | utility   | any other observable of Beacon                                      |
+| `useDisruption`        | utility   | registers a participant while mounted                               |
+| `useBeacon`            | utility   | the provider's Beacon through `current`                             |
+| `Register`             | interface | merge `beacon` into it so the utilities know your routes            |
+| `RegisteredBeacon`     | type      | the Beacon you registered                                           |
+| `RegisteredRoutes`     | type      | the routes of the registered Beacon                                 |
+| `RegisteredRouteName`  | type      | the name of a route of the registered Beacon                        |
+| `RegisteredRoute`      | type      | the handle of a route of the registered Beacon                      |
+| `RegisteredRouteState` | type      | the state of a route of the registered Beacon                       |
+| `BeaconProviderProps`  | type      | the Beacon to publish, and whether to start                         |
+| `ReadableValue`        | type      | what a utility returns: an object with a read-only `current`        |
+| `SelectorOptions`      | type      | `{ isEqual }`, how a utility decides that a selection is the same   |

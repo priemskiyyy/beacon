@@ -23,11 +23,12 @@ import { compileScript, parse as parseSfc } from "vue/compiler-sfc";
 //   a module or holds a svelte fence: `Register` and a named file are global to
 //   a program, so such a page gets a program of its own.
 // - A vue fence needs a `<script setup lang="ts">`. The Vue compiler turns it
-//   into a typed component, and the expressions of its template are checked as
-//   plain statements that read the component's bindings as the template does:
-//   `v-if` and `v-else` narrow, `v-for` and slot props bind, and a component
-//   tag must be imported. The props, events and slots of a component and the
-//   attributes of an element are not checked.
+//   into a typed component, and the expressions of its template are then checked
+//   as statements that read the component's bindings the way the template does:
+//   `v-if`, `v-else-if` and `v-else` narrow, `v-for` and `v-slot` bind names, and
+//   a component tag must be imported. Not checked: the props, events and slots
+//   of a component, the attributes of an element and whether a `v-model` can be
+//   assigned.
 // - A svelte fence is checked by `svelte-check`, as the Svelte package does, and
 //   a warning fails it.
 // - Names an application would declare and the page does not are in
@@ -489,12 +490,14 @@ const convertVue = (fence) => {
     },
   );
 
-  const names = [
-    ...returned[1]
-      .split(",")
-      .map((entry) => entry.trim().replace(/^get\s+([\w$]+)\(\).*$/, "$1")),
-    ...props,
-  ].filter((name) => name !== "");
+  const names = new Set(
+    [
+      ...returned[1]
+        .split(",")
+        .map((entry) => entry.trim().replace(/^get\s+([\w$]+)\(\).*$/, "$1")),
+      ...props,
+    ].filter((name) => name !== ""),
+  );
 
   const scriptLines =
     `${script.content.trimEnd()}\nexport default __sfc__;`.split("\n");
@@ -509,7 +512,7 @@ const convertVue = (fence) => {
     ...scriptLines,
     ...VUE_PRELUDE.split("\n"),
     "{",
-    `const { ${names.join(", ")} } = __ctx;`,
+    `const { ${[...names].join(", ")} } = __ctx;`,
     "const { $attrs, $slots, $emit, $props, $refs } = __ctx;",
   ];
 

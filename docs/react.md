@@ -379,4 +379,4 @@ export const describeWeb = ({ observation }: RegisteredRouteState<"web">) =>
 
 ## Vue, Solid and Svelte
 
-Vue, Solid and Svelte have bindings with the same names: a provider, `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useStatus`, `useObservable`, `useDisruption` and `useBeacon`, each in the form its framework reads, such as a computed value, an accessor or a store. They follow the same rules: reading starts nothing, and the server and the hydrating render read the state as it stood before any session. Each package has a README with its exact names.
+[Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md) have bindings with the same names: a provider, `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useStatus`, `useObservable`, `useDisruption` and `useBeacon`. Each returns what its framework reads: a computed ref in Vue, an accessor in Solid and an object with a `current` property in Svelte. They follow the same rules: reading starts nothing, and the server and the hydrating render read the state as it stood before any session. Each has its own page with the setup, an example of every name and the gotchas of its framework.

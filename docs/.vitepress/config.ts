@@ -27,7 +27,15 @@ export default defineConfig({
     nav: [
       { text: "Guide", link: "/getting-started" },
       { text: "Adapters", link: "/http" },
-      { text: "React", link: "/react" },
+      {
+        text: "Frameworks",
+        items: [
+          { text: "React", link: "/react" },
+          { text: "Vue", link: "/vue" },
+          { text: "Solid", link: "/solid" },
+          { text: "Svelte", link: "/svelte" },
+        ],
+      },
       { text: "API", link: "/api" },
       {
         text: "0.1.0",
@@ -71,6 +79,9 @@ export default defineConfig({
         text: "Build your application",
         items: [
           { text: "React", link: "/react" },
+          { text: "Vue", link: "/vue" },
+          { text: "Solid", link: "/solid" },
+          { text: "Svelte", link: "/svelte" },
           { text: "Recipes", link: "/recipes" },
           { text: "Testing", link: "/testing" },
           { text: "Troubleshooting", link: "/troubleshooting" },

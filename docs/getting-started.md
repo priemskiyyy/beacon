@@ -1,16 +1,20 @@
 ---
-description: "Set up Beacon for a web application with an HTTP manifest, the browser reload and React, then for React Native with Expo Updates, one step at a time."
+description: "Set up Beacon for a web application with an HTTP manifest, the browser reload and a framework binding, then for React Native with Expo Updates, one step at a time."
 ---
 
 # Getting started
 
-Two setups follow. [The browser](#the-browser) reads a release manifest and reloads the document. [React Native](#react-native-and-expo) asks Expo Updates and restarts the runtime. Both end with a check and a command the user asks for.
+Two setups follow. [The browser](#the-browser) reads a release manifest and reloads the document. [React Native](#react-native-and-expo) asks Expo Updates and restarts the runtime. Both end with a check and a command the user asks for. The browser setup uses React, and the Vue, Solid and Svelte bindings work the same way.
 
 ## The browser
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http @priemskiyyy/beacon-browser @priemskiyyy/beacon-react
 ```
+
+::: tip Not using React?
+Install `@priemskiyyy/beacon-vue`, `@priemskiyyy/beacon-solid` or `@priemskiyyy/beacon-svelte` in place of the React package. Steps 1 and 2 are the same, except that `Register` is merged into the module of the binding you chose. Steps 3 to 5 have a version for each framework on its own page: [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
+:::
 
 ### 1. Publish a manifest
 
@@ -331,5 +335,6 @@ The React hooks work the same way as above. Register the Beacon in the same fash
 ## Next
 
 - [The mental model](mental-model.md) explains the vocabulary used above.
+- Your framework: [React](react.md), [Vue](vue.md), [Solid](solid.md) or [Svelte](svelte.md), with every hook, composable, primitive or utility.
 - [Recipes](recipes.md) has a banner that waits for a saved form, and a forced upgrade.
 - [Testing](testing.md) runs all of this without a browser or a device.

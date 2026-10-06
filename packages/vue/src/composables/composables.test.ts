@@ -437,6 +437,26 @@ test("the provider starts the session while mounted and ends it on unmount", () 
   expect(warnings).toEqual([]);
 });
 
+test("a child that checks when it mounts finds the session already started", async () => {
+  const { beacon } = createWebBeacon();
+  const outcomes: string[] = [];
+
+  mount(
+    () => {
+      onMounted(() => {
+        beacon.check().then(({ routes }) => outcomes.push(routes.web.status));
+      });
+
+      return null;
+    },
+    { beacon, start: true },
+  );
+
+  await settle();
+
+  expect(outcomes).not.toContain("failed");
+});
+
 test("the provider without start leaves the Beacon idle", () => {
   const { beacon } = createWebBeacon();
   const { unmount } = mount(() => null, { beacon });

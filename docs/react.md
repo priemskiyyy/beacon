@@ -327,7 +327,7 @@ Strict Mode runs the provider's effect, cleans it up and runs it again. The resu
 The server and the hydrating render read every observable as it stood before any session, through `getInitial`. On the server that is what `renderToString` prints: the route is `unknown` with `not-checked`, and what runs is `pending`. The markup therefore matches whatever the client has learned by the time it hydrates, even when a boundary hydrates late and the live state has moved on. The live value is read on the render after hydration.
 
 - Design the first render for `unknown` and `pending`: show nothing until the observation is `available`.
-- Start the Beacon through the provider, which starts after hydration, and not before it.
+- Start the Beacon through the provider, and not before the hydrating render. The provider starts it in a layout effect, so it is running before any child's effect: a check in a component's mount effect does not fail with `NOT_STARTED`.
 - A server render starts nothing and reads nothing. Create the Beacon for each request, and never start it on the server, so that two requests never share a session or a state.
 
 ```tsx

@@ -1,7 +1,7 @@
 import { BeaconError } from "@priemskiyyy/beacon";
 import type { DisruptionParticipant } from "@priemskiyyy/beacon";
 import { act, cleanup, render, renderHook } from "@testing-library/react";
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import type { PropsWithChildren } from "react";
 import { afterEach, expect, test } from "vitest";
 
@@ -225,6 +225,31 @@ test("BIND-07 strict mode starts, stops and starts again, and leaves one session
 
   expect(beacon.status.get()).toMatchObject({ state: "running" });
   expect(mock.stats().reads).toBe(0);
+});
+
+test("a child that checks when it mounts finds the session already started", async () => {
+  const { beacon } = createWebBeacon();
+  const outcomes: string[] = [];
+
+  const Child = () => {
+    useEffect(() => {
+      beacon.check().then(({ routes }) => outcomes.push(routes.web.status));
+    }, []);
+
+    return null;
+  };
+
+  render(
+    <StrictMode>
+      <BeaconProvider beacon={beacon} start>
+        <Child />
+      </BeaconProvider>
+    </StrictMode>,
+  );
+
+  await flush();
+
+  expect(outcomes).not.toContain("failed");
 });
 
 const draftEditor = (

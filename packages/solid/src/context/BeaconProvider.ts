@@ -1,10 +1,4 @@
-import {
-  createComponent,
-  createEffect,
-  createMemo,
-  onCleanup,
-  onMount,
-} from "solid-js";
+import { createComponent, createEffect, createMemo, onCleanup } from "solid-js";
 
 import { BeaconContext } from "src/context/BeaconContext";
 import type { BeaconProviderProps } from "src/types/BeaconProviderProps";
@@ -23,15 +17,13 @@ import type { BeaconProviderProps } from "src/types/BeaconProviderProps";
  * ```
  */
 export const BeaconProvider = (props: BeaconProviderProps) => {
-  // Nothing mounts on the server, so a server render starts no session.
-  onMount(() => {
-    createEffect(() => {
-      if (!props.start) {
-        return;
-      }
+  // An effect never runs on the server, so a server render starts no session, and this one is queued before the effects of the children, so what a child does when it mounts finds the session started.
+  createEffect(() => {
+    if (!props.start) {
+      return;
+    }
 
-      onCleanup(props.beacon.start());
-    });
+    onCleanup(props.beacon.start());
   });
 
   return createComponent(BeaconContext.Provider, {

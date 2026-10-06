@@ -1,7 +1,8 @@
 <!--
 @component Publishes one Beacon to the components below. With `start`, it holds
-the observation session while mounted and ends only that session on unmount; it
-never disposes the Beacon, and it checks nothing. A server render starts nothing.
+the observation session while mounted, before any child mounts, and ends only
+that session on unmount; it never disposes the Beacon, and it checks nothing. A
+server render starts nothing.
 @example `<BeaconProvider {beacon} start><Application /></BeaconProvider>`
 -->
 <script lang="ts">
@@ -19,8 +20,8 @@ never disposes the Beacon, and it checks nothing. A server render starts nothing
     },
   } satisfies ReadableValue<RegisteredBeacon>);
 
-  // Effects never run on the server, so a server render starts nothing. A new beacon or start ends the old session first.
-  $effect(() => {
+  // Effects never run on the server, so a server render starts nothing. A pre effect runs before the children's, so what a child does when it mounts finds the session started. A new beacon or start ends the old session first.
+  $effect.pre(() => {
     const { beacon, start = false } = props;
 
     if (!start) {

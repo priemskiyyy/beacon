@@ -106,4 +106,4 @@ A component that unmounts lets go of everything it subscribed to. Call the compo
 
 ## Server rendering
 
-The server and the hydrating render read every observable as it stood before any session (`getInitial`), so the markup matches whatever the client has learned by then, and a boundary that hydrates late still matches. Once the component is mounted, its refs switch to the live value and follow it. Start the Beacon through the provider (after hydration) and not before it. A server render starts nothing and reads nothing, and two requests never share a session.
+The server and the hydrating render read every observable as it stood before any session (`getInitial`), so the markup matches whatever the client has learned by then, and a boundary that hydrates late still matches. Once the component is mounted, its refs switch to the live value and follow it. Start the Beacon through the provider and not before the hydrating render. The provider starts it before its children mount, so a check in a component's `onMounted` finds the session running. A server render starts nothing and reads nothing, and two requests never share a session.

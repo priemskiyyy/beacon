@@ -1,7 +1,7 @@
 import {
   computed,
   defineComponent,
-  onMounted,
+  onBeforeMount,
   onWatcherCleanup,
   provide,
   watch,
@@ -12,7 +12,8 @@ import type { BeaconProviderProps } from "src/types/BeaconProviderProps";
 
 /**
  * Publishes one Beacon to the components below. With `start`, it holds the
- * observation session while mounted and ends only that session on unmount;
+ * observation session while mounted, before any child mounts, and ends only
+ * that session on unmount;
  * it never disposes the Beacon, and it checks nothing. A server render
  * starts nothing, and a new `beacon` or `start` prop is followed.
  *
@@ -30,8 +31,8 @@ export const BeaconProvider = defineComponent(
       computed(() => props.beacon),
     );
 
-    // Mounted hooks never run on the server. The stop of the old session runs before the next one starts.
-    onMounted(() => {
+    // Before the children are created, so what a child does when it mounts finds the session started. Mount hooks never run on the server. The stop of the old session runs before the next one starts.
+    onBeforeMount(() => {
       watch(
         [() => props.beacon, () => props.start],
         ([beacon, start]) => {

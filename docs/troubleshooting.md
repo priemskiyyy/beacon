@@ -179,7 +179,7 @@ Reading a route never starts a session or a check. Confirm the provider has `sta
 
 ### A hydration mismatch
 
-The server and the hydrating render read the state as it stood before any session. If you read `beacon.route("web").state.get()` outside a hook during render, you read the live state, and it may differ from the server's. Use the hooks, and start the Beacon through the provider after hydration. See [React](react.md#server-rendering-and-hydration).
+The server and the hydrating render read the state as it stood before any session. If you read `beacon.route("web").state.get()` outside a hook during render, you read the live state, and it may differ from the server's. Use the hooks, and start the Beacon through the provider. See [React](react.md#server-rendering-and-hydration).
 
 ## Journal
 

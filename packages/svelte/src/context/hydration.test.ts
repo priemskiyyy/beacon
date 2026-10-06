@@ -16,7 +16,7 @@ const mountServerMarkup = () => {
   return target;
 };
 
-test("BIND-08 hydrating the server markup does not mismatch, and the session starts after hydration", () => {
+test("BIND-08 hydrating the server markup does not mismatch, and the session starts before the children read", () => {
   const warn = vi.spyOn(console, "warn");
   const error = vi.spyOn(console, "error");
   const { beacon } = createWebBeacon();
@@ -24,8 +24,6 @@ test("BIND-08 hydrating the server markup does not mismatch, and the session sta
   const target = mountServerMarkup();
 
   const app = hydrate(StatusHarness, { target, props: { beacon, seen } });
-
-  expect(beacon.status.get()).toEqual({ state: "idle" });
 
   flushSync();
 

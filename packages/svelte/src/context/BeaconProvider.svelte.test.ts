@@ -6,6 +6,7 @@ import { mountView } from "../utilities/mountView.fixture.js";
 import { useBeacon } from "../utilities/useBeacon.js";
 import { useStatus } from "../utilities/useStatus.js";
 import BeaconProvider from "./BeaconProvider.svelte";
+import CheckerHarness from "./CheckerHarness.fixture.svelte";
 
 afterEach(cleanup);
 
@@ -23,6 +24,17 @@ test("the provider starts the session while mounted and ends it on unmount", () 
   unmount();
 
   expect(beacon.status.get()).toEqual({ state: "stopped" });
+});
+
+test("a child that checks when it mounts finds the session already started", async () => {
+  const { beacon } = createWebBeacon();
+  const outcomes: string[] = [];
+
+  render(CheckerHarness, { props: { beacon, outcomes } });
+  flushSync();
+  await settle();
+
+  expect(outcomes).not.toContain("failed");
 });
 
 test("the provider without start leaves the Beacon idle", () => {
@@ -117,19 +129,12 @@ test("what a listener reads while the provider starts the session does not resta
   const { beacon } = createWebBeacon();
   let reads = $state(0);
   const seen: number[] = [];
-  const listening: { stop: () => void } = { stop: () => {} };
 
-  mountView(
-    beacon,
-    () => {
-      listening.stop = beacon.status.subscribe(() => {
-        seen.push(reads);
-      });
+  const stop = beacon.status.subscribe(() => {
+    seen.push(reads);
+  });
 
-      return useStatus();
-    },
-    { start: true },
-  );
+  mountView(beacon, () => useStatus(), { start: true });
 
   expect(seen).toEqual([0]);
 
@@ -138,5 +143,5 @@ test("what a listener reads while the provider starts the session does not resta
   await settle();
 
   expect(beacon.status.get()).toEqual({ state: "running", session: 1 });
-  listening.stop();
+  stop();
 });

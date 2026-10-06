@@ -1,4 +1,4 @@
-import { createComponent, createRoot, createSignal } from "solid-js";
+import { createComponent, createRoot, createSignal, onMount } from "solid-js";
 import { expect, test } from "vitest";
 
 import { createWebBeacon } from "src/beacon.fixture";
@@ -41,6 +41,26 @@ test("the provider starts the session while mounted and ends it on unmount, with
   beacon.start();
 
   expect(beacon.status.get()).toMatchObject({ state: "running" });
+});
+
+test("a child that checks when it mounts finds the session already started", async () => {
+  const { beacon } = createWebBeacon();
+  const outcomes: string[] = [];
+
+  const { dispose } = mountWithProvider(
+    { beacon: () => beacon, start: () => true },
+    () => {
+      onMount(() => {
+        beacon.check().then(({ routes }) => outcomes.push(routes.web.status));
+      });
+    },
+  );
+
+  await settle();
+
+  expect(outcomes).not.toContain("failed");
+
+  dispose();
 });
 
 test("BIND-07 a provider mounted, unmounted and mounted again leaves one session running with no check or command", () => {

@@ -17,10 +17,10 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | STORE   | App Store metadata and handoff      | 10        | 9      | 01, 02, 03, 04, 05, 06, 07, 08, 09                                     |
 | SAFE    | Disruption coordination             | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
 | JOURNAL | Persistence and boot reconciliation | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
-| LIFE    | Sessions and resource ownership     | 12        | 9      | 01, 02, 03, 04, 05, 06, 07, 10, 12                                     |
+| LIFE    | Sessions and resource ownership     | 12        | 10     | 01, 02, 03, 04, 05, 06, 07, 10, 11, 12                                 |
 | SEC     | Security and diagnostics            | 12        | 11     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12                             |
 | BIND    | Types, React, and SSR               | 10        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10                                 |
-| Total   |                                     | 202       | 184    |                                                                        |
+| Total   |                                     | 202       | 185    |                                                                        |
 
 <!-- scenarios:end -->
 

@@ -63,40 +63,40 @@ export const reader = expoBundle({ updates: Updates });
   },
   {
     sdk: "expo-application",
-    adapter: "native",
-    floor: "1.0.0",
+    adapter: "expo",
+    floor: "5.0.0",
     also: ["58.0.2"],
     check: `
-import type { ApplicationLike } from "@priemskiyyy/beacon-native";
-import { expoApplication } from "@priemskiyyy/beacon-native";
+import type { ApplicationLike } from "@priemskiyyy/beacon-expo";
+import { expoApplication } from "@priemskiyyy/beacon-expo";
 import * as Application from "expo-application";
 ${NOT_ANY}
 export const resolved: IsAny<typeof Application.nativeBuildVersion> = false;
 export const fits: ApplicationLike = Application;
-export const reader = expoApplication({ application: Application, platform: "ios" });
+export const reader = expoApplication({ application: Application });
 `,
   },
   {
     sdk: "react-native-device-info",
-    adapter: "native",
-    floor: "4.0.1",
+    adapter: "device-info",
+    floor: "10.0.0",
     also: ["15.0.2"],
     check: `
-import type { DeviceInfoLike } from "@priemskiyyy/beacon-native";
-import { deviceInfo } from "@priemskiyyy/beacon-native";
+import type { DeviceInfoLike } from "@priemskiyyy/beacon-device-info";
+import { deviceInfo } from "@priemskiyyy/beacon-device-info";
 import DeviceInfo from "react-native-device-info";
 import * as DeviceInfoModule from "react-native-device-info";
 ${NOT_ANY}
 export const resolved: IsAny<typeof DeviceInfo.getBuildNumber> = false;
 export const fits: DeviceInfoLike = DeviceInfo;
 export const fitsModule: DeviceInfoLike = DeviceInfoModule;
-export const reader = deviceInfo({ deviceInfo: DeviceInfo, platform: "ios" });
+export const reader = deviceInfo({ deviceInfo: DeviceInfo });
 `,
   },
   {
     sdk: "react-native-code-push",
     adapter: "code-push",
-    floor: "5.5.0",
+    floor: "8.0.0",
     also: ["9.0.1"],
     check: `
 import type { CodePushLike } from "@priemskiyyy/beacon-code-push";

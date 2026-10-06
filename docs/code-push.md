@@ -47,29 +47,16 @@ Bravemobile's decorator takes its `releaseHistoryFetcher` beside `checkFrequency
 
 ## Create a route
 
-The running bundle is a `bundle` reader, and the installed binary is a `native` reader. A CodePush package targets one binary version, so a policy that compares the two needs both. `expoApplication` of [`@priemskiyyy/beacon-native`](native.md) names an Android build by its version code and an iOS build by its build number, in the words the store adapters use.
-
-```ts
-// src/nativeBuild.ts
-import { expoApplication } from "@priemskiyyy/beacon-native";
-import * as Application from "expo-application";
-import { Platform } from "react-native";
-
-export const nativeBuild = expoApplication({
-  application: Application,
-  platform: Platform.OS === "ios" ? "ios" : "android",
-  authority: "com.example.notes",
-});
-```
+The route reads the running bundle itself, and the installed binary is a `native` reader of yours. A CodePush package targets one binary version, so a policy that compares the two needs both. `deviceInfo` of [`@priemskiyyy/beacon-device-info`](device-info.md) names an Android build by its version code and an iOS build by its build number, in the words the store adapters use, and in an Expo app `expoApplication` of `@priemskiyyy/beacon-expo` does the same.
 
 ```ts
 // src/beacon.ts
 import { Beacon } from "@priemskiyyy/beacon";
-import { codePushBundle, codePushUpdates } from "@priemskiyyy/beacon-code-push";
+import { codePushUpdates } from "@priemskiyyy/beacon-code-push";
+import { deviceInfo } from "@priemskiyyy/beacon-device-info";
 import CodePush from "@revopush/react-native-code-push";
 import { Platform } from "react-native";
-
-import { nativeBuild } from "src/nativeBuild";
+import DeviceInfo from "react-native-device-info";
 
 export const beacon = new Beacon({
   scope: {
@@ -78,10 +65,7 @@ export const beacon = new Beacon({
     platform: Platform.OS,
     distribution: "app-store",
   },
-  running: {
-    native: nativeBuild,
-    bundle: codePushBundle({ codePush: CodePush }),
-  },
+  running: { native: deviceInfo({ deviceInfo: DeviceInfo }) },
   routes: { update: codePushUpdates({ codePush: CodePush }) },
 });
 ```
@@ -90,7 +74,7 @@ The route is a driver route on the `bundle` subject. It never calls `sync`, `not
 
 ### The running bundle
 
-`codePushBundle({ codePush: CodePush })` reads `getUpdateMetadata` for the package that runs, and never for one that is pending. Pass it as the `bundle` reader. The route never writes it.
+`codePushBundle({ codePush: CodePush })` reads `getUpdateMetadata` for the package that runs, and never for one that is pending. `codePushUpdates` supplies it as the reader of the `bundle` subject, so a journal knows which package a reload reached with nothing in `running`. A reader you pass as `running.bundle` wins, so pass `codePushBundle` only to override that, or where no `codePushUpdates` route is given. It is made for the `bundle` subject, and `running.web` refuses it. The route never writes the fact.
 
 | Fact       | Source                                                                                                                                                     |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |

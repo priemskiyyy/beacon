@@ -4,13 +4,13 @@ description: "Check a Beacon at startup, on a return from the background or a ta
 
 # Triggers
 
-Beacon has no timer and subscribes to nothing, so when to check is yours. `@priemskiyyy/beacon-triggers` is the part every application writes the same way: a check at startup, another when the app returns from the background or the network comes back, one now and then, and one when a push says so. Each moment is a trigger, and one gate behind them shares reads, holds a burst to one start, backs off after a failure and stops when you say so.
+Beacon has no timer and subscribes to nothing, so when to check is yours. `@priemskiyyy/beacon/triggers` is the part every application writes the same way: a check at startup, another when the app returns from the background or the network comes back, one now and then, and one when a push says so. Each moment is a trigger, and one gate behind them shares reads, holds a burst to one start, backs off after a failure and stops when you say so.
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-triggers
+pnpm add @priemskiyyy/beacon
 ```
 
-It imports no SDK. You pass React Native's `AppState`, NetInfo, a Pulse or a source of your own in, and what each needs of it is a structural type, so a test passes a fake and a server render loads nothing.
+It is a subpath of the core package, so there is nothing else to install, and an app that never imports it bundles none of it. It imports no SDK. You pass React Native's `AppState`, NetInfo, a Pulse or a source of your own in, and what each needs of it is a structural type, so a test passes a fake and a server render loads nothing.
 
 ## React Native
 
@@ -21,7 +21,7 @@ import {
   foreground,
   interval,
   reconnect,
-} from "@priemskiyyy/beacon-triggers";
+} from "@priemskiyyy/beacon/triggers";
 import NetInfo from "@react-native-community/netinfo";
 import { useEffect } from "react";
 import { AppState } from "react-native";
@@ -48,12 +48,12 @@ export const useUpdateChecks = () => {
 
 ## On the web
 
-The `@priemskiyyy/beacon-triggers/browser` subpath has the same two triggers over the page's own events, under the same names and with the same reasons, so nothing has to be written by hand:
+The `@priemskiyyy/beacon/triggers/browser` subpath has the same two triggers over the page's own events, under the same names and with the same reasons, so nothing has to be written by hand:
 
 ```tsx
 // src/useUpdateChecks.web.ts
-import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
-import { foreground, reconnect } from "@priemskiyyy/beacon-triggers/browser";
+import { checkOn, interval } from "@priemskiyyy/beacon/triggers";
+import { foreground, reconnect } from "@priemskiyyy/beacon/triggers/browser";
 import { useEffect } from "react";
 
 export const useUpdateChecks = () => {
@@ -86,7 +86,7 @@ Both listen to the global `window`, reached when a session opens and never when 
 | `reachReconnect({ condition })`         | a Reach condition                         | the condition was unmet, and now is met                            | `reconnect`    |
 | `invalidation({ source })`              | anything with `subscribe(listener)`       | it says so; its payload is never read                              | `invalidation` |
 
-The first two pairs of rows are two imports: the React Native ones come from `@priemskiyyy/beacon-triggers` and the browser ones from `@priemskiyyy/beacon-triggers/browser`. The check at startup is not a trigger: each time a session opens, including the one `replaceScope` starts for a new scope, the gate checks once with the reason `startup`. Pass `startup: false` to `checkOn` where the first check belongs to something else. A check after a failure is labelled `retry`, and one because evidence expired `expiry`, so the diagnostics tell them from the timer's `interval`.
+The first two pairs of rows are two imports: the React Native ones come from `@priemskiyyy/beacon/triggers` and the browser ones from `@priemskiyyy/beacon/triggers/browser`. The check at startup is not a trigger: each time a session opens, including the one `replaceScope` starts for a new scope, the gate checks once with the reason `startup`. Pass `startup: false` to `checkOn` where the first check belongs to something else. A check after a failure is labelled `retry`, and one because evidence expired `expiry`, so the diagnostics tell them from the timer's `interval`.
 
 ### foreground
 
@@ -128,8 +128,8 @@ While a trigger says the app is in the background, which `foreground` and `pulse
 `invalidation({ source })` takes anything that says "look again": a push channel, another tab, a value that changed. The source's payload is never read. What the authority says is what the check reads, so a push cannot offer a release the authority did not publish.
 
 ```ts
-import { checkOn, invalidation } from "@priemskiyyy/beacon-triggers";
-import type { Subscribable } from "@priemskiyyy/beacon-triggers";
+import { checkOn, invalidation } from "@priemskiyyy/beacon/triggers";
+import type { Subscribable } from "@priemskiyyy/beacon/triggers";
 
 declare const channel: Subscribable;
 
@@ -176,7 +176,7 @@ The [advanced options](#advanced) have their own defaults: `backoff.attempts` co
 ### Backoff
 
 ```ts
-import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
+import { checkOn, interval } from "@priemskiyyy/beacon/triggers";
 
 export const stop = checkOn(beacon, {
   triggers: [interval({ every: 30 * 60_000 })],
@@ -195,7 +195,7 @@ The defaults are right until a real authority says otherwise. These are the opti
 `backoff: { first, max, jitter, attempts }` also takes `jitter`, the share of a wait added at random (0.2 by default), and `attempts`, the retries the gate starts by itself before it waits for the next signal (3 by default). `random` is the source of every jitter, `Math.random` by default: pass a fixed one in a test.
 
 ```ts
-import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
+import { checkOn, interval } from "@priemskiyyy/beacon/triggers";
 
 export const stop = checkOn(beacon, {
   triggers: [interval({ every: 30 * 60_000 })],
@@ -226,3 +226,24 @@ export const stop = checkOn(beacon, {
 - **A check is a read of the authority.** A trigger that fires often asks often: pick `minInterval`, `backoff` and `whileFresh` for the authority you have.
 
 What no device has run, and stays unverified: `AppState` on a device (a system dialog taking iOS to `inactive` and back, every Android pause being `background`), what NetInfo reports on a real change of network and when, and the behavior of timers while the app is in the background. On the web, Chromium has run the `online` event through a real change of the network, and nothing has run `visibilitychange` on a real hidden tab, the `pageshow` of the back-forward cache, Safari or Firefox: the tests drive the browser triggers over a fake page. The tests run the triggers over fakes of each source, the real Pulse over its own mock adapter, and the real Beacon and its test clock. [React Native](react-native.md#what-no-device-has-run) lists the rest.
+
+## Verification
+
+| Claim                                                                                                                                                         | Proven by                                                                                         | State          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------- |
+| Nothing is subscribed or armed before `checkOn`, `stop` leaves no listener and no timer, a session's end takes the triggers                                   | scenarios over the real core, the test clock and fakes (`TRIG-01` to `08`)                        | tested         |
+| One read per moment, a reconnect reads after the current one, a burst is one start, backoff, jitter, freshness, expiry and a clock that cannot arm a timer    | the same, with the mock source (`TRIG-09` to `19`, `TRIG-30`)                                     | tested         |
+| The return rule of `AppState`, `minAway`, NetInfo's first call, a condition, a push                                                                           | the same over fakes of each source (`TRIG-20` to `29`)                                            | tested         |
+| A session checks at startup by itself, and `startup: false` leaves the first check to the triggers                                                            | the same, and a real Chromium (`examples/triggers-browser.spec.ts`)                               | tested         |
+| The browser triggers: a hidden tab shown again, the back-forward cache, `minAway`, the interval pausing, no window and a window that is React Native's global | scenarios over a fake page (`TRIG-01`, `TRIG-20` to `23`), also under the Hermes-like environment | tested         |
+| The `online` event of a real browser is a reconnect, never at startup, and stopping removes the listener                                                      | a real Chromium going offline and back, by `examples/triggers-browser.spec.ts`                    | tested         |
+| The real `window` satisfies the structural types of the browser triggers                                                                                      | `packages/core/src/triggers/browser.contracts.ts`, typechecked                                    | tested         |
+| A hidden tab and a page restored from the back-forward cache in a real browser, Safari and Firefox                                                            | nothing: a headless page cannot be hidden                                                         | **UNVERIFIED** |
+| A Pulse's events and `observedAway` decide the check                                                                                                          | the real Pulse 0.1.0 over its own mock adapter (`TRIG-27`)                                        | tested         |
+| The real `AppState` of React Native 0.86.3, NetInfo 12.0.1 and Pulse 0.1.0 satisfy the structural types                                                       | `packages/core/src/triggers/checkOn.contracts.ts`, typechecked                                    | tested         |
+| A Reach 0.1.0 condition, React Native 0.87.1 and the strict API of 0.86.3 satisfy them                                                                        | typechecked once in a scratch directory: Reach 0.1.0 is unpublished                               | not in CI      |
+| `AppState` on a device: a system dialog taking iOS to `inactive` and back, every Android pause being `background`                                             | nothing                                                                                           | **UNVERIFIED** |
+| NetInfo on a device: its first call, its state across a real change of network                                                                                | nothing                                                                                           | **UNVERIFIED** |
+| Background timers: iOS suspending JavaScript, Android throttling it, a hidden tab throttling a timer                                                          | nothing                                                                                           | **UNVERIFIED** |
+| An `interval` that resumes at the return, and a check that is in flight when the app is suspended                                                             | nothing                                                                                           | **UNVERIFIED** |
+| The triggers under Hermes                                                                                                                                     | the same scenarios in the Hermes-like environment, not a device                                   | tested         |

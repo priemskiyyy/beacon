@@ -148,7 +148,7 @@ A small schema for a manifest that one application, environment, platform and di
 }
 ```
 
-The release's identity has to be named the way the page or the binary names what it runs, or the route says `inconclusive`. `webBuild` of [`@priemskiyyy/beacon-browser`](../browser) reads the running web build under the domain `web-artifact`, and `expoApplication` and `deviceInfo` of [`@priemskiyyy/beacon-native`](../native) read the installed binary under `android-version-code` and `ios-build`, each under the application id as authority.
+The release's identity has to be named the way the page or the binary names what it runs, or the route says `inconclusive`. `webBuild` of [`@priemskiyyy/beacon-browser`](../browser) reads the running web build under the domain `web-artifact`, and `expoApplication` of [`@priemskiyyy/beacon-expo`](../expo) and `deviceInfo` of [`@priemskiyyy/beacon-device-info`](../device-info) read the installed binary under `android-version-code` and `ios-build`, each under the application of the scope as authority.
 
 ### What is accepted
 

@@ -54,7 +54,7 @@ const manifest = http({
 export const beacon = new Beacon({
   scope,
   running: {
-    web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
+    web: webBuild({ id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({

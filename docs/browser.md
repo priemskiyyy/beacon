@@ -34,7 +34,7 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
+    web: webBuild({ id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
@@ -113,11 +113,11 @@ The mechanism opens with a session and reads the global `window` only then, so c
 
 ## What the running fact must say
 
-`webBuild` is the `web` reader. It reads the build the document was loaded from, the id your bundler writes into the code, such as `import.meta.env.VITE_BUILD_ID` in Vite or `process.env.NEXT_PUBLIC_BUILD_ID` in Next.js. Its identity must use the same `authority` and `domain` as the manifest's release, or the two are incomparable and the route says `inconclusive`. Never read it from the manifest: the point is to compare the running build with what an authority wants.
+`webBuild` is the `web` reader. It reads the build the document was loaded from, the id your bundler writes into the code, such as `import.meta.env.VITE_BUILD_ID` in Vite or `process.env.NEXT_PUBLIC_BUILD_ID` in Next.js. Its identity must use the same `authority` and `domain` as the manifest's release, or the two are incomparable and the route says `inconclusive`. The authority is the application of the scope, which the reader is given each time it runs, so `webBuild({ id })` is all it takes. Never read it from the manifest: the point is to compare the running build with what an authority wants.
 
 | Option      | Meaning                                                                           |
 | ----------- | --------------------------------------------------------------------------------- |
-| `authority` | who assigns the build ids, which is `scope.application`                           |
+| `authority` | who assigns the build ids: `scope.application`, unless you give another           |
 | `id`        | the constant the bundler injected, as `string`, `null` or `undefined`             |
 | `label`     | a name for people, the id by default                                              |
 | `domain`    | what the ids name, `web-artifact` by default, the word the standard manifest uses |
@@ -127,13 +127,10 @@ The mechanism opens with a session and reads the global `window` only then, so c
 ```ts
 import { webBuild } from "@priemskiyyy/beacon-browser";
 
-export const web = webBuild({
-  authority: "com.example.notes",
-  id: import.meta.env.VITE_BUILD_ID,
-});
+export const web = webBuild({ id: import.meta.env.VITE_BUILD_ID });
 ```
 
-A constant nobody defined is not a build. An unset `import.meta.env.VITE_BUILD_ID` compiles to `undefined` (Vite 8 writes `void 0`), an empty define to an empty string, and one written into a string to the text `undefined`. Each makes the identity unknown, with the reason `build-id-not-injected`, and never a known build named `undefined`: the journal then says `inconclusive`, and a route against it says `inconclusive` too. An `authority` or a `domain` that is empty or has a space around it is refused when the reader is made, with `INVALID_CONFIGURATION`. It asks the document for nothing, so creating it in a server render is harmless.
+A constant nobody defined is not a build. An unset `import.meta.env.VITE_BUILD_ID` compiles to `undefined` (Vite 8 writes `void 0`), an empty define to an empty string, and one written into a string to the text `undefined`. Each makes the identity unknown, with the reason `build-id-not-injected`, and never a known build named `undefined`: the journal then says `inconclusive`, and a route against it says `inconclusive` too. An `authority` or a `domain` that is given and is empty or has a space around it is refused when the reader is made, with `INVALID_CONFIGURATION`. It asks the document for nothing, so creating it in a server render is harmless.
 
 ## Name the build in a source of your own
 
@@ -161,7 +158,7 @@ export const web = targetRoute({
 });
 ```
 
-`authority` is the `scope.application` you gave `webBuild`, and `id` is the build the file says should run. The id is read as `webBuild` reads it, so a padded one is the same build. A release is an authority's claim and cannot be unknown: an id that is empty or is the text of a missing define, such as `undefined`, throws `INVALID_CONFIGURATION`, which a `select` turns into a failed check, never into an offer of a build named `undefined`.
+`authority` is the `scope.application` that `webBuild` names the running build under, and it is spelled out here because a `select` is given the document and not the scope. `id` is the build the file says should run. The id is read as `webBuild` reads it, so a padded one is the same build. A release is an authority's claim and cannot be unknown: an id that is empty or is the text of a missing define, such as `undefined`, throws `INVALID_CONFIGURATION`, which a `select` turns into a failed check, never into an offer of a build named `undefined`.
 
 ## Journal storage
 

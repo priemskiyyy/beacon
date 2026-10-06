@@ -31,24 +31,23 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 
 ## Install
 
-| Package                                      | Use it for                                                   |
-| -------------------------------------------- | ------------------------------------------------------------ |
-| `@priemskiyyy/beacon`                        | The runtime, `./versions`, `./mock` and `./testing`          |
-| `@priemskiyyy/beacon-http`                   | Your own release manifest endpoint, through your own client  |
-| `@priemskiyyy/beacon-browser`                | Reloading the browser document                               |
-| `@priemskiyyy/beacon-service-worker`         | A waiting service worker as an update that is ready          |
-| `@priemskiyyy/beacon-expo`                   | Expo Updates                                                 |
-| `@priemskiyyy/beacon-google-play`            | The Play Store page, and in-app updates (your bridge)        |
-| `@priemskiyyy/beacon-app-store`              | The App Store route: metadata and store handoff              |
-| `@priemskiyyy/beacon-code-push`              | The React Native CodePush family, over the fork you use      |
-| `@priemskiyyy/beacon-native`                 | The installed native build as a running fact                 |
-| `@priemskiyyy/beacon-triggers`               | Checks on startup, a return, a reconnect and an interval     |
-| `@priemskiyyy/beacon-firebase-remote-config` | Firebase Remote Config as a source, such as a minimum build  |
-| `@priemskiyyy/beacon-react`                  | A provider and hooks, typed by the Beacon you register       |
-| `@priemskiyyy/beacon-vue`                    | A provider and composables for Vue, typed the same way       |
-| `@priemskiyyy/beacon-solid`                  | A provider and primitives for Solid, typed the same way      |
-| `@priemskiyyy/beacon-svelte`                 | A provider and utilities for Svelte 5, typed the same way    |
-| `@priemskiyyy/beacon-devtools`               | An inspector for the session, the routes and the diagnostics |
+| Package                                      | Use it for                                                     |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| `@priemskiyyy/beacon`                        | The runtime, `./triggers`, `./versions`, `./mock`, `./testing` |
+| `@priemskiyyy/beacon-http`                   | Your own release manifest endpoint, through your own client    |
+| `@priemskiyyy/beacon-browser`                | Reloading the browser document                                 |
+| `@priemskiyyy/beacon-service-worker`         | A waiting service worker as an update that is ready            |
+| `@priemskiyyy/beacon-expo`                   | Expo Updates, and the installed build from `expo-application`  |
+| `@priemskiyyy/beacon-google-play`            | The Play Store page, and in-app updates (your bridge)          |
+| `@priemskiyyy/beacon-app-store`              | The App Store route: metadata and store handoff                |
+| `@priemskiyyy/beacon-code-push`              | The React Native CodePush family, over the fork you use        |
+| `@priemskiyyy/beacon-device-info`            | The installed native build, from `react-native-device-info`    |
+| `@priemskiyyy/beacon-firebase-remote-config` | Firebase Remote Config as a source, such as a minimum build    |
+| `@priemskiyyy/beacon-react`                  | A provider and hooks, typed by the Beacon you register         |
+| `@priemskiyyy/beacon-vue`                    | A provider and composables for Vue, typed the same way         |
+| `@priemskiyyy/beacon-solid`                  | A provider and primitives for Solid, typed the same way        |
+| `@priemskiyyy/beacon-svelte`                 | A provider and utilities for Svelte 5, typed the same way      |
+| `@priemskiyyy/beacon-devtools`               | An inspector for the session, the routes and the diagnostics   |
 
 ```sh
 pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-http @priemskiyyy/beacon-browser
@@ -93,7 +92,7 @@ const manifest = http({
 export const beacon = new Beacon({
   scope,
   running: {
-    web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
+    web: webBuild({ id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
@@ -122,14 +121,14 @@ if (observation.status === "available") {
 
 ## Where Beacon stops
 
-It is not an installer, a cache, a scheduler or a policy engine. It has no timer and subscribes to nothing until you ask, and [triggers](triggers.md) is the optional package that checks on the moments you name. It never claims more than a provider gave, and it never turns a missing fact into an old version. [Limits](limits.md) lists what it does not guarantee.
+It is not an installer, a cache, a scheduler or a policy engine. It has no timer and subscribes to nothing until you ask, and [triggers](triggers.md) is the optional subpath of the core that checks on the moments you name. It never claims more than a provider gave, and it never turns a missing fact into an old version. [Limits](limits.md) lists what it does not guarantee.
 
 ## Where to go next
 
 - [Getting started](getting-started.md): the browser with HTTP and a framework binding, then React Native with Expo.
 - [The mental model](mental-model.md): subjects, routes, decisions, evidence, references and outcomes.
 - Guides: [routes](routes.md), [commands](commands.md), [support](support.md), [disruptions](disruptions.md), [journal](journal.md), [scopes](scopes.md) and [sessions](sessions.md).
-- Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [Google Play](google-play.md), [App Store](app-store.md), [CodePush](code-push.md), [native build](native.md), [triggers](triggers.md), [Firebase Remote Config](firebase-remote-config.md) and [custom adapters](custom-adapters.md).
+- Adapters: [HTTP](http.md), [browser](browser.md), [service worker](service-worker.md), [Expo](expo.md), [Google Play](google-play.md), [App Store](app-store.md), [CodePush](code-push.md), [device info](device-info.md), [triggers](triggers.md), [Firebase Remote Config](firebase-remote-config.md) and [custom adapters](custom-adapters.md).
 - Bindings: [React](react.md), [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
 - [Devtools](devtools.md), [recipes](recipes.md), [testing](testing.md) and [troubleshooting](troubleshooting.md).
 - [API](api.md), [verification](verification.md), [limits](limits.md), [decisions](decisions.md) and [architecture](internals/architecture.md).

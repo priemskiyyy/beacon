@@ -176,6 +176,7 @@ const sections = new Map(
 // A subpath is named by where its entry sits under `src`: `mock` for `src/mock.ts`, `triggers/browser` for `src/triggers/browser.ts`.
 const readSectionTitle = (entry) => {
   const source = entry.slice(0, entry.indexOf("/src/") + "/src".length);
+
   const { name } = JSON.parse(
     readFileSync(
       path.join(workspace, path.dirname(source), "package.json"),

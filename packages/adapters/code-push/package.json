@@ -41,7 +41,7 @@
     "@appzung/react-native-code-push": ">=10.0.0",
     "@bravemobile/react-native-code-push": ">=8.2.3",
     "@revopush/react-native-code-push": ">=1.0.0",
-    "react-native-code-push": ">=5.5.0"
+    "react-native-code-push": ">=8.0.0"
   },
   "devDependencies": {
     "@priemskiyyy/beacon": "workspace:*"

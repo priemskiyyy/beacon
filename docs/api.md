@@ -264,6 +264,39 @@ These need `vitest`.
 | `ReleaseDriverFixture`              | type     | a driver route under test and the provider's change events       |
 | `ReleaseDriverConformanceOptions`   | type     | what a driver's suite is run over                                |
 
+## @priemskiyyy/beacon/triggers
+
+See [Triggers](triggers.md).
+
+| Export                 | Kind     | What it is                                                                                         |
+| ---------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `checkOn`              | function | checks the Beacon at startup and on the moments its triggers name, and answers its stop            |
+| `foreground`           | function | a trigger that checks when React Native's `AppState` comes back from the background                |
+| `pulseForeground`      | function | a trigger that checks when a Pulse says the app returned                                           |
+| `reconnect`            | function | a trigger that checks when NetInfo goes from not connected to connected                            |
+| `reachReconnect`       | function | a trigger that checks when a Reach condition goes from unmet to met                                |
+| `interval`             | function | a trigger that checks every delay after the last check that settled, paused in the background      |
+| `invalidation`         | function | a trigger that checks when a source says "look again", and never reads what it sends               |
+| `CheckOnOptions`       | type     | the triggers, the startup check, the minimum interval, the backoff and the advanced options        |
+| `BeaconTrigger`        | type     | a moment to check on: installed with a target when a session opens, it answers how to take it back |
+| `TriggerTarget`        | type     | what a trigger is given: `signal`, the clock, the random source, and where the app is              |
+| `AppStateLike`         | type     | the part of React Native's `AppState` the `foreground` trigger uses                                |
+| `NetInfoLike`          | type     | the part of `@react-native-community/netinfo` the `reconnect` trigger uses                         |
+| `ForegroundSourceLike` | type     | what `pulseForeground` listens to: a Pulse satisfies it                                            |
+| `ConditionLike`        | type     | what `reachReconnect` listens to: a Reach condition satisfies it                                   |
+| `Subscribable`         | type     | anything that only says "look again", for `invalidation`                                           |
+
+## @priemskiyyy/beacon/triggers/browser
+
+See [Triggers](triggers.md#on-the-web).
+
+| Export                 | Kind     | What it is                                                                                 |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `foreground`           | function | a trigger that checks when the page is shown again or restored from the back-forward cache |
+| `reconnect`            | function | a trigger that checks when the browser fires `online`, and never at startup                |
+| `ForegroundWindowLike` | type     | the part of a window `foreground` uses: its document's visibility and the `pageshow` event |
+| `ReconnectWindowLike`  | type     | the part of a window `reconnect` uses: the `online` event                                  |
+
 ## @priemskiyyy/beacon-http
 
 See [HTTP](http.md).
@@ -296,21 +329,21 @@ See [HTTP](http.md).
 
 See [browser](browser.md).
 
-| Export                     | Kind     | What it is                                                                                        |
-| -------------------------- | -------- | ------------------------------------------------------------------------------------------------- |
-| `browserReload`            | function | a mechanism with one command, `reload`, bound to nothing                                          |
-| `browserStorage`           | function | the journal's storage in the tab's `sessionStorage`, or `localStorage` with `area: "local"`       |
-| `webBuild`                 | function | the reader of the running web build, from the id the bundler injects; an id nobody set is unknown |
-| `webRelease`               | function | the release a source names for a web build, which `webBuild` reads back when it runs              |
-| `BrowserReloadOptions`     | type     | the window whose document is reloaded                                                             |
-| `BrowserNative`            | type     | what `route.native` exposes: the window, or `null`                                                |
-| `BrowserWindowLike`        | type     | the part of a window the mechanism uses: `location.reload()`                                      |
-| `BrowserReloadReceipt`     | type     | `reload-requested`                                                                                |
-| `BrowserStorageArea`       | type     | `session` or `local`                                                                              |
-| `BrowserStorageOptions`    | type     | the area, the window and whether a write is read back                                             |
-| `BrowserStorageWindowLike` | type     | the part of a window the storage uses: its two areas of web storage                               |
-| `WebReleaseOptions`        | type     | the authority, id and label of `webRelease`                                                       |
-| `WebBuildOptions`          | type     | the authority, the injected id, an optional label and the domain                                  |
+| Export                     | Kind     | What it is                                                                                                                             |
+| -------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `browserReload`            | function | a mechanism with one command, `reload`, bound to nothing                                                                               |
+| `browserStorage`           | function | the journal's storage in the tab's `sessionStorage`, or `localStorage` with `area: "local"`                                            |
+| `webBuild`                 | function | the reader of the running web build, named under the scope's application, from the id the bundler injects; an id nobody set is unknown |
+| `webRelease`               | function | the release a source names for a web build, which `webBuild` reads back when it runs                                                   |
+| `BrowserReloadOptions`     | type     | the window whose document is reloaded                                                                                                  |
+| `BrowserNative`            | type     | what `route.native` exposes: the window, or `null`                                                                                     |
+| `BrowserWindowLike`        | type     | the part of a window the mechanism uses: `location.reload()`                                                                           |
+| `BrowserReloadReceipt`     | type     | `reload-requested`                                                                                                                     |
+| `BrowserStorageArea`       | type     | `session` or `local`                                                                                                                   |
+| `BrowserStorageOptions`    | type     | the area, the window and whether a write is read back                                                                                  |
+| `BrowserStorageWindowLike` | type     | the part of a window the storage uses: its two areas of web storage                                                                    |
+| `WebReleaseOptions`        | type     | the authority, id and label of `webRelease`                                                                                            |
+| `WebBuildOptions`          | type     | the injected id, and optionally the authority, a label and the domain                                                                  |
 
 ## @priemskiyyy/beacon-service-worker
 
@@ -334,21 +367,25 @@ See [service worker](service-worker.md).
 
 See [Expo](expo.md).
 
-| Export                | Kind     | What it is                                                                    |
-| --------------------- | -------- | ----------------------------------------------------------------------------- |
-| `expoUpdates`         | function | Expo Updates as a route, with `download` and `reload`                         |
-| `expoBundle`          | function | the reader of the running bundle, from the `expo-updates` constants           |
-| `applyUpdate`         | function | `download` and then `reload` for an Expo route, and where it stopped          |
-| `AppliedUpdate`       | type     | `none`, `download` or `reload`, with the outcome of the command it stopped at |
-| `ExpoRoute`           | type     | the route `expoUpdates` makes, which `applyUpdate` takes the handle of        |
-| `ExpoOptions`         | type     | the `expo-updates` module to pass in                                          |
-| `ExpoNative`          | type     | what `route.native` exposes: the module                                       |
-| `ExpoBody`            | type     | what an offer carries: an `update` or a `rollback-to-embedded`                |
-| `ExpoDownloadReceipt` | type     | `update-prepared`, `rollback-prepared` or `no-new-preparation`                |
-| `ExpoReloadReceipt`   | type     | `reload-requested`                                                            |
-| `UpdatesLike`         | type     | the part of the `expo-updates` module the adapter uses                        |
-| `CheckResultLike`     | type     | the part of `UpdateCheckResult` the adapter reads                             |
-| `FetchResultLike`     | type     | the part of `UpdateFetchResult` the adapter reads                             |
+| Export                   | Kind     | What it is                                                                                 |
+| ------------------------ | -------- | ------------------------------------------------------------------------------------------ |
+| `expoUpdates`            | function | Expo Updates as a route, with `download` and `reload`                                      |
+| `expoBundle`             | function | the reader of the running bundle, which `expoUpdates` supplies for its route               |
+| `expoApplication`        | function | the reader of the installed binary, from `expo-application`, for the platform of the scope |
+| `applyUpdate`            | function | `download` and then `reload` for an Expo route, and where it stopped                       |
+| `AppliedUpdate`          | type     | `none`, `download` or `reload`, with the outcome of the command it stopped at              |
+| `ExpoRoute`              | type     | the route `expoUpdates` makes, which `applyUpdate` takes the handle of                     |
+| `ExpoOptions`            | type     | the `expo-updates` module to pass in                                                       |
+| `ExpoApplicationOptions` | type     | the `expo-application` module, and optionally the platform, the authority and the domain   |
+| `ApplicationLike`        | type     | the part of the `expo-application` module the reader uses                                  |
+| `NativePlatform`         | type     | `android` or `ios`                                                                         |
+| `ExpoNative`             | type     | what `route.native` exposes: the module                                                    |
+| `ExpoBody`               | type     | what an offer carries: an `update` or a `rollback-to-embedded`                             |
+| `ExpoDownloadReceipt`    | type     | `update-prepared`, `rollback-prepared` or `no-new-preparation`                             |
+| `ExpoReloadReceipt`      | type     | `reload-requested`                                                                         |
+| `UpdatesLike`            | type     | the part of the `expo-updates` module the adapter uses                                     |
+| `CheckResultLike`        | type     | the part of `UpdateCheckResult` the adapter reads                                          |
+| `FetchResultLike`        | type     | the part of `UpdateFetchResult` the adapter reads                                          |
 
 ## @priemskiyyy/beacon-expo/mock
 
@@ -430,7 +467,7 @@ See [CodePush](code-push.md).
 | Export                    | Kind     | What it is                                                                               |
 | ------------------------- | -------- | ---------------------------------------------------------------------------------------- |
 | `codePushUpdates`         | function | the React Native CodePush family as a route, with `download` and `reload`                |
-| `codePushBundle`          | function | the reader of the running bundle, from the package CodePush says runs                    |
+| `codePushBundle`          | function | the reader of the running bundle, which `codePushUpdates` supplies for its route         |
 | `CodePushOptions`         | type     | the CodePush module to pass in                                                           |
 | `CodePushNative`          | type     | what `route.native` exposes: the module                                                  |
 | `CodePushOffer`           | type     | what an offer carries: the label, whether it is mandatory and whether it was rolled back |
@@ -442,53 +479,16 @@ See [CodePush](code-push.md).
 | `LocalPackageLike`        | type     | the part of a `LocalPackage` the adapter uses                                            |
 | `DownloadProgressLike`    | type     | the bytes received and the bytes expected of a download                                  |
 
-## @priemskiyyy/beacon-native
+## @priemskiyyy/beacon-device-info
 
-See [Native build](native.md).
+See [Device info](device-info.md).
 
-| Export                   | Kind     | What it is                                                                              |
-| ------------------------ | -------- | --------------------------------------------------------------------------------------- |
-| `expoApplication`        | function | the reader of the installed binary, from the constants of `expo-application`            |
-| `deviceInfo`             | function | the reader of the installed binary, from `react-native-device-info`                     |
-| `ExpoApplicationOptions` | type     | the `expo-application` module and the options every native reader takes                 |
-| `DeviceInfoOptions`      | type     | the `react-native-device-info` default export and the options every native reader takes |
-| `NativeReaderOptions`    | type     | the platform, the authority and the domain                                              |
-| `NativePlatform`         | type     | `android` or `ios`                                                                      |
-| `ApplicationLike`        | type     | the part of the `expo-application` module the reader uses                               |
-| `DeviceInfoLike`         | type     | the part of `react-native-device-info` the reader uses                                  |
-
-## @priemskiyyy/beacon-triggers
-
-See [Triggers](triggers.md).
-
-| Export                 | Kind     | What it is                                                                                         |
-| ---------------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `checkOn`              | function | checks the Beacon at startup and on the moments its triggers name, and answers its stop            |
-| `foreground`           | function | a trigger that checks when React Native's `AppState` comes back from the background                |
-| `pulseForeground`      | function | a trigger that checks when a Pulse says the app returned                                           |
-| `reconnect`            | function | a trigger that checks when NetInfo goes from not connected to connected                            |
-| `reachReconnect`       | function | a trigger that checks when a Reach condition goes from unmet to met                                |
-| `interval`             | function | a trigger that checks every delay after the last check that settled, paused in the background      |
-| `invalidation`         | function | a trigger that checks when a source says "look again", and never reads what it sends               |
-| `CheckOnOptions`       | type     | the triggers, the startup check, the minimum interval, the backoff and the advanced options        |
-| `BeaconTrigger`        | type     | a moment to check on: installed with a target when a session opens, it answers how to take it back |
-| `TriggerTarget`        | type     | what a trigger is given: `signal`, the clock, the random source, and where the app is              |
-| `AppStateLike`         | type     | the part of React Native's `AppState` the `foreground` trigger uses                                |
-| `NetInfoLike`          | type     | the part of `@react-native-community/netinfo` the `reconnect` trigger uses                         |
-| `ForegroundSourceLike` | type     | what `pulseForeground` listens to: a Pulse satisfies it                                            |
-| `ConditionLike`        | type     | what `reachReconnect` listens to: a Reach condition satisfies it                                   |
-| `Subscribable`         | type     | anything that only says "look again", for `invalidation`                                           |
-
-## @priemskiyyy/beacon-triggers/browser
-
-See [Triggers](triggers.md#on-the-web).
-
-| Export                 | Kind     | What it is                                                                                 |
-| ---------------------- | -------- | ------------------------------------------------------------------------------------------ |
-| `foreground`           | function | a trigger that checks when the page is shown again or restored from the back-forward cache |
-| `reconnect`            | function | a trigger that checks when the browser fires `online`, and never at startup                |
-| `ForegroundWindowLike` | type     | the part of a window `foreground` uses: its document's visibility and the `pageshow` event |
-| `ReconnectWindowLike`  | type     | the part of a window `reconnect` uses: the `online` event                                  |
+| Export              | Kind     | What it is                                                                                               |
+| ------------------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| `deviceInfo`        | function | the reader of the installed binary, from `react-native-device-info`, for the platform of the scope       |
+| `DeviceInfoOptions` | type     | the `react-native-device-info` default export, and optionally the platform, the authority and the domain |
+| `DeviceInfoLike`    | type     | the part of `react-native-device-info` the reader uses                                                   |
+| `NativePlatform`    | type     | `android` or `ios`                                                                                       |
 
 ## @priemskiyyy/beacon-react
 

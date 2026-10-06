@@ -76,7 +76,7 @@ const policy = supportPolicy({
 export const beacon = new Beacon({
   scope,
   running: {
-    web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
+    web: webBuild({ id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
@@ -235,7 +235,7 @@ It reads the build from the identity of the release, which is the same on both p
 
 The three words an identity's `domain` takes here, and in the readers and the sources that agree with them, are constants of the core: `ANDROID_VERSION_CODE_DOMAIN`, `IOS_BUILD_DOMAIN` and `WEB_ARTIFACT_DOMAIN`.
 
-The codes `native-build-not-read`, `native-build-unreadable` and `native-build-too-old` are named by `minimumBuild`, and, like `web-build-not-read` in the first policy above, are the names of a policy's verdicts. They are not reader reasons: a reader that could not read a build says `build-not-read` in the identity, and [Native build](native.md#what-it-reports) lists the reasons it has.
+The codes `native-build-not-read`, `native-build-unreadable` and `native-build-too-old` are named by `minimumBuild`, and, like `web-build-not-read` in the first policy above, are the names of a policy's verdicts. They are not reader reasons: a reader that could not read a build says `build-not-read` in the identity, and [the installed binary](expo.md#the-installed-binary) lists the reasons it has.
 
 ### A domain of your own
 

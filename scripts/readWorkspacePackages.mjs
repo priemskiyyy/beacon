@@ -7,7 +7,7 @@ const listFolders = (parent) =>
     .map((entry) => path.join(parent, entry.name))
     .filter((folder) => existsSync(path.join(folder, "package.json")));
 
-// The entries a package publishes: the name a consumer imports, its built declarations and the source file the entry is built from.
+// The entries a package publishes: the name a consumer imports, its built declarations and the source file the entry is built from, which sits under `src` where the subpath says (`./triggers/browser` is `src/triggers/browser.ts`, and `.` is `src/index.ts`).
 const readEntries = (folder, manifest) =>
   Object.entries(manifest.exports ?? {}).flatMap(([subpath, target]) => {
     if (typeof target !== "object" || typeof target.types !== "string") {
@@ -27,7 +27,7 @@ const readEntries = (folder, manifest) =>
         source: path.join(
           folder,
           "src",
-          `${path.basename(declaration, ".d.ts")}.ts`,
+          `${subpath === "." ? "index" : subpath.slice(2)}.ts`,
         ),
       },
     ];

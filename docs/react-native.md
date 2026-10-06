@@ -4,23 +4,23 @@ description: "Use Beacon in a React Native or Expo app: the engine and toolchain
 
 # React Native
 
-Beacon runs in a React Native app on Hermes, the engine of React Native, on iOS and Android, with Expo or without it. This page is the whole path for that app: what to install, what the engine does and does not have, how the pieces are wired, and what to do about the parts that differ from a browser. The adapters have their own pages: [Expo](expo.md), [CodePush](code-push.md), [Google Play](google-play.md), [App Store](app-store.md) and [Native build](native.md).
+Beacon runs in a React Native app on Hermes, the engine of React Native, on iOS and Android, with Expo or without it. This page is the whole path for that app: what to install, what the engine does and does not have, how the pieces are wired, and what to do about the parts that differ from a browser. The adapters have their own pages: [Expo](expo.md), [CodePush](code-push.md), [Google Play](google-play.md), [App Store](app-store.md) and [Device info](device-info.md).
 
 The same files run in [the Expo example](https://github.com/priemskiyyy/beacon/tree/main/examples/expo), which is bundled for both platforms by `pnpm --filter example-expo build:native` and whose wiring its tests exercise against a fake `expo-updates`.
 
 ## What to install
 
-| You want                                        | Install                                                                                  |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Expo Updates as a route                         | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-expo`, `expo-updates`                        |
-| CodePush, through the fork you use              | `@priemskiyyy/beacon-code-push` and a CodePush fork                                      |
-| Play in-app updates, through a native bridge    | `@priemskiyyy/beacon-google-play`                                                        |
-| The App Store page of your app and its version  | `@priemskiyyy/beacon-app-store`                                                          |
-| The installed binary as a running fact          | `@priemskiyyy/beacon-native`, with `expo-application`                                    |
-| Checks on start, on a return and on a reconnect | `@priemskiyyy/beacon-triggers`, with `@react-native-community/netinfo` for the reconnect |
-| A minimum build kept in Firebase                | `@priemskiyyy/beacon-firebase-remote-config`, with React Native Firebase                 |
-| A provider and hooks for your components        | `@priemskiyyy/beacon-react`, which works with React 18.3 to 19                           |
-| A stored journal                                | `expo-sqlite`, or the store you already use                                              |
+| You want                                        | Install                                                                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Expo Updates as a route                         | `@priemskiyyy/beacon`, `@priemskiyyy/beacon-expo`, `expo-updates`                                                        |
+| CodePush, through the fork you use              | `@priemskiyyy/beacon-code-push` and a CodePush fork                                                                      |
+| Play in-app updates, through a native bridge    | `@priemskiyyy/beacon-google-play`                                                                                        |
+| The App Store page of your app and its version  | `@priemskiyyy/beacon-app-store`                                                                                          |
+| The installed binary as a running fact          | `@priemskiyyy/beacon-expo` with `expo-application`, or `@priemskiyyy/beacon-device-info` with `react-native-device-info` |
+| Checks on start, on a return and on a reconnect | `@priemskiyyy/beacon/triggers`, which is part of the core, with `@react-native-community/netinfo` for the reconnect      |
+| A minimum build kept in Firebase                | `@priemskiyyy/beacon-firebase-remote-config`, with React Native Firebase                                                 |
+| A provider and hooks for your components        | `@priemskiyyy/beacon-react`, which works with React 18.3 to 19                                                           |
+| A stored journal                                | `expo-sqlite`, or the store you already use                                                                              |
 
 `@priemskiyyy/beacon-react` asks for React 18.3 to 19, which covers React Native 0.86 and Expo SDK 57, where React is 19.2. It never imports `react-native`, so one binding serves the web and a device.
 
@@ -58,7 +58,7 @@ Hermes and React Native are not a browser and not Node. Two Hermes builds were r
 | `response.body`, `response.redirected`                                   | React Native's own `fetch` has neither. See [HTTP](http.md#redirects-on-react-native)      |
 | `window`, `document`, `localStorage`, `location`                         | No document and no browser storage, and `window` is only the global object                 |
 
-Lint forbids each of these in the packages that ship, and `pnpm test:unit` runs the core, the HTTP, Expo, CodePush, Play, App Store, native, triggers and Firebase Remote Config packages in an environment where they are removed and React Native's own `AbortController`, `URL` and `URLSearchParams` are in their place. A change that reaches for `crypto.randomUUID()` turns a test red.
+Lint forbids each of these in the packages that ship, and `pnpm test:unit` runs the core (with its triggers), the HTTP, Expo, CodePush, Play, App Store, device info and Firebase Remote Config packages in an environment where they are removed and React Native's own `AbortController`, `URL` and `URLSearchParams` are in their place. A change that reaches for `crypto.randomUUID()` turns a test red.
 
 ## Set up the Beacon once
 
@@ -70,19 +70,14 @@ A boot is one JavaScript runtime, and its id only has to differ from the next ru
 
 ### What the binary is
 
-An Expo app reads the installed binary from `expo-application` with `expoApplication` of `@priemskiyyy/beacon-native`. An Android build is named by its version code and an iOS build by its build number, in the words the store adapters use, so a journal and a support policy compare like with like. A value the module did not give is unknown, and so is a binary of another application: Expo Go, running your code, describes itself. `authority: scope.application` is what makes that say `another-application` and keeps its numbers out of your facts. An app on `react-native-device-info` uses `deviceInfo` the same way, which also takes the text `unknown` that library answers for a value it could not read.
+An Expo app reads the installed binary from `expo-application` with `expoApplication` of `@priemskiyyy/beacon-expo`. An Android build is named by its version code and an iOS build by its build number, in the words the store adapters use, so a journal and a support policy compare like with like. The platform is the scope's `platform` (what `Platform.OS` says) and the authority is its `application`, so the reader needs nothing but the module: a scope that is neither `ios` nor `android` is unknown with the reason `unsupported-platform`. A value the module did not give is unknown, and so is a binary of another application: Expo Go, running your code, describes itself, and the authority is what makes that say `another-application` and keeps its numbers out of your facts. An app on `react-native-device-info` uses `deviceInfo` of `@priemskiyyy/beacon-device-info` the same way, which also takes the text `unknown` that library answers for a value it could not read.
 
 ```ts
 // src/nativeBuild.ts
-import { expoApplication } from "@priemskiyyy/beacon-native";
+import { expoApplication } from "@priemskiyyy/beacon-expo";
 import * as Application from "expo-application";
-import { Platform } from "react-native";
 
-export const nativeBuild = expoApplication({
-  application: Application,
-  platform: Platform.OS === "ios" ? "ios" : "android",
-  authority: "com.example.notes",
-});
+export const nativeBuild = expoApplication({ application: Application });
 ```
 
 | Field                | Android                                       | iOS                                            |
@@ -93,7 +88,7 @@ export const nativeBuild = expoApplication({
 | `label`              | the version name                              | the marketing version                          |
 | `raw`                | `applicationId`, `versionName`, `versionCode` | `applicationId`, `shortVersion`, `buildNumber` |
 
-Every `raw` value is text, or null where the module gave none. The identity is `unknown` with the reason `build-not-read` where the module gave no build number, `application-not-read` where it gave no application id, and `another-application` for a binary that is not yours. A build is never read as zero, as null or as a build named `unknown`. [Troubleshooting](troubleshooting.md#the-installed-binary-is-unknown) says what to do about each.
+Every `raw` value is text, or null where the module gave none. The identity is `unknown` with the reason `build-not-read` where the module gave no build number, `application-not-read` where it gave no application id, `another-application` for a binary that is not yours and `unsupported-platform` for a scope that is not Android or iOS. A build is never read as zero, as null or as a build named `unknown`. [Troubleshooting](troubleshooting.md#the-installed-binary-is-unknown) says what to do about each.
 
 ### The journal's storage
 
@@ -112,7 +107,7 @@ export const journalStorage = keyValueJournalStorage(keyValueStore);
 ```ts
 // src/beacon.ts
 import { Beacon } from "@priemskiyyy/beacon";
-import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
+import { expoUpdates } from "@priemskiyyy/beacon-expo";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 
@@ -131,10 +126,8 @@ export const beacon = new Beacon({
       default: "development",
     }),
   },
-  running: {
-    bundle: expoBundle({ updates: Updates }),
-    native: nativeBuild,
-  },
+  // The route reads the running bundle itself, so the journal can tell which update a reload reached.
+  running: { native: nativeBuild },
   routes: { ota: expoUpdates({ updates: Updates }) },
   journal: { storage: journalStorage },
 });
@@ -189,13 +182,13 @@ The hooks render the same in React Native as in `react-dom`: they read a Beacon 
 
 ## When to check
 
-Check when the app starts, again each time it returns from the background, when the network comes back and now and then. [`@priemskiyyy/beacon-triggers`](triggers.md) does that, and it keeps the rule about React Native's `AppState` so your code does not. Two facts decide how to read it:
+Check when the app starts, again each time it returns from the background, when the network comes back and now and then. [`@priemskiyyy/beacon/triggers`](triggers.md) does that, and it keeps the rule about React Native's `AppState` so your code does not. Two facts decide how to read it:
 
 - On iOS a system dialog, the control center or an incoming call takes the app from `active` to `inactive` and back. Only a trip through `background` is a return. React Native reports `background` when the app leaves, and `active` when it comes back.
 - On Android there is no `inactive`, and every pause of the activity is a `background`, including a permission dialog.
 
 ```sh
-pnpm add @priemskiyyy/beacon-triggers @react-native-community/netinfo
+pnpm add @react-native-community/netinfo
 ```
 
 ```ts
@@ -206,7 +199,7 @@ import {
   foreground,
   interval,
   reconnect,
-} from "@priemskiyyy/beacon-triggers";
+} from "@priemskiyyy/beacon/triggers";
 import NetInfo from "@react-native-community/netinfo";
 import { useEffect } from "react";
 import { AppState } from "react-native";
@@ -289,7 +282,13 @@ import { beacon } from "src/beacon";
 if (__DEV__) {
   beacon.diagnostics.events.subscribe((event) => {
     if (event.type.endsWith("failed")) {
-      console.warn("[beacon]", event.type, event.route, event.reason);
+      console.warn(
+        "[beacon]",
+        event.type,
+        event.route,
+        event.reason,
+        event.cause,
+      );
     }
   });
 }

@@ -60,19 +60,14 @@ export const policy = minimumBuild({
 
 ### What the binary is
 
-`expoApplication` of [`@priemskiyyy/beacon-native`](native.md) reads the installed binary from `expo-application`, and `deviceInfo` does the same over `react-native-device-info` in a bare app. The release is named in the native words, or the policy above reads it as unknown: an Android build is `android-version-code` with the version code as text, an iOS build is `ios-build` with the build number as text, and the authority is the application id. [React Native](react-native.md#what-the-binary-is) explains each field.
+`expoApplication` of [`@priemskiyyy/beacon-expo`](expo.md#the-installed-binary) reads the installed binary from `expo-application`, and `deviceInfo` of [`@priemskiyyy/beacon-device-info`](device-info.md) does the same over `react-native-device-info` in a bare app. The release is named in the native words, or the policy above reads it as unknown: an Android build is `android-version-code` with the version code as text, an iOS build is `ios-build` with the build number as text, and the authority is the application id. [React Native](react-native.md#what-the-binary-is) explains each field.
 
 ```ts
 // src/nativeBuild.ts
-import { expoApplication } from "@priemskiyyy/beacon-native";
+import { expoApplication } from "@priemskiyyy/beacon-expo";
 import * as Application from "expo-application";
-import { Platform } from "react-native";
 
-export const nativeBuild = expoApplication({
-  application: Application,
-  platform: Platform.OS === "ios" ? "ios" : "android",
-  authority: "com.example.notes",
-});
+export const nativeBuild = expoApplication({ application: Application });
 ```
 
 ### The Beacon

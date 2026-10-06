@@ -47,7 +47,7 @@ const beacon = new Beacon({
 });
 ```
 
-The running native release must be named the way Play names the offer: authority `scope.application`, domain `android-version-code`, and the version code as text, with `raw` holding `applicationId`, `versionName` and `versionCode`. [`@priemskiyyy/beacon-native`](../native) reads it that way: `expoApplication({ application: Application, platform: "android", authority: scope.application })` over `expo-application`, or `deviceInfo` over `react-native-device-info`.
+The running native release must be named the way Play names the offer: authority `scope.application`, domain `android-version-code`, and the version code as text, with `raw` holding `applicationId`, `versionName` and `versionCode`. [`@priemskiyyy/beacon-expo`](../expo) reads it that way, `expoApplication({ application: Application })` over `expo-application`, and so does `deviceInfo({ deviceInfo: DeviceInfo })` of [`@priemskiyyy/beacon-device-info`](../device-info) over `react-native-device-info`: the platform and the authority are the scope's.
 
 The bridge is an object over a small native module you own, or an audited existing one, that keeps the `PlayBridge` contract: `AppUpdateInfo`, the Activity and the result launcher stay native, every start reacquires fresh information (Play allows one use of it), and it rejects when no Activity is available. A native module cannot answer the function `addInstallListener` answers, so the object is a few lines of JavaScript over `NativeEventEmitter`; [the guide](../../../docs/google-play.md#the-bridge-in-react-native) has them.
 

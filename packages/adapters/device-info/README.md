@@ -1,61 +1,43 @@
-# @priemskiyyy/beacon-native
+# @priemskiyyy/beacon-device-info
 
-The installed native build as a [Beacon](../../core) running reader, for a React Native or Expo app. It reads the version code or the build number from `expo-application` or `react-native-device-info` and names it the way the store adapters name their releases, so the journal and a support policy compare like with like. The SDK is yours: the package never imports it and never configures it.
+The installed native build as a [Beacon](../../core) running reader, for a React Native app that reads it with `react-native-device-info`. It reads the version code or the build number and names it the way the store adapters name their releases, so the journal and a support policy compare like with like. The SDK is yours: the package never imports it and never configures it. An Expo app reads the same facts from `expo-application` with `expoApplication` of [`@priemskiyyy/beacon-expo`](../expo).
 
 ## Installation
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-native
-npx expo install expo-application
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-device-info
+pnpm add react-native-device-info
 ```
 
-With `react-native-device-info` instead, install that and leave `expo-application` out. Both are optional peer dependencies, open ended from the oldest release whose types the structural types fit (`expo-application` 1.0.0, `react-native-device-info` 4.0.1), and checked up to 58 and 15: a check of declarations, never of what an older module does when it is called.
+`react-native-device-info` is an optional peer dependency, open ended from 10.0.0 and checked up to 15: a check of declarations, never of what an older module does when it is called.
 
 ## Create a reader
 
 ```ts
 import { Beacon } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
-import { expoApplication } from "@priemskiyyy/beacon-native";
-import * as Application from "expo-application";
-import { Platform } from "react-native";
+import { deviceInfo } from "@priemskiyyy/beacon-device-info";
+import DeviceInfo from "react-native-device-info";
 
 const beacon = new Beacon({
-  scope, // scope.application is the application id
-  running: {
-    native: expoApplication({
-      application: Application,
-      platform: Platform.OS === "ios" ? "ios" : "android",
-      authority: scope.application,
-    }),
-  },
+  scope, // scope.application is the application id, and scope.platform is Platform.OS
+  running: { native: deviceInfo({ deviceInfo: DeviceInfo }) },
   routes: { binary: googlePlay({ bridge: playBridge }) },
 });
 ```
 
-`deviceInfo({ deviceInfo: DeviceInfo, platform, authority })` is the same over `react-native-device-info`, where `DeviceInfo` is its default export.
-
-```ts
-import { deviceInfo } from "@priemskiyyy/beacon-native";
-import DeviceInfo from "react-native-device-info";
-
-const native = deviceInfo({
-  deviceInfo: DeviceInfo,
-  platform: "ios",
-  authority: scope.application,
-});
-```
+The platform and the authority are the scope's, which the reader is given each time it runs: an Android build is its version code under `android-version-code`, an iOS build its build number under `ios-build`, and a scope of any other platform is unknown with the reason `unsupported-platform`, without the library being asked.
 
 ## Options
 
-| Option                        | Meaning                                                                                                                                                                                                    |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `application` or `deviceInfo` | the module the application imported, typed structurally: its real types are proven to fit                                                                                                                  |
-| `platform`                    | `android` or `ios`, which decides how the build is named. A `Platform.OS` that can also be `web` is yours to narrow                                                                                        |
-| `authority`                   | the application id the route offers for, which is `scope.application`. A binary that reports another id is then unknown as `another-application`. Left out, the binary names itself and nothing is checked |
-| `domain`                      | what the build numbers name, `android-version-code` or `ios-build` by default. Change it only for a manifest of your own that names them otherwise                                                         |
+| Option       | Meaning                                                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deviceInfo` | the default export of `react-native-device-info`, or its module, typed structurally: its real types are proven to fit                                |
+| `platform`   | `android` or `ios`, to override the scope's. It decides how the build is named                                                                       |
+| `authority`  | the application id to compare the binary with, to override `scope.application`. A binary that reports another id is unknown as `another-application` |
+| `domain`     | what the build numbers name, `android-version-code` or `ios-build` by default. Change it only for a manifest of your own that names them otherwise   |
 
-An `authority` or a `domain` that is empty or has a space around it is refused when the reader is made, with `INVALID_CONFIGURATION`.
+An `authority` or a `domain` that is given and is empty or has a space around it is refused when the reader is made, with `INVALID_CONFIGURATION`.
 
 ## What it reports
 
@@ -69,34 +51,29 @@ An `authority` or a `domain` that is empty or has a space around it is refused w
 
 These are the words the Play adapter offers in and the App Store adapter reads (`appleMarketingVersion` takes `raw.shortVersion`), and the ones a standard manifest and a support policy use. A reader that spells any of them differently leaves the journal unable to say that an update ran: it answers `inconclusive`. Every value is text with no space around it, because the journal compares identities exactly.
 
-| The SDK gave                                                                       | The identity                                                                                              |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| a build number and an application id                                               | `known`                                                                                                   |
-| no build number: null, empty, spaces, or `unknown` from `react-native-device-info` | `unknown`, reason `build-not-read`                                                                        |
-| no application id                                                                  | `unknown`, reason `application-not-read`                                                                  |
-| another application's id than `authority`, as Expo Go running your code reports    | `unknown`, reason `another-application`, and none of its version numbers is kept in `raw` or as the label |
+| The library gave                                                                | The identity                                                                                              |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| a build number and a bundle id                                                  | `known`                                                                                                   |
+| no build number: empty, spaces, or the text `unknown` that the library answers  | `unknown`, reason `build-not-read`                                                                        |
+| no bundle id                                                                    | `unknown`, reason `application-not-read`                                                                  |
+| another application's id than the scope's, as Expo Go running your code reports | `unknown`, reason `another-application`, and none of its version numbers is kept in `raw` or as the label |
+| a scope of a platform that is not Android or iOS                                | `unknown`, reason `unsupported-platform`                                                                  |
 
 A build number is never read as zero, as null or as the text `unknown`. The marketing version stays in `raw` and as the label even where the build is unknown, unless the binary is another application's. The calls of `react-native-device-info` are synchronous: if one throws, the reader rejects, which Beacon publishes as a failed fact, and never as a build.
 
 ## What it does not do
 
-- It does not read `expo-constants`: its `expoConfig` values come from the manifest, which an update can replace, where these are fixed for a binary.
-- It does not name the JavaScript bundle. `expoBundle` of `@priemskiyyy/beacon-expo` reads that, and an over-the-air update changes it without changing the build number.
+- It does not name the JavaScript bundle. `expoBundle` of `@priemskiyyy/beacon-expo` and `codePushBundle` of `@priemskiyyy/beacon-code-push` read that, and an over-the-air update changes it without changing the build number.
 - It reads no store and compares nothing: the routes and the journal do.
-- It reads the SDK when the session asks, and again only when a session opens again. A binary does not change while it runs.
+- It reads the library when the session asks, and again only when a session opens again. A binary does not change while it runs.
 - It has no reader for Capacitor, Tauri or Electron.
 
 ## Verification
 
-| Claim                                                                                                                                                     | Status                                                                           |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| The reader follows the running-reader contract: cold until read, the same release on every read, no empty or padded part                                  | Tested, `testRunningReader` over a fake of each SDK on both platforms            |
-| Every unknown situation names its reason, and Expo Go's application id is refused                                                                         | Tested                                                                           |
-| A build the Play adapter offered is named the same way when it runs, and the journal says `target-running`                                                | Tested through a real Beacon, the real Play route and a fake bridge              |
-| `raw.shortVersion` is what `appleMarketingVersion` reads                                                                                                  | Tested against the real App Store adapter                                        |
-| The real `expo-application` 57.0.3 and `react-native-device-info` 15.0.2 types satisfy the structural types; `expo-constants` and Electron's `app` do not | Typechecked in the `*.contracts.ts` files                                        |
-| `react-native-device-info` answers `unknown` for what it cannot read                                                                                      | Read from its source, tested against a fake                                      |
-| What `expo-application` returns in Expo Go, in a development build and in a release build                                                                 | UNVERIFIED: needs a device. Expo Go is expected to report its own application id |
-| That `nativeBuildVersion` is the version code on Android and the build number on iOS, for each flavor and signing                                         | UNVERIFIED: needs a device and a store distribution                              |
-| `react-native-device-info` on a device                                                                                                                    | UNVERIFIED: needs a device                                                       |
-| Expo Go's own application id and build number on each platform                                                                                            | UNVERIFIED: needs a device                                                       |
+| Claim                                                                                                                    | Status                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| The reader follows the running-reader contract: cold until read, the same release on every read, no empty or padded part | Tested, `testRunningReader` over a fake of the library on both platforms       |
+| Every unknown situation names its reason, and Expo Go's application id is refused                                        | Tested                                                                         |
+| The real `react-native-device-info` 15.0.2 types satisfy the structural type, and so does the 10.0.0 floor               | Typechecked in `src/deviceInfo.contracts.ts` and by `scripts/verify-peers.mjs` |
+| `react-native-device-info` answers `unknown` for what it cannot read                                                     | Read from its source, tested against a fake                                    |
+| `react-native-device-info` on a device                                                                                   | UNVERIFIED: needs a device                                                     |

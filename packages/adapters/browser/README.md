@@ -29,7 +29,7 @@ const web = targetRoute({
 const beacon = new Beacon({
   scope,
   running: {
-    web: webBuild({ authority: scope.application, id: BUILD_ID }),
+    web: webBuild({ id: BUILD_ID }),
   },
   routes: { web },
   journal: { mode: "required", storage: browserStorage() },
@@ -64,7 +64,7 @@ An accepted reload leaves the route unresolved, because the old document may sta
 
 ## The running build
 
-`webBuild({ authority, id, label, domain })` is the `web` reader. `id` is the constant your bundler writes into the code, such as `import.meta.env.VITE_BUILD_ID` or `process.env.NEXT_PUBLIC_BUILD_ID`, named under `authority` (which is `scope.application`) and the domain `web-artifact`, the words the standard manifest uses. The label is the id unless you give one. An id nobody defined is not a build: an unset define compiles to `undefined` (Vite 8 writes `void 0`), an empty one to an empty string, and one written into a string to the text `undefined`. Each makes the identity unknown, with the reason `build-id-not-injected`, never a known build named `undefined`. An `authority` or a `domain` that is empty or has a space around it is refused with `INVALID_CONFIGURATION`. It reads nothing from the document, so a server render can create and read it.
+`webBuild({ id, label, authority, domain })` is the `web` reader. `id` is the constant your bundler writes into the code, such as `import.meta.env.VITE_BUILD_ID` or `process.env.NEXT_PUBLIC_BUILD_ID`, named under the application of the scope, which the reader is given each time it runs (`authority` overrides it), and the domain `web-artifact`, the words the standard manifest uses. The label is the id unless you give one. An id nobody defined is not a build: an unset define compiles to `undefined` (Vite 8 writes `void 0`), an empty one to an empty string, and one written into a string to the text `undefined`. Each makes the identity unknown, with the reason `build-id-not-injected`, never a known build named `undefined`. An `authority` or a `domain` that is given and is empty or has a space around it is refused with `INVALID_CONFIGURATION`. It reads nothing from the document, so a server render can create and read it.
 
 ## The build in a source of your own
 

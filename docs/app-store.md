@@ -24,7 +24,7 @@ import {
   APP_STORE_DISTRIBUTION,
   appStore,
 } from "@priemskiyyy/beacon-app-store";
-import { expoApplication } from "@priemskiyyy/beacon-native";
+import { expoApplication } from "@priemskiyyy/beacon-expo";
 import * as Application from "expo-application";
 import { Linking } from "react-native";
 
@@ -37,13 +37,7 @@ export const beacon = new Beacon({
     platform: "ios",
     distribution: APP_STORE_DISTRIBUTION,
   },
-  running: {
-    native: expoApplication({
-      application: Application,
-      platform: "ios",
-      authority: APPLICATION,
-    }),
-  },
+  running: { native: expoApplication({ application: Application }) },
   routes: {
     binary: appStore({
       appId: "284882215",
@@ -63,7 +57,7 @@ export const beacon = new Beacon({
 | `linking`  | anything with `openURL(url)`: React Native's `Linking`, or a fake in a test                                      |
 | `fetch`    | optional, your own lookup client, [below](#the-lookup-source). Without it the global `fetch` asks Apple's lookup |
 
-The route offers a marketing version newer than the one that runs, and its `openStore` opens the page of your app. The running native release is read by `expoApplication` of `@priemskiyyy/beacon-native`, or by `deviceInfo` over `react-native-device-info`, and its names are fixed so that readers and adapters agree:
+The route offers a marketing version newer than the one that runs, and its `openStore` opens the page of your app. The running native release is read by `expoApplication` of `@priemskiyyy/beacon-expo`, or by `deviceInfo` of `@priemskiyyy/beacon-device-info` over `react-native-device-info`, under the platform and the application of the scope, and its names are fixed so that readers and adapters agree:
 
 | Field                | Value                                                                                  |
 | -------------------- | -------------------------------------------------------------------------------------- |

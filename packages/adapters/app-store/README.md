@@ -16,7 +16,7 @@ import {
   APP_STORE_DISTRIBUTION,
   appStore,
 } from "@priemskiyyy/beacon-app-store";
-import { expoApplication } from "@priemskiyyy/beacon-native";
+import { expoApplication } from "@priemskiyyy/beacon-expo";
 import * as Application from "expo-application";
 import { Linking } from "react-native";
 
@@ -27,13 +27,7 @@ const beacon = new Beacon({
     platform: "ios",
     distribution: APP_STORE_DISTRIBUTION,
   },
-  running: {
-    native: expoApplication({
-      application: Application,
-      platform: "ios",
-      authority: "com.example.notes",
-    }),
-  },
+  running: { native: expoApplication({ application: Application }) },
   routes: {
     binary: appStore({
       appId: APP_STORE_ID, // the numeric id
@@ -61,7 +55,7 @@ Without a `fetch` of your own, `appStore` asks Apple's lookup through the global
 | a scope that is not `app-store` | `none`, detail `other-distribution`, with no request                                  |
 | no `shortVersion` running       | `inconclusive`: nothing claims a newer version without knowing the order of what runs |
 
-The running native release is read by `expoApplication` of [`@priemskiyyy/beacon-native`](../native), or by `deviceInfo` over `react-native-device-info`. It is named by the build number (`CFBundleVersion`) as text, under the domain `ios-build` and the authority `scope.application`. It keeps `raw.applicationId`, `raw.shortVersion` (`CFBundleShortVersionString`, which `appleMarketingVersion` reads) and `raw.buildNumber`. A marketing version can never satisfy a build-level minimum.
+The running native release is read by `expoApplication` of [`@priemskiyyy/beacon-expo`](../expo), or by `deviceInfo` of [`@priemskiyyy/beacon-device-info`](../device-info) over `react-native-device-info`, under the platform and the application of the scope. It is named by the build number (`CFBundleVersion`) as text, under the domain `ios-build` and the authority `scope.application`. It keeps `raw.applicationId`, `raw.shortVersion` (`CFBundleShortVersionString`, which `appleMarketingVersion` reads) and `raw.buildNumber`. A marketing version can never satisfy a build-level minimum.
 
 ## Handoff
 

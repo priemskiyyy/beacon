@@ -39,7 +39,7 @@ export const createBeacon = () =>
       distribution: "public-web",
     },
     running: {
-      web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
+      web: webBuild({ id: __BUILD_ID__ }),
     },
     routes: {
       web: targetRoute({

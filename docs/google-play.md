@@ -121,33 +121,25 @@ Make the object once, at module scope. A bridge belongs to one open session at a
 // src/beacon.ts
 import { Beacon } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
-import { expoApplication } from "@priemskiyyy/beacon-native";
+import { expoApplication } from "@priemskiyyy/beacon-expo";
 import * as Application from "expo-application";
 
 import { playBridge } from "src/playBridge";
 
-const APPLICATION = "com.example.notes";
-
 export const beacon = new Beacon({
   // scope.application is the Android application id.
   scope: {
-    application: APPLICATION,
+    application: "com.example.notes",
     environment: "production",
     platform: "android",
     distribution: "google-play",
   },
-  running: {
-    native: expoApplication({
-      application: Application,
-      platform: "android",
-      authority: APPLICATION,
-    }),
-  },
+  running: { native: expoApplication({ application: Application }) },
   routes: { binary: googlePlay({ bridge: playBridge }) },
 });
 ```
 
-The running native release is read by `expoApplication` of `@priemskiyyy/beacon-native`, or by `deviceInfo` over `react-native-device-info`, and it is named the way Play names the offer, or the two would be incomparable and nothing would be reported as running the offered build:
+The running native release is read by `expoApplication` of `@priemskiyyy/beacon-expo`, or by `deviceInfo` of `@priemskiyyy/beacon-device-info` over `react-native-device-info`, under the platform and the application of the scope, and it is named the way Play names the offer, or the two would be incomparable and nothing would be reported as running the offered build:
 
 | Field                | Value                                                      |
 | -------------------- | ---------------------------------------------------------- |

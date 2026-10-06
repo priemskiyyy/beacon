@@ -25,7 +25,7 @@ import { readNativeRelease } from "src/utils/readNativeRelease";
  * @example
  * ```ts
  * new Beacon({
- *   scope: { application: "com.example.notes", environment: "production", platform: Platform.OS, distribution: "app-store" },
+ *   scope,
  *   running: { native: expoApplication({ application: Application }) },
  *   routes,
  * });

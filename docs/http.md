@@ -273,7 +273,7 @@ A decision is `{ kind: "target", release }`, `{ kind: "candidate", release }` wh
 
 Every text is 1 to 256 characters, a list has at most 256 items, and `metadata` has at most 16 entries of short strings. A key that could corrupt a registry (`__proto__`, `constructor`, `prototype`) is refused.
 
-The release's identity has to be named the way the page or the binary names what it runs, or the route says `inconclusive`. `webBuild` of `@priemskiyyy/beacon-browser` reads the running web build under the domain `web-artifact`, and `expoApplication` and `deviceInfo` of `@priemskiyyy/beacon-native` read the installed binary under `android-version-code` and `ios-build`, each under the application id as authority: see [browser](browser.md#what-the-running-fact-must-say) and [native build](native.md).
+The release's identity has to be named the way the page or the binary names what it runs, or the route says `inconclusive`. `webBuild` of `@priemskiyyy/beacon-browser` reads the running web build under the domain `web-artifact`, and `expoApplication` of `@priemskiyyy/beacon-expo` and `deviceInfo` of `@priemskiyyy/beacon-device-info` read the installed binary under `android-version-code` and `ios-build`, each under the application of the scope as authority: see [browser](browser.md#what-the-running-fact-must-say) and [the installed binary](expo.md#the-installed-binary).
 
 ### What is accepted
 

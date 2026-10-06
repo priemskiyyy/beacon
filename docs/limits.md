@@ -22,7 +22,7 @@ This release coordinates no other tab. There is no simulated global lock: when n
 
 ## Checks on an event or a timer
 
-`@priemskiyyy/beacon-triggers` checks when a source says so and makes no runtime run: a timer of a backgrounded app or tab may be throttled, suspended or never fire, so a check on a timer is only as good as the runtime that runs it, and the return to the foreground has to check as well. The time an app was away, whether a Pulse's `observedAway` or the one the `foreground` trigger measures, is an estimate that only throttles a check. A reconnect says the device is connected and never that the authority is reachable, and the gate that decides a check is per JavaScript runtime, so N tabs make N reads.
+`@priemskiyyy/beacon/triggers` checks when a source says so and makes no runtime run: a timer of a backgrounded app or tab may be throttled, suspended or never fire, so a check on a timer is only as good as the runtime that runs it, and the return to the foreground has to check as well. The time an app was away, whether a Pulse's `observedAway` or the one the `foreground` trigger measures, is an estimate that only throttles a check. A reconnect says the device is connected and never that the authority is reachable, and the gate that decides a check is per JavaScript runtime, so N tabs make N reads.
 
 ## What a test proves
 

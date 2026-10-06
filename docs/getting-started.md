@@ -93,7 +93,7 @@ const manifest = http({
 export const beacon = new Beacon({
   scope,
   running: {
-    web: webBuild({ authority: scope.application, id: __BUILD_ID__ }),
+    web: webBuild({ id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
@@ -231,7 +231,7 @@ Nothing here says which build the next document runs. The reload binds to no bui
 ## React Native and Expo
 
 ```sh
-pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo @priemskiyyy/beacon-native @priemskiyyy/beacon-triggers expo-updates expo-application
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo expo-updates expo-application
 ```
 
 Expo Updates decides eligibility, fetches assets and picks what starts next. The adapter maps what it says. The module goes in as an argument, so the adapter imports no SDK.
@@ -239,8 +239,7 @@ Expo Updates decides eligibility, fetches assets and picks what starts next. The
 ```ts
 // src/beacon.native.ts
 import { Beacon } from "@priemskiyyy/beacon";
-import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
-import { expoApplication } from "@priemskiyyy/beacon-native";
+import { expoApplication, expoUpdates } from "@priemskiyyy/beacon-expo";
 import * as Application from "expo-application";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
@@ -253,25 +252,18 @@ export const beacon = new Beacon({
     // Yours to say. The App Store route answers only for "app-store".
     distribution: "app-store",
   },
-  running: {
-    bundle: expoBundle({ updates: Updates }),
-    native: expoApplication({
-      application: Application,
-      platform: Platform.OS === "ios" ? "ios" : "android",
-      authority: "com.example.notes",
-    }),
-  },
+  running: { native: expoApplication({ application: Application }) },
   routes: { ota: expoUpdates({ updates: Updates }) },
 });
 ```
 
-`expoBundle` reads the update that launched. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`. `expoApplication` reads the installed binary, its version code on Android or its build number on iOS, in the words the store adapters and the journal compare in, and a binary of another application, such as Expo Go, is unknown and never your build.
+The route reads the update that launched by itself. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`. `expoApplication` reads the installed binary, its version code on Android or its build number on iOS, under the platform and the application of the scope, in the words the store adapters and the journal compare in, and a binary of another application, such as Expo Go, is unknown and never your build.
 
 Start the session at bootstrap and check when the app starts (`checkOn` does that by itself) and when it returns from the background.
 
 ```ts
 // src/updates.ts
-import { checkOn, foreground } from "@priemskiyyy/beacon-triggers";
+import { checkOn, foreground } from "@priemskiyyy/beacon/triggers";
 import { AppState } from "react-native";
 
 import { beacon } from "src/beacon.native";

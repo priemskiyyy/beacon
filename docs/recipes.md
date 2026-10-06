@@ -28,7 +28,7 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    web: webBuild({ authority: "com.example.notes", id: __BUILD_ID__ }),
+    web: webBuild({ id: __BUILD_ID__ }),
   },
   routes: {
     web: targetRoute({
@@ -48,7 +48,7 @@ declare module "@priemskiyyy/beacon-react" {
 ```ts
 // src/native.ts
 import { Beacon } from "@priemskiyyy/beacon";
-import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
+import { expoUpdates } from "@priemskiyyy/beacon-expo";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
 import type { PlayBridge } from "@priemskiyyy/beacon-google-play";
 import * as Updates from "expo-updates";
@@ -61,9 +61,6 @@ export const native = new Beacon({
     environment: "production",
     platform: "android",
     distribution: "google-play",
-  },
-  running: {
-    bundle: expoBundle({ updates: Updates }),
   },
   routes: {
     ota: expoUpdates({ updates: Updates }),
@@ -194,7 +191,7 @@ export const SupportGate = ({ children }: { children: ReactNode }) => {
 
 ## Check on foreground and on an interval
 
-Beacon has no timer of its own. [`@priemskiyyy/beacon-triggers`](triggers.md) calls `check` from the signals your application already has, and checks that overlap join one read, so several signals at once cost one request. The `reason` only labels the diagnostics.
+Beacon has no timer of its own. [`@priemskiyyy/beacon/triggers`](triggers.md) calls `check` from the signals your application already has, and checks that overlap join one read, so several signals at once cost one request. The `reason` only labels the diagnostics.
 
 In React Native, `AppState` and NetInfo go in as they are, and the package keeps the rule that only a trip through the background is a return:
 
@@ -205,7 +202,7 @@ import {
   foreground,
   interval,
   reconnect,
-} from "@priemskiyyy/beacon-triggers";
+} from "@priemskiyyy/beacon/triggers";
 import NetInfo from "@react-native-community/netinfo";
 import { AppState } from "react-native";
 
@@ -234,8 +231,8 @@ On the web, the `/browser` subpath of the package has the same two triggers over
 
 ```ts
 // src/watchForUpdates.ts
-import { checkOn, interval } from "@priemskiyyy/beacon-triggers";
-import { foreground, reconnect } from "@priemskiyyy/beacon-triggers/browser";
+import { checkOn, interval } from "@priemskiyyy/beacon/triggers";
+import { foreground, reconnect } from "@priemskiyyy/beacon/triggers/browser";
 
 import { beacon } from "src/beacon";
 

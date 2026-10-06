@@ -27,7 +27,7 @@ export const beacon = new Beacon({
     distribution: "public-web",
   },
   running: {
-    web: webBuild({ authority: "com.example.notes", id: BUILD_ID }),
+    web: webBuild({ id: BUILD_ID }),
   },
   routes: {
     web: targetRoute({
@@ -65,42 +65,41 @@ Beacon does not download bundles, install binaries, cache assets or decide polic
 
 ## Packages
 
-| Package                                                                                  | What it is                                                                   |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [`@priemskiyyy/beacon`](packages/core)                                                   | The runtime, the version strategies, the mocks and the conformance suites    |
-| [`@priemskiyyy/beacon-http`](packages/adapters/http)                                     | Your release manifest endpoint, through your own client                      |
-| [`@priemskiyyy/beacon-browser`](packages/adapters/browser)                               | Reloading the browser document                                               |
-| [`@priemskiyyy/beacon-service-worker`](packages/adapters/service-worker)                 | A waiting service worker as an update that is ready                          |
-| [`@priemskiyyy/beacon-expo`](packages/adapters/expo)                                     | Expo Updates                                                                 |
-| [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)                       | The Play Store page, and Play in-app updates over a bridge you write         |
-| [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)                           | The App Store route: metadata and store handoff                              |
-| [`@priemskiyyy/beacon-code-push`](packages/adapters/code-push)                           | The React Native CodePush family, over the fork you use                      |
-| [`@priemskiyyy/beacon-native`](packages/adapters/native)                                 | The installed native build as a running fact                                 |
-| [`@priemskiyyy/beacon-triggers`](packages/adapters/triggers)                             | Checks on startup, a return from the background, a reconnect and an interval |
-| [`@priemskiyyy/beacon-firebase-remote-config`](packages/adapters/firebase-remote-config) | Firebase Remote Config as a source, such as a minimum build                  |
-| [`@priemskiyyy/beacon-react`](packages/react)                                            | A provider and hooks                                                         |
-| [`@priemskiyyy/beacon-vue`](packages/vue)                                                | A provider and composables                                                   |
-| [`@priemskiyyy/beacon-solid`](packages/solid)                                            | A provider and primitives                                                    |
-| [`@priemskiyyy/beacon-svelte`](packages/svelte)                                          | A provider and utilities, on Svelte 5 runes                                  |
-| [`@priemskiyyy/beacon-devtools`](packages/devtools)                                      | A web inspector for the session, the routes and the diagnostic events        |
+| Package                                                                                  | What it is                                                                                                                      |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| [`@priemskiyyy/beacon`](packages/core)                                                   | The runtime, the version strategies, the mocks, the conformance suites and `./triggers`, the checks on a return and a reconnect |
+| [`@priemskiyyy/beacon-http`](packages/adapters/http)                                     | Your release manifest endpoint, through your own client                                                                         |
+| [`@priemskiyyy/beacon-browser`](packages/adapters/browser)                               | Reloading the browser document                                                                                                  |
+| [`@priemskiyyy/beacon-service-worker`](packages/adapters/service-worker)                 | A waiting service worker as an update that is ready                                                                             |
+| [`@priemskiyyy/beacon-expo`](packages/adapters/expo)                                     | Expo Updates, and the installed native build from `expo-application`                                                            |
+| [`@priemskiyyy/beacon-google-play`](packages/adapters/google-play)                       | The Play Store page, and Play in-app updates over a bridge you write                                                            |
+| [`@priemskiyyy/beacon-app-store`](packages/adapters/app-store)                           | The App Store route: metadata and store handoff                                                                                 |
+| [`@priemskiyyy/beacon-code-push`](packages/adapters/code-push)                           | The React Native CodePush family, over the fork you use                                                                         |
+| [`@priemskiyyy/beacon-device-info`](packages/adapters/device-info)                       | The installed native build, from `react-native-device-info`                                                                     |
+| [`@priemskiyyy/beacon-firebase-remote-config`](packages/adapters/firebase-remote-config) | Firebase Remote Config as a source, such as a minimum build                                                                     |
+| [`@priemskiyyy/beacon-react`](packages/react)                                            | A provider and hooks                                                                                                            |
+| [`@priemskiyyy/beacon-vue`](packages/vue)                                                | A provider and composables                                                                                                      |
+| [`@priemskiyyy/beacon-solid`](packages/solid)                                            | A provider and primitives                                                                                                       |
+| [`@priemskiyyy/beacon-svelte`](packages/svelte)                                          | A provider and utilities, on Svelte 5 runes                                                                                     |
+| [`@priemskiyyy/beacon-devtools`](packages/devtools)                                      | A web inspector for the session, the routes and the diagnostic events                                                           |
 
 Every package is ESM only, side-effect free and typed. The core has no dependencies, and no adapter imports a provider SDK: you pass in the one you already use.
 
 ## Status
 
-Everything is tested in process against fakes, and the Expo, CodePush, Firebase Remote Config, native build and triggers packages are typechecked against the real types of the SDKs they take. The example apps run in Chromium under Playwright against a scripted release lab, in React, Vue, Solid, Svelte and Expo's web build, but nothing has run on a device or against a real provider yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.
+Everything is tested in process against fakes, and the Expo, CodePush, Firebase Remote Config and device info packages and the triggers of the core are typechecked against the real types of the SDKs they take. The example apps run in Chromium under Playwright against a scripted release lab, in React, Vue, Solid, Svelte and Expo's web build, but nothing has run on a device or against a real provider yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.
 
 ## Documentation
 
 The site is at [priemskiyyy.github.io/beacon](https://priemskiyyy.github.io/beacon/), and `pnpm dev:docs` serves it locally. Its source is in [docs](docs).
 
-| Section                | Pages                                                                                                                                                                                                                                                                                                                                                            |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start here             | [Getting started][docs-getting-started] · [The mental model][docs-mental-model]                                                                                                                                                                                                                                                                                  |
-| Guides                 | [Routes][docs-routes] · [Commands][docs-commands] · [Support][docs-support] · [Disruptions][docs-disruptions] · [Journal][docs-journal] · [Scopes][docs-scopes] · [Sessions][docs-sessions]                                                                                                                                                                      |
-| Adapters               | [HTTP][docs-http] · [Browser][docs-browser] · [Service worker][docs-service-worker] · [Expo][docs-expo] · [Google Play][docs-google-play] · [App Store][docs-app-store] · [CodePush][docs-code-push] · [Native build][docs-native] · [Triggers][docs-triggers] · [Firebase Remote Config][docs-firebase-remote-config] · [Custom adapters][docs-custom-adapters] |
-| Build your application | [React][docs-react] · [Vue][docs-vue] · [Solid][docs-solid] · [Svelte][docs-svelte] · [Devtools][docs-devtools] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]                                                                                                                                                    |
-| Reference              | [API][docs-api] · [Verification][docs-verification] · [Limits][docs-limits] · [Decisions][docs-decisions] · [Architecture][docs-architecture]                                                                                                                                                                                                                    |
+| Section                | Pages                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start here             | [Getting started][docs-getting-started] · [The mental model][docs-mental-model]                                                                                                                                                                                                                                                                                      |
+| Guides                 | [Routes][docs-routes] · [Commands][docs-commands] · [Support][docs-support] · [Disruptions][docs-disruptions] · [Journal][docs-journal] · [Scopes][docs-scopes] · [Sessions][docs-sessions]                                                                                                                                                                          |
+| Adapters               | [HTTP][docs-http] · [Browser][docs-browser] · [Service worker][docs-service-worker] · [Expo][docs-expo] · [Google Play][docs-google-play] · [App Store][docs-app-store] · [CodePush][docs-code-push] · [Device info][docs-device-info] · [Triggers][docs-triggers] · [Firebase Remote Config][docs-firebase-remote-config] · [Custom adapters][docs-custom-adapters] |
+| Build your application | [React][docs-react] · [Vue][docs-vue] · [Solid][docs-solid] · [Svelte][docs-svelte] · [Devtools][docs-devtools] · [Recipes][docs-recipes] · [Testing][docs-testing] · [Troubleshooting][docs-troubleshooting]                                                                                                                                                        |
+| Reference              | [API][docs-api] · [Verification][docs-verification] · [Limits][docs-limits] · [Decisions][docs-decisions] · [Architecture][docs-architecture]                                                                                                                                                                                                                        |
 
 Also the README of each package above, and [Contributing](CONTRIBUTING.md), [support](SUPPORT.md) and [security](SECURITY.md).
 
@@ -121,7 +120,7 @@ Also the README of each package above, and [Contributing](CONTRIBUTING.md), [sup
 [docs-app-store]: https://priemskiyyy.github.io/beacon/app-store
 [docs-code-push]: https://priemskiyyy.github.io/beacon/code-push
 [docs-firebase-remote-config]: https://priemskiyyy.github.io/beacon/firebase-remote-config
-[docs-native]: https://priemskiyyy.github.io/beacon/native
+[docs-device-info]: https://priemskiyyy.github.io/beacon/device-info
 [docs-custom-adapters]: https://priemskiyyy.github.io/beacon/custom-adapters
 [docs-react]: https://priemskiyyy.github.io/beacon/react
 [docs-vue]: https://priemskiyyy.github.io/beacon/vue

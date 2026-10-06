@@ -10,21 +10,20 @@ This page is the adapter. [React Native](react-native.md) is the whole app aroun
 
 ## Before the route
 
-1. Install the SDK with `npx expo install expo-updates`, which picks the version of your SDK, and the packages with `pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo`. To read the installed binary as well, which the store routes and the journal compare against, add `npx expo install expo-application` and `pnpm add @priemskiyyy/beacon-native`.
+1. Install the SDK with `npx expo install expo-updates`, which picks the version of your SDK, and the packages with `pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-expo`. To read the installed binary as well, which the store routes and the journal compare against, add `npx expo install expo-application`: `expoApplication` of the same package reads it.
 2. Configure updates once with `eas update:configure`. It writes `runtimeVersion` and `updates.url` to `app.json`, and sets a channel on the build profiles of `eas.json`. The adapter changes none of these.
 3. Build the binary with that channel, and publish updates to the same channel: `eas update --channel production --message "..."`.
 
 `expo-updates` does not run in Expo Go. Its own documentation says to test with a development build or a release build; see [Expo Go, a development build and a release build](react-native.md#expo-go-a-development-build-and-a-release-build). To see the banner there anyway, pass [a fake](#a-fake-for-development-and-tests) for the module.
 
-The `expo-updates` peer has no upper limit and starts at 0.24, the release of Expo SDK 50: the structural type the adapter reads was typechecked against 0.24.0 and against 58.0.11, and each release in between that was tried, by `scripts/verify-peers.mjs`. That is a check of declarations. What an older SDK does when the adapter calls it has not been run, and [the decision record](decisions.md) says so.
+The `expo-updates` peer has no upper limit and starts at 0.24, the release of Expo SDK 50: the structural type the adapter reads was typechecked against 0.24.0 and against 58.0.11, and each release in between that was tried, by `scripts/verify-peers.mjs`. The `expo-application` peer is optional too, has no upper limit and starts at 5.0.0, with the same check. That is a check of declarations. What an older SDK does when the adapter calls it has not been run, and [the decision record](decisions.md) says so.
 
 ## Create a route
 
 ```ts
 // src/beacon.ts
 import { Beacon } from "@priemskiyyy/beacon";
-import { expoBundle, expoUpdates } from "@priemskiyyy/beacon-expo";
-import { expoApplication } from "@priemskiyyy/beacon-native";
+import { expoApplication, expoUpdates } from "@priemskiyyy/beacon-expo";
 import * as Application from "expo-application";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
@@ -37,14 +36,7 @@ export const beacon = new Beacon({
     // Yours to say. The App Store route answers only for "app-store".
     distribution: "app-store",
   },
-  running: {
-    bundle: expoBundle({ updates: Updates }),
-    native: expoApplication({
-      application: Application,
-      platform: Platform.OS === "ios" ? "ios" : "android",
-      authority: "com.example.notes",
-    }),
-  },
+  running: { native: expoApplication({ application: Application }) },
   routes: { ota: expoUpdates({ updates: Updates }) },
 });
 ```
@@ -55,7 +47,7 @@ The route is a driver route on the `bundle` subject. The module belongs to one o
 
 ### The running bundle
 
-`expoBundle({ updates: Updates })` is the reader of the running JavaScript bundle. Pass it as the `bundle` reader. The route never writes it.
+The route reads the running JavaScript bundle itself, with `expoBundle({ updates: Updates })`, which `expoUpdates` supplies as the reader of the `bundle` subject: a journal knows which update a reload reached with nothing in `running`. A reader you pass as `running.bundle` wins, so pass `expoBundle({ updates: Updates })` only to read the bundle of an app that has no `expoUpdates` route, or to give the route another module than its own. It is made for the `bundle` subject, and `running.web` refuses it. The route never writes the fact.
 
 | Fact       | Source                                                                                                                                   |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -63,9 +55,7 @@ The route is a driver route on the `bundle` subject. The module belongs to one o
 | `label`    | `null`                                                                                                                                   |
 | `raw`      | `channel`, `runtimeVersion`, `embedded` and `emergency`                                                                                  |
 
-### The installed binary
-
-`expoUpdates` and `expoBundle` say which update runs, which an over-the-air update changes without changing the binary. The binary itself, its version code or build number, is the `native` running fact, which `expoApplication` of `@priemskiyyy/beacon-native` reads from `expo-application`. It is named the way the Play and App Store adapters name their releases, and a binary of another application, such as Expo Go, is unknown and never your build. [React Native](react-native.md#what-the-binary-is) has the fields and the reasons.
+`expoUpdates` and `expoBundle` say which update runs, which an over-the-air update changes without changing the binary. The binary itself, its version code or build number, is the `native` running fact, which [`expoApplication`](#the-installed-binary) reads from `expo-application`.
 
 ## What a check reports
 
@@ -196,6 +186,54 @@ if (prepared.status === "ready") {
 `Updates.reloadAsync()` replaces the JavaScript runtime and selects the update the SDK downloaded most recently, not necessarily the one the user was shown. Everything of the old runtime goes with it: `AppState` listeners, timers, module variables and the Beacon with its observations. What stays is the journal's record, in the storage you gave it, which is why a reload of an application that wants to know what it reached needs a journal; [React Native](react-native.md#what-a-reload-keeps) has the wiring. A rollback to the embedded update names no identity, so a journal can only call it `inconclusive`.
 
 `prepared` starts at `unknown` and becomes `ready` only through a `download` of this session. Autonomous downloads that `expo-updates` runs on its own are not observed.
+
+## The installed binary
+
+`expoApplication` reads what the installed binary is: the version code on Android and the build number on iOS, from `expo-application`. It is the `native` running reader that the Play and App Store routes, the journal and a support policy compare against. It names the build in the words the store adapters use, because the journal compares identities exactly and answers `inconclusive` for a build named in any other words. It reads nothing but the binary and compares nothing. In an app without Expo, `deviceInfo` of [`@priemskiyyy/beacon-device-info`](device-info.md) is the same reader over `react-native-device-info`.
+
+```ts
+import { expoApplication } from "@priemskiyyy/beacon-expo";
+import * as Application from "expo-application";
+
+export const native = expoApplication({ application: Application });
+```
+
+The platform and the authority are the scope's: the reader is given the scope each time it runs, so the platform is `scope.platform` (`"ios"` or `"android"`, which is what `Platform.OS` says) and the authority is `scope.application`. Anything else than those two platforms, such as a web build of the same app, is `unknown` with the reason `unsupported-platform`, and the module is not asked.
+
+| Option        | Meaning                                                                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `application` | the `expo-application` module you imported. Its real types are proven to fit                                                                          |
+| `platform`    | `android` or `ios`, to override the scope's. It decides how the build is named                                                                        |
+| `authority`   | the application id to compare the binary with, to override `scope.application`. A binary that reports another id is unknown, as `another-application` |
+| `domain`      | what the build numbers name: `android-version-code` or `ios-build`. Change it only for a manifest of your own that names them otherwise               |
+
+An `authority` or a `domain` that is given and is empty or has a space around it is refused when the reader is made, with `INVALID_CONFIGURATION`.
+
+| Field                | Android                                       | iOS                                            |
+| -------------------- | --------------------------------------------- | ---------------------------------------------- |
+| `identity.authority` | the application id the binary reports         | the bundle id the binary reports               |
+| `identity.domain`    | `android-version-code`                        | `ios-build`                                    |
+| `identity.value`     | the version code as text                      | the build number (`CFBundleVersion`) as text   |
+| `label`              | the version name                              | the marketing version                          |
+| `raw`                | `applicationId`, `versionName`, `versionCode` | `applicationId`, `shortVersion`, `buildNumber` |
+
+These are the names the rest of Beacon reads. The [Play adapter](google-play.md) names its offers by the version code under `scope.application` and `android-version-code`, so a build that ran is the same identity as the update that was offered. The [App Store adapter](app-store.md) reads `raw.shortVersion` as the order of what runs. A [standard manifest](http.md) and a [support policy](support.md#a-minimum-native-build) use the same words. Every value is text with no space around it.
+
+| The module gave                                                  | The identity                                                                                              |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| a build number and an application id                             | `known`                                                                                                   |
+| no build number: null, empty or spaces                           | `unknown`, reason `build-not-read`                                                                        |
+| no application id                                                | `unknown`, reason `application-not-read`                                                                  |
+| another id than the application of the scope, as Expo Go reports | `unknown`, reason `another-application`, and none of its version numbers is kept in `raw` or as the label |
+| a scope of a platform that is not Android or iOS                 | `unknown`, reason `unsupported-platform`                                                                  |
+
+A build is never read as zero or as null. Where the build is unknown the marketing version still stays in `raw` and as the label, unless the binary is another application's. [Troubleshooting](troubleshooting.md#the-installed-binary-is-unknown) says what to do about each reason.
+
+The Play route writes an intent before `update` or `restart`, naming the build it offered. After the restart the next boot reads the binary through this reader, and the journal says `target-running` when the build is the one offered, `target-not-running` when it is the old one, and `inconclusive` when either side is unknown or named in other words. A test in this package runs exactly this, with the real Play route over a fake bridge.
+
+It does not read `expo-constants`, whose manifest values can come from an update, where the native values are fixed for a binary. It does not name the JavaScript bundle: `expoBundle` reads that, and an over-the-air update changes it without changing the build number. It reads the module when a session asks for the running facts, and again only when a session opens again.
+
+What no device has run: what `expo-application` returns in Expo Go, in a development build and in a release build, in particular that Expo Go answers with its own application id and that `nativeBuildVersion` is the version code on Android and the build number on iOS for each flavor. See [React Native](react-native.md#what-no-device-has-run).
 
 ## A fake for development and tests
 

@@ -75,7 +75,7 @@ export default defineConfig({
           { text: "App Store", link: "/app-store" },
           { text: "Firebase Remote Config", link: "/firebase-remote-config" },
           { text: "CodePush", link: "/code-push" },
-          { text: "Native build", link: "/native" },
+          { text: "Device info", link: "/device-info" },
           { text: "Triggers", link: "/triggers" },
           { text: "Custom adapters", link: "/custom-adapters" },
         ],

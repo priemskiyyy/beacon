@@ -178,7 +178,7 @@ The server answers with the most recent update for the runtime version and the c
 
 ### The installed binary is unknown
 
-A `native` running fact that says `unknown` names its reason. `another-application` means the native module answered for a different application id than the `authority` you gave the reader, which is `scope.application`, and that is what Expo Go does, since it is its own app: none of its version numbers is kept. `build-not-read` means the module gave no build number, or `react-native-device-info` answered its text `unknown`. `application-not-read` means it gave no application id. No store or Play route compares against a binary it cannot name. See [what the binary is](react-native.md#what-the-binary-is).
+A `native` running fact that says `unknown` names its reason. `another-application` means the native module answered for a different application id than the application of the scope (or the `authority` you gave the reader), and that is what Expo Go does, since it is its own app: none of its version numbers is kept. `build-not-read` means the module gave no build number, or `react-native-device-info` answered its text `unknown`. `application-not-read` means it gave no application id. `unsupported-platform` means the scope's `platform` is neither `ios` nor `android`, such as a web build of the same app, and the module was not asked. No store or Play route compares against a binary it cannot name. See [what the binary is](react-native.md#what-the-binary-is).
 
 ### The web build is unknown
 

@@ -10,7 +10,7 @@ import {
   LOOKUP_URL,
   OTHER_DISTRIBUTION,
 } from "src/utils/constants/lookup";
-import { readLookupEntry } from "src/utils/readLookupEntry";
+import { readLookupDocument } from "src/utils/readLookupDocument";
 
 /**
  * App Store metadata as an advisory release source, over Apple's published
@@ -57,7 +57,7 @@ export const appStoreLookup = ({
       }
 
       const response = await fetchLookup({ url, signal });
-      const document = readLookupEntry(response, { appId, bundleId });
+      const document = readLookupDocument(response, { appId, bundleId });
 
       return { document, issuer: "app-store" };
     },

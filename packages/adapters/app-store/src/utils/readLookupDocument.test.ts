@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 
 import { APP_ID, BUNDLE_ID, entry } from "src/fakeStore.fixture";
-import { readLookupEntry } from "src/utils/readLookupEntry";
+import { readLookupDocument } from "src/utils/readLookupDocument";
 
 const EXPECTED = { appId: APP_ID, bundleId: BUNDLE_ID };
 
 test("a matching entry is a candidate marketing version, bound to the configured app", () => {
-  expect(readLookupEntry({ results: [entry()] }, EXPECTED)).toEqual({
+  expect(readLookupDocument({ results: [entry()] }, EXPECTED)).toEqual({
     decision: {
       kind: "candidate",
       release: {
@@ -25,14 +25,14 @@ test("a matching entry is a candidate marketing version, bound to the configured
 });
 
 test("STORE-01 no entry is nothing matched in that lookup context, not proof that no update exists", () => {
-  expect(readLookupEntry({ results: [] }, EXPECTED)).toEqual({
+  expect(readLookupDocument({ results: [] }, EXPECTED)).toEqual({
     decision: { kind: "none", reason: "no-match" },
   });
 });
 
 test("several entries for one app are refused, not resolved by guessing", () => {
   expect(() =>
-    readLookupEntry(
+    readLookupDocument(
       { results: [entry(), entry({ version: "3.4.0" })] },
       EXPECTED,
     ),
@@ -41,18 +41,18 @@ test("several entries for one app are refused, not resolved by guessing", () => 
 
 test("STORE-02 an entry of another app is refused", () => {
   expect(() =>
-    readLookupEntry({ results: [entry({ trackId: 1 })] }, EXPECTED),
+    readLookupDocument({ results: [entry({ trackId: 1 })] }, EXPECTED),
   ).toThrow("another app id");
 });
 
 test("STORE-02 an entry of another bundle is refused, and the bundle is checked only when configured", () => {
   const other = entry({ bundleId: "com.example.other" });
 
-  expect(() => readLookupEntry({ results: [other] }, EXPECTED)).toThrow(
+  expect(() => readLookupDocument({ results: [other] }, EXPECTED)).toThrow(
     "another bundle id",
   );
   expect(
-    readLookupEntry(
+    readLookupDocument(
       { results: [other] },
       { appId: APP_ID, bundleId: undefined },
     ),
@@ -61,7 +61,7 @@ test("STORE-02 an entry of another bundle is refused, and the bundle is checked 
 
 test("an entry with no version is refused", () => {
   expect(() =>
-    readLookupEntry({ results: [entry({ version: "" })] }, EXPECTED),
+    readLookupDocument({ results: [entry({ version: "" })] }, EXPECTED),
   ).toThrow("no version");
 });
 
@@ -77,7 +77,7 @@ test("a malformed release date is refused, however leniently a date parser would
     "2026-09-02T09:15:00+02:00",
   ]) {
     expect(() =>
-      readLookupEntry(
+      readLookupDocument(
         { results: [entry({ currentVersionReleaseDate })] },
         EXPECTED,
       ),
@@ -87,6 +87,6 @@ test("a malformed release date is refused, however leniently a date parser would
 
 test("a refusal is a source failure", () => {
   expect(() =>
-    readLookupEntry({ results: [entry({ version: "" })] }, EXPECTED),
+    readLookupDocument({ results: [entry({ version: "" })] }, EXPECTED),
   ).toThrow(expect.objectContaining({ code: "SOURCE_FAILED" }));
 });

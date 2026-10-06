@@ -1,18 +1,18 @@
 import type { ParseStandardManifestOptions } from "src/types/ParseStandardManifestOptions";
 import type { RouteDeclarations } from "src/types/RouteDeclarations";
 import type { StandardRead } from "src/types/StandardRead";
+import { assertScope } from "src/utils/assertScope";
 import { DEFAULT_LIMITS, SCHEMA_VERSION } from "src/utils/constants/limits";
 import { fingerprint } from "src/utils/fingerprint";
 import { invalidManifest } from "src/utils/invalidManifest";
 import { listRouteNames } from "src/utils/listRouteNames";
 import { measureBytes } from "src/utils/measureBytes";
+import { readExpiry } from "src/utils/readExpiry";
 import { readField } from "src/utils/readField";
 import { readRecord } from "src/utils/readRecord";
 import { readRevision } from "src/utils/readRevision";
 import { readRoutes } from "src/utils/readRoutes";
-import { readScope } from "src/utils/readScope";
 import { readSupport } from "src/utils/readSupport";
-import { readValidity } from "src/utils/readValidity";
 
 const parseJson = (text: string): unknown => {
   try {
@@ -63,14 +63,14 @@ export const parseStandardManifest = <TDeclarations extends RouteDeclarations>({
     );
   }
 
-  readScope(record, scope);
+  assertScope(record, scope);
 
   const revision = readRevision(
     readField(record, "decisionRevision"),
     "decisionRevision",
   );
 
-  const expiresAt = readValidity({ record, now, limits: bounds });
+  const expiresAt = readExpiry({ record, now, limits: bounds });
 
   const decisions = readRoutes(record, routes);
 

@@ -4,7 +4,7 @@ import { invalidManifest } from "src/utils/invalidManifest";
 import { readField } from "src/utils/readField";
 import { readTimestamp } from "src/utils/readTimestamp";
 
-type ReadValidityOptions = {
+type ReadExpiryOptions = {
   record: JsonRecord;
   now: number;
   limits: ManifestLimits;
@@ -17,11 +17,11 @@ type ReadValidityOptions = {
  * more than the skew, or has already expired is refused, so a stale copy is
  * never fresher than the authority said.
  */
-export const readValidity = ({
+export const readExpiry = ({
   record,
   now,
   limits,
-}: ReadValidityOptions): number => {
+}: ReadExpiryOptions): number => {
   const issuedAt = readTimestamp(readField(record, "issuedAt"), "issuedAt");
   const expiresAt = readTimestamp(readField(record, "expiresAt"), "expiresAt");
 

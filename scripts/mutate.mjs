@@ -144,6 +144,20 @@ const MUTANTS = [
     describes: "an answer renewed for another account",
   },
   {
+    file: `${http}/http.ts`,
+    find: "if (held === null) {",
+    replace: "if (false) {",
+    project: "http",
+    describes: "a not modified answer that invents the document it renews",
+  },
+  {
+    file: `${http}/http.ts`,
+    find: 'if (answer.status !== "not-modified") {',
+    replace: "if (false) {",
+    project: "http",
+    describes: "an answer nobody recognizes renewing what is held",
+  },
+  {
     file: `${http}/utils/parseStandardManifest.ts`,
     find: 'if (readField(record, "schemaVersion") !== SCHEMA_VERSION) {',
     replace: "if (false) {",
@@ -151,7 +165,7 @@ const MUTANTS = [
     describes: "an unknown schema version read",
   },
   {
-    file: `${http}/utils/readScope.ts`,
+    file: `${http}/utils/assertScope.ts`,
     find: "(key) => readText(readField(record, key), key) !== scope[key],",
     replace: "() => false,",
     project: "http",
@@ -165,14 +179,14 @@ const MUTANTS = [
     describes: "a missing route read as a decision",
   },
   {
-    file: `${http}/utils/readValidity.ts`,
+    file: `${http}/utils/readExpiry.ts`,
     find: "if (expiresAt <= now) {",
     replace: "if (false) {",
     project: "http",
     describes: "a stale copy accepted as fresh",
   },
   {
-    file: `${http}/utils/readValidity.ts`,
+    file: `${http}/utils/readExpiry.ts`,
     find: "return Math.min(expiresAt, now + limits.lifetime);",
     replace: "return expiresAt;",
     project: "http",
@@ -180,7 +194,7 @@ const MUTANTS = [
   },
   {
     file: `${http}/utils/readTimestamp.ts`,
-    find: '!new Date(milliseconds).toISOString().startsWith(match[1] ?? "")',
+    find: "new Date(milliseconds).toISOString().slice(0, SECONDS_LENGTH) !==\n      value.slice(0, SECONDS_LENGTH)",
     replace: "false",
     project: "http",
     describes: "a date that does not exist rolled over",

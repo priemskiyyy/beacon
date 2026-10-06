@@ -23,7 +23,7 @@ const refuse = (message: string) =>
  * another app or bundle, a missing version and a malformed date are refused,
  * each with its own message, and never repaired into an answer.
  */
-export const readLookupEntry = (
+export const readLookupDocument = (
   { results }: AppStoreLookupResponse,
   { appId, bundleId }: Expected,
 ): AppStoreDocument => {

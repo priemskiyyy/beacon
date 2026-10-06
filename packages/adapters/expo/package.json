@@ -12,6 +12,7 @@
   "bugs": {
     "url": "https://github.com/priemskiyyy/beacon/issues"
   },
+  "homepage": "https://priemskiyyy.github.io/beacon/",
   "publishConfig": {
     "access": "public"
   },
@@ -33,7 +34,8 @@
       "types": "./dist/mock.d.ts",
       "import": "./dist/mock.js",
       "default": "./dist/mock.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsdown",

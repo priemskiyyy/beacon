@@ -194,3 +194,25 @@ test("an ambiguous lookup fails the check as a source failure, never resolved by
     error: { code: "SOURCE_FAILED" },
   });
 });
+
+test("STORE-06 a handoff that ends without an installation changes nothing about what runs or what is offered", async () => {
+  const { beacon, binary } = create("3.2.0");
+
+  beacon.start();
+  await binary.check();
+
+  const { observation } = binary.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  const running = beacon.running.get();
+
+  await binary.openStore({ offer: observation.offer.ref });
+
+  expect(beacon.running.get()).toEqual(running);
+  expect(binary.state.get().observation).toEqual(observation);
+  expect(binary.state.get().prepared).toEqual({ status: "not-applicable" });
+  expect(beacon.support.get().status).toBe("unknown");
+});

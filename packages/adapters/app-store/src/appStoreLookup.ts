@@ -5,6 +5,10 @@ import type { AppStoreDocument } from "src/types/AppStoreDocument";
 import type { AppStoreLookupOptions } from "src/types/AppStoreLookupOptions";
 import { assertAppId } from "src/utils/assertAppId";
 import { assertCountry } from "src/utils/assertCountry";
+import {
+  APP_STORE_DISTRIBUTION,
+  OTHER_DISTRIBUTION,
+} from "src/utils/constants/lookup";
 import { createLookupUrl } from "src/utils/createLookupUrl";
 import { readLookupEntry } from "src/utils/readLookupEntry";
 
@@ -14,7 +18,10 @@ import { readLookupEntry } from "src/utils/readLookupEntry";
  * response; this source checks that the entry is the configured app and bundle
  * and reads its marketing version and release date. No entry is `none` in that
  * storefront only, and a marketing version is never presented as the exact
- * native build a device will receive. It carries no expiry: each check asks
+ * native build a device will receive. It speaks for the `app-store`
+ * distribution only: for a TestFlight, enterprise or development scope it makes
+ * no request and answers that it has no release, and the application decides
+ * what a build outside the store does. It carries no expiry: each check asks
  * again.
  *
  * @example
@@ -35,7 +42,14 @@ export const appStoreLookup = ({
 
   return createReleaseSource<AppStoreDocument>({
     name,
-    read: async ({ signal }) => {
+    read: async ({ scope, signal }) => {
+      if (scope.distribution !== APP_STORE_DISTRIBUTION) {
+        return {
+          document: { decision: { kind: "none", reason: OTHER_DISTRIBUTION } },
+          issuer: "app-store",
+        };
+      }
+
       const response = await request({
         url: createLookupUrl(appId, country),
         signal,

@@ -105,3 +105,27 @@ test("the source is named for diagnostics, and app-store-lookup by default", () 
     }).name,
   ).toBe("ios-store");
 });
+
+test("STORE-09 a scope of another distribution is answered without a request, and never as an offer", async () => {
+  const store = fakeStore([entry({ version: "3.4.0" })]);
+
+  const source = appStoreLookup({
+    appId: APP_ID,
+    country: "de",
+    bundleId: BUNDLE_ID,
+    request: store.request,
+  });
+
+  for (const distribution of ["testflight", "enterprise", "development"]) {
+    const read = buildRead();
+
+    await expect(
+      source.read({ ...read, scope: { ...read.scope, distribution } }),
+    ).resolves.toEqual({
+      document: { decision: { kind: "none", reason: "other-distribution" } },
+      issuer: "app-store",
+    });
+  }
+
+  expect(store.requests).toEqual([]);
+});

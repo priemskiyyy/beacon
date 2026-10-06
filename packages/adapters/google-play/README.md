@@ -21,6 +21,8 @@ const beacon = new Beacon({
 });
 ```
 
+The running native release must be named the way Play names the offer: authority `scope.application`, domain `android-version-code`, and the version code as text, with `raw` holding `applicationId`, `versionName` and `versionCode`.
+
 The bridge is a small native module you own, or an audited existing one, that keeps the `PlayBridge` contract: `AppUpdateInfo`, the Activity and the result launcher stay native, every start reacquires fresh information (Play allows one use of it), and it rejects when no Activity is available.
 
 ## What a check reports

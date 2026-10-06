@@ -152,7 +152,7 @@ The commands of the adapters:
 | Google Play    | `download`  | offer          | `may-activate-on-next-start`               | `provider-current`    | `update-downloaded`                                          |
 | Google Play    | `update`    | offer          | `native-update-flow`, `javascript-restart` | `provider-current`    | `immediate-flow-started`                                     |
 | Google Play    | `restart`   | prepared       | `javascript-restart`                       | `provider-current`    | `completion-requested`                                       |
-| App Store      | `openStore` | optional offer | `external-handoff`                         | `store-destination`   | `store-handoff-accepted`                                     |
+| App Store      | `openStore` | optional offer | `external-handoff`                         | `store-destination`   | `store-handoff-requested`                                    |
 
 ## Handling every status
 

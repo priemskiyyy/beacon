@@ -138,8 +138,8 @@ const web = targetRoute({
         "identity": {
           "status": "known",
           "authority": "com.example.notes",
-          "domain": "native-ios-build",
-          "value": "ios-build-9"
+          "domain": "ios-build",
+          "value": "412"
         },
         "label": "2.5.0",
         "order": "2.5.0"
@@ -173,7 +173,49 @@ The whole manifest or none of it. `parseStandardManifest` (the text) and `readSt
 
 The `ETag` is the validator for the next read and never the revision. A field the schema does not name is ignored and never reaches the document, a key that could corrupt a registry (`__proto__`, `constructor`, `prototype`) is refused as metadata, and a repeated JSON key keeps its last value because the text is decoded as JSON.
 
-A redirect is told by `Response.redirected`. The `fetch` that ships with React Native does not set it, so there a redirect is not refused: serve the manifest from a URL that does not redirect.
+A redirect is told by `Response.redirected`. The `fetch` that ships with React Native does not set it, so there a redirect is not refused, unless your own `fetch` wrapper says it. React Native's `Response` does have `url`, the address that answered, so compare it with the one you asked for:
+
+```ts
+import { http, readStandardManifest } from "@priemskiyyy/beacon-http";
+import type {
+  ManifestResponse,
+  RouteDeclarations,
+} from "@priemskiyyy/beacon-http";
+
+const routes = { web: { kind: "target" } } satisfies RouteDeclarations;
+
+const RELEASES_URL = "https://updates.example.com/releases.json";
+
+const fetchManifest = async (
+  headers: Record<string, string>,
+  signal: AbortSignal,
+): Promise<ManifestResponse> => {
+  const response = await fetch(RELEASES_URL, { signal, headers });
+
+  return {
+    status: response.status,
+    // A response that came from another URL than the one asked for was redirected.
+    redirected: response.url !== RELEASES_URL,
+    headers: response.headers,
+    text: () => response.text(),
+  };
+};
+
+export const manifest = http({
+  fetch: async ({ scope, signal, validator }) =>
+    readStandardManifest({
+      response: await fetchManifest(
+        validator === null ? {} : { "if-none-match": validator },
+        signal,
+      ),
+      scope,
+      routes,
+      now: Date.now(),
+    }),
+});
+```
+
+Ask for the exact URL you serve: a server that rewrites it, such as by adding a trailing slash, looks like a redirect and fails the read.
 
 ### Limits
 

@@ -129,7 +129,7 @@ After an accepted reload, the next command is blocked with `operation-indetermin
 
 ### The command was accepted and nothing changed
 
-An accepted command is a request. `reload-requested`, `activation-requested`, `completion-requested` and `store-handoff-accepted` name what was accepted. The running build changes only at a later boot. For a service worker, the worker must handle the `SKIP_WAITING` message, or nothing happens. With the [journal](journal.md) on, the next boot says what came of it.
+An accepted command is a request. `reload-requested`, `activation-requested`, `completion-requested` and `store-handoff-requested` name what was accepted. The running build changes only at a later boot. For a service worker, the worker must handle the `SKIP_WAITING` message, or nothing happens. With the [journal](journal.md) on, the next boot says what came of it.
 
 ### The command is unsupported
 

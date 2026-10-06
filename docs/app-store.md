@@ -27,8 +27,10 @@ import { Linking } from "react-native";
 // Your client validates the lookup response into `{ results }`.
 declare const parseLookup: (input: unknown) => AppStoreLookupResponse;
 
-// The running build, from your native constants.
+// The running build, from your native constants, such as `expo-application` or `react-native-device-info`.
 declare const nativeBuild: { shortVersion: string; buildNumber: string };
+
+const APPLICATION = "com.example.notes";
 
 const store = appStoreLookup({
   appId: "284882215",
@@ -40,7 +42,7 @@ const store = appStoreLookup({
 
 export const beacon = new Beacon({
   scope: {
-    application: "com.example.notes",
+    application: APPLICATION,
     environment: "production",
     platform: "ios",
     distribution: "app-store",
@@ -50,12 +52,13 @@ export const beacon = new Beacon({
     native: () => ({
       identity: {
         status: "known",
-        authority: "com.example.notes",
+        authority: APPLICATION,
         domain: "ios-build",
         value: nativeBuild.buildNumber,
       },
       label: nativeBuild.shortVersion,
       raw: {
+        applicationId: APPLICATION,
         shortVersion: nativeBuild.shortVersion,
         buildNumber: nativeBuild.buildNumber,
       },
@@ -72,6 +75,16 @@ export const beacon = new Beacon({
   },
 });
 ```
+
+On React Native, `linking` is `Linking` from `react-native`. The running native release is yours to read, and its names are fixed so that readers and adapters agree:
+
+| Field                | Value                                                                                  |
+| -------------------- | -------------------------------------------------------------------------------------- |
+| `identity.authority` | `scope.application`, the bundle id                                                     |
+| `identity.domain`    | `ios-build`                                                                            |
+| `identity.value`     | the build number (`CFBundleVersion`) as text                                           |
+| `label`              | the marketing version (`CFBundleShortVersionString`)                                   |
+| `raw`                | `applicationId`, `shortVersion` (what `appleMarketingVersion` reads) and `buildNumber` |
 
 The lookup and the handoff are separate. The route joins them: `newerRoute` selects a candidate from the source and carries the `openStore` command of the mechanism.
 
@@ -112,9 +125,9 @@ A marketing version orders marketing releases only. It can never satisfy a build
 
 `appStoreHandoff({ appId, linking })` is a mechanism with one command, `openStore`. It takes an offer or none, because remediation can send a user to the store without one.
 
-| Command     | Needs             | Impact             | Binding             | Receipt                  |
-| ----------- | ----------------- | ------------------ | ------------------- | ------------------------ |
-| `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-accepted` |
+| Command     | Needs             | Impact             | Binding             | Receipt                   |
+| ----------- | ----------------- | ------------------ | ------------------- | ------------------------- |
+| `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-requested` |
 
 ```ts
 import { beacon } from "src/beacon";

@@ -248,7 +248,7 @@ See [HTTP](http.md).
 | `http`                         | function | your manifest endpoint as a release source, through your client                     |
 | `readStandardManifest`         | function | a standard manifest response as an answer of `http`                                 |
 | `parseStandardManifest`        | function | the text of a standard manifest as a valid read, or an error naming the rule broken |
-| `HttpAdapterOptions`           | type     | the name and the `fetch` of `http()`                                                |
+| `HttpOptions`                  | type     | the name and the `fetch` of `http()`                                                |
 | `HttpFetchContext`             | type     | what one read hands your client: scope, signal, attempt and validator               |
 | `HttpAnswer`                   | type     | what your client resolves: `changed` with a document, or `not-modified`             |
 | `ManifestLimits`               | type     | the tunable limits of a manifest: bytes, lifetime and skew                          |
@@ -347,7 +347,7 @@ See [App Store](app-store.md).
 | `AppStoreMetadata`       | type     | the release date, in epoch milliseconds                                |
 | `AppStoreHandoffOptions` | type     | the app id and the link opener                                         |
 | `LinkingLike`            | type     | the part of React Native's `Linking` the handoff uses                  |
-| `StoreHandoffReceipt`    | type     | `store-handoff-accepted`                                               |
+| `AppStoreHandoffReceipt` | type     | `store-handoff-requested`                                              |
 | `AppleVersion`           | type     | a marketing version as three numbers                                   |
 
 ## @priemskiyyy/beacon-react

@@ -35,20 +35,49 @@ import { NativeModules } from "react-native";
 
 const bridge: PlayBridge = NativeModules.PlayUpdates;
 
+// The running build, from your native constants, such as `expo-application` or `react-native-device-info`.
+declare const nativeBuild: { versionName: string; versionCode: number };
+
+const APPLICATION = "com.example.notes";
+
 export const beacon = new Beacon({
   // scope.application is the Android application id.
   scope: {
-    application: "com.example.notes",
+    application: APPLICATION,
     environment: "production",
     platform: "android",
     distribution: "google-play",
   },
   running: {
     boot: { id: `${Date.now()}-${Math.random().toString(36).slice(2)}` },
+    native: () => ({
+      identity: {
+        status: "known",
+        authority: APPLICATION,
+        domain: "android-version-code",
+        value: String(nativeBuild.versionCode),
+      },
+      label: nativeBuild.versionName,
+      raw: {
+        applicationId: APPLICATION,
+        versionName: nativeBuild.versionName,
+        versionCode: nativeBuild.versionCode,
+      },
+    }),
   },
   routes: { binary: googlePlay({ bridge }) },
 });
 ```
+
+The running native release is yours to read, and it must be named the way Play names the offer, or the two are incomparable and nothing is reported as running the offered build:
+
+| Field                | Value                                                       |
+| -------------------- | ----------------------------------------------------------- |
+| `identity.authority` | `scope.application`, the Android application id             |
+| `identity.domain`    | `android-version-code`                                      |
+| `identity.value`     | the version code as text                                    |
+| `label`              | the version name                                            |
+| `raw`                | `applicationId`, `versionName` and `versionCode` (a number) |
 
 The route is a driver route on the `native` subject. A bridge belongs to one open session at a time: a second Beacon that opens a route on the same bridge fails to open it, and that route says `DRIVER_FAILED`.
 

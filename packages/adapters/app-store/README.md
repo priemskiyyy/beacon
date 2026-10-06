@@ -35,7 +35,31 @@ const binary = newerRoute({
   current: appleMarketingVersion,
   mechanism: appStoreHandoff({ appId: APP_STORE_ID, linking: Linking }),
 });
+
+// Your native constants, such as from expo-application or react-native-device-info.
+declare const shortVersion: string;
+declare const buildNumber: string;
+
+const beacon = new Beacon({
+  scope, // scope.application is the bundle id
+  running: {
+    boot: { id: BOOT_ID },
+    native: () => ({
+      identity: {
+        status: "known",
+        authority: scope.application,
+        domain: "ios-build",
+        value: buildNumber,
+      },
+      label: shortVersion,
+      raw: { applicationId: scope.application, shortVersion, buildNumber },
+    }),
+  },
+  routes: { binary },
+});
 ```
+
+On React Native, `linking` is `Linking` from `react-native`.
 
 `fetch` is your client call: it owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw. The source then checks that the entry is your app and bundle, and refuses several entries, another app, a missing version or a malformed date, each with its own message.
 
@@ -49,13 +73,13 @@ const binary = newerRoute({
 | a scope that is not `app-store` | `none`, detail `other-distribution`, with no request                                  |
 | no `shortVersion` running       | `inconclusive`: nothing claims a newer version without knowing the order of what runs |
 
-The running native release keeps `CFBundleShortVersionString` as `raw.shortVersion` and the build number as a separate fact; `appleMarketingVersion` reads the first. A marketing version can never satisfy a build-level minimum.
+The running native release is named by the build number (`CFBundleVersion`) as text, under the domain `ios-build` and the authority `scope.application`. It keeps `raw.applicationId`, `raw.shortVersion` (`CFBundleShortVersionString`, which `appleMarketingVersion` reads) and `raw.buildNumber`. A marketing version can never satisfy a build-level minimum.
 
 ## Handoff
 
-| Command     | Needs             | Impact             | Binding             | Receipt                  |
-| ----------- | ----------------- | ------------------ | ------------------- | ------------------------ |
-| `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-accepted` |
+| Command     | Needs             | Impact             | Binding             | Receipt                   |
+| ----------- | ----------------- | ------------------ | ------------------- | ------------------------- |
+| `openStore` | an optional offer | `external-handoff` | `store-destination` | `store-handoff-requested` |
 
 `openStore` takes an offer or none, since remediation can send a user to the store without one. It opens `https://apps.apple.com/app/id<appId>`, built from your configured id alone and never from a manifest. A resolved call means only that the OS accepted the request: the user can decline or never return, and the route settles as soon as it is accepted, without waiting for the app to come back.
 

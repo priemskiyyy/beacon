@@ -129,7 +129,7 @@ export const binary = newerRoute({
   source: catalog.select((document) => document.latest),
   version: semver(),
   current: (release) => {
-    const name = release?.raw.versionName;
+    const name = release?.raw.shortVersion;
 
     if (typeof name !== "string") {
       return null;

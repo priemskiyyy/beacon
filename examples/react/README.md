@@ -1,4 +1,6 @@
-# Release lab, a Beacon example
+# Release lab on React
+
+This is the release lab the Playwright specs run on: a world you script to watch every state Beacon can be in, and not the way to start. To add Beacon to a React app, read [Getting started](../../docs/getting-started.md) and copy [the minimal React example](../react-minimal/README.md), which has five files and none of this machinery.
 
 The release lab is one page that runs a real [Beacon](../../README.md) around a scripted world: a release service you publish, break, slow and expire, a deployment that serves builds, a support policy, an unsaved draft and a browser that reloads when you say so. Nothing leaves your browser, and nothing here installs anything.
 
@@ -48,4 +50,4 @@ The page walks through four sections, each with a "Try this" hint:
 
 ## Automated tests
 
-`pnpm exec vitest run --project example-shared` tests the lab without a browser, on a test clock. `pnpm exec vitest run --project example-react` renders the application in jsdom. `pnpm test:browser` builds the packages and runs the lab and the Expo web export in Chromium.
+`pnpm exec vitest run --project example-shared` tests the lab without a browser, on a test clock. `pnpm exec vitest run --project example-react` renders the application in jsdom. `pnpm test:browser` builds the packages and runs the labs, the web export of the Expo lab and the minimal React app in Chromium.

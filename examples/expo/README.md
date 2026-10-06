@@ -1,6 +1,6 @@
-# Release lab on Expo, a Beacon example
+# Notes, Beacon in an Expo app
 
-The same release lab on the web, and a real Beacon over Expo Updates on iOS and Android. The user interface reuses the hooks of `@priemskiyyy/beacon-react` with React Native components.
+The smallest Expo app that does what [React Native](../../docs/react-native.md) teaches: it offers an OTA update in a banner, never reloads over a note that is not saved, and shows a forced-upgrade screen when the installed build is too old. Five files and an entry point, with no shared code and nothing from `@priemskiyyy/beacon/mock` or `/testing`. Copy it. The [Expo lab](../expo-lab/README.md) next to it is the release lab the tests use, not the way to start.
 
 ```sh
 pnpm install
@@ -8,34 +8,36 @@ pnpm build
 pnpm --filter example-expo dev
 ```
 
-The platform files choose what starts, never a runtime check: `src/lab/startLab.web.ts` runs the scripted lab from `../shared` (Metro and `react-native-web` serve it in a browser), and `src/lab/startLab.native.ts` builds a real Beacon with `expoUpdates({ updates: Updates })`, which reads the running bundle itself, from `@priemskiyyy/beacon-expo`, where `Updates` is the `expo-updates` module the application imports.
+The packages are linked from the workspace, so build them first. In an application of your own, install what the page lists: `pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-react @priemskiyyy/beacon-expo @priemskiyyy/beacon-app-store @priemskiyyy/beacon-google-play`, and `npx expo install expo-updates expo-application`. The last two packages are only for the forced upgrade's store button.
 
-## The web build
+## The files
 
-It is the lab of `example-react` with React Native components: the same world, the same controls (the buttons of the simulated world), the same timeline. Status facts, the banner outcome and the transitions carry a `testID`, which is how the Playwright spec reads them. `?latency=0` makes the release service answer at once.
+| File                    | What it does                                                                                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/beacon.ts`         | The Beacon: the scope, the `ota` route from `expoUpdates`, the installed build from `expoApplication`, the `store` route (`appStore` on iOS, `playStore` on Android), the `minimumBuild` policy and the `Register` line. |
+| `src/App.tsx`           | `BeaconProvider`, which starts the session, and `checkOn` with `foreground({ appState })`, which also checks when the app starts.                                                                                        |
+| `src/UpdateBanner.tsx`  | `useRoute("ota")` and `applyUpdate`: the banner shows while an update is on offer, and says why when the update is blocked.                                                                                              |
+| `src/DraftForm.tsx`     | The guard: `useDisruption` answers `blocked` while the note is not saved, so a reload cannot reach it.                                                                                                                   |
+| `src/ForcedUpgrade.tsx` | `useSupport`: below the minimum build it replaces the app with a button that calls `openStore` on the `store` route.                                                                                                     |
+| `index.ts`              | `registerRootComponent`.                                                                                                                                                                                                 |
 
-## The device build
+[React Native](../../docs/react-native.md) explains these files one after another, and its code is these files. When the page and a file disagree, the file is right: it is compiled, bundled and tested.
 
-The native Beacon has one route, `ota`, which `expo-updates` owns: the check, the download and the reload are the provider's, mapped in full by the adapter. What it shows:
+## Seeing it
 
-- In Expo Go and development builds updates are disabled, so the route is `unknown` with the reason `unsupported-environment`, never "no update". A build with `expo-updates` configured (an update URL and a runtime version) checks for real.
-- `Download` prepares the provider's current selection, which may differ from the offer: the receipt says `same`, `different` or `unknown`. `Reload` needs the prepared reference, restarts the JavaScript runtime and guarantees no code after it.
-- The support policy reads the application's own manifest. That backend is a mock source here, answering that no update has ended; in an application it is `http()` from `@priemskiyyy/beacon-http` over the application's client.
-- The journal is on, in `expo-sqlite/kv-store` (`keyValueJournalStorage` in `src/lab/startLab.native.ts`): a reload replaces the JavaScript runtime, so what the Beacon asked for is recorded in storage that survives it, and the next boot reads it once the running facts have answered. The panel shows the journal's state.
-- The installed binary is a `native` running fact read with `expo-application` (`expoApplication` of `@priemskiyyy/beacon-expo`, in `src/lab/createNativeBeacon.ts`): the build number under the domain `android-version-code` or `ios-build`, with the application id as authority. In Expo Go the application id is Expo Go's own, so the fact says `another-application`, and a build that gave no number says `build-not-read`.
-- The app checks when it starts and each time it returns from the background with `checkOn`, which checks at startup by itself, and `foreground({ appState: AppState })` from `@priemskiyyy/beacon/triggers` (`src/components/Native/NativeApplication.tsx`). A system dialog on iOS is `inactive` and back to `active` and is not a return, and the trigger knows it.
+In development (`__DEV__`) the `ota` route runs on `createFakeUpdates({ available: true })` from `@priemskiyyy/beacon-expo/mock`, which offers one update, so the banner shows in Expo Go and in a development build, where `expo-updates` is disabled. The fake is about a kilobyte in the bundle, and a release build uses the real `expo-updates` module. The update server of a release build is yours: `npx eas update:configure` adds the update URL and the runtime version.
 
-The native user interface passes its Beacon down and reads it with `useObservable`. The registered hooks and `BeaconProvider` are typed for one Beacon, and the lab's Beacon has other routes than the device's, so the native tree cannot use them.
+The forced upgrade reads its minimum from a constant in `src/beacon.ts`, 120, which is the build number in `app.json`. Raise it above that and the next check shows the screen on a build of this app. In Expo Go the binary is another application's, which Beacon reads as unknown, never as too old, so Expo Go never shows it.
 
-## Checks on a device
+## Tests
 
-1. Launch a development build: the check reports an environment that cannot check, and support is unknown.
-2. Launch a release build with an update published to its channel: the offer appears. Download it, and read the receipt.
-3. Reload: the runtime restarts, and only the running bundle of the next launch says which update runs.
-4. Publish a rollback to the embedded update: the offer is a rollback, with an identity nobody named.
+`pnpm exec vitest run --project example-expo` renders the app against a fake `expo-updates` (the one of the adapter), a fake `expo-application` and a fake `Linking`, with the platform set to Android unless a test says iOS, and checks these:
 
-Record the runtime line, the device, the build mode and the timeline for each check.
+- an update on offer is a banner, and `Update` downloads it and reloads;
+- a note that is not saved blocks the update, and saving lets it through;
+- a build below the minimum shows the forced upgrade, and its button opens the store;
+- on iOS the same button opens the App Store page of the app, which the test stubs the lookup for;
+- a build at the minimum runs the app;
+- Expo Go, where updates are disabled and the binary is another app, says nothing.
 
-## Automated tests
-
-`pnpm test:browser` runs the web export in Chromium. `pnpm --filter example-expo build:native` bundles both native platforms with Metro, which shows the exports resolve; the checks above still need a device. `pnpm exec vitest run --project example-expo` runs the native Beacon against a fake `expo-updates` module, a fake `expo-application` and a fake key-value store, and `src/lab/sdk.contracts.ts` proves that the real `expo-application`, `expo-sqlite` and `AppState` types fit what the example passes them. [React Native](../../docs/react-native.md) is the page that explains the wiring.
+The React Native components render through `react-native-web` in jsdom, so the tests show what the wiring does and nothing about how it looks. `pnpm --filter example-expo build:native` bundles the app for iOS and Android with Metro and compiles it to Hermes bytecode, which shows that the packages' exports resolve in a native bundle. Nothing here has run on a device: [what no device has run](../../docs/react-native.md#what-no-device-has-run) lists what a device still has to show.

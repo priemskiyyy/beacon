@@ -1,4 +1,6 @@
-# Release lab, a Beacon example in Svelte
+# Release lab on Svelte
+
+This is a lab for the tests, not the way to start: [Svelte](../../docs/svelte.md) is the page to read, and [the minimal React example](../react-minimal/README.md) shows the shortest working app.
 
 The release lab is one page that runs a real [Beacon](../../README.md) around a scripted world: a release service you publish, break, slow and expire, a deployment that serves builds, a support policy, an unsaved draft and a browser that reloads when you say so. Nothing leaves your browser, and nothing here installs anything. This is the same lab as [the React app](../react/README.md), written with [`@priemskiyyy/beacon-svelte`](../../packages/svelte/README.md) and Svelte 5 runes.
 

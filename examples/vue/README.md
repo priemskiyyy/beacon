@@ -1,4 +1,6 @@
-# Release lab, a Beacon example for Vue
+# Release lab on Vue
+
+This is a lab for the tests, not the way to start: [Vue](../../docs/vue.md) is the page to read, and [the minimal React example](../react-minimal/README.md) shows the shortest working app.
 
 The same release lab as the [React example](../react/README.md), written with `@priemskiyyy/beacon-vue`: one page that runs a real [Beacon](../../README.md) around a scripted world (a release service you publish, break, slow and expire, a deployment, a support policy, an unsaved draft and a browser that reloads when you say so). Nothing leaves your browser, and nothing here installs anything.
 

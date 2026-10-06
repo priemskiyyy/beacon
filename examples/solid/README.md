@@ -1,4 +1,6 @@
-# Release lab on Solid, a Beacon example
+# Release lab on Solid
+
+This is a lab for the tests, not the way to start: [Solid](../../docs/solid.md) is the page to read, and [the minimal React example](../react-minimal/README.md) shows the shortest working app.
 
 The same release lab as [the React app](../react/README.md), written with [`@priemskiyyy/beacon-solid`](../../packages/solid/README.md): one page that runs a real Beacon around a scripted world (a release service you publish, break, slow and expire, a deployment, a support policy, an unsaved draft and a browser that reloads when you say so). Nothing leaves your browser, and nothing here installs anything.
 

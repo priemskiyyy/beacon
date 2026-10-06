@@ -198,6 +198,18 @@ export default defineConfig({
   test: {
     globals: false,
     restoreMocks: true,
+    // Code no test executes is dead, unreachable or untested: `pnpm test:coverage` lists it.
+    coverage: {
+      provider: "v8",
+      include: ["packages/**/src/**/*.{ts,tsx,svelte}"],
+      exclude: [
+        "**/*.test.*",
+        "**/*.fixture.*",
+        "**/*.contracts.*",
+        "**/dist/**",
+      ],
+      reporter: ["text-summary", "json-summary", "json"],
+    },
     projects: [
       ...discover("packages"),
       ...discover("packages/adapters"),

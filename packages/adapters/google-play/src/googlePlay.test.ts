@@ -1,0 +1,368 @@
+import { Beacon } from "@priemskiyyy/beacon";
+import { createTestClock } from "@priemskiyyy/beacon/mock";
+import type { ReleaseScope } from "@priemskiyyy/beacon";
+import { expect, test } from "vitest";
+
+import {
+  availableInfo,
+  downloading,
+  fakeBridge,
+  installEvent,
+} from "src/fakeBridge.fixture";
+import { googlePlay } from "src/googlePlay";
+
+const SCOPE: ReleaseScope = {
+  application: "com.example.notes",
+  environment: "production",
+  platform: "android",
+  distribution: "play-store",
+};
+
+// Lets every queued promise continuation run before the test goes on.
+const settle = () =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, 0);
+  });
+
+const create = (info = availableInfo(412)) => {
+  const fake = fakeBridge(info);
+
+  const beacon = new Beacon({
+    scope: SCOPE,
+    running: { boot: { id: "boot-1" } },
+    routes: { binary: googlePlay({ bridge: fake.bridge }) },
+    clock: createTestClock({ now: 1_000 }),
+  });
+
+  return { ...fake, beacon, binary: beacon.route("binary") };
+};
+
+const checkOffer = async (context: ReturnType<typeof create>) => {
+  context.beacon.start();
+  await context.binary.check();
+
+  const { observation } = context.binary.state.get();
+
+  if (observation.status !== "available") {
+    throw new Error("The route has no offer.");
+  }
+
+  return observation.offer;
+};
+
+test("creating the route and the beacon ask Play for nothing", () => {
+  const { calls, listeners } = create();
+
+  expect(calls.queries).toBe(0);
+  expect(listeners()).toBe(0);
+});
+
+test("PLAY-06 the install listener is in place before any flow can start", async () => {
+  const context = create();
+
+  context.beacon.start();
+  await settle();
+
+  expect(context.listeners()).toBe(1);
+});
+
+test("PLAY-07 a check is a fresh query, and starts no flow", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  expect(offer).toMatchObject({
+    flows: ["flexible", "immediate"],
+    release: { identity: { value: "412" } },
+  });
+  expect(context.calls).toMatchObject({ flexible: 0, immediate: 0 });
+});
+
+test("PLAY-08 a flexible update is prepared when Play says it downloaded, and progress is Play's own", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+  await settle();
+
+  expect(context.binary.state.get().operation).toMatchObject({
+    state: "running",
+    command: "startFlexibleUpdate",
+  });
+
+  context.install(downloading(1_024, 4_096));
+  expect(context.binary.state.get().operation).toMatchObject({
+    progress: 0.25,
+  });
+
+  context.install(installEvent("downloaded"));
+
+  await expect(starting).resolves.toEqual({
+    status: "accepted",
+    operation: { id: 1 },
+    receipt: { kind: "update-downloaded" },
+  });
+  expect(context.binary.state.get().prepared).toMatchObject({
+    status: "ready",
+    value: { flow: "flexible", release: { identity: { value: "412" } } },
+  });
+  expect(context.binary.state.get().operation).toEqual({ state: "idle" });
+});
+
+test("PLAY-09 a download is not an installation: completing it is a separate command that restarts nothing by itself", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+  await settle();
+  context.install(installEvent("downloaded"));
+  await starting;
+
+  expect(context.calls.completions).toBe(0);
+
+  const { prepared } = context.binary.state.get();
+
+  if (prepared.status !== "ready") {
+    throw new Error("The route has nothing prepared.");
+  }
+
+  await expect(
+    context.binary.completeUpdate({ prepared: prepared.value.ref }),
+  ).resolves.toMatchObject({
+    status: "accepted",
+    receipt: { kind: "completion-requested" },
+  });
+  expect(context.calls.completions).toBe(1);
+});
+
+test("PLAY-10 a user who declines the consent dialog cancels the command, and nothing downloads", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setFlow("flexible", "cancelled");
+
+  await expect(
+    context.binary.startFlexibleUpdate({ offer: offer.ref }),
+  ).resolves.toEqual({
+    status: "cancelled",
+    stage: "consent",
+  });
+  expect(context.binary.state.get().prepared).toEqual({ status: "unknown" });
+});
+
+test("PLAY-11 a download Play reports as failed is a failed command", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+  await settle();
+  context.install(installEvent("failed"));
+
+  await expect(starting).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "COMMAND_FAILED" },
+  });
+  expect(context.binary.state.get().operation).toEqual({ state: "idle" });
+});
+
+test("PLAY-12 a flow Play reports as failed at the consent step is a failed command", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setFlow("flexible", "failed");
+
+  await expect(
+    context.binary.startFlexibleUpdate({ offer: offer.ref }),
+  ).resolves.toMatchObject({
+    status: "failed",
+  });
+});
+
+test("PLAY-13 an offer Play no longer makes is stale, and no flow starts", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setInfo(availableInfo(413));
+
+  await expect(
+    context.binary.startFlexibleUpdate({ offer: offer.ref }),
+  ).resolves.toEqual({
+    status: "stale",
+    reason: "provider-changed",
+  });
+  expect(context.calls.flexible).toBe(0);
+});
+
+test("PLAY-14 a flow Play does not allow for this update is unsupported, and no flow starts", async () => {
+  const context = create(availableInfo(412, { immediate: false }));
+  const offer = await checkOffer(context);
+
+  await expect(
+    context.binary.startImmediateUpdate({ offer: offer.ref }),
+  ).resolves.toEqual({
+    status: "unsupported",
+    reason: "flow-not-allowed",
+  });
+  expect(context.calls.immediate).toBe(0);
+});
+
+test("PLAY-15 an immediate flow is disruptive, so a participant is asked, and the route is unresolved once Play took over", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const asked: string[] = [];
+
+  context.beacon.disruptions.register({
+    name: "drafts",
+    impacts: ["native-update-flow"],
+    reserve: () => {
+      asked.push("drafts");
+
+      return { status: "reserved", release: () => {} };
+    },
+  });
+
+  await expect(
+    context.binary.startImmediateUpdate({ offer: offer.ref }),
+  ).resolves.toMatchObject({
+    status: "accepted",
+    receipt: { kind: "immediate-flow-started" },
+  });
+  expect(asked).toEqual(["drafts"]);
+  expect(context.binary.state.get().operation).toMatchObject({
+    state: "indeterminate",
+    reason: "dispatch-unconfirmed",
+  });
+});
+
+test("PLAY-16 an immediate flow the user declines is cancelled and releases the route", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+
+  context.setFlow("immediate", "cancelled");
+
+  await expect(
+    context.binary.startImmediateUpdate({ offer: offer.ref }),
+  ).resolves.toEqual({
+    status: "cancelled",
+    stage: "consent",
+  });
+  expect(context.binary.state.get().operation).toEqual({ state: "idle" });
+});
+
+test("PLAY-17 a flow Play still holds after a restart is offered as a continuation", async () => {
+  const context = create({
+    availability: "in-progress",
+    installStatus: "downloading",
+  });
+
+  const offer = await checkOffer(context);
+
+  expect(offer).toMatchObject({ inProgress: true, flows: ["immediate"] });
+
+  await expect(
+    context.binary.startImmediateUpdate({ offer: offer.ref }),
+  ).resolves.toMatchObject({
+    status: "accepted",
+  });
+  expect(context.calls.immediate).toBe(1);
+});
+
+test("PLAY-18 an update already downloaded when the app starts is prepared without a command", async () => {
+  const context = create(availableInfo(412, { installStatus: "downloaded" }));
+
+  context.beacon.start();
+  await settle();
+
+  expect(context.binary.state.get().prepared).toMatchObject({
+    status: "ready",
+    value: { flow: "flexible", release: { identity: { value: "412" } } },
+  });
+});
+
+test("PLAY-19 a callback lost after the dispatch leaves the command running, and a restart finds the download", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const controller = new AbortController();
+
+  const starting = context.binary.startFlexibleUpdate({
+    offer: offer.ref,
+    signal: controller.signal,
+  });
+
+  await settle();
+  controller.abort();
+
+  await expect(starting).resolves.toMatchObject({ status: "indeterminate" });
+  expect(context.binary.state.get().operation.state).toBe("indeterminate");
+});
+
+test("PLAY-20 ending the session while a download is awaited leaves the outcome unknown", async () => {
+  const context = create();
+  const offer = await checkOffer(context);
+  const starting = context.binary.startFlexibleUpdate({ offer: offer.ref });
+
+  await settle();
+  context.beacon.stop();
+
+  await expect(starting).resolves.toMatchObject({ status: "indeterminate" });
+});
+
+test("PLAY-21 a query that fails fails the check and keeps what was observed", async () => {
+  const context = create();
+
+  await checkOffer(context);
+  context.failQueries(new Error("no play services"));
+
+  await expect(context.binary.check()).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "DRIVER_FAILED" },
+  });
+  expect(context.binary.state.get().observation).toMatchObject({
+    status: "available",
+  });
+});
+
+test("PLAY-22 stopping the session removes the install listener", async () => {
+  const context = create();
+
+  context.beacon.start();
+  await settle();
+  context.beacon.stop();
+
+  expect(context.listeners()).toBe(0);
+});
+
+test("PLAY-23 an install event after the session stopped changes nothing", async () => {
+  const context = create();
+
+  context.beacon.start();
+  await settle();
+
+  const before = context.binary.state.get();
+
+  context.beacon.stop();
+  context.install(installEvent("downloaded"));
+
+  expect(context.binary.state.get()).toBe(before);
+});
+
+test("the route declares each flow's own impacts, so a participant is asked only about what the flow does", () => {
+  const { binary } = create();
+
+  expect(binary.capabilities).toEqual({
+    startFlexibleUpdate: {
+      reference: "offer",
+      impacts: ["may-activate-on-next-start"],
+      binding: "provider-current",
+    },
+    startImmediateUpdate: {
+      reference: "offer",
+      impacts: ["native-update-flow", "javascript-restart"],
+      binding: "provider-current",
+    },
+    completeUpdate: {
+      reference: "prepared",
+      impacts: ["javascript-restart"],
+      binding: "provider-current",
+    },
+  });
+});

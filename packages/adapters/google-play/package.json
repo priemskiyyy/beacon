@@ -1,0 +1,56 @@
+{
+  "name": "@priemskiyyy/beacon-google-play",
+  "version": "0.1.0",
+  "description": "Google Play in-app updates as a Beacon route, over a native bridge you inject: Play owns eligibility and the flows, and nothing is claimed as installed until a later boot shows it.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priemskiyyy/beacon.git",
+    "directory": "packages/adapters/google-play"
+  },
+  "bugs": {
+    "url": "https://github.com/priemskiyyy/beacon/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint:typescript": "tsc --noEmit -p .",
+    "lint:eslint": "eslint src",
+    "test:unit": "vitest run --root ../../.. --project google-play"
+  },
+  "peerDependencies": {
+    "@priemskiyyy/beacon": ">=0.1.0 <0.2"
+  },
+  "devDependencies": {
+    "@priemskiyyy/beacon": "workspace:*"
+  },
+  "keywords": [
+    "google-play",
+    "android",
+    "in-app-updates",
+    "flexible",
+    "immediate",
+    "release",
+    "typescript",
+    "beacon",
+    "adapter"
+  ]
+}

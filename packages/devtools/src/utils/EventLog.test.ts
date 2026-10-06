@@ -12,6 +12,7 @@ const event = (type: string): BeaconDiagnosticEvent => ({
   attempt: null,
   operation: null,
   reason: type,
+  cause: null,
 });
 
 const reasons = (log: EventLog) => log.get().map((entry) => entry.reason);

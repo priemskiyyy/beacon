@@ -9,5 +9,7 @@ export type RecordedEvent = {
   attempt: number | null;
   operation: number | null;
   reason: string | null;
+  /** What a failure threw, as bounded text that names no more than an inspected value does, or `null`. */
+  cause: string | null;
   failure: boolean;
 };

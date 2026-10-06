@@ -43,6 +43,7 @@ export const createEmittingBeacon = (beacon: ObservedBeacon) => {
       attempt: null,
       operation: null,
       reason: null,
+      cause: null,
       ...event,
     };
 

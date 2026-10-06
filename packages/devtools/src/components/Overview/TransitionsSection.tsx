@@ -50,7 +50,10 @@ export const TransitionsSection = (props: TransitionsSectionProps) => (
             <code>{boundText(latest().intent.route)}</code> (
             {latest().intent.subject}, operation {latest().intent.operation.id})
           </Field>
-          <Field label="Outcome">{latest().outcome}</Field>
+          <Field label="Outcome">
+            {latest().outcome}
+            {latest().judgedHere ? ", judged by this boot" : ""}
+          </Field>
           <Field label="Attempts">
             {latest().attempts}
             {latest().exhausted ? ", budget spent" : ", within budget"}

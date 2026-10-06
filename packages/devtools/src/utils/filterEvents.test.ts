@@ -13,6 +13,7 @@ const record = (id: number, patch: Partial<RecordedEvent>): RecordedEvent => ({
   attempt: null,
   operation: null,
   reason: null,
+  cause: null,
   failure: false,
   ...patch,
 });

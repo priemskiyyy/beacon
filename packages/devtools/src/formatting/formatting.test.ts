@@ -194,6 +194,7 @@ test("an event's text has every field it declares and the time in UTC", () => {
     attempt: 2,
     operation: 3,
     reason: null,
+    cause: null,
     failure: false,
   };
 
@@ -207,4 +208,26 @@ test("an event's text has every field it declares and the time in UTC", () => {
     operation: 3,
     reason: null,
   });
+});
+
+test("an event's text ends with its cause when it has one, apart from the fields", () => {
+  const event: RecordedEvent = {
+    id: 9,
+    type: "read-failed",
+    timestamp: 1_700_000_000_123,
+    session: 1,
+    route: null,
+    command: null,
+    attempt: 1,
+    operation: null,
+    reason: "SOURCE_FAILED",
+    cause: '{\n  "message": "offline"\n}',
+    failure: true,
+  };
+
+  const text = formatEventText(event);
+  const [fields, cause] = text.split("\n\ncause\n");
+
+  expect(JSON.parse(fields ?? "")).toMatchObject({ reason: "SOURCE_FAILED" });
+  expect(cause).toBe('{\n  "message": "offline"\n}');
 });

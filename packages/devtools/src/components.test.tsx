@@ -106,6 +106,7 @@ test("an observation that is inconclusive shows why, and a candidate it may not 
         status: "inconclusive",
         evidence,
         reason: "missing-current-identity",
+        detail: "build-id-not-injected",
         candidate: null,
       }}
     />
@@ -113,6 +114,7 @@ test("an observation that is inconclusive shows why, and a candidate it may not 
 
   expect(words(container)).toContain("Status inconclusive");
   expect(words(container)).toContain("Reason missing-current-identity");
+  expect(words(container)).toContain("Detail build-id-not-injected");
   expect(words(container)).toContain("Candidate none");
 });
 
@@ -357,6 +359,7 @@ test("transitions show a spent budget, the intents the journal let go of, and an
         latest: {
           outcome: "target-not-running",
           attempts: 3,
+          judgedHere: true,
           exhausted: true,
           intent: {
             operation: { id: 8 },
@@ -381,7 +384,7 @@ test("transitions show a spent budget, the intents the journal let go of, and an
   expect(text).toContain("Dropped intents 3");
   expect(text).toContain("Checkpoints primary-screen data-loaded");
   expect(text).toContain("reloadPrepared on ota (bundle, operation 8)");
-  expect(text).toContain("Outcome target-not-running");
+  expect(text).toContain("Outcome target-not-running, judged by this boot");
   expect(text).toContain("Attempts 3, budget spent");
   expect(text).toContain("Was running not known");
   expect(text).toContain("Aimed at no target");

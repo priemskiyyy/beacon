@@ -61,6 +61,9 @@ export const ObservationSection = (props: ObservationSectionProps) => (
             <Fields>
               <Field label="Status">inconclusive</Field>
               <Field label="Reason">{observation.reason}</Field>
+              <Field label="Detail">
+                {formatOptionalText(observation.detail)}
+              </Field>
               <Field label="Candidate">
                 {formatRelease(observation.candidate)}
               </Field>

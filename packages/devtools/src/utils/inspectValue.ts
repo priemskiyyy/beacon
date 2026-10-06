@@ -1,4 +1,6 @@
 import { boundText } from "src/utils/boundText";
+import { describeClass } from "src/utils/describeClass";
+import { readData } from "src/utils/readData";
 import {
   INSPECTION,
   REDACTED,
@@ -10,31 +12,6 @@ const isPlain = (value: object) => {
   const prototype = Object.getPrototypeOf(value);
 
   return prototype === null || prototype === Object.prototype;
-};
-
-// The value of an own data property, or `undefined`: no getter, and no proxy `get` trap, runs.
-const readData = (holder: object, key: string) => {
-  const descriptor = Object.getOwnPropertyDescriptor(holder, key);
-
-  if (descriptor === undefined || !("value" in descriptor)) {
-    return undefined;
-  }
-
-  return descriptor.value;
-};
-
-// Only the class name, so nothing of the object runs.
-const describeClass = (value: object) => {
-  const constructor = readData(Object.getPrototypeOf(value), "constructor");
-
-  const name =
-    typeof constructor === "function" ? readData(constructor, "name") : null;
-
-  if (typeof name !== "string" || name === "") {
-    return "[object]";
-  }
-
-  return `[${boundText(name, 60)}]`;
 };
 
 /**

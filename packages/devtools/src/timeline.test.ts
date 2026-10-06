@@ -576,3 +576,34 @@ test("a route's own events arrive from the real Beacon through the same timeline
   expect(listed).toContain("running-read");
   devtools.unmount();
 });
+
+test("a failure shows what it threw when its row opens, and an event without one shows no cause", async () => {
+  const mounted = mountEmitting();
+
+  mounted.emit({ type: "read-accepted" });
+  mounted.emit({
+    type: "read-failed",
+    reason: "SOURCE_FAILED",
+    cause: Object.assign(new TypeError("Network request failed"), {
+      token: "leaked-token",
+    }),
+  });
+  await settle();
+
+  const [failed, accepted] = rows(mounted);
+
+  if (failed === undefined || accepted === undefined) {
+    throw new Error("Expected two rows");
+  }
+
+  fireEvent.click(summaryOf(failed));
+  fireEvent.click(summaryOf(accepted));
+
+  expect(failed.querySelector("pre")?.textContent).toContain(
+    "Network request failed",
+  );
+  expect(failed.querySelector("pre")?.textContent).toContain("[TypeError]");
+  expect(accepted.querySelector("pre")?.textContent).not.toContain("cause");
+  expect(mounted.text()).not.toContain("leaked-token");
+  mounted.devtools.unmount();
+});

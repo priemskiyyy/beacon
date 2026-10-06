@@ -106,6 +106,31 @@ test("a running fact that could not be read shows its error code, and never an o
   devtools.unmount();
 });
 
+test("support says why a failed read left it unknown, with the error and no evaluation", async () => {
+  const lab = createLabBeacon();
+
+  const { devtools, view } = mountDevtools({
+    beacon: lab.beacon,
+    initialIsOpen: true,
+  });
+
+  lab.beacon.start();
+
+  const checking = lab.beacon.check();
+
+  await settle();
+  lab.mock.reject(new Error("offline"));
+  await checking;
+  await settle();
+
+  const support = section(view, "Support");
+
+  expect(fieldOf(support, "Reason")).toBe("read-failed");
+  expect(fieldOf(support, "Error")).toContain("SOURCE_FAILED");
+  expect(support.textContent).toContain("No evaluation yet.");
+  devtools.unmount();
+});
+
 test("support is unknown before a check, then shows the verdict, its reasons, what remediates it and the evidence", async () => {
   const lab = createLabBeacon();
 

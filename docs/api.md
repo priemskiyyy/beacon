@@ -50,7 +50,7 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 | Type                 | What it is                                                                                 |
 | -------------------- | ------------------------------------------------------------------------------------------ |
 | `BeaconOptions`      | what one Beacon observes: scope, running readers, routes, policy, timeouts, journal, clock |
-| `BeaconClock`        | every time source and timer Beacon uses: `now`, `monotonic`, `setTimer`                    |
+| `BeaconClock`        | every time source and timer Beacon uses: `now`, `setTimer`                                 |
 | `BeaconStatus`       | `idle`, `running`, `stopped` or `disposed`                                                 |
 | `ReleaseScope`       | one application in one environment, on one platform, through one distribution              |
 | `ScopeReplacement`   | how `replaceScope` settled: `replaced`, `unchanged` or `blocked`                           |
@@ -212,13 +212,13 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ## @priemskiyyy/beacon/mock
 
-| Export             | Kind     | What it is                                                                     |
-| ------------------ | -------- | ------------------------------------------------------------------------------ |
-| `createMockSource` | function | a scriptable release source whose reads are held until the test settles them   |
-| `createTestClock`  | function | a manual `BeaconClock` that runs its timers only when a test advances it       |
-| `MockSource`       | type     | the mock source and how to answer, hold, resolve and reject its reads          |
-| `MockSourceStats`  | type     | reads started, reads held and reads aborted                                    |
-| `TestClock`        | type     | a `BeaconClock` with `advance`, `skip`, `runDue`, `setNow` and `pendingTimers` |
+| Export             | Kind     | What it is                                                                   |
+| ------------------ | -------- | ---------------------------------------------------------------------------- |
+| `createMockSource` | function | a scriptable release source whose reads are held until the test settles them |
+| `createTestClock`  | function | a manual `BeaconClock` that runs its timers only when a test advances it     |
+| `MockSource`       | type     | the mock source and how to answer, hold, resolve and reject its reads        |
+| `MockSourceStats`  | type     | reads started, reads held and reads aborted                                  |
+| `TestClock`        | type     | a `BeaconClock` with `advance`, `suspend`, `setNow` and `pendingTimers`      |
 
 ## @priemskiyyy/beacon/testing
 

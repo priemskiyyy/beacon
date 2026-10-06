@@ -29,17 +29,16 @@ Two subpaths help:
 
 ## The test clock
 
-`createTestClock({ now, monotonic })` is a manual `BeaconClock`. Pass it as `clock` to the Beacon, and Beacon reads no other time source. Do not use `vi.useFakeTimers()` for Beacon.
+`createTestClock({ now })` is a manual `BeaconClock`. Pass it as `clock` to the Beacon, and Beacon reads no other time source. Do not use `vi.useFakeTimers()` for Beacon.
 
-| Member            | Does                                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------------- |
-| `advance(ms)`     | moves both clocks forward, running every timer that falls due on the way, at its own time       |
-| `skip(ms)`        | moves both clocks forward without running a timer, as a frozen page or a suspended runtime does |
-| `runDue()`        | runs the timers that are already due                                                            |
-| `setNow(epoch)`   | sets epoch time alone, backwards included, as a clock correction does                           |
-| `pendingTimers()` | timers armed and neither run nor cancelled                                                      |
+| Member            | Does                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `advance(ms)`     | moves time forward, running every timer that falls due on the way, at its own time, and those already due when it is `0` |
+| `suspend(ms)`     | moves time forward without running a timer, as a frozen page or a suspended runtime does                                 |
+| `setNow(epoch)`   | sets epoch time alone, backwards included, as a clock correction does                                                    |
+| `pendingTimers()` | timers armed and neither run nor cancelled                                                                               |
 
-`advance` and `skip` refuse a negative or non-finite number.
+`advance` and `suspend` refuse a negative or non-finite number.
 
 ## A fixture
 

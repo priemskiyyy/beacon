@@ -2,7 +2,7 @@ import type { TestClock } from "src/mock/types/TestClock";
 
 type Timer = { id: number; at: number; callback: () => void };
 
-// Moved only forward, as the monotonic clock it stands in for.
+// Moved only forward, as time passes.
 const assertForward = (milliseconds: number) => {
   if (Number.isFinite(milliseconds) && milliseconds >= 0) {
     return;
@@ -21,8 +21,8 @@ const toDelay = (milliseconds: number) => {
 };
 
 /**
- * A manual clock that starts at the given epoch and monotonic times, zero by
- * default, and runs its timers only when a test advances it.
+ * A manual clock that starts at the given epoch time, zero by default, and runs
+ * its timers only when a test advances it.
  *
  * @example
  * ```ts
@@ -34,10 +34,10 @@ const toDelay = (milliseconds: number) => {
  */
 export const createTestClock = ({
   now: initialNow = 0,
-  monotonic: initialMonotonic = 0,
-}: { now?: number; monotonic?: number } = {}): TestClock => {
+}: { now?: number } = {}): TestClock => {
+  // Timers follow the time that has passed, which `setNow` never changes.
   let wall = initialNow;
-  let monotonic = initialMonotonic;
+  let elapsed = 0;
   let nextId = 0;
   const timers = new Map<number, Timer>();
 
@@ -61,7 +61,7 @@ export const createTestClock = ({
 
   const move = (milliseconds: number) => {
     wall += milliseconds;
-    monotonic += milliseconds;
+    elapsed += milliseconds;
   };
 
   const run = (timer: Timer) => {
@@ -71,13 +71,12 @@ export const createTestClock = ({
 
   return Object.freeze({
     now: () => wall,
-    monotonic: () => monotonic,
     setTimer: (callback: () => void, delay: number) => {
       nextId += 1;
 
       const id = nextId;
 
-      timers.set(id, { id, at: monotonic + toDelay(delay), callback });
+      timers.set(id, { id, at: elapsed + toDelay(delay), callback });
 
       return () => {
         timers.delete(id);
@@ -86,31 +85,23 @@ export const createTestClock = ({
     advance: (milliseconds: number) => {
       assertForward(milliseconds);
 
-      const target = monotonic + milliseconds;
+      const target = elapsed + milliseconds;
 
       let next = getNextDue(target);
 
       // An overdue timer runs now, never back at the time it fell due.
       while (next !== null) {
-        move(Math.max(next.at - monotonic, 0));
+        move(Math.max(next.at - elapsed, 0));
         run(next);
         next = getNextDue(target);
       }
 
       // A timer that moved the clock past the target never moves it back.
-      move(Math.max(target - monotonic, 0));
+      move(Math.max(target - elapsed, 0));
     },
-    skip: (milliseconds: number) => {
+    suspend: (milliseconds: number) => {
       assertForward(milliseconds);
       move(milliseconds);
-    },
-    runDue: () => {
-      let next = getNextDue(monotonic);
-
-      while (next !== null) {
-        run(next);
-        next = getNextDue(monotonic);
-      }
     },
     setNow: (epochMilliseconds: number) => {
       wall = epochMilliseconds;

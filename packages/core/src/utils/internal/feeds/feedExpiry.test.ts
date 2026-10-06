@@ -77,7 +77,7 @@ test("POL-04 a stopped session arms no expiry, and resuming expires what passed"
   first.scope.dispose();
   expect(clock.pendingTimers()).toBe(0);
 
-  clock.skip(5_000);
+  clock.suspend(5_000);
   expect(feed.getAccepted()?.evidence.freshness).toBe("fresh");
 
   feed.resume(createSession(2));
@@ -136,7 +136,7 @@ test("a document that expires a millisecond after it was received is announced f
     now: () => {
       const time = base.now();
 
-      base.skip(1);
+      base.suspend(1);
 
       return time;
     },

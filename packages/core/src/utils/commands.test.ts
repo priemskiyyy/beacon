@@ -1022,7 +1022,7 @@ test("SEC-03 an offer whose expiry the clock has passed is refused as expired ev
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
 
-  context.clock.skip(700_000);
+  context.clock.suspend(700_000);
 
   await expect(context.beacon.route("web").reload({ offer })).resolves.toEqual({
     status: "stale",

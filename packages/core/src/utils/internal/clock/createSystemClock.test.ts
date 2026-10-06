@@ -38,17 +38,8 @@ test("the system clock keeps a delay a host timer can hold", () => {
   ]);
 });
 
-test("the system clock reads epoch and monotonic time", () => {
+test("the system clock reads epoch time", () => {
   const clock = createSystemClock();
 
   expect(Math.abs(clock.now() - Date.now())).toBeLessThan(1_000);
-  expect(clock.monotonic()).toBeGreaterThanOrEqual(0);
-});
-
-test("a runtime without a monotonic clock is timed by epoch time", () => {
-  vi.stubGlobal("performance", undefined);
-
-  const clock = createSystemClock();
-
-  expect(Math.abs(clock.monotonic() - Date.now())).toBeLessThan(1_000);
 });

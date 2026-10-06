@@ -8,7 +8,7 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | ------- | ----------------------------------- | --------- | ------ | ---------------------------------------------------------------------- |
 | CORE    | Core state and observations         | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
 | VER     | Identity, ordering, and revision    | 18        | 18     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 |
-| HTTP    | HTTP, manifests, and shared feeds   | 18        | 6      | 01, 03, 04, 05, 06, 07                                                 |
+| HTTP    | HTTP, manifests, and shared feeds   | 18        | 17     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15, 16, 17, 18     |
 | POL     | Support policy                      | 14        | 12     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 13, 14                         |
 | WEB     | Browser reload and deployment       | 12        | 6      | 01, 02, 03, 04, 05, 12                                                 |
 | SW      | Service-worker and Workbox          | 16        | 10     | 01, 02, 03, 04, 05, 07, 08, 12, 13, 14                                 |
@@ -18,9 +18,9 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | SAFE    | Disruption coordination             | 14        | 12     | 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 14                         |
 | JOURNAL | Persistence and boot reconciliation | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                 |
 | LIFE    | Sessions and resource ownership     | 12        | 9      | 01, 02, 03, 04, 05, 06, 07, 10, 12                                     |
-| SEC     | Security and diagnostics            | 12        | 8      | 01, 02, 03, 04, 05, 06, 07, 10                                         |
+| SEC     | Security and diagnostics            | 12        | 9      | 01, 02, 03, 04, 05, 06, 07, 10, 12                                     |
 | BIND    | Types, React, and SSR               | 10        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10                                 |
-| Total   |                                     | 202       | 152    |                                                                        |
+| Total   |                                     | 202       | 164    |                                                                        |
 
 <!-- scenarios:end -->
 

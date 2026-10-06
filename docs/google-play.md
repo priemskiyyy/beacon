@@ -84,7 +84,7 @@ The bridge is a small native module you own, or an audited existing one, that ke
 | `completeUpdate()`             | asks Play to complete a downloaded update                        |
 | `addInstallListener(listener)` | reports Play's install state; answers how to remove the listener |
 
-`AppUpdateInfo`, the Activity and the result launcher stay native. Every start reacquires fresh information itself, because Play allows one use of it. Every start rejects when no Activity is available.
+`AppUpdateInfo`, the Activity and the result launcher stay native. Every start reacquires fresh information itself, because Play allows one use of it. Every start rejects when no Activity is available. Whether a flow survives an Activity that Android recreates, and how the result launcher is registered again, is the bridge's to guarantee, since Beacon holds none of it: the route asks Play again when a session opens, and no device has run an Activity recreated under a real bridge.
 
 ### The bridge in React Native
 
@@ -177,11 +177,11 @@ An offer carries these provider facts beside the release:
 
 Priority and staleness stay provider facts. They never become support policy on their own: if you want a policy that reads them, write it; see [support](support.md).
 
-The release is named by the version code: authority is `scope.application`, the domain is `android-version-code`, and the value is the code as text. A continuation and a download Play reports without a version have an unknown identity: a finished download is named by the query that reported it, or by the offer whose flow awaited it, and an install event alone names no version. A version code is not a display name.
+The release is named by the version code: authority is `scope.application`, the domain is `android-version-code`, and the value is the code as text. A continuation and a download Play reports without a version have an unknown identity: a finished download is named by the query that reported it, or by the offer whose flow awaited it, and an install event alone names no version. A version code is not a display name. A code that is not a positive whole number, or is above 2,100,000,000, the highest Play publishes, is a bridge that garbled its answer: it is the `unknown` category and never a build.
 
 ### Prepared
 
-An update Play reports as already downloaded is prepared when the app starts, without any command, and a download finishing while the app runs prepares it too. Only the flexible flow prepares a target. Progress comes from Play's own byte counts, `null` when Play gave none, and a total is never invented.
+An update Play reports as already downloaded is prepared when the app starts, without any command, and a download finishing while the app runs prepares it too. Only the flexible flow prepares a target. Progress comes from Play's own byte counts, `null` when Play gave none, and a total is never invented. Progress belongs to a command of the session that runs it: a flexible download that a process started and lost to its death is still Play's, and the next start shows the offer and, once Play says it downloaded, the prepared update, but no progress, since no operation of this session owns that transfer.
 
 ## Commands
 

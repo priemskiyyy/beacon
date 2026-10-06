@@ -20,6 +20,14 @@ All coordination is local to one Beacon in one JavaScript instance. A lock in on
 
 This release coordinates no other tab. There is no simulated global lock: when no lock is available, the scope of every guarantee stays the local instance, and the readiness of one tab never asserts the safety of another.
 
+## The clock of the device
+
+An authority's `expiresAt` is an epoch time, and Beacon compares it with the clock of the device it runs on, which nothing in a client can attest. A device whose clock is set forward makes evidence lapse early, as a command refuses an offer whose time has passed even when no timer ran. A device whose clock is set back keeps evidence fresh until the clock catches up, since the timers that act on an expiry follow the time that has passed and wake early, then wait again. Beacon persists no evidence and no revision high-water mark, so a restart never renews what lapsed, and the loss of that history is the narrower anti-replay claim [the decision record](decisions.md#where-the-code-is-narrower-than-the-specification) names. A forced upgrade is a policy of the application, not an enforcement boundary: a backend that must refuse an old client has to refuse it itself.
+
+## Caches outside Beacon
+
+Beacon keys what it holds by its scope, `partition` included: a document, a validator and a journal record of one account are never read or renewed for another. A cache between the client and the authority is not Beacon's. A CDN, a proxy or an application's own service worker answers for the key it was given, and a manifest that differs by account is served to the wrong one when that key leaves the account out. Beacon cannot check another cache's key. The server's contract is to vary such a manifest by whatever carries the account, such as `Vary: Authorization`, or to keep it out of a shared cache, and to put no private policy in a manifest that a shared cache may serve.
+
 ## Checks on an event or a timer
 
 `@priemskiyyy/beacon/triggers` checks when a source says so and makes no runtime run: a timer of a backgrounded app or tab may be throttled, suspended or never fire, so a check on a timer is only as good as the runtime that runs it, and the return to the foreground has to check as well. The time an app was away, whether a Pulse's `observedAway` or the one the `foreground` trigger measures, is an estimate that only throttles a check. A reconnect says the device is connected and never that the authority is reachable, and the gate that decides a check is per JavaScript runtime, so N tabs make N reads.

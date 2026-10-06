@@ -54,7 +54,7 @@ beacon.stop();
 
 Callbacks fall silent and owned timers stop. Every `route.native` becomes `null`. It does not undo native side effects: a download that was started keeps going. The observations, the evidence and the last snapshots stay readable, and evidence does not expire while no session runs. When a session opens again, whatever passed expires at once.
 
-An answer that arrives after `stop()`, or a journal storage answer that arrives after its deadline, changes nothing and is counted as a late callback. A check that was under way settles as `superseded`.
+An answer that arrives after `stop()`, or a journal storage answer that arrives after its deadline, changes nothing and is counted as a late callback. A check that was under way settles as `superseded`. The one timer `stop()` leaves is the deadline of a journal storage call that has not answered, which ends at its deadline or at `dispose()`.
 
 While stopped, a command settles as `failed` with `NOT_STARTED`, and it asks no provider. A stopped Beacon can start again. Every start is a new session with a new number, and it reads the running facts again.
 

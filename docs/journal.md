@@ -129,7 +129,7 @@ It reaches the storage at each call and touches nothing when it is made, so a pa
 
 - **The key names the scope in plain text.** It is `beacon/v1/<application>/<environment>/<platform>/<distribution>`, with the partition appended when there is one. Make the partition an opaque id, never an address or a token. A departed partition's record stays until `clearJournal()` removes it, so clear the journal before `replaceScope` when someone signs out.
 - **The read back costs one read per write.** A record is a few kilobytes at most, about 4.2 KB at its capacity of 8 intents. Wrap the store in `keyValueJournalStorage(store, { verify: false })` only when it is known to keep what it accepts.
-- **A store that hangs is bounded.** Every call is given up on at `timeouts.journal`, and what a slow write answers later is ignored, though it may still land.
+- **A store that hangs is bounded.** Every call is given up on at `timeouts.journal`, and what a slow write answers later is ignored, though it may still land. The queue belongs to the Beacon and not to a session, so `stop()` does not end the call that is waiting: its deadline stays armed until it passes. `dispose()` gives up on it at once, leaves nothing armed, and sends nothing that waited behind it; only `clearJournal()` still reaches the store.
 - **A narrow key alphabet is mapped, not avoided.** `{ key: (journalKey) => ... }` gives the store its own key, and it must be injective: two journal keys that map to one would make two scopes share a record.
 - **Prove a store you wrote.** `testJournalStorage` from `@priemskiyyy/beacon/testing` holds it to the contract, and `createMockJournalStorage` from `@priemskiyyy/beacon/mock` stands in for one in tests. See [testing](testing.md#a-journal-storage).
 

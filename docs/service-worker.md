@@ -182,3 +182,5 @@ addEventListener("pageshow", (event) => {
 ## What it does not do
 
 It names no build. Without an identity handshake the release of an update stays unknown, and the interface can say that an update is ready and nothing more. It registers, unregisters and replaces no worker, and it coordinates no other tab. See [decisions](decisions.md).
+
+It is tested against fakes of the registration, the container and the workers, and no real browser has run it: no real waiting worker, no `controllerchange` of a real page, no page restored from the back-forward cache by a real browser and no second tab. Only Chromium runs anything of Beacon in a real browser, and not this adapter. See [verification](verification.md).

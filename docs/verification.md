@@ -14,18 +14,18 @@ The specification lists 202 required regression scenarios in 14 groups, and the 
 | VER     | Identity, ordering, and revision    | 18        | 18     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18                                                 |
 | HTTP    | HTTP, manifests, and shared feeds   | 18        | 17     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15, 16, 17, 18                                                     |
 | POL     | Support policy                      | 14        | 13     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 13, 14                                                                     |
-| WEB     | Browser reload and deployment       | 12        | 10     | 01, 02, 03, 04, 06, 07, 09, 10, 11, 12                                                                                 |
+| WEB     | Browser reload and deployment       | 12        | 11     | 01, 02, 03, 04, 05, 06, 07, 09, 10, 11, 12                                                                             |
 | SW      | Service-worker and Workbox          | 16        | 13     | 01, 02, 03, 04, 05, 07, 08, 09, 12, 13, 14, 15, 16                                                                     |
 | EXPO    | Expo Updates                        | 20        | 16     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 16, 17, 18, 19, 20                                                         |
 | PLAY    | Google Play native flows            | 18        | 17     | 01, 02, 03, 04, 05, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18                                                     |
-| STORE   | App Store metadata and handoff      | 10        | 9      | 01, 02, 03, 04, 05, 06, 07, 08, 09                                                                                     |
+| STORE   | App Store metadata and handoff      | 10        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10                                                                                 |
 | SAFE    | Disruption coordination             | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                                                                 |
 | JOURNAL | Persistence and boot reconciliation | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14                                                                 |
 | LIFE    | Sessions and resource ownership     | 12        | 12     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12                                                                         |
-| SEC     | Security and diagnostics            | 12        | 11     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12                                                                             |
+| SEC     | Security and diagnostics            | 12        | 12     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12                                                                         |
 | BIND    | Types, React, and SSR               | 10        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10                                                                                 |
 | TRIG    | Triggers and checks on events       | 30        | 30     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 |
-| Total   |                                     | 232       | 218    |                                                                                                                        |
+| Total   |                                     | 232       | 221    |                                                                                                                        |
 
 <!-- scenarios:end -->
 
@@ -37,4 +37,4 @@ Every provider SDK, the clock and the network are faked in process. The Expo (Up
 
 Nothing has run on a device, against a real Play or App Store distribution, or against a Firebase project, and a fake bridge verifies state handling, not installation. A real browser has run three things, Chromium under Playwright: the minimal React app against a real build and a served manifest, the release labs over a scripted release lab, and the browser package's `browserStorage` and `webBuild`. The minimal Expo app is rendered against fake modules through react-native-web and bundled by Metro for both platforms, which is no device either. What a stable release of each adapter still needs is in [the decision record](decisions.md#not-verified-on-a-device).
 
-The rows without a test belong to features that are not built yet, such as the dismissal of a banner (`POL-12`), or need a device or a real distribution to prove. [The decision record](decisions.md#not-built-yet) lists them.
+The 11 rows without a test are each a feature that is not built yet, or need a device to prove: `HTTP-11` (a `Retry-After` is not honoured), `POL-12` (dismissals), `WEB-08` (reload recovery for a stale chunk), `SW-06` (Workbox), `SW-10` (cross-tab acknowledgments), `SW-11` (the worker identity handshake), `EXPO-12` to `EXPO-15` (the hook bridge) and `PLAY-06` (an Activity recreated under a real native bridge). [The decision record](decisions.md#not-built-yet) lists what is not built. A row with a test is a row a test of this repository proves in process, and some of them are proven by a script or a document that states the limit, such as `SEC-11`, which a device could not add to.

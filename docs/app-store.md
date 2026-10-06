@@ -199,3 +199,7 @@ A TestFlight or enterprise build is yours to name, since neither store route is 
 Both halves of the route answer only for `app-store`. A lookup read for a scope whose `distribution` is another makes no request and has no release to offer, and `openStore` is `unsupported` with the reason `other-distribution` and opens nothing, so a build outside the store is never sent to it, whatever asked: a support policy's remediation included. The route is yours to leave out where it does not apply.
 
 A required native update with no usable route is a support state to handle, not a reason to redirect to the store again and again. See [support](support.md#when-support-ends).
+
+## What nothing has verified
+
+The lookup is tested against entries written to the shape Apple's archived documentation describes, and never against a live response. That documentation is not a service level: a field can be missing for an app, a storefront can answer nothing, and the service can change. No App Store distribution, TestFlight build or device has run this adapter. The order of marketing versions is the grammar `appleVersion` documents, and nothing has checked it against the real history of an app, where build numbers reset between release trains and so order nothing on their own. A store that releases a version in phases is no case the adapter knows of: it reads the version the lookup lists and opens the page of the app. See [verification](verification.md).

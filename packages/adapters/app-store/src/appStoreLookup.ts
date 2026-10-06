@@ -7,9 +7,9 @@ import { assertAppId } from "src/utils/assertAppId";
 import { assertCountry } from "src/utils/assertCountry";
 import {
   APP_STORE_DISTRIBUTION,
+  LOOKUP_URL,
   OTHER_DISTRIBUTION,
 } from "src/utils/constants/lookup";
-import { createLookupUrl } from "src/utils/createLookupUrl";
 import { readLookupEntry } from "src/utils/readLookupEntry";
 
 /**
@@ -26,7 +26,11 @@ import { readLookupEntry } from "src/utils/readLookupEntry";
  *
  * @example
  * ```ts
- * const store = appStoreLookup({ appId: "284882215", country: "de", fetch });
+ * const store = appStoreLookup({
+ *   appId: "284882215",
+ *   country: "de",
+ *   fetch: async ({ url, signal }) => parseLookup(await (await fetch(url, { signal })).json()),
+ * });
  * const binary = store.select((document) => document.decision);
  * ```
  */
@@ -40,6 +44,8 @@ export const appStoreLookup = ({
   assertAppId(appId);
   assertCountry(country);
 
+  const url = `${LOOKUP_URL}?id=${appId}&country=${country}`;
+
   return createReleaseSource<AppStoreDocument>({
     name,
     read: async ({ scope, signal }) => {
@@ -50,11 +56,7 @@ export const appStoreLookup = ({
         };
       }
 
-      const response = await fetchLookup({
-        url: createLookupUrl(appId, country),
-        signal,
-      });
-
+      const response = await fetchLookup({ url, signal });
       const document = readLookupEntry(response, { appId, bundleId });
 
       return { document, issuer: "app-store" };

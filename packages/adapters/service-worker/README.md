@@ -1,0 +1,44 @@
+# @priemskiyyy/beacon-service-worker
+
+A service worker registration as a [Beacon](../../core) route. A waiting worker next to one that is already active is an update that is ready; asking it to activate is a request that proves nothing; and only a reload runs the new document. The adapter never registers, unregisters or replaces a worker.
+
+## Installation
+
+```sh
+pnpm add @priemskiyyy/beacon @priemskiyyy/beacon-service-worker
+```
+
+## Create a route
+
+```ts
+import { Beacon } from "@priemskiyyy/beacon";
+import { serviceWorker } from "@priemskiyyy/beacon-service-worker";
+
+const beacon = new Beacon({
+  scope,
+  running: { boot: { id: BOOT_ID } },
+  routes: { worker: serviceWorker() },
+});
+```
+
+The route reads `navigator.serviceWorker` only when a session starts, so creating it in a server render is safe. Pass `registration` to use a registration you already hold, or a function that finds it later, and `container` or `target` to use another container or window.
+
+## What it reports
+
+| State of the registration                    | Route observation                                             |
+| -------------------------------------------- | ------------------------------------------------------------- |
+| no registration                              | `none`, detail `no-registration`                              |
+| first worker installing or waiting           | `none`, detail `installing` or `first-install`                |
+| a waiting worker next to an active one       | `available`: an update is ready, with the release unknown     |
+| the worker that was active has been replaced | `prepared` is ready: the new worker controls, the page is old |
+
+The release is unknown because the bytes behind a script URL can change: without an identity handshake the UI can say that an update is ready and nothing more.
+
+## Commands
+
+| Command           | Needs      | Impact                 | Binding            | Receipt                |
+| ----------------- | ---------- | ---------------------- | ------------------ | ---------------------- |
+| `activateWaiting` | an offer   | `worker-takeover`      | `exact-instance`   | `activation-requested` |
+| `requestReload`   | a prepared | `document-replacement` | `provider-current` | `reload-requested`     |
+
+`activateWaiting` posts `{ type: "SKIP_WAITING" }`, or your `message`, to the worker the offer is about. The worker must implement that protocol and claim its clients; without a handler nothing happens, and nothing is reported as activated. Activation reaches every tab of the scope: one tab's guard cannot certify the others.

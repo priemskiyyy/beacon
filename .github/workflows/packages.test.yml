@@ -55,6 +55,10 @@ jobs:
       - name: Scenario coverage
         run: pnpm test:scenarios
 
+      # A built package imports only what its role allows.
+      - name: Package imports
+        run: pnpm test:package
+
       # Every provider SDK and the clock are faked in process, so the whole
       # suite runs here with no device, no network and no credentials.
       - name: Unit tests

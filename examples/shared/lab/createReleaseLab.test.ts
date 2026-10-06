@@ -274,7 +274,7 @@ test("a manifest that fails before any check leaves nothing observed", async () 
   });
   expect(beacon().support.get()).toMatchObject({
     status: "unknown",
-    reason: "not-checked",
+    reason: "read-failed",
   });
 });
 

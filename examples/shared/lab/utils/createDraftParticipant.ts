@@ -24,7 +24,7 @@ export const createDraftParticipant = (
 
     return {
       status: "reserved",
-      release: () => draft.set({ ...draft.get(), locked: false }),
+      resume: () => draft.set({ ...draft.get(), locked: false }),
     };
   },
 });

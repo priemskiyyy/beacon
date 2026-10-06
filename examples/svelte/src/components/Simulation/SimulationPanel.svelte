@@ -27,7 +27,7 @@
         return { status: "blocked", code: UNSAVED_DRAFT };
       }
 
-      return { status: "reserved", release: () => {} };
+      return { status: "reserved" };
     },
   });
 </script>

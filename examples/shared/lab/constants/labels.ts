@@ -88,7 +88,8 @@ export const UNKNOWN_LABELS: Record<UnknownReason, string> = {
 
 export const SUPPORT_UNKNOWN_LABELS: Record<SupportUnknownReason, string> = {
   "no-policy": "no policy is configured",
-  "not-checked": "no policy was accepted yet",
+  "not-checked": "no check has run yet",
+  "read-failed": "the policy could not be read",
   expired: "the accepted policy lapsed",
   "evaluation-failed": "the policy could not be evaluated",
 };

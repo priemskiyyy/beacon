@@ -58,7 +58,7 @@ A check asks the browser to fetch the worker script again, then reads the worker
 
 The first installation of a page is not an update. The route treats the first worker it sees active as the baseline, and `prepared` becomes ready only when that worker has been replaced, because a skip-waiting request alone proves no activation.
 
-The release is unknown because the bytes behind a script URL can change. Without an identity handshake the interface can say that an update is ready and nothing more. The offer carries `worker: { id }`, a number that names one observed worker instance.
+The release is unknown because the bytes behind a script URL can change. Without an identity handshake the interface can say that an update is ready and nothing more. The offer carries `worker: { id }`, a number that names one observed worker instance. A newer worker that replaces it is another offer with a reference of its own, so a reference to the replaced one is refused.
 
 ## Commands
 
@@ -80,7 +80,7 @@ if (observation.status === "available") {
 }
 ```
 
-`activate` posts the message to the worker the offer is about. If that worker is no longer the waiting one, the command settles as `stale`. If no worker is registered, it settles as `unsupported` with `no-registration`. Once the session ended, it is `cancelled` and nothing is posted.
+`activate` posts the message to the worker the offer is about. Another worker is another offer, so if that worker is no longer the waiting one, the command settles as `stale`. If no worker is registered, it settles as `unsupported` with `no-registration`. If the caller aborts or the session ends while the registration is being found, nothing is posted: the caller's wait ends as `indeterminate` with the reason `aborted-after-dispatch`, and the route is released, since nothing was sent.
 
 An accepted `activate` says the worker was asked to skip waiting, and nothing else. Wait for the route to say the takeover happened, and then reload:
 

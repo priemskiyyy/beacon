@@ -21,7 +21,7 @@ const beacon = new Beacon({
 });
 ```
 
-The route reads `navigator.serviceWorker` only when a session starts, so creating it in a server render is safe. Pass `registration` to use a registration you already hold, or a function that finds it later, and `container` or `target` to use another container or window.
+The route reads `navigator.serviceWorker` only when a session starts, so creating it in a server render is safe. Pass `registration` to use a registration you already hold, or a function that finds it later, and `container`, `target` or `message` to use another container, window or skip-waiting message.
 
 ## What it reports
 
@@ -29,6 +29,7 @@ The route reads `navigator.serviceWorker` only when a session starts, so creatin
 | -------------------------------------------- | ------------------------------------------------------------- |
 | no registration                              | `none`, detail `no-registration`                              |
 | first worker installing or waiting           | `none`, detail `installing` or `first-install`                |
+| a newer worker installing                    | `none`, detail `installing`                                   |
 | a waiting worker next to an active one       | `available`: an update is ready, with the release unknown     |
 | the worker that was active has been replaced | `prepared` is ready: the new worker controls, the page is old |
 

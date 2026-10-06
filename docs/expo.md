@@ -58,7 +58,7 @@ The route is a driver route on the `bundle` subject. The module belongs to one o
 | a rejection                             | the check fails and the last observation stays            |
 | updates disabled (development, Expo Go) | `unknown`, an environment that cannot check, never `none` |
 
-The offer carries `kind`: `update` or `rollback-to-embedded`. A rollback has an unknown identity with the reason `embedded-rollback`, since the SDK does not name the embedded update.
+The offer carries `kind`: `update` or `rollback-to-embedded`. A rollback has an unknown identity with the reason `embedded-rollback`, since the SDK does not name the embedded update. An update id is a UUID and is written in lowercase, as the SDK reports the running update's, so an id a server wrote in capitals still names the update that later runs.
 
 ## Commands
 

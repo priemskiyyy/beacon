@@ -76,7 +76,7 @@ An offer carries these provider facts beside the release:
 
 Priority and staleness stay provider facts. They never become support policy on their own: if you want a policy that reads them, write it; see [support](support.md).
 
-The release is named by the version code: authority is `scope.application`, the domain is `android-version-code`, and the value is the code as text. A continuation and a download Play reports without a version have an unknown identity. A version code is not a display name.
+The release is named by the version code: authority is `scope.application`, the domain is `android-version-code`, and the value is the code as text. A continuation and a download Play reports without a version have an unknown identity: a finished download is named by the query that reported it, or by the offer whose flow awaited it, and an install event alone names no version. A version code is not a display name.
 
 ### Prepared
 
@@ -135,13 +135,13 @@ export const applyBinaryUpdate = async () => {
 
 `download` starts the flexible flow and answers when Play says the download ended, with Play's own progress. It prepares the update without restarting the app.
 
-| Play says                    | Outcome                                 |
-| ---------------------------- | --------------------------------------- |
-| downloaded                   | `accepted`, receipt `update-downloaded` |
-| the user declined the prompt | `cancelled`, stage `consent`            |
-| the download was canceled    | `cancelled`, stage `download`           |
-| failed                       | `failed`, `COMMAND_FAILED`              |
-| the session ended meanwhile  | `indeterminate`, reason `session-ended` |
+| Play says                    | Outcome                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| downloaded                   | `accepted`, receipt `update-downloaded`                                             |
+| the user declined the prompt | `cancelled`, stage `consent`                                                        |
+| the download was canceled    | `cancelled`, stage `download`                                                       |
+| failed                       | `failed`, `COMMAND_FAILED`                                                          |
+| the session ended meanwhile  | `indeterminate`, reason `aborted-after-dispatch`; the route records `session-ended` |
 
 ### Update
 

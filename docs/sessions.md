@@ -128,6 +128,8 @@ Events never replay, and one is built only while someone listens. An event has a
 
 ### Advanced: the event types
 
+A listener hears `session-stopped` after the session's own cleanups ran: a provider's handle is released and its native claim is let go. A listener that restarts the session or disposes the Beacon on that event finds nothing of the old session held.
+
 Twenty-two types name what Beacon did, in seven groups.
 
 | Group     | Types                                                                                             |

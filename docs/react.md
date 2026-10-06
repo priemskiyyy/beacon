@@ -348,6 +348,7 @@ The server and the hydrating render read every observable as it stood before any
 
 - Design the first render for `unknown` and `pending`: show nothing until the observation is `available`.
 - Let the provider start the Beacon, and not before the hydrating render. It starts it in a layout effect, so it is running before any child's `useEffect`: a check in a component's mount effect does not fail with `NOT_STARTED`.
+- Under React 18, `renderToString` logs the development warning about `useLayoutEffect` on the server, because the provider starts its session in one. It is harmless, since no effect runs there, and React 19 does not log it.
 - A server render starts nothing and reads nothing, since effects never run there, so the provider starts no session on the server. Create the Beacon for each request, and never start it yourself on the server, so that two requests never share a session or a state.
 
 ```tsx

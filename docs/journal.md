@@ -148,6 +148,8 @@ The intent says which command on which route, from which boot, what was running,
 | `binding`                | how tightly the command was bound to the target                    |
 | `createdAt`, `expiresAt` | epoch milliseconds                                                 |
 
+An intent that expires later than two retentions from now is dropped on read: a clock far ahead wrote it, or somebody edited it, and kept, it would hold a spent budget for as long as that clock said. A clock set back since the write is forgiven, within one retention.
+
 It holds no native object, credential, manifest or account detail. It is an intent. It is not proof that the dispatch happened, and it never says anything was installed.
 
 The record lives under one key for each scope, `beacon/v1/<application>/<environment>/<platform>/<distribution>`, with the partition appended when there is one, each part URI encoded. One scope never reads another's record. It holds at most 8 transitions. Older ones are let go and counted in `dropped`, so the loss of coverage is visible.

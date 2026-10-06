@@ -119,7 +119,7 @@ NetInfo calls a new listener with the state it knows as soon as it subscribes, a
 
 ### interval
 
-`interval({ every, jitter })` arms one timer on the Beacon's clock. When a check the gate started settles, whichever trigger started it, the timer starts again from its full delay, so a return that just checked does not check again a moment later. `jitter` adds up to that share of the delay at random, so a fleet does not check in step. A tick that the gate drops or delays does not end the cadence.
+`interval({ every, jitter })` arms one timer on the Beacon's clock. When a check the gate started settles, whichever trigger started it, the timer starts again from its full delay, so a return that just checked does not check again a moment later. `jitter` adds up to that share of the delay at random, so a fleet does not check in step. A tick that the gate drops or delays does not end the cadence. `every` is a positive whole number of milliseconds and `jitter` a finite number of at least zero, and `interval` throws `INVALID_CONFIGURATION` when it is made with anything else, since a delay that is none would arm the timer again at once, for ever. A delay beyond what a host timer holds is clamped to the longest it holds.
 
 While a trigger says the app is in the background, which `foreground` and `pulseForeground` do and a trigger of your own can with `target.setAway(true)`, the timer is cancelled, and it waits its full delay again after the return. Without one, it never pauses.
 

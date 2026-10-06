@@ -161,6 +161,10 @@ Every package is ESM only, side-effect free and typed. The core has no dependenc
 | [`@priemskiyyy/beacon-solid`](packages/solid)   | A provider and primitives for Solid, typed the same way     |
 | [`@priemskiyyy/beacon-svelte`](packages/svelte) | A provider and utilities for Svelte 5 runes, typed the same |
 
+## Requirements
+
+TypeScript 5.4 or later when `skipLibCheck` is off, since the declarations of the framework bindings use `NoInfer`; the Expo and Vite templates leave `skipLibCheck` on. React 18.3 or 19. A server render under React 18 logs its development warning about `useLayoutEffect`, because the provider starts its session in one; React 19 does not.
+
 ## Status
 
 Everything is tested in process against fakes, and the Expo, CodePush, Firebase Remote Config and device info packages and the triggers of the core are typechecked against the real types of the SDKs they take. The minimal React app runs in Chromium under Playwright against a real build and a served manifest, the release labs run there over a scripted release lab, and the minimal Expo app is rendered against fake modules and bundled by Metro, but nothing has run on a device or against a real provider yet. [The decision record](docs/decisions.md) lists where the implementation departs from its specification and what is not built yet, and [the verification table](docs/verification.md) shows which of the specification's 202 scenarios have a test.

@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { settle } from "src/utils/Beacon.fixture";
 import { createMemoryStorage } from "src/utils/journal.fixture";
@@ -791,9 +791,12 @@ test("SAFE-10 a caller that gave up before the call disrupts nobody", async () =
   expect(context.runs).toHaveLength(0);
 });
 
-test("SAFE-04 a participant whose settlement throws at once blocks the command by name", async () => {
+test("SAFE-04 a participant whose settlement throws at once blocks the command by name, and the error is rethrown outside", async () => {
+  vi.useFakeTimers({ toFake: ["queueMicrotask"] });
+
   const context = createWebCommandBeacon();
   const offer = await startWithOffer(context);
+  const failure = new Error("The draft store is gone.");
 
   context.beacon.disruptions.register({
     name: "drafts",
@@ -801,7 +804,7 @@ test("SAFE-04 a participant whose settlement throws at once blocks the command b
     reserve: () => ({
       status: "reserved",
       settle: () => {
-        throw new Error("The draft store is gone.");
+        throw failure;
       },
       release: () => {},
     }),
@@ -813,7 +816,10 @@ test("SAFE-04 a participant whose settlement throws at once blocks the command b
     status: "blocked",
     reasons: [{ code: "settlement-failed", participant: { name: "drafts" } }],
   });
+  expect(() => vi.runAllTicks()).toThrow(failure);
   expect(context.runs).toHaveLength(0);
+
+  vi.useRealTimers();
 });
 
 test("SEC-03 an offer whose expiry the clock has passed is refused as expired even when no timer has run", async () => {

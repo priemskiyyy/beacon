@@ -23,6 +23,7 @@ const safety = section(
 );
 
 const tabs = section("Cross-tab coordination");
+const caches = section("Caches outside Beacon");
 const triggers = section("Checks on an event or a timer");
 const published = section("Published values are Beacon's own");
 const proof = section("What a test proves");
@@ -43,6 +44,10 @@ assert.match(tabs, /never asserts the safety of another/);
 
 // SW-16 With no cross-tab lock the documented scope stays local, and no global lock is simulated.
 assert.match(tabs, /no simulated global lock/);
+
+// SEC-11 A shared cache in front of a manifest is the server's contract: Beacon partitions its own state and cannot check another cache's key.
+assert.match(caches, /Beacon cannot check another cache's key/);
+assert.match(caches, /Vary: Authorization/);
 
 // A check on a timer claims no more than the runtime that runs it, and a background runtime may run none.
 assert.match(triggers, /makes no runtime run/);

@@ -284,6 +284,8 @@ export default defineConfig({
   test: {
     globals: false,
     restoreMocks: true,
+    // The first import of a framework, react-native-web or the inspector costs seconds on a loaded machine, and a test of Beacon waits on no clock of its own, so the limit only catches a hang.
+    testTimeout: 20_000,
     // Code no test executes is dead, unreachable or untested: `pnpm test:coverage` lists it.
     coverage: {
       provider: "v8",

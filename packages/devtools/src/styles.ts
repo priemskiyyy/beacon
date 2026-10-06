@@ -2,6 +2,8 @@ const Z_INDEX_DEVTOOLS = 99_999;
 
 const EVENT_COLUMNS = "84px 150px 52px 96px 96px 52px 36px minmax(0, 1fr) 10px";
 
+const NARROW_EVENT_COLUMNS = "82px 140px 96px minmax(0, 1fr) 10px";
+
 /** Scoped by the shadow root, so selectors stay short and host styles never leak in. */
 export const styles = `
 :host {
@@ -82,7 +84,7 @@ code, pre { font: var(--mono); background: none; padding: 0; }
 .fact { display: flex; flex-direction: column; gap: 3px; padding: 4px 0; border-top: 1px solid var(--border); }
 .fact-head { display: flex; align-items: center; gap: 8px; padding-bottom: 4px; }
 .raw { margin: 0; padding: 6px 8px; max-height: 120px; overflow: auto; border-radius: 6px; background: var(--well); }
-.timeline { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.timeline { container-type: inline-size; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px 6px; }
 .toolbar input[type="search"] { flex: 1; min-width: 160px; height: 30px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: var(--bg); }
 .toolbar input::placeholder { color: var(--muted); }
@@ -114,21 +116,27 @@ details[open] .expand { transform: rotate(180deg); }
 .empty { margin: auto; padding: 30px; max-width: 420px; text-align: center; color: var(--muted); }
 .empty strong { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text); }
 .empty button { margin-top: 14px; }
-/* Only the fixed panel box follows the viewport. Everything inside follows the panel width. */
+/* Only the fixed panel box follows the viewport. Everything inside follows the panel width, and the rows follow the timeline's own. */
 @media (max-width: 650px) {
   .panel { left: 6px; right: 6px; bottom: 6px; max-height: calc(100dvh - 12px); }
+}
+@container (min-width: 1000px) {
+  .main { flex-direction: row; }
+  .detail { flex: 0 0 48%; max-height: none; border-bottom: 0; border-right: 1px solid var(--border); }
 }
 @container (max-width: 650px) {
   .header { gap: 8px; padding: 4px 10px; }
   .body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(96px, 28%) minmax(0, 1fr); }
   .rows { border-right: 0; border-bottom: 1px solid var(--border); }
-  /* No room for every column at phone width. The rest is in the expanded row. */
-  .event-head, .event summary { grid-template-columns: 82px 130px minmax(0, 1fr) 10px; gap: 6px; padding: 7px 9px; }
-  .event-head > :nth-child(3), .event-head > :nth-child(5), .event-head > :nth-child(6), .event-head > :nth-child(7),
-  .event summary > :nth-child(3), .event summary > :nth-child(5), .event summary > :nth-child(6), .event summary > :nth-child(7) { display: none; }
 }
 @container (max-width: 420px) {
   .counters { display: none; }
+}
+/* No room for every column of a row at this width. The rest is in the expanded row. */
+@container (max-width: 760px) {
+  .event-head, .event summary { grid-template-columns: ${NARROW_EVENT_COLUMNS}; gap: 6px; padding-inline: 9px; }
+  .event-head > :is(:nth-child(3), :nth-child(5), :nth-child(6), :nth-child(7)),
+  .event summary > :is(:nth-child(3), :nth-child(5), :nth-child(6), :nth-child(7)) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

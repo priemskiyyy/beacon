@@ -413,3 +413,36 @@ test("a route check waits only for the running subject it depends on, not for ev
   await expect(checking).resolves.toMatchObject({ status: "succeeded" });
   expect(context.beacon.running.get().native).toEqual({ state: "pending" });
 });
+
+test("POL-05 a policy that lapses while its evaluation fails is unknown, not the last verdict as if it still held", async () => {
+  const state = { failing: false };
+
+  const context = createPolicyBeacon({
+    evaluate: (support, running) => {
+      if (state.failing) {
+        throw new Error("The policy cannot be evaluated any more.");
+      }
+
+      return evaluateSupport(support, running);
+    },
+  });
+
+  context.beacon.start();
+
+  const checking = context.beacon.check();
+
+  await settle();
+  answer(context.mock, buildDocument(), 2_000);
+  await checking;
+
+  expect(context.beacon.support.get().status).toBe("unsupported");
+
+  state.failing = true;
+  context.clock.advance(1_500);
+
+  expect(context.beacon.support.get()).toMatchObject({
+    status: "unknown",
+    reason: "expired",
+    error: { code: "POLICY_FAILED" },
+  });
+});

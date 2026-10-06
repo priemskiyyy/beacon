@@ -12,4 +12,6 @@ export type PolicyRecordOptions = {
   getRoute: (name: string) => RouteState | undefined;
   /** Told when an evaluation fails, once for each distinct failure. */
   onFailure: (error: BeaconError) => void;
+  /** Epoch milliseconds, for judging whether an evaluation that is kept still holds. */
+  now: () => number;
 };

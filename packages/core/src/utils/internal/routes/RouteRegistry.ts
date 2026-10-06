@@ -88,6 +88,7 @@ export class RouteRegistry {
       getRoute: (name) => this.#entries.get(name)?.record.state.get(),
       onFailure: (error) =>
         options.record("policy-failed", { reason: error.code }),
+      now: () => options.clock.now(),
     });
 
     this.#policyFeed = this.#addPolicyFeed(options.policy);

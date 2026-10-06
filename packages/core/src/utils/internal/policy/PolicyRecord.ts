@@ -237,12 +237,17 @@ export class PolicyRecord {
     return this.#toInForce(this.#lastValid, info);
   }
 
-  // A policy whose evidence lapsed is unknown, with its last decision retained.
+  // A policy whose evidence lapsed is unknown, with its last decision retained. The freshness recorded with an evaluation is as old as the evaluation, so the clock decides for one that is kept.
   #toInForce(
     evaluation: SupportEvaluation,
     error: SupportState["error"],
   ): SupportState {
-    if (evaluation.evidence.freshness === "expired") {
+    const { expiresAt, freshness } = evaluation.evidence;
+
+    if (
+      freshness === "expired" ||
+      (expiresAt !== null && expiresAt <= this.#options.now())
+    ) {
       return {
         revision: 0,
         status: "unknown",

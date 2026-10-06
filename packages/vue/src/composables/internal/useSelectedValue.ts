@@ -1,8 +1,6 @@
-import type { ObservableValue } from "@priemskiyyy/beacon";
+import type { ObservableValue, SelectorOptions } from "@priemskiyyy/beacon";
 import { computed, onMounted, onWatcherCleanup, shallowRef, watch } from "vue";
 import type { ComputedRef } from "vue";
-
-import type { SelectorOptions } from "src/types/SelectorOptions";
 
 /**
  * Reads a selection of an observable as a computed ref. It starts as the

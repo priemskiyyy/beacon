@@ -988,3 +988,290 @@ test("JOURNAL-09 intents lost to the capacity of a journal that cannot be writte
 
   expect(context.beacon.transitions.get().dropped).toBe(1);
 });
+
+const JOURNAL_TIMEOUT = 500;
+
+const createBounded = (
+  memory: ReturnType<typeof createMemoryStorage>,
+  mode: Mode,
+  extra: Parameters<typeof createWebCommandBeacon>[0] = {},
+) =>
+  createJournaled(memory, mode, {
+    timeouts: { journal: JOURNAL_TIMEOUT },
+    ...extra,
+  });
+
+const listenToJournal = (
+  context: ReturnType<typeof createWebCommandBeacon>,
+) => {
+  const events: string[] = [];
+
+  context.beacon.diagnostics.events.subscribe((event) => {
+    events.push(`${event.type}:${event.reason}`);
+  });
+
+  return events;
+};
+
+const countLate = (context: ReturnType<typeof createWebCommandBeacon>) =>
+  context.beacon.diagnostics.get().counters.lateCallbacks;
+
+test("JOURNAL-08 a read that never answers is a failed read at its deadline, and a command waiting behind it goes on", async () => {
+  const memory = createMemoryStorage();
+
+  seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
+  memory.holdReads();
+
+  const context = createBounded(memory, "best-effort", { boot: "boot-2" });
+  const events = listenToJournal(context);
+  const offer = await startWithOffer(context);
+  const pending = context.beacon.route("web").reload({ offer });
+
+  await settle();
+  context.clock.advance(JOURNAL_TIMEOUT - 1);
+  await settle();
+
+  expect(context.runs).toHaveLength(0);
+  expect(context.beacon.transitions.get().journal).toBe("reading");
+
+  context.clock.advance(1);
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+
+  await expect(pending).resolves.toMatchObject({ status: "accepted" });
+  expect(events).toContain("journal-failed:read");
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "degraded",
+    latest: { intent: { command: "reload" }, outcome: "same-boot" },
+  });
+});
+
+test("JOURNAL-08 a late answer of a read that timed out is counted and changes nothing", async () => {
+  const memory = createMemoryStorage();
+
+  seed(memory, [buildStored(buildIntent({ boot: { id: "boot-0" } }))]);
+  memory.holdReads();
+
+  const context = createBounded(memory, "best-effort", { boot: "boot-2" });
+  const events = listenToJournal(context);
+
+  context.beacon.start();
+  await settle();
+  context.clock.advance(JOURNAL_TIMEOUT);
+  await settle();
+
+  const before = context.beacon.transitions.get();
+
+  expect(before).toMatchObject({ journal: "degraded", latest: null });
+  expect(countLate(context)).toBe(0);
+
+  memory.releaseReads();
+  await settle();
+
+  expect(context.beacon.transitions.get()).toBe(before);
+  expect(countLate(context)).toBe(1);
+  expect(events).toContain("late-callback:journal-read");
+});
+
+test("JOURNAL-01 a required intent whose write never answers fails the command at the deadline, before the provider", async () => {
+  const memory = createMemoryStorage();
+  const context = createBounded(memory, "required");
+  const events = listenToJournal(context);
+  const offer = await startWithOffer(context);
+
+  await settle();
+  memory.holdWrites();
+
+  const pending = context.beacon.route("web").reload({ offer });
+
+  await settle();
+  context.clock.advance(JOURNAL_TIMEOUT - 1);
+  await settle();
+  expect(context.beacon.route("web").state.get().operation).not.toEqual({
+    state: "idle",
+  });
+
+  context.clock.advance(1);
+
+  await expect(pending).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "JOURNAL_FAILED" },
+  });
+  expect(context.runs).toHaveLength(0);
+  expect(events).toContain("journal-failed:write");
+  expect(context.beacon.route("web").state.get().operation).toEqual({
+    state: "idle",
+  });
+  expect(context.beacon.transitions.get().journal).toBe("degraded");
+});
+
+test("JOURNAL-02 a best-effort intent whose write never answers is degraded at the deadline, and the command goes on", async () => {
+  const memory = createMemoryStorage();
+  const context = createBounded(memory, "best-effort");
+  const events = listenToJournal(context);
+  const offer = await startWithOffer(context);
+
+  await settle();
+  memory.holdWrites();
+
+  const pending = context.beacon.route("web").reload({ offer });
+
+  await settle();
+  expect(context.runs).toHaveLength(0);
+
+  context.clock.advance(JOURNAL_TIMEOUT);
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+
+  await expect(pending).resolves.toMatchObject({ status: "accepted" });
+  expect(events).toContain("journal-failed:write");
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "degraded",
+    latest: { outcome: "same-boot", intent: { command: "reload" } },
+  });
+});
+
+test("an abandoned write does not block the queue, and its late answer is counted and changes nothing", async () => {
+  const memory = createMemoryStorage();
+  const context = createBounded(memory, "best-effort");
+  const offer = await startWithOffer(context);
+  const web = context.beacon.route("web");
+
+  await settle();
+  memory.holdWrites();
+
+  const first = web.reload({ offer });
+
+  await settle();
+  context.clock.advance(JOURNAL_TIMEOUT);
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+  await first;
+  web.acknowledge();
+
+  const before = context.beacon.transitions.get();
+
+  memory.releaseWrites();
+  await settle();
+
+  expect(countLate(context)).toBe(1);
+  expect(context.beacon.transitions.get()).toBe(before);
+
+  const second = web.reload({ offer });
+
+  await settle();
+  takeRun(context.runs).settleWith(ACCEPTED_RELOAD);
+  await second;
+
+  expect(readRecord(memory).map(({ intent }) => intent.operation.id)).toEqual([
+    1, 2,
+  ]);
+});
+
+test("JOURNAL-04 a judged record whose write-back never answers is still read, and the journal says degraded", async () => {
+  const memory = createMemoryStorage();
+
+  seed(memory, [buildStored(buildIntent())]);
+  memory.holdWrites();
+
+  const context = createBounded(memory, "required", { boot: "boot-2" });
+  const events = listenToJournal(context);
+
+  context.beacon.start();
+  await settle();
+  expect(context.beacon.transitions.get().journal).toBe("ready");
+
+  context.clock.advance(JOURNAL_TIMEOUT);
+  await settle();
+
+  expect(events).toContain("journal-failed:write");
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "degraded",
+    latest: { outcome: "target-not-running", attempts: 1 },
+  });
+});
+
+test("JOURNAL-13 a record whose removal never answers leaves the journal degraded at the deadline, with what it held forgotten", async () => {
+  const memory = createMemoryStorage();
+  const hold = createDeferred<void>();
+
+  seed(memory, [buildStored(buildIntent())]);
+
+  const context = createBounded(memory, "required", { boot: "boot-2" });
+  const events = listenToJournal(context);
+
+  context.beacon.start();
+  await settle();
+  memory.storage.remove = () => hold.promise;
+
+  const clearing = context.beacon.clearJournal();
+
+  await settle();
+  context.clock.advance(JOURNAL_TIMEOUT);
+
+  await expect(clearing).resolves.toBeUndefined();
+  expect(events).toContain("journal-failed:clear");
+  expect(context.beacon.transitions.get()).toMatchObject({
+    journal: "degraded",
+    latest: null,
+  });
+
+  hold.resolve();
+  await settle();
+
+  expect(countLate(context)).toBe(1);
+});
+
+test("a storage call that answers within its deadline leaves no timer and no late callback behind", async () => {
+  const memory = createMemoryStorage();
+  const context = createBounded(memory, "required");
+  const offer = await startWithOffer(context);
+
+  await settle();
+
+  const armed = context.clock.pendingTimers();
+
+  await reload(context, offer);
+  context.clock.advance(JOURNAL_TIMEOUT);
+  await settle();
+
+  expect(context.clock.pendingTimers()).toBe(armed);
+  expect(readRecord(memory)).toHaveLength(1);
+  expect(context.beacon.transitions.get().journal).toBe("ready");
+  expect(countLate(context)).toBe(0);
+});
+
+test("a storage call gets its deadline from timeouts.journal, 10,000 milliseconds by default", async () => {
+  const memory = createMemoryStorage();
+
+  memory.holdReads();
+
+  const context = createJournaled(memory, "best-effort");
+
+  context.beacon.start();
+  await settle();
+  context.clock.advance(9_999);
+  await settle();
+  expect(context.beacon.transitions.get().journal).toBe("reading");
+
+  context.clock.advance(1);
+  await settle();
+  expect(context.beacon.transitions.get().journal).toBe("degraded");
+});
+
+test("JOURNAL-07 a journal timeout that cannot work is refused when the Beacon is made", () => {
+  const memory = createMemoryStorage();
+
+  for (const journal of [Number.POSITIVE_INFINITY, Number.NaN, 0, -1, 1.5]) {
+    expect(() =>
+      createWebCommandBeacon({
+        journal: { mode: "best-effort", storage: memory.storage },
+        timeouts: { journal },
+      }),
+    ).toThrow(expect.objectContaining({ code: "INVALID_CONFIGURATION" }));
+  }
+
+  expect(() => createWebCommandBeacon({ timeouts: { journal: 0 } })).toThrow(
+    expect.objectContaining({ code: "INVALID_CONFIGURATION" }),
+  );
+});

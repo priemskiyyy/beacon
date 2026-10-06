@@ -1,3 +1,4 @@
+import type { SelectorOptions } from "@priemskiyyy/beacon";
 import type { Accessor } from "solid-js";
 
 import { useBeacon } from "src/primitives/useBeacon";
@@ -6,7 +7,6 @@ import type {
   RegisteredRouteName,
   RegisteredRouteState,
 } from "src/types/Register";
-import type { SelectorOptions } from "src/types/SelectorOptions";
 import { selectValue } from "src/utils/selectValue";
 
 /**

@@ -1,9 +1,9 @@
+import type { SelectorOptions } from "@priemskiyyy/beacon";
 import type { ReadableValue } from "../types/ReadableValue.js";
 import type {
   RegisteredRouteName,
   RegisteredRouteState,
 } from "../types/Register.js";
-import type { SelectorOptions } from "../types/SelectorOptions.js";
 import { selectValue } from "../utils/selectValue.js";
 import { useSelectedValue } from "./internal/useSelectedValue.svelte.js";
 import { useBeacon } from "./useBeacon.js";

@@ -17,4 +17,4 @@ export type {
   RegisteredRoutes,
   RegisteredRouteState,
 } from "src/types/Register";
-export type { SelectorOptions } from "src/types/SelectorOptions";
+export type { SelectorOptions } from "@priemskiyyy/beacon";

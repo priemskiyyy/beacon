@@ -1,8 +1,7 @@
-import type { ObservableValue } from "@priemskiyyy/beacon";
+import type { ObservableValue, SelectorOptions } from "@priemskiyyy/beacon";
 import type { Accessor } from "solid-js";
 
 import { useSelectedValue } from "src/primitives/internal/useSelectedValue";
-import type { SelectorOptions } from "src/types/SelectorOptions";
 import { selectValue } from "src/utils/selectValue";
 
 /**

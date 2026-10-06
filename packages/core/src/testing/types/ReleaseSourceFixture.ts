@@ -8,7 +8,7 @@ import type { ReleaseSource } from "src/types/ReleaseSource";
  * ```ts
  * const backend = fakeBackend();
  * const fixture: ReleaseSourceFixture<Manifest> = {
- *   source: http({ request: backend.request }),
+ *   source: http({ fetch: backend.fetch }),
  *   reads: backend.reads,
  * };
  * ```

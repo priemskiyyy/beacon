@@ -1,6 +1,5 @@
-import type { ObservableValue } from "@priemskiyyy/beacon";
+import type { ObservableValue, SelectorOptions } from "@priemskiyyy/beacon";
 import type { ReadableValue } from "../types/ReadableValue.js";
-import type { SelectorOptions } from "../types/SelectorOptions.js";
 import { selectValue } from "../utils/selectValue.js";
 import { useSelectedValue } from "./internal/useSelectedValue.svelte.js";
 

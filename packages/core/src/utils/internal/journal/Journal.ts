@@ -14,6 +14,7 @@ import {
   DEFAULT_CHECKPOINT,
   JOURNAL_CAPACITY,
 } from "src/utils/constants/journal";
+import { createDeferred } from "src/utils/internal/common/createDeferred";
 import { freezeList } from "src/utils/internal/common/freezeList";
 import { isSameData } from "src/utils/internal/common/isSameData";
 import { countAttempts } from "src/utils/internal/journal/countAttempts";
@@ -30,8 +31,9 @@ import { ValueStore } from "src/utils/internal/observable/ValueStore";
  * the realm, what a later boot says about them, and the readiness checkpoints
  * of this boot. Every read and write goes through one queue, so a slow
  * hydration can never overwrite an intent written after it began, and a
- * hydration that arrives after its session ended is dropped. Without a
- * configured journal it does nothing and says it is off.
+ * hydration that arrives after its session ended is dropped. A call the
+ * storage does not answer in time is given up on, so the queue never waits for
+ * it. Without a configured journal it does nothing and says it is off.
  */
 export class Journal {
   #config: JournalConfig;
@@ -120,7 +122,9 @@ export class Journal {
       }
 
       try {
-        await options.storage.write(claim.key, serializeJournal(transitions));
+        await this.#call(options, "write", () =>
+          options.storage.write(claim.key, serializeJournal(transitions)),
+        );
       } catch (cause) {
         return this.#answerFailedWrite({
           mode: options.mode,
@@ -172,7 +176,9 @@ export class Journal {
       }
 
       try {
-        await options.storage.remove(claim.key);
+        await this.#call(options, "remove", () =>
+          options.storage.remove(claim.key),
+        );
       } catch {
         record("journal-failed", { reason: "clear" });
         this.#publish({ journal: "degraded" });
@@ -213,6 +219,47 @@ export class Journal {
     return result;
   }
 
+  // One call to the storage, which is given up on at the deadline: a storage that never answers must not hold the queue, and every call behind it, forever. What it answers later is counted and dropped, though it cannot be recalled, so a slow write may still land.
+  async #call<TValue>(
+    { timeout }: ResolvedJournalOptions,
+    operation: "read" | "write" | "remove",
+    call: () => Promise<TValue>,
+  ): Promise<TValue> {
+    const { clock, record } = this.#config;
+    const expired = createDeferred<never>();
+
+    let abandoned = false;
+
+    const cancel = clock.setTimer(() => {
+      abandoned = true;
+      expired.reject(
+        new BeaconError({
+          code: "JOURNAL_FAILED",
+          message: "The journal storage did not answer in time.",
+        }),
+      );
+    }, timeout);
+
+    const answer = new Promise<TValue>((resolve) => resolve(call()));
+
+    const countLate = () => {
+      if (!abandoned) {
+        return;
+      }
+
+      record("late-callback", { reason: `journal-${operation}` });
+    };
+
+    // Attached at once, so the rejection of an abandoned call is never unhandled.
+    answer.then(countLate, countLate);
+
+    try {
+      return await Promise.race([answer, expired.promise]);
+    } finally {
+      cancel();
+    }
+  }
+
   // The transitions the record holds, none for a record that is absent or ignored, and `undefined` for a storage that failed.
   async #read(
     options: ResolvedJournalOptions,
@@ -223,7 +270,7 @@ export class Journal {
     let text: string | null | undefined;
 
     try {
-      text = await options.storage.read(key);
+      text = await this.#call(options, "read", () => options.storage.read(key));
     } catch {
       record("journal-failed", { reason: "read" });
 
@@ -279,7 +326,9 @@ export class Journal {
     }
 
     try {
-      await options.storage.write(key, serializeJournal(reconciled));
+      await this.#call(options, "write", () =>
+        options.storage.write(key, serializeJournal(reconciled)),
+      );
     } catch {
       record("journal-failed", { reason: "write" });
       this.#publish({ journal: "degraded" });

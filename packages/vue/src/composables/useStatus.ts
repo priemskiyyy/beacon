@@ -1,9 +1,8 @@
-import type { BeaconStatus } from "@priemskiyyy/beacon";
+import type { BeaconStatus, SelectorOptions } from "@priemskiyyy/beacon";
 import type { ComputedRef } from "vue";
 
 import { useBeacon } from "src/composables/useBeacon";
 import { useSelectedValue } from "src/composables/internal/useSelectedValue";
-import type { SelectorOptions } from "src/types/SelectorOptions";
 import { selectValue } from "src/utils/selectValue";
 
 /**

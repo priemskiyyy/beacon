@@ -1,7 +1,6 @@
-import type { ObservableValue } from "@priemskiyyy/beacon";
+import type { ObservableValue, SelectorOptions } from "@priemskiyyy/beacon";
 import { untrack } from "svelte";
 import type { ReadableValue } from "../../types/ReadableValue.js";
-import type { SelectorOptions } from "../../types/SelectorOptions.js";
 
 /**
  * Reads a selection of an observable through `current`. It reads the

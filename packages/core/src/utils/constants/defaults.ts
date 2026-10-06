@@ -6,3 +6,6 @@ export const DEFAULT_CHECK_TIMEOUT = 10_000;
 
 /** Milliseconds an application participant may take to settle its work before a command. */
 export const DEFAULT_SETTLEMENT_TIMEOUT = 10_000;
+
+/** Milliseconds a call to the journal's storage may take before it fails. */
+export const DEFAULT_JOURNAL_TIMEOUT = 10_000;

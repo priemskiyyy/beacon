@@ -94,41 +94,24 @@ const createFakePlatform = () => {
 
 testUpdateMechanism({
   name: "held",
-  create: () => {
-    const opened = { count: 0 };
-    const { mechanism } = createHeldMechanism();
-
-    return {
-      mechanism: {
-        ...mechanism,
-        open: () => {
-          opened.count += 1;
-
-          return mechanism.open();
-        },
-      },
-      opens: () => opened.count,
-    };
-  },
+  create: () => ({ mechanism: createHeldMechanism().mechanism }),
 });
 
 testUpdateMechanism({
   name: "one that listens while a session is open",
   create: () => {
     const platform = createFakePlatform();
-    const opened = { count: 0 };
 
     const mechanism = createUpdateMechanism({
       name: "listening",
-      open: () => {
-        opened.count += 1;
-
-        return { native: platform, dispose: platform.subscribe(() => {}) };
-      },
+      open: () => ({
+        native: platform,
+        dispose: platform.subscribe(() => {}),
+      }),
       commands: {},
     });
 
-    return { mechanism, opens: () => opened.count, held: platform.listeners };
+    return { mechanism, held: platform.listeners };
   },
 });
 

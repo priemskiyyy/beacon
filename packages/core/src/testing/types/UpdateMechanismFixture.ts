@@ -3,15 +3,15 @@ import type { RouteBody } from "src/types/RouteBody";
 import type { UpdateMechanism } from "src/types/UpdateMechanism";
 
 /**
- * A mechanism under test, over a fake platform created for this test alone:
- * the mechanism, how many times it opened the platform, and what it holds on
- * the platform right now.
+ * A mechanism under test, over a fake platform created for this test alone,
+ * and what it holds on that platform right now when the fake can say.
  *
  * @example
  * ```ts
+ * const platform = fakePlatform();
  * const fixture: UpdateMechanismFixture<Browser, typeof commands> = {
- *   mechanism: browserReload({ target: fakeWindow() }),
- *   opens: () => opened,
+ *   mechanism: browserReload({ target: platform.window }),
+ *   held: platform.listeners,
  * };
  * ```
  */
@@ -20,8 +20,6 @@ export type UpdateMechanismFixture<
   TCommands extends CommandMap<TNative, RouteBody, RouteBody>,
 > = {
   mechanism: UpdateMechanism<TNative, TCommands>;
-  /** How many times the mechanism has opened its platform. */
-  opens: () => number;
-  /** What the mechanism holds on the platform right now, such as listeners; leave it out when it holds nothing. */
+  /** What the mechanism holds on the platform right now, such as listeners: nothing before a session opens and as much as before once it ends. Leave it out when the fake cannot say. */
   held?: () => number;
 };

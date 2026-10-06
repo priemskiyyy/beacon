@@ -1,8 +1,6 @@
-import type { ObservableValue } from "@priemskiyyy/beacon";
+import type { ObservableValue, SelectorOptions } from "@priemskiyyy/beacon";
 import { createEffect, createSignal, onCleanup, untrack } from "solid-js";
 import type { Accessor } from "solid-js";
-
-import type { SelectorOptions } from "src/types/SelectorOptions";
 
 /**
  * Reads a selection of an observable as an accessor. It starts from the

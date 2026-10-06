@@ -1,10 +1,10 @@
+import type { SelectorOptions } from "@priemskiyyy/beacon";
 import { useBeacon } from "src/hooks/useBeacon";
 import { useObservable } from "src/hooks/useObservable";
 import type {
   RegisteredRouteName,
   RegisteredRouteState,
 } from "src/types/Register";
-import type { SelectorOptions } from "src/types/SelectorOptions";
 import { selectValue } from "src/utils/selectValue";
 
 /**

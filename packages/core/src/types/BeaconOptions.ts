@@ -16,7 +16,8 @@ import type { SupportPolicy } from "src/types/SupportPolicy";
  *   scope: { application: "com.example.notes", environment: "production", platform: "web", distribution: "public-web" },
  *   running: { boot: { id: BOOT_ID }, web: readWebRelease },
  *   routes: { web },
- *   timeouts: { check: 5_000 },
+ *   journal: { mode: "best-effort", storage },
+ *   timeouts: { check: 5_000, journal: 2_000 },
  * };
  * ```
  */
@@ -33,6 +34,8 @@ export type BeaconOptions<TRoutes extends Record<string, RouteDefinition>> = {
     check?: number;
     /** Milliseconds a participant may take to settle before a command, 10,000 by default. */
     settlement?: number;
+    /** Milliseconds a call to the journal's storage may take, 10,000 by default. */
+    journal?: number;
   };
   /** Turns the transition journal on; it is off by default, and then no intent is written. */
   journal?: JournalOptions;

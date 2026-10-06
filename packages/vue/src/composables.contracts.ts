@@ -1,7 +1,8 @@
 // Typechecked, never run: a route is named from the registered Beacon and its
 // state is inferred from that route, equality takes only the selected type,
-// every value a composable returns is read-only, and the provider takes the
-// registered Beacon.
+// every value a composable returns is read-only, the provider takes the
+// registered Beacon, and the selector options are the core's.
+import type { SelectorOptions as CoreSelectorOptions } from "@priemskiyyy/beacon";
 import { h } from "vue";
 import type { ComputedRef } from "vue";
 import { expectTypeOf } from "vitest";
@@ -13,6 +14,7 @@ import { useRoute } from "src/composables/useRoute";
 import { useRunning } from "src/composables/useRunning";
 import { useStatus } from "src/composables/useStatus";
 import { BeaconProvider } from "src/context/BeaconProvider";
+import type { SelectorOptions } from "src/index";
 import type { RegisteredBeacon } from "src/types/Register";
 
 declare const beacon: WebBeacon;
@@ -26,6 +28,9 @@ h(BeaconProvider, {});
 h(BeaconProvider, { beacon, start: "yes" });
 
 expectTypeOf<RegisteredBeacon>().toEqualTypeOf<WebBeacon>();
+expectTypeOf<SelectorOptions<string>>().toEqualTypeOf<
+  CoreSelectorOptions<string>
+>();
 
 export const useContracts = () => {
   const status: ComputedRef<"unknown" | "none" | "available" | "inconclusive"> =

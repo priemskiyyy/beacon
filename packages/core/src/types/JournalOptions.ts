@@ -5,7 +5,9 @@ import type { JournalStorage } from "src/types/JournalStorage";
  * realm, Beacon writes an intent, which is not proof that the dispatch
  * happened. With `best-effort`, a failed write is visible and the command goes
  * on without a durable correlation. With `required`, a failed write prevents
- * the command. Neither proves storage survives a device failure or tampering.
+ * the command. A storage that does not answer within `timeouts.journal` counts
+ * as failed, so it cannot hold a command forever. Neither proves storage
+ * survives a device failure or tampering.
  *
  * @example
  * ```ts

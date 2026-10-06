@@ -1,12 +1,14 @@
 // Typechecked, never run: a route is named from the registered Beacon and its
 // state is inferred from that route, equality takes only the selected type,
-// every primitive returns a read-only accessor, and the provider takes the
-// registered Beacon.
+// every primitive returns a read-only accessor, the provider takes the
+// registered Beacon, and the selector options are the core's.
+import type { SelectorOptions as CoreSelectorOptions } from "@priemskiyyy/beacon";
 import type { Accessor } from "solid-js";
 import { expectTypeOf } from "vitest";
 
 import type { WebBeacon } from "src/beacon.fixture";
 import { BeaconProvider } from "src/context/BeaconProvider";
+import type { SelectorOptions } from "src/index";
 import { useBeacon } from "src/primitives/useBeacon";
 import { useObservable } from "src/primitives/useObservable";
 import { useRoute } from "src/primitives/useRoute";
@@ -26,6 +28,9 @@ export const provider = (
 );
 
 expectTypeOf<RegisteredBeacon>().toEqualTypeOf<WebBeacon>();
+expectTypeOf<SelectorOptions<string>>().toEqualTypeOf<
+  CoreSelectorOptions<string>
+>();
 
 export const useContracts = () => {
   const status: Accessor<"unknown" | "none" | "available" | "inconclusive"> =

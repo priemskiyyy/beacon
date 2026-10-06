@@ -10,6 +10,7 @@ import { resolveDuration } from "src/utils/internal/options/resolveDuration";
 /** The journal options, or `undefined` for a Beacon without one; a budget or a retention that cannot work is refused at once. */
 export const resolveJournalOptions = (
   options: JournalOptions | undefined,
+  timeout: number,
 ): ResolvedJournalOptions | undefined => {
   if (options === undefined) {
     return undefined;
@@ -33,5 +34,6 @@ export const resolveJournalOptions = (
       options.retention,
       DEFAULT_JOURNAL_RETENTION,
     ),
+    timeout,
   };
 };

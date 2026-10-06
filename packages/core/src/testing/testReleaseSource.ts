@@ -73,7 +73,7 @@ const expectEvidence = ({ revision, digest, issuer }: SourceRead<unknown>) => {
  *   create: () => {
  *     const backend = fakeBackend();
  *
- *     return { source: http({ request: backend.request }), reads: backend.reads };
+ *     return { source: http({ fetch: backend.fetch }), reads: backend.reads };
  *   },
  * });
  * ```

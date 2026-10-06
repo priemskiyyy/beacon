@@ -18,4 +18,4 @@ export type {
   RegisteredRoutes,
   RegisteredRouteState,
 } from "./types/Register.js";
-export type { SelectorOptions } from "./types/SelectorOptions.js";
+export type { SelectorOptions } from "@priemskiyyy/beacon";

@@ -24,6 +24,7 @@ import type { TransitionState } from "src/types/TransitionState";
 import { BeaconError } from "src/utils/BeaconError";
 import {
   DEFAULT_CHECK_TIMEOUT,
+  DEFAULT_JOURNAL_TIMEOUT,
   DEFAULT_RUNNING_TIMEOUT,
   DEFAULT_SETTLEMENT_TIMEOUT,
 } from "src/utils/constants/defaults";
@@ -187,7 +188,13 @@ export class Beacon<
       DEFAULT_SETTLEMENT_TIMEOUT,
     );
 
-    const journalOptions = resolveJournalOptions(journal);
+    const journalTimeout = resolveDuration(
+      "timeouts.journal",
+      timeouts.journal,
+      DEFAULT_JOURNAL_TIMEOUT,
+    );
+
+    const journalOptions = resolveJournalOptions(journal, journalTimeout);
 
     this.#diagnostics = new Diagnostics({
       clock,

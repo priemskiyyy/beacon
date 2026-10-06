@@ -1,6 +1,7 @@
 // Typechecked, never run: a route is named from the registered Beacon and its
-// state is inferred from that route, equality takes only the selected type, and
-// the provider takes the registered Beacon.
+// state is inferred from that route, equality takes only the selected type, the
+// provider takes the registered Beacon, and the selector options are the core's.
+import type { SelectorOptions as CoreSelectorOptions } from "@priemskiyyy/beacon";
 import { expectTypeOf } from "vitest";
 
 import { BeaconProvider } from "src/context/BeaconProvider";
@@ -10,6 +11,7 @@ import { useObservable } from "src/hooks/useObservable";
 import { useRoute } from "src/hooks/useRoute";
 import { useRunning } from "src/hooks/useRunning";
 import { useStatus } from "src/hooks/useStatus";
+import type { SelectorOptions } from "src/index";
 import type { RegisteredBeacon } from "src/types/Register";
 
 declare const beacon: WebBeacon;
@@ -17,6 +19,9 @@ declare const beacon: WebBeacon;
 export const provider = <BeaconProvider beacon={beacon} start />;
 
 expectTypeOf<RegisteredBeacon>().toEqualTypeOf<WebBeacon>();
+expectTypeOf<SelectorOptions<string>>().toEqualTypeOf<
+  CoreSelectorOptions<string>
+>();
 
 export const useContracts = () => {
   const status: "unknown" | "none" | "available" | "inconclusive" = useRoute(

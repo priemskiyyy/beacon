@@ -11,7 +11,7 @@ import type { RouteBody } from "src/types/RouteBody";
  * ```ts
  * const draft: ObservationDraft<PlayOffer> = {
  *   status: "available",
- *   offer: { release, flows: ["flexible"] },
+ *   offer: { release, flows: ["flexible"], priority: 3, stalenessDays: 9, inProgress: false },
  * };
  * ```
  */

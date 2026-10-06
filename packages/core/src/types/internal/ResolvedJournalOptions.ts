@@ -8,4 +8,6 @@ export type ResolvedJournalOptions = {
   budget: number;
   /** Milliseconds an intent is kept. */
   retention: number;
+  /** Milliseconds a call to the storage may take. */
+  timeout: number;
 };

@@ -10,7 +10,7 @@ import type { RouteBody } from "src/types/RouteBody";
  * ```ts
  * const options: UpdateMechanismConformanceOptions<Browser, typeof commands> = {
  *   name: "browser-reload",
- *   create: () => ({ mechanism: browserReload({ target: fakeWindow() }), opens: () => opened }),
+ *   create: () => ({ mechanism: browserReload({ target: fakeWindow() }) }),
  * };
  * ```
  */

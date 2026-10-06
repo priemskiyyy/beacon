@@ -1,5 +1,6 @@
 import { createMockSource } from "src/mock/createMockSource";
 import type { BeaconClock } from "src/types/BeaconClock";
+import type { BeaconOptions } from "src/types/BeaconOptions";
 import type { DisruptionParticipant } from "src/types/DisruptionParticipant";
 import type { JournalOptions } from "src/types/JournalOptions";
 import type { ProviderResult } from "src/types/ProviderResult";
@@ -112,6 +113,7 @@ type WebCommandOptions = {
   clock?: BeaconClock;
   /** Reads the web build instead of `build` and `failRead`, for a reader that answers late. */
   reader?: () => RunningRelease | Promise<RunningRelease>;
+  timeouts?: BeaconOptions<Record<never, never>>["timeouts"];
 };
 
 const UNNAMED_WEB_RELEASE: RunningRelease = {
@@ -128,6 +130,7 @@ export const createWebCommandBeacon = ({
   journal,
   clock,
   reader,
+  timeouts,
 }: WebCommandOptions = {}) => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
   const held = createHeldMechanism({ failOpen });
@@ -159,6 +162,7 @@ export const createWebCommandBeacon = ({
       },
       ...(journal === undefined ? {} : { journal }),
       ...(clock === undefined ? {} : { clock }),
+      ...(timeouts === undefined ? {} : { timeouts }),
     },
   );
 

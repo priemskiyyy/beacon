@@ -393,6 +393,24 @@ test("LIFE-01 a session that stops during a check supersedes it and keeps what w
   });
 });
 
+test("LIFE-01 a listener that stops the session as the last route opens leaves a document that passed its expiry as it was", async () => {
+  const context = createWebBeacon();
+  const web = context.beacon.route("web");
+
+  await startAndCheck(context);
+  context.beacon.stop();
+  context.clock.suspend(700_000);
+
+  web.native.subscribe(() => context.beacon.stop());
+  context.beacon.start();
+
+  expect(web.state.get().observation).toMatchObject({
+    status: "available",
+    evidence: { freshness: "fresh" },
+  });
+  expect(context.clock.pendingTimers()).toBe(0);
+});
+
 test("a selection that throws fails only the check and keeps the observation", async () => {
   const context = createWebBeacon();
 

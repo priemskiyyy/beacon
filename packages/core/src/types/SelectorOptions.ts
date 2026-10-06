@@ -1,6 +1,7 @@
 /**
- * How a primitive decides that a new selection is the same as the last one,
- * so what depends on it does not run again.
+ * How a framework binding decides that a new selection is the same as the last
+ * one, so what depends on it does not render or run again. Every binding takes
+ * it as the last argument of its reading functions and re-exports it.
  *
  * @example
  * ```ts

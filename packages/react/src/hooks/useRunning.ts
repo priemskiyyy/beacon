@@ -1,8 +1,7 @@
-import type { RunningApplication } from "@priemskiyyy/beacon";
+import type { RunningApplication, SelectorOptions } from "@priemskiyyy/beacon";
 
 import { useBeacon } from "src/hooks/useBeacon";
 import { useObservable } from "src/hooks/useObservable";
-import type { SelectorOptions } from "src/types/SelectorOptions";
 import { selectValue } from "src/utils/selectValue";
 
 /**

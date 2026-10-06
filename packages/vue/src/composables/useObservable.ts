@@ -1,8 +1,7 @@
-import type { ObservableValue } from "@priemskiyyy/beacon";
+import type { ObservableValue, SelectorOptions } from "@priemskiyyy/beacon";
 import type { ComputedRef } from "vue";
 
 import { useSelectedValue } from "src/composables/internal/useSelectedValue";
-import type { SelectorOptions } from "src/types/SelectorOptions";
 import { selectValue } from "src/utils/selectValue";
 
 /**

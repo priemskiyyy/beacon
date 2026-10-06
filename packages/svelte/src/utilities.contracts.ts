@@ -1,11 +1,13 @@
 // Typechecked, never run: a route is named from the registered Beacon and its
 // state is inferred from that route, equality takes only the selected type, the
-// provider takes the registered Beacon, and what a utility returns is read, never
-// written.
+// provider takes the registered Beacon, what a utility returns is read, never
+// written, and the selector options are the core's.
+import type { SelectorOptions as CoreSelectorOptions } from "@priemskiyyy/beacon";
 import type { ComponentProps } from "svelte";
 import { expectTypeOf } from "vitest";
 import type { WebBeacon } from "./beacon.fixture.js";
 import type BeaconProvider from "./context/BeaconProvider.svelte";
+import type { SelectorOptions } from "./index.js";
 import type { ReadableValue } from "./types/ReadableValue.js";
 import type { RegisteredBeacon } from "./types/Register.js";
 import { useBeacon } from "./utilities/useBeacon.js";
@@ -15,6 +17,9 @@ import { useRunning } from "./utilities/useRunning.js";
 import { useStatus } from "./utilities/useStatus.js";
 
 expectTypeOf<RegisteredBeacon>().toEqualTypeOf<WebBeacon>();
+expectTypeOf<SelectorOptions<string>>().toEqualTypeOf<
+  CoreSelectorOptions<string>
+>();
 expectTypeOf<
   ComponentProps<typeof BeaconProvider>["beacon"]
 >().toEqualTypeOf<WebBeacon>();

@@ -19,6 +19,7 @@ test("a hydration that fails leaves the queue working for what is queued behind 
       storage: createMemoryStorage().storage,
       budget: 3,
       retention: 86_400_000,
+      timeout: 10_000,
     },
     getScope: () => SCOPE,
     getRunning: () => Promise.reject(failure),

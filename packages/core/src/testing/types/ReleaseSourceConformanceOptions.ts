@@ -9,7 +9,7 @@ import type { ReleaseScope } from "src/types/ReleaseScope";
  * ```ts
  * const options: ReleaseSourceConformanceOptions<Manifest> = {
  *   name: "http",
- *   create: () => ({ source: http({ request: backend.request }), reads: backend.reads }),
+ *   create: () => ({ source: http({ fetch: backend.fetch }), reads: backend.reads }),
  * };
  * ```
  */

@@ -217,8 +217,8 @@ The pieces, in the order a session uses them:
 - **`name`** labels evidence and diagnostics. **`subject`** is the running subject this provider replaces, so an intent can be read back against it. **`prepares`** says whether the provider can report a prepared target at all. A route that does not prepare has `prepared` as `not-applicable`. One that does starts at `unknown`.
 - **`exclusive`** names the native manager the provider must have to itself. A second session that would open the same manager fails to open, and its route says `DRIVER_FAILED`, instead of racing the first.
 - **`open(context)`** runs when a session starts. The context has the `scope`, a read-only view of what is running and the emitter. It cannot write running facts. It returns the session: `native`, the `check`, an optional `reconcile` and an optional `dispose`.
-- **`check({ signal })`** asks the provider and answers an `ObservationDraft`: `unknown`, `none`, `available` or `inconclusive`. Beacon attaches the evidence and mints the reference, so a driver cannot claim a reference it was never given.
-- **`reconcile({ signal })`** reads the provider's current local state again after a restart or a return to the foreground, and reports it through the emitter.
+- **`check({ signal })`** asks the provider and answers an `ObservationDraft`: `unknown` (the provider cannot run here), `none` or `available`. A driver compares nothing with what runs, so it never reports an inconclusive selection. Beacon attaches the evidence and mints the reference, so a driver cannot claim a reference it was never given.
+- **`reconcile({ signal })`** reads the provider's current local state once, as a session opens, and reports it through the emitter. A report Beacon cannot take (a malformed payload, a `prepared` report from a driver that declared `prepares: false`) is dropped and recorded as a `route-failed` event, and a progress outside 0 to 1 is published as `null`.
 - **The emitter** reports what the provider says between checks: `emit.observation(draft)`, `emit.prepared({ status: "ready", value })` or `emit.prepared({ status: "none" })`, and `emit.progress(fraction)` with a fraction between 0 and 1, or `null`. It is fenced by the session: after the session ends, a call is counted and dropped.
 - **`dispose`** removes what the driver added, and only that. Beacon gives the exclusive manager back even when `dispose` throws.
 
@@ -228,12 +228,12 @@ Only a confirmation from the provider may say `ready`. A command that returned i
 
 The conformance suites of `@priemskiyyy/beacon/testing` register the contract every adapter keeps, over a fake of the provider. They need `vitest`. Call them at the top level of `src/conformance.test.ts`.
 
-| Suite                 | Contract                                                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `testReleaseSource`   | it has a name, asks its backend for nothing until read, answers a document with real times and non-empty identifiers, can be read again, and every projection of it belongs to it                      |
-| `testVersionStrategy` | an input compares equal to itself, `newer` and `older` mirror each other along the ascending inputs, and a value that breaks the grammar throws                                                        |
-| `testUpdateMechanism` | it touches its platform only when a session opens, declares valid commands, can be opened again after it ended, and ending a session releases what it held                                             |
-| `testReleaseDriver`   | it declares valid commands, opens with a native handle and a check that answers a valid observation, prepares only if it said it does, holds no listener once disposed, and reports nothing after that |
+| Suite                 | Contract                                                                                                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `testReleaseSource`   | it has a name, asks its backend for nothing until read, answers a document with real times and non-empty identifiers, can be read again, and every projection of it belongs to it |
+| `testVersionStrategy` | an input compares equal to itself, `newer` and `older` mirror each other along the ascending inputs, and a value that breaks the grammar throws                                   |
+| `testUpdateMechanism` | it touches its platform only when a session opens, can be opened again after it ended, and ending a session releases what it held                                                 |
+| `testReleaseDriver`   | it opens with a native handle and a check that answers a valid observation, prepares only if it said it does, holds no listener once disposed, and reports nothing after that     |
 
 ```ts
 import { testUpdateMechanism } from "@priemskiyyy/beacon/testing";

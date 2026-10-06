@@ -195,7 +195,7 @@ export const App = () => {
 };
 ```
 
-The provider starts the session in a layout effect, before any effect of its children, so the first check finds it running. `check` never rejects. Overlapping checks join one read, so two signals at once cost one request.
+The provider starts the session in a layout effect, before the `useEffect` of any child, so the first check finds it running. `check` never rejects. Overlapping checks join one read, so two signals at once cost one request.
 
 ### 5. Show the update
 

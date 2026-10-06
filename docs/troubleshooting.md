@@ -48,7 +48,7 @@ The thrown error keeps whatever a source, driver or listener threw as `cause`. P
 
 ### A check fails with NOT_STARTED
 
-Nothing asks an authority until a session is open. Call `beacon.start()`, or give `BeaconProvider` the `start` prop. In React, a check in a component's own effect runs before the provider's effect, so check once `useStatus` says `running`. See [getting started](getting-started.md#_4-check).
+Nothing asks an authority until a session is open. Call `beacon.start()`, or give `BeaconProvider` the `start` prop. In React, the provider starts the session in a layout effect, so a check in a component's `useEffect` finds it running, and a check in a child's `useLayoutEffect` does not: check once `useStatus` says `running` there. See [getting started](getting-started.md#_4-check).
 
 ### The check succeeded and nothing is offered
 

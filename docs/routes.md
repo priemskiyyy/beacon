@@ -251,7 +251,7 @@ The report keeps each route and the policy apart, so a failing policy never hide
 `CheckOptions` has three fields:
 
 - `reason` is `startup`, `manual`, `foreground`, `reconnect`, `invalidation` or `interval`. It only labels the diagnostics.
-- `mode` is `join` by default, which shares a read already under way. `after-current` also asks for at most one trailing read after it, and never restarts the current one.
+- `mode` is `join` by default, which shares a read already under way. `after-current` also asks for at most one trailing read after a read that was under way before the call, and never restarts the current one. One `check()` asks each source once, whatever its mode: the routes and the policy that share a source join the read the call itself started.
 - `signal` ends only your wait. A read that others still wait for goes on.
 
 A check that finds no open session settles as `failed` with `NOT_STARTED`, or `DISPOSED`. A source or provider that takes longer than `timeouts.check` (10 seconds by default) fails the read with `SOURCE_TIMEOUT`.

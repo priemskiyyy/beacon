@@ -87,7 +87,7 @@ Everything else is a status: an outcome, a check that `failed`, an error in stat
 
 ## The framework providers
 
-`<BeaconProvider beacon={beacon} start>` calls `beacon.start()` when it mounts, before any child's own mount effect runs, and returns the stop as the cleanup, so it holds the session while mounted and a check in a child's mount effect finds it running. It never disposes the Beacon and checks nothing. Under React's Strict Mode the effect runs, cleans up and runs again, which leaves one session open and no check or command made. The Vue, Solid and Svelte providers do the same in their own lifecycle. See [React](react.md), [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
+`<BeaconProvider beacon={beacon} start>` calls `beacon.start()` when it mounts, before a child's mount effect runs (in React, before a child's `useEffect`, not its `useLayoutEffect`), and returns the stop as the cleanup, so it holds the session while mounted and a check in a child's mount effect finds it running. It never disposes the Beacon and checks nothing. Under React's Strict Mode the effect runs, cleans up and runs again, which leaves one session open and no check or command made. The Vue, Solid and Svelte providers do the same in their own lifecycle. See [React](react.md), [Vue](vue.md), [Solid](solid.md) and [Svelte](svelte.md).
 
 ## Timeouts
 

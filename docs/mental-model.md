@@ -72,7 +72,7 @@ A subject that is not `known` is never read as an old version. A route compared 
 
 ## Evidence, freshness and revisions
 
-Every accepted observation carries its **evidence**: the `source` that produced it, its `origin` (`network`, `provider`, `application` or `persisted`), `receivedAt`, `expiresAt`, `freshness`, `issuer` and `revision`.
+Every accepted observation carries its **evidence**: the `source` that produced it, its `origin` (`network` or `provider`), `receivedAt`, `expiresAt`, `freshness`, `issuer` and `revision`.
 
 - **Freshness is time.** Evidence is `fresh` until `expiresAt` and `expired` after. A failed check never changes it. An `expiresAt` of `null` never expires, which is what a provider's report has: it is what the provider said at the last check.
 - **A failed check never erases what was accepted.** The check says `failed` and the last observation stays, aging on its own clock.

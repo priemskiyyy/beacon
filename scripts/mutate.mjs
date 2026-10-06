@@ -108,9 +108,37 @@ const MUTANTS = [
     describes: "a server render that reads a session that has not started",
   },
   {
+    file: "packages/react/src/context/BeaconProvider.tsx",
+    find: ["import { useLayoutEffect }", "useLayoutEffect(() => {"],
+    replace: ["import { useEffect }", "useEffect(() => {"],
+    project: "react",
+    describes: "a child's mount effect running before the session starts",
+  },
+  {
+    file: "packages/solid/src/primitives/internal/useSelectedValue.ts",
+    find: "resolve().getInitial()",
+    replace: "resolve().get()",
+    project: "solid-ssr",
+    describes: "a server render that reads a session that has not started",
+  },
+  {
+    file: "packages/vue/src/composables/internal/useSelectedValue.ts",
+    find: "resolve().getInitial()",
+    replace: "resolve().get()",
+    project: "vue-ssr",
+    describes: "a server render that reads a session that has not started",
+  },
+  {
+    file: "packages/svelte/src/utilities/internal/useSelectedValue.svelte.ts",
+    find: ".getInitial()",
+    replace: ".get()",
+    project: "svelte-ssr",
+    describes: "a server render that reads a session that has not started",
+  },
+  {
     file: `${http}/http.ts`,
-    find: "memory.partition === owner",
-    replace: "true",
+    find: "memory?.scope === scope ? memory : null",
+    replace: "memory",
     project: "http",
     describes: "an answer renewed for another account",
   },
@@ -239,12 +267,22 @@ const survivors = [];
 
 for (const mutant of MUTANTS) {
   const original = readFileSync(mutant.file, "utf8");
+  const finds = [mutant.find].flat();
+  const replaces = [mutant.replace].flat();
 
-  if (!original.includes(mutant.find)) {
-    throw new Error(`${mutant.file} no longer contains: ${mutant.find}`);
+  for (const find of finds) {
+    if (!original.includes(find)) {
+      throw new Error(`${mutant.file} no longer contains: ${find}`);
+    }
   }
 
-  writeFileSync(mutant.file, original.replace(mutant.find, mutant.replace));
+  // A mutant may change several places at once, such as an import and its use.
+  const mutated = finds.reduce(
+    (source, find, index) => source.replace(find, replaces[index] ?? ""),
+    original,
+  );
+
+  writeFileSync(mutant.file, mutated);
 
   let survived = false;
 

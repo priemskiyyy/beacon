@@ -139,6 +139,7 @@ const entryPoints = [
   "packages/core/src/mock.ts",
   "packages/core/src/testing.ts",
   "packages/core/src/versions.ts",
+  "packages/devtools/src/react.ts",
 ];
 
 const tests = [
@@ -201,6 +202,32 @@ const sdks = {
 
 const frameworks = [react, solid, vue, svelte];
 
+// The devtools are a Solid inspector in a shadow root with one React wrapper, so their boundaries differ from the bindings'.
+const devtoolsReact = {
+  names: ["react", "react-dom"],
+  groups: [
+    "react-dom/*",
+    "@priemskiyyy/beacon-react",
+    "@priemskiyyy/beacon-react/*",
+  ],
+  message:
+    "Only the React wrapper, src/react.ts, imports React and its binding.",
+};
+
+const devtoolsSelf = {
+  names: ["@priemskiyyy/beacon-devtools"],
+  groups: ["@priemskiyyy/beacon-devtools/*"],
+  message:
+    "Inside the package import src/...; only the React wrapper imports the inspector by its name, so that it shares the one copy.",
+};
+
+const devtoolsSolid = {
+  names: ["solid-js"],
+  groups: ["solid-js/*"],
+  message:
+    "The React wrapper reaches the inspector by its package name; Solid is bundled inside it.",
+};
+
 const testRunners = {
   names: ["vitest"],
   groups: ["vitest/*", "@testing-library/*"],
@@ -217,6 +244,19 @@ const hostTimers = [
 ].map((name) => ({
   name,
   message: "Schedule through the Beacon clock, never the host's timers.",
+}));
+
+const devtoolsTimers = [
+  "setTimeout",
+  "clearTimeout",
+  "setInterval",
+  "clearInterval",
+  "requestAnimationFrame",
+  "requestIdleCallback",
+].map((name) => ({
+  name,
+  message:
+    "The inspector arms no timer of its own; the copy feedback in useClipboard is the one exception.",
 }));
 
 const hostGlobals = ["window", "document", "navigator", "self"].map((name) => ({
@@ -387,6 +427,38 @@ export default tseslint.config(
       "no-restricted-syntax": ["error", ...syntax, ...clockReads],
     },
   })),
+  ...[
+    {
+      files: ["packages/devtools/src/**/*.{ts,tsx}"],
+      ignores: [...tests, ...entryPoints],
+      forbidden: [devtoolsReact, devtoolsSelf, vue, svelte, sdks, testRunners],
+      syntax: packageSyntax,
+    },
+    {
+      files: ["packages/devtools/src/index.ts"],
+      forbidden: [devtoolsReact, devtoolsSelf, vue, svelte, sdks, testRunners],
+      syntax: [...relativeImports, ...bannedSyntax],
+    },
+    {
+      files: ["packages/devtools/src/react.ts"],
+      forbidden: [devtoolsSolid, vue, svelte, sdks, testRunners],
+      syntax: [...relativeImports, ...bannedSyntax],
+    },
+  ].map(({ files, ignores = [], forbidden, syntax }) => ({
+    // The inspector imports Solid and reaches the DOM, never another framework or a provider SDK, and it reads no clock: its times come from the events and the snapshots.
+    files,
+    ignores,
+    rules: {
+      ...restrictImports(forbidden),
+      "no-restricted-globals": ["error", ...devtoolsTimers],
+      "no-restricted-syntax": ["error", ...syntax, ...clockReads],
+    },
+  })),
+  {
+    // A copy button says "Copied" for a moment: the one timer the inspector arms, cleared when the button goes.
+    files: ["packages/devtools/src/hooks/useClipboard.ts"],
+    rules: { "no-restricted-globals": "off" },
+  },
   {
     // Declaration merging is how an application tells a binding which Beacon it has, and only an interface can be merged.
     files: [
@@ -403,6 +475,8 @@ export default tseslint.config(
     // React rules only where React runs.
     files: [
       "packages/react/**/*.{ts,tsx}",
+      "packages/devtools/src/react.{ts,tsx}",
+      "packages/devtools/src/react.*.{ts,tsx}",
       "examples/{react,expo}/**/*.{ts,tsx}",
     ],
     plugins: { "react-hooks": reactHooks },

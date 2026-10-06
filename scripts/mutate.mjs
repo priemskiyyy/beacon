@@ -128,6 +128,27 @@ const MUTANTS = [
     describes: "the intents of the last scope shown for the next",
   },
   {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "return await Promise.race([answer, expired.promise]);",
+    replace: "return await answer;",
+    project: "core",
+    describes: "a journal storage that never answers holding every command",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "} finally {\n      cancel();",
+    replace: "} finally {",
+    project: "core",
+    describes: "a journal deadline that outlives the call it bounded",
+  },
+  {
+    file: `${core}/internal/journal/Journal.ts`,
+    find: "if (!abandoned) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "an answer within its deadline counted as late",
+  },
+  {
     file: `${core}/internal/routes/claimExclusive.ts`,
     find: "claimed.delete(owner);",
     replace: "",
@@ -147,6 +168,43 @@ const MUTANTS = [
     replace: "if (false) {",
     project: "core",
     describes: "a lower revision replacing a higher one",
+  },
+  {
+    file: `${core}/internal/routes/RouteRegistry.ts`,
+    find: "      // A listener told that a route opened may have ended the session: nothing else is opened for it.\n      if (!session.scope.isActive()) {",
+    replace:
+      "      // A listener told that a route opened may have ended the session: nothing else is opened for it.\n      if (false) {",
+    project: "core",
+    describes: "a route opened for a session a listener ended",
+  },
+  {
+    file: `${core}/internal/routes/RouteRegistry.ts`,
+    find: "    if (!session.scope.isActive()) {\n      return;\n    }\n\n    this.#feeds.resume(session);",
+    replace: "    this.#feeds.resume(session);",
+    project: "core",
+    describes:
+      "a document expiring while the session that would resume it ended",
+  },
+  {
+    file: `${core}/internal/routes/RouteRecord.ts`,
+    find: "if (isSameData(next, held)) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "an install that changes nothing telling its listeners",
+  },
+  {
+    file: `${core}/internal/reads/SharedRead.ts`,
+    find: "if (own !== undefined && this.#isWaiting(own)) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "a call that asks for a read joining the one it started twice",
+  },
+  {
+    file: `${core}/internal/feeds/FeedRecord.ts`,
+    find: "if (expiresAt !== null && !Number.isFinite(expiresAt)) {",
+    replace: "if (false) {",
+    project: "core",
+    describes: "an expiry that is not a finite time held as a document's",
   },
   {
     file: `${core}/internal/disruptions/DisruptionRegistry.ts`,
@@ -388,6 +446,34 @@ const MUTANTS = [
     describes: "a TestFlight build offered an App Store route",
   },
   {
+    file: "packages/adapters/service-worker/src/utils/readWorkers.ts",
+    find: "      metadata: { worker: { id } },\n",
+    replace: "",
+    project: "service-worker",
+    describes: "two waiting workers of one build offered as the same release",
+  },
+  {
+    file: "packages/adapters/google-play/src/googlePlay.ts",
+    find: "if (signal.aborted) {",
+    replace: "if (false) {",
+    project: "google-play",
+    describes: "a flow started for a caller that stopped waiting",
+  },
+  {
+    file: "packages/adapters/google-play/src/utils/PlaySession.ts",
+    find: "if (signal.aborted) {",
+    replace: "if (false) {",
+    project: "google-play",
+    describes: "a flow started for a session that ended",
+  },
+  {
+    file: "packages/adapters/expo/src/utils/createUpdateIdentity.ts",
+    find: ".toLowerCase()",
+    replace: "",
+    project: "expo",
+    describes: "an update id in capitals compared unequal to the one running",
+  },
+  {
     file: "packages/adapters/google-play/src/googlePlay.ts",
     find: "exclusive: bridge,",
     replace: "",
@@ -432,8 +518,8 @@ for (const mutant of MUTANTS) {
   const replaces = [mutant.replace].flat();
 
   for (const find of finds) {
-    if (!original.includes(find)) {
-      throw new Error(`${mutant.file} no longer contains: ${find}`);
+    if (original.split(find).length !== 2) {
+      throw new Error(`${mutant.file} must contain exactly once: ${find}`);
     }
   }
 

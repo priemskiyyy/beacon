@@ -15,6 +15,8 @@ on:
       - ".github/workflows/docs.test.yml"
       - "scripts/verify-docs.mjs"
       - "scripts/verify-snippets.mjs"
+      - "scripts/verify-jsdoc.mjs"
+      - "scripts/readWorkspacePackages.mjs"
       - "scripts/snippets.ambient.d.ts"
   push:
     branches:
@@ -30,6 +32,8 @@ on:
       - ".github/workflows/docs.test.yml"
       - "scripts/verify-docs.mjs"
       - "scripts/verify-snippets.mjs"
+      - "scripts/verify-jsdoc.mjs"
+      - "scripts/readWorkspacePackages.mjs"
       - "scripts/snippets.ambient.d.ts"
 
 permissions:
@@ -60,6 +64,10 @@ jobs:
       # Every copyable fence compiles against the built declarations.
       - name: Snippets
         run: pnpm verify:snippets
+
+      # Every example in a JSDoc block compiles the same way.
+      - name: JSDoc examples
+        run: pnpm verify:jsdoc
 
       - name: Pages and links
         run: pnpm verify:docs

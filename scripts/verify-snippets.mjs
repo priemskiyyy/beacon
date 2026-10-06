@@ -10,6 +10,7 @@ import {
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { compileScript, parse as parseSfc } from "vue/compiler-sfc";
+import { readWorkspacePackages } from "./readWorkspacePackages.mjs";
 
 // Every ts, tsx, vue and svelte fence a reader could copy compiles against the
 // built declarations of the workspace packages, as an installed package would
@@ -79,38 +80,10 @@ const pages = [
 ];
 
 // The published names of the workspace packages, each mapped to its built declarations.
-const listPackageFolders = (directory) => {
-  const parent = path.join(workspace, directory);
-
-  return readdirSync(parent, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name !== "node_modules")
-    .map((entry) => path.join(parent, entry.name))
-    .filter((folder) => existsSync(path.join(folder, "package.json")));
-};
-
-const readDeclarations = (folder) => {
-  const manifest = JSON.parse(
-    readFileSync(path.join(folder, "package.json"), "utf8"),
-  );
-
-  return Object.entries(manifest.exports ?? {}).flatMap(([subpath, target]) => {
-    if (typeof target !== "object" || typeof target.types !== "string") {
-      return [];
-    }
-
-    const file = path.resolve(folder, target.types);
-
-    if (!existsSync(file)) {
-      return [];
-    }
-
-    return [[`${manifest.name}${subpath.slice(1)}`, [file]]];
-  });
-};
-
 const paths = Object.fromEntries([
-  ...listPackageFolders("packages").flatMap(readDeclarations),
-  ...listPackageFolders("packages/adapters").flatMap(readDeclarations),
+  ...readWorkspacePackages(workspace).flatMap(({ entries }) =>
+    entries.map(({ module, declaration }) => [module, [declaration]]),
+  ),
   ["src/*", ["./src/*"]],
 ]);
 

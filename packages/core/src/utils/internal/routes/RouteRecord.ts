@@ -271,6 +271,19 @@ export class RouteRecord {
     this.#apply(transaction, { operation });
   };
 
+  /** Moves the progress of the running operation; a report with no operation running is dropped. */
+  installProgress = (transaction: Transaction, fraction: number | null) => {
+    const { operation } = this.#store.get();
+
+    if (operation.state !== "running") {
+      return;
+    }
+
+    this.#apply(transaction, {
+      operation: Object.freeze({ ...operation, progress: fraction }),
+    });
+  };
+
   installNative = (transaction: Transaction, native: unknown) => {
     transaction.set(this.#native, native);
   };

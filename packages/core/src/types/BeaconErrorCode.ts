@@ -4,6 +4,8 @@
  * - `INVALID_CONFIGURATION`: options or a call that cannot work, such as an
  *   unknown route name or a hook used outside its provider.
  * - `DISPOSED`: an operation ran after `dispose()`.
+ * - `NOT_STARTED`: an operation that needs an open session ran without one.
+ * - `DRIVER_FAILED`: a provider driver could not open, or its check failed.
  * - `INVALID_VERSION`: a version string or number broke the grammar of the
  *   strategy that parsed it.
  * - `SELECTION_FAILED`: a version strategy threw while parsing or comparing.
@@ -11,7 +13,8 @@
  *   order or compatibility.
  * - `SOURCE_FAILED`: a release source rejected, threw or answered something
  *   Beacon could not accept.
- * - `SOURCE_TIMEOUT`: a release source took longer than its deadline.
+ * - `SOURCE_TIMEOUT`: a release source or a provider took longer than its
+ *   deadline.
  * - `INVALID_DOCUMENT`: a source answered a document whose revision, scope or
  *   times broke the contract.
  * - `ABORTED`: every caller stopped waiting, so the read was abandoned.
@@ -31,6 +34,8 @@
 export type BeaconErrorCode =
   | "INVALID_CONFIGURATION"
   | "DISPOSED"
+  | "NOT_STARTED"
+  | "DRIVER_FAILED"
   | "INVALID_VERSION"
   | "SELECTION_FAILED"
   | "IDENTITY_CONFLICT"

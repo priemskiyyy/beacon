@@ -8,6 +8,8 @@ export const COUNTED_EVENTS = {
   disposed: null,
   "running-read": null,
   "running-failed": null,
+  "check-requested": null,
+  "route-failed": null,
   "read-started": null,
   "read-accepted": null,
   "read-renewed": null,

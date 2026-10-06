@@ -2,7 +2,7 @@ import { expect, test, vi } from "vitest";
 
 import { createTestClock } from "src/mock/createTestClock";
 import { Beacon } from "src/utils/Beacon";
-import { buildWebRelease, createBeacon } from "src/utils/Beacon.fixture";
+import { SCOPE, buildWebRelease, createBeacon } from "src/utils/Beacon.fixture";
 
 test("CORE-01 constructing arms no timer, reads no clock and calls no reader", () => {
   const clock = createTestClock();
@@ -13,6 +13,8 @@ test("CORE-01 constructing arms no timer, reads no clock and calls no reader", (
   });
 
   const beacon = new Beacon({
+    scope: SCOPE,
+    routes: {},
     running: { boot: { id: "boot-1" }, web: reader },
     clock: { ...clock, now },
   });

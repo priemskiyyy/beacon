@@ -1,23 +1,32 @@
 import type { BeaconClock } from "src/types/BeaconClock";
+import type { ReleaseScope } from "src/types/ReleaseScope";
+import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RunningReaders } from "src/types/RunningReaders";
 
 /**
- * What one Beacon observes. Every field is read once, at construction, and
- * nothing starts until `start()`.
+ * What one Beacon observes: the scope its authorities speak for, the local
+ * readers of what is running, and the named routes. Every field is read once,
+ * at construction, and nothing starts until `start()`.
  *
  * @example
  * ```ts
- * const options: BeaconOptions = {
+ * const options: BeaconOptions<{ web: typeof web }> = {
+ *   scope: { application: "com.example.notes", environment: "production", platform: "web", distribution: "public-web" },
  *   running: { boot: { id: BOOT_ID }, web: readWebRelease },
- *   timeouts: { running: 5_000 },
+ *   routes: { web },
+ *   timeouts: { check: 5_000 },
  * };
  * ```
  */
-export type BeaconOptions = {
+export type BeaconOptions<TRoutes extends Record<string, RouteDefinition>> = {
+  scope: ReleaseScope;
   running: RunningReaders;
+  routes: TRoutes;
   timeouts?: {
     /** Milliseconds a running fact may take to be read, 10,000 by default. */
     running?: number;
+    /** Milliseconds a check may take to be answered, 10,000 by default. */
+    check?: number;
   };
   clock?: BeaconClock;
 };

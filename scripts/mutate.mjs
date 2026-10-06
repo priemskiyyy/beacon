@@ -696,6 +696,45 @@ const MUTANTS = [
     project: "expo",
     describes: "two Beacons sharing one Expo module",
   },
+  {
+    file: "packages/adapters/firebase-remote-config/src/utils/createParameters.ts",
+    find: "if (source(key) !== REMOTE) {",
+    replace: "if (false) {",
+    project: "firebase-remote-config",
+    describes:
+      "a default of the application, or a key nothing defines, read as the server's answer",
+  },
+  {
+    file: "packages/adapters/firebase-remote-config/src/firebaseRemoteConfig.ts",
+    find: "if (!(fetchTimeMillis > 0)) {",
+    replace: "if (false) {",
+    project: "firebase-remote-config",
+    describes:
+      "a configuration that never fetched answering with the application's own defaults",
+  },
+  {
+    file: "packages/adapters/firebase-remote-config/src/firebaseRemoteConfig.ts",
+    find: "await sdk.ensureInitialized(remoteConfig);",
+    replace: "",
+    project: "firebase-remote-config",
+    describes:
+      "a read before the SDK loaded the values it activated in an earlier run",
+  },
+  {
+    file: "packages/adapters/firebase-remote-config/src/firebaseRemoteConfig.ts",
+    find: 'if (onFetchFailure !== "use-activated") {\n          throw cause;\n        }',
+    replace: "",
+    project: "firebase-remote-config",
+    describes: "a failed fetch answered from old values without being asked to",
+  },
+  {
+    file: "packages/adapters/firebase-remote-config/src/firebaseRemoteConfig.ts",
+    find: "fetchTimeMillis + (maxAge ?? settings.minimumFetchIntervalMillis)",
+    replace: "maxAge ?? settings.minimumFetchIntervalMillis",
+    project: "firebase-remote-config",
+    describes:
+      "an answer whose expiry is not counted from the fetch that got it",
+  },
   // What Hermes lacks or reads differently: the projects that run a package in
   // the environment of a React Native app must notice where the plain ones do not.
   {

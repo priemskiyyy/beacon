@@ -37,6 +37,11 @@ const ENTRIES = [
     files: ["adapters/app-store/dist/index.js"],
     budget: 2 * 1024,
   },
+  {
+    name: "firebase-remote-config",
+    files: ["adapters/firebase-remote-config/dist/index.js"],
+    budget: 1024,
+  },
   { name: "react", files: ["react/dist/index.js"], budget: 1.5 * 1024 },
   { name: "solid", files: ["solid/dist/index.js"], budget: 1.5 * 1024 },
   { name: "vue", files: ["vue/dist/index.js"], budget: 1.5 * 1024 },

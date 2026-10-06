@@ -15,6 +15,7 @@ const ENTRIES = [
   "packages/adapters/expo/dist/index.js",
   "packages/adapters/google-play/dist/index.js",
   "packages/adapters/app-store/dist/index.js",
+  "packages/adapters/firebase-remote-config/dist/index.js",
 ];
 
 const BROWSER_GLOBALS = [

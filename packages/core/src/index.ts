@@ -1,6 +1,7 @@
 export { BeaconError } from "src/utils/BeaconError";
 export { compareIdentities } from "src/utils/compareIdentities";
 
+export type { BeaconClock } from "src/types/BeaconClock";
 export type { BeaconErrorCode } from "src/types/BeaconErrorCode";
 export type { BeaconErrorInfo } from "src/types/BeaconErrorInfo";
 export type { CandidateDecision } from "src/types/CandidateDecision";
@@ -14,6 +15,7 @@ export type { IdentityRelation } from "src/types/IdentityRelation";
 export type { InconclusiveReason } from "src/types/InconclusiveReason";
 export type { NoneDecision } from "src/types/NoneDecision";
 export type { NoOfferReason } from "src/types/NoOfferReason";
+export type { ObservableValue } from "src/types/ObservableValue";
 export type { Release } from "src/types/Release";
 export type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 export type { RunningRelease } from "src/types/RunningRelease";

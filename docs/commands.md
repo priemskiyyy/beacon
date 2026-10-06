@@ -219,15 +219,15 @@ If Beacon adds a status, `assertNever(outcome)` stops compiling and tells you wh
 
 Each reason is `{ code, participant }`, where `participant` is `{ name }` for a participant of yours and `null` when Beacon itself refused.
 
-| Code                              | Raised by     | Means                                                                                     |
-| --------------------------------- | ------------- | ----------------------------------------------------------------------------------------- |
-| `operation-in-progress`           | Beacon        | another command holds this route, or the one disruptive slot                              |
-| `operation-indeterminate`         | Beacon        | the route's last command may have taken effect and was not confirmed                      |
-| `safety-changed`                  | Beacon        | a participant registered or left while the command was settling                           |
-| `reservation-failed`              | Beacon        | a participant threw, answered nothing usable or declared no impacts when asked to reserve |
-| `settlement-timeout`              | Beacon        | a participant did not settle within `timeouts.settlement`                                 |
-| `settlement-failed`               | Beacon        | a participant threw or rejected while settling                                            |
-| your own, such as `unsaved-draft` | a participant | the participant refused                                                                   |
+| Code                              | Raised by     | Means                                                                                        |
+| --------------------------------- | ------------- | -------------------------------------------------------------------------------------------- |
+| `operation-in-progress`           | Beacon        | another command holds this route, or the one disruptive slot                                 |
+| `operation-indeterminate`         | Beacon        | the route's last command may have taken effect and was not confirmed                         |
+| `safety-changed`                  | Beacon        | a participant registered or left while the command was settling                              |
+| `reservation-failed`              | Beacon        | a participant threw, answered nothing usable or declared no impacts when asked to reserve    |
+| `settlement-timeout`              | Beacon        | a participant did not settle within `timeouts.settlement`                                    |
+| `settlement-failed`               | Beacon        | a participant threw or rejected while settling, or the host clock could not arm its deadline |
+| your own, such as `unsaved-draft` | a participant | the participant refused                                                                      |
 
 A blocked command is never queued. Deferring is your job: keep the offer, tell the user, and call again when the block clears.
 

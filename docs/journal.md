@@ -105,7 +105,7 @@ A budget that is not a positive whole number, and a retention that is not a posi
 
 Only a command that replaces the realm writes an intent: `document-replacement` or `javascript-restart`. Only a reload or a restart has a next boot to read the intent back. A download that may activate on the next start writes nothing.
 
-The intent says which command on which route, from which boot, what was running, and what the command aimed at:
+The intent says which command on which route, from which boot, what was running, and what the command aimed at. A command issued while the session opens first waits for its subject's running reader, bounded by `timeouts.running`, so `current` names what the reader answered; with the journal off it waits for nothing.
 
 | Field                    | Meaning                                                            |
 | ------------------------ | ------------------------------------------------------------------ |
@@ -188,7 +188,7 @@ const report = beacon.reportReady({ checkpoint: "primary-screen" });
 console.info(report.status); // "recorded", or "already-recorded" the second time
 ```
 
-It is idempotent per checkpoint, and `checkpoint` defaults to `ready`. It says application code got there. It does not say that nothing will crash later or that stored data is safe in both directions, and nothing reports it for you. A target that runs without a reported checkpoint has unknown readiness, neither failed nor succeeded.
+It is idempotent per checkpoint, and `checkpoint` defaults to `ready`. After `dispose()` it throws `DISPOSED`. It says application code got there. It does not say that nothing will crash later or that stored data is safe in both directions, and nothing reports it for you. A target that runs without a reported checkpoint has unknown readiness, neither failed nor succeeded.
 
 ## Clearing it
 
@@ -196,7 +196,7 @@ It is idempotent per checkpoint, and `checkpoint` defaults to `ready`. It says a
 await beacon.clearJournal();
 ```
 
-For a privacy flow. It removes the record and forgets what it held. Nothing stored is replayed and no native operation is cancelled.
+For a privacy flow. It removes the record and forgets what it held. Nothing stored is replayed and no native operation is cancelled. It still erases the stored record after `dispose()`, because the record outlives the Beacon.
 
 ## Limits
 

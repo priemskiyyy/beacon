@@ -34,7 +34,7 @@ Every observable has `get`, `getInitial` and `subscribe`. `get` keeps its identi
 const stop = beacon.start();
 ```
 
-`start()` opens the observation session. It answers a stop function. Starting again while a session is open answers the same stop and opens nothing more. The stop of an old session never ends a newer one.
+`start()` opens the observation session. It answers a stop function. Starting again while a session is open answers the same stop and opens nothing more. The stop ends the session `replaceScope()` restarted for its start, and never one that a separate, later `start()` opened.
 
 What a new session does:
 
@@ -66,11 +66,13 @@ beacon.dispose();
 
 Ends the Beacon for good. The session stops, reservations are released, and the last snapshots stay readable and stable. It is idempotent. Afterwards:
 
-| Call                         | Result                                |
-| ---------------------------- | ------------------------------------- |
-| `start()`, `replaceScope()`  | throw a `BeaconError` with `DISPOSED` |
-| `check()`, a command         | settle as `failed` with `DISPOSED`    |
-| `route(name)`, `state.get()` | work, and read the final snapshot     |
+| Call                         | Result                                 |
+| ---------------------------- | -------------------------------------- |
+| `start()`, `replaceScope()`  | throw a `BeaconError` with `DISPOSED`  |
+| `check()`, a command         | settle as `failed` with `DISPOSED`     |
+| `reportReady()`              | throws a `BeaconError` with `DISPOSED` |
+| `clearJournal()`             | still erases the stored record         |
+| `route(name)`, `state.get()` | work, and read the final snapshot      |
 
 Dispose only when the application ends. A provider operation that continues after disposal leaves its outcome unknown, never cancelled.
 
@@ -81,7 +83,7 @@ Beacon never throws into the host from a callback. Only misconfiguration and use
 | Code                    | When                                                                                                    |
 | ----------------------- | ------------------------------------------------------------------------------------------------------- |
 | `INVALID_CONFIGURATION` | a route name that was never defined, an unusable timeout or journal option, a hook outside its provider |
-| `DISPOSED`              | `start()` or `replaceScope()` after `dispose()`                                                         |
+| `DISPOSED`              | `start()`, `replaceScope()` or `reportReady()` after `dispose()`                                        |
 
 Everything else is a status: an outcome, a check that `failed`, an error in state.
 

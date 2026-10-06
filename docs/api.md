@@ -28,22 +28,22 @@ import { Beacon, targetRoute } from "@priemskiyyy/beacon";
 
 ### The Beacon
 
-| Member                 | What it is                                                         |
-| ---------------------- | ------------------------------------------------------------------ |
-| `start()`              | opens the observation session and answers its stop                 |
-| `stop()`               | ends the open session                                              |
-| `dispose()`            | ends the Beacon for good                                           |
-| `check(options)`       | asks every route's authority and the support policy; never rejects |
-| `route(name)`          | the stable handle of one route                                     |
-| `replaceScope(next)`   | puts another scope in force                                        |
-| `reportReady(options)` | records that the application reached a checkpoint in this boot     |
-| `clearJournal()`       | removes the journal's record                                       |
-| `status`               | where the session stands                                           |
-| `running`              | what is executing, per subject                                     |
-| `support`              | what the support policy says about what runs                       |
-| `transitions`          | what the journal knows                                             |
-| `diagnostics`          | a passive snapshot and event stream                                |
-| `disruptions`          | where participants register                                        |
+| Member                 | What it is                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| `start()`              | opens the observation session and answers its stop                                           |
+| `stop()`               | ends the open session                                                                        |
+| `dispose()`            | ends the Beacon for good                                                                     |
+| `check(options)`       | asks every route's authority and the support policy; never rejects                           |
+| `route(name)`          | the stable handle of one route                                                               |
+| `replaceScope(next)`   | puts another scope in force                                                                  |
+| `reportReady(options)` | records that the application reached a checkpoint in this boot; throws `DISPOSED` afterwards |
+| `clearJournal()`       | removes the journal's record                                                                 |
+| `status`               | where the session stands                                                                     |
+| `running`              | what is executing, per subject                                                               |
+| `support`              | what the support policy says about what runs                                                 |
+| `transitions`          | what the journal knows                                                                       |
+| `diagnostics`          | a passive snapshot and event stream                                                          |
+| `disruptions`          | where participants register                                                                  |
 
 ### Options, scope and running facts
 

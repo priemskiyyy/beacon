@@ -38,7 +38,7 @@ Each is proven by tests named after the case it protects.
 - **A failed check never erases what was accepted.** The observation and its evidence stay, the check says failed, and evidence goes stale by time alone (CORE-02, CORE-03).
 - **Revisions are judged before a document is accepted**: a regression, a conflict and another epoch are rejected and the accepted decision stays; a renewal refreshes evidence without a new offer (VER-13 to VER-16).
 - **Order is exact**: decimal strings are compared without floating point or `BigInt` (VER-07 to VER-09).
-- **A session fences its callbacks.** An answer that arrives after `stop()` changes nothing and is counted, and the stop of an old session cannot end a newer one (LIFE-01, LIFE-02).
+- **A session fences its callbacks.** An answer that arrives after `stop()` changes nothing and is counted, and the stop of an old session cannot end a newer one, while the stop `start()` answered still ends the session that `replaceScope` restarted for it (LIFE-01, LIFE-02).
 - **References are minted by the core.** A copy, a forgery, a reference of another route, a replaced offer and an expired one are each refused with their own reason, before anything is reserved (BIND-03).
 - **One operation per route.** An identical call joins the running one; a different call is blocked, never queued. One disruptive command runs across routes at a time (SAFE-08, SAFE-09).
 - **Reserve before settle.** Every relevant participant closes its admission synchronously, in registration order, before any of them starts settling, and a refusal releases the earlier reservations in reverse (SAFE-02, SAFE-03).

@@ -73,7 +73,7 @@ After `dispose()`, `replaceScope` throws `DISPOSED`.
 - The routes, mechanisms and drivers, and every subscription to an observable.
 - What is running. The scope never rewrites a running fact: a new environment label does not change the build in memory.
 
-If a session is open, it ends and a new one starts with the next scope. The status passes through `stopped` and back to `running`, and the session number grows. The running readers are read again, as for any new session.
+If a session is open, it ends and a new one starts with the next scope, under the same stop that `start()` answered. The status passes through `stopped` and back to `running`, and the session number grows. The running readers are read again, as for any new session.
 
 ## Scope checks in adapters
 

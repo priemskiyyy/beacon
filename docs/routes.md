@@ -225,7 +225,7 @@ Running facts change what is on offer. When a reader answers, every route select
 
 ## Checking
 
-`beacon.check()` asks every route's authority and the support policy's, sharing one read per source. `route.check()` asks one route. Neither rejects.
+`beacon.check()` asks every route's authority and the support policy's, sharing one read per source. With a support policy it first waits for every configured running fact, each bounded by `timeouts.running`. `route.check()` asks one route. Neither rejects.
 
 ```ts
 const report = await beacon.check({ reason: "manual" });

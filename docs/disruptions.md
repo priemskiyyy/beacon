@@ -94,7 +94,7 @@ if (observation.status === "available") {
 
 Keep the offer, tell the user what blocks, and call again when it clears. The offer's evidence can lapse meanwhile, and then the call settles as `stale` with `expired`, which is your cue to check again. [Recipes](recipes.md#an-update-banner-that-waits-for-a-saved-form) does this with a form.
 
-The codes are yours, except the ones Beacon raises itself: `operation-in-progress`, `operation-indeterminate`, `safety-changed`, `reservation-failed`, `settlement-timeout` and `settlement-failed`. Each reason names the participant, or is `null` when Beacon refused.
+The codes are yours, except the ones Beacon raises itself: `operation-in-progress`, `operation-indeterminate`, `safety-changed`, `reservation-failed`, `settlement-timeout` and `settlement-failed` (which is also what a participant gets when the host clock cannot arm its deadline). Each reason names the participant, or is `null` when Beacon refused.
 
 ## One slot
 

@@ -38,7 +38,7 @@ Two subpaths help:
 | `setNow(epoch)`   | sets epoch time alone, backwards included, as a clock correction does                                                    |
 | `pendingTimers()` | timers armed and neither run nor cancelled                                                                               |
 
-`advance` and `suspend` refuse a negative or non-finite number.
+`advance` and `suspend` refuse a negative or non-finite number. A host clock whose `setTimer` throws is contained: a read or a settlement that needed the timer fails, and a document whose expiry timer cannot be armed is treated as expired.
 
 ## A fixture
 

@@ -96,3 +96,82 @@ test("a not modified answer renews the offer the user was shown and moves its ex
     '"208"',
   ]);
 });
+
+test("the validator outlives a stop and a start, as the document the core keeps does", async () => {
+  const { backend, beacon } = createWebBeacon();
+  const web = beacon.route("web");
+
+  beacon.start();
+  await web.check();
+  beacon.stop();
+  beacon.start();
+  await web.check();
+
+  expect(backend.fetches.map((context) => context.validator)).toEqual([
+    null,
+    '"208"',
+  ]);
+});
+
+test("HTTP-02 a scope replaced for another account is read without the validator of the first", async () => {
+  const { backend, beacon } = createWebBeacon();
+  const web = beacon.route("web");
+
+  beacon.start();
+  await web.check();
+
+  expect(beacon.replaceScope({ ...SCOPE, partition: "alice" })).toEqual({
+    status: "replaced",
+  });
+
+  await web.check();
+  await web.check();
+
+  expect(backend.fetches.map((context) => context.validator)).toEqual([
+    null,
+    null,
+    '"208"',
+  ]);
+
+  expect(backend.fetches.map((context) => context.scope.partition)).toEqual([
+    undefined,
+    "alice",
+    "alice",
+  ]);
+});
+
+test("a scope replaced by an equal one changes nothing, so the validator stays", async () => {
+  const { backend, beacon } = createWebBeacon();
+  const web = beacon.route("web");
+
+  beacon.start();
+  await web.check();
+
+  expect(beacon.replaceScope({ ...SCOPE })).toEqual({ status: "unchanged" });
+
+  await web.check();
+
+  expect(backend.fetches.map((context) => context.validator)).toEqual([
+    null,
+    '"208"',
+  ]);
+});
+
+test("a client that throws an ordinary error fails the check as a source failure, and keeps what was accepted", async () => {
+  const { backend, beacon } = createWebBeacon();
+  const web = beacon.route("web");
+
+  beacon.start();
+  await web.check();
+
+  const accepted = web.state.get().observation;
+
+  backend.state.failure = new Error("offline");
+
+  await expect(web.check()).resolves.toMatchObject({
+    status: "failed",
+    error: { code: "SOURCE_FAILED" },
+  });
+
+  expect(web.state.get().observation).toEqual(accepted);
+});

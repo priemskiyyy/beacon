@@ -44,16 +44,18 @@ const buildManifest = (build: string): FakeManifest => ({
 export const fakeBackend = () => {
   const fetches: HttpFetchContext[] = [];
 
-  const state = {
+  const state: {
+    build: string;
+    validator: string;
+    revision: DecisionRevision;
+    expiresAt: number;
+    failure: Error | null;
+  } = {
     build: "web-build-a",
     validator: '"208"',
-    revision: {
-      kind: "ordered",
-      domain: "web",
-      epoch: "v1",
-      value: "208",
-    } satisfies DecisionRevision,
+    revision: { kind: "ordered", domain: "web", epoch: "v1", value: "208" },
     expiresAt: 601_000,
+    failure: null,
   };
 
   return {
@@ -64,6 +66,10 @@ export const fakeBackend = () => {
       context: HttpFetchContext,
     ): Promise<HttpAnswer<FakeManifest>> => {
       fetches.push(context);
+
+      if (state.failure !== null) {
+        throw state.failure;
+      }
 
       if (context.validator === state.validator) {
         return { status: "not-modified", expiresAt: state.expiresAt };

@@ -179,7 +179,7 @@ test("an answer that is neither changed nor not modified renews nothing, even wi
   });
 });
 
-test("another scope never inherits the validator or the document of the first", async () => {
+test("a copy of the scope is another scope, and inherits neither the validator nor the document", async () => {
   const backend = fakeBackend();
   const source = http({ fetch: backend.fetch });
 

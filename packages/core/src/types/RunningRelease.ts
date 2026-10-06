@@ -9,9 +9,9 @@ import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
  * @example
  * ```ts
  * const native: RunningRelease = {
- *   identity: { status: "known", authority: "com.example.notes", domain: "native-android-build", value: "108" },
+ *   identity: { status: "known", authority: "com.example.notes", domain: "android-version-code", value: "108" },
  *   label: "2.4.0",
- *   raw: { versionName: "2.4.0", versionCode: 108 },
+ *   raw: { applicationId: "com.example.notes", versionName: "2.4.0", versionCode: 108 },
  * };
  * ```
  */

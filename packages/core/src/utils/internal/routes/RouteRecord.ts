@@ -202,17 +202,6 @@ export class RouteRecord {
       return;
     }
 
-    if (draft.status === "inconclusive") {
-      this.#install(transaction, {
-        status: "inconclusive",
-        evidence,
-        reason: draft.reason,
-        candidate: null,
-      });
-
-      return;
-    }
-
     assertUnreachable(draft);
   };
 

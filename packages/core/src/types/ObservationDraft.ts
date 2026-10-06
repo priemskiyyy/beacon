@@ -1,4 +1,3 @@
-import type { InconclusiveReason } from "src/types/InconclusiveReason";
 import type { RouteBody } from "src/types/RouteBody";
 
 /**
@@ -19,5 +18,4 @@ import type { RouteBody } from "src/types/RouteBody";
 export type ObservationDraft<TOffer extends RouteBody> =
   | { status: "unknown"; reason: "unsupported-environment" }
   | { status: "none"; reason: "no-decision"; detail: string | null }
-  | { status: "available"; offer: TOffer }
-  | { status: "inconclusive"; reason: InconclusiveReason };
+  | { status: "available"; offer: TOffer };

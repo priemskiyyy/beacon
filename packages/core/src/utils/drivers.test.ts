@@ -483,7 +483,7 @@ test("a disruptive command of a driver route is journaled against the subject it
       native: {},
       check: async (): Promise<ObservationDraft<RouteBody>> => ({
         status: "unknown",
-        reason: "not-checked",
+        reason: "unsupported-environment",
       }),
     }),
     commands: {
@@ -617,7 +617,7 @@ test("CORE-05 a provider that declared it prepares nothing cannot make its route
           native: {},
           check: async (): Promise<ObservationDraft<RouteBody>> => ({
             status: "unknown",
-            reason: "not-checked",
+            reason: "unsupported-environment",
           }),
         };
       },
@@ -676,11 +676,10 @@ test("BIND-03 a provider cannot claim a reference: the offer keeps the one Beaco
   expect(observation.offer.ref).toMatchObject({ kind: "offer", route: "ota" });
 });
 
-test("CORE-14 a provider that answers unknown, nothing or inconclusive is published as it said, with itself as the evidence", async () => {
+test("CORE-14 a provider that answers unknown or nothing is published as it said, with itself as the evidence", async () => {
   const answers: Array<ObservationDraft<RouteBody>> = [
     { status: "unknown", reason: "unsupported-environment" },
     { status: "none", reason: "no-decision", detail: "up-to-date" },
-    { status: "inconclusive", reason: "incomparable-identity" },
   ];
 
   const observations = [];
@@ -703,12 +702,6 @@ test("CORE-14 a provider that answers unknown, nothing or inconclusive is publis
       }),
       reason: "no-decision",
       detail: "up-to-date",
-      candidate: null,
-    },
-    {
-      status: "inconclusive",
-      evidence: expect.objectContaining({ origin: "provider" }),
-      reason: "incomparable-identity",
       candidate: null,
     },
   ]);

@@ -366,7 +366,10 @@ createReleaseDriver({
   prepares: false,
   open: () => ({
     native: browser,
-    check: async () => ({ status: "unknown", reason: "not-checked" }),
+    check: async () => ({
+      status: "unknown",
+      reason: "unsupported-environment",
+    }),
   }),
   commands: {
     // @ts-expect-error A driver's commands are named by the same rule as a mechanism's.
@@ -381,7 +384,10 @@ createReleaseDriver({
   open: () => ({
     // @ts-expect-error A native handle is an object: null already means the route is not open.
     native: null,
-    check: async () => ({ status: "unknown", reason: "not-checked" }),
+    check: async () => ({
+      status: "unknown",
+      reason: "unsupported-environment",
+    }),
   }),
   commands: {},
 });
@@ -394,7 +400,10 @@ createReleaseDriver({
   exclusive: "manager",
   open: () => ({
     native: browser,
-    check: async () => ({ status: "unknown", reason: "not-checked" }),
+    check: async () => ({
+      status: "unknown",
+      reason: "unsupported-environment",
+    }),
   }),
   commands: {},
 });

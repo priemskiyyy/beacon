@@ -26,13 +26,14 @@ You pass the `expo-updates` module in: the adapter never imports it, so a test p
 
 ## What a check reports
 
-| SDK result                              | Route observation                                         |
-| --------------------------------------- | --------------------------------------------------------- |
-| an available update                     | `available`, named by the id its server assigned          |
-| a rollback to the embedded update       | `available` as a rollback, with an identity nobody named  |
-| a valid answer with neither             | `none`, with the SDK's own reason as the detail           |
-| a rejection                             | the check fails and the last observation stays            |
-| updates disabled (development, Expo Go) | `unknown`, an environment that cannot check, never `none` |
+| SDK result                              | Route observation                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------------- |
+| an available update                     | `available`, named by the id its server assigned                                 |
+| a rollback to the embedded update       | `available` as a rollback, with an identity nobody named                         |
+| a valid answer with neither             | `none`, with the SDK's own reason as the detail                                  |
+| a rejection                             | the check fails and the last observation stays                                   |
+| updates disabled (development, Expo Go) | `unknown`, an environment that cannot check, never `none`                        |
+| a call refused as unavailable           | `unknown` too: a development client says `isEnabled` and then refuses every call |
 
 ## Commands
 

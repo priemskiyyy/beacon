@@ -24,16 +24,43 @@ The bridge is a small native module you own, or an audited existing one, that ke
 
 `AppUpdateInfo`, the Activity and the result launcher stay native. Every start reacquires fresh information itself, because Play allows one use of it. Every start rejects when no Activity is available.
 
+### The bridge in React Native
+
+A native module cannot hand JavaScript a function, so `addInstallListener` cannot be a method of the module itself. The module has four methods that return promises and emits Play's install state as an event, and a thin JavaScript object makes the bridge. React Native's `NativeEventEmitter` takes the module, which has to implement `addListener` and `removeListeners` as every event source does, and its subscription is what `addInstallListener` answers a way to remove.
+
+```ts
+// src/playBridge.ts
+import type { PlayBridge } from "@priemskiyyy/beacon-google-play";
+import { NativeEventEmitter, NativeModules } from "react-native";
+
+// Your native module, or one you have audited. It emits "PlayInstallState" with { status, bytesDownloaded, totalBytes }.
+const { PlayUpdates } = NativeModules;
+
+const events = new NativeEventEmitter(PlayUpdates);
+
+export const playBridge: PlayBridge = {
+  getUpdateInfo: () => PlayUpdates.getUpdateInfo(),
+  startFlexible: () => PlayUpdates.startFlexible(),
+  startImmediate: () => PlayUpdates.startImmediate(),
+  completeUpdate: () => PlayUpdates.completeUpdate(),
+  addInstallListener: (listener) => {
+    const subscription = events.addListener("PlayInstallState", listener);
+
+    return () => subscription.remove();
+  },
+};
+```
+
+Make the object once, at module scope. A bridge belongs to one open session at a time, and two objects over one module would not be known as the same bridge. `NativeModules` is untyped, so nothing checks that your module keeps what the object promises: prove it with a test of your module, since no type can.
+
 ## Create a route
 
 ```ts
 // src/beacon.ts
 import { Beacon } from "@priemskiyyy/beacon";
 import { googlePlay } from "@priemskiyyy/beacon-google-play";
-import type { PlayBridge } from "@priemskiyyy/beacon-google-play";
-import { NativeModules } from "react-native";
 
-const bridge: PlayBridge = NativeModules.PlayUpdates;
+import { playBridge } from "src/playBridge";
 
 // The running build, from your native constants, such as `expo-application` or `react-native-device-info`.
 declare const nativeBuild: { versionName: string; versionCode: number };
@@ -49,7 +76,10 @@ export const beacon = new Beacon({
     distribution: "google-play",
   },
   running: {
-    boot: { id: `${Date.now()}-${Math.random().toString(36).slice(2)}` },
+    // Hermes has no crypto.randomUUID. The id only has to differ between runtimes.
+    boot: {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+    },
     native: () => ({
       identity: {
         status: "known",
@@ -65,21 +95,15 @@ export const beacon = new Beacon({
       },
     }),
   },
-  routes: { binary: googlePlay({ bridge }) },
+  routes: { binary: googlePlay({ bridge: playBridge }) },
 });
 ```
 
 The running native release is yours to read, and it must be named the way Play names the offer, or the two are incomparable and nothing is reported as running the offered build:
 
-| Field                | Value                                                       |
-| -------------------- | ----------------------------------------------------------- |
-| `identity.authority` | `scope.application`, the Android application id             |
-| `identity.domain`    | `android-version-code`                                      |
-| `identity.value`     | the version code as text                                    |
-| `label`              | the version name                                            |
-| `raw`                | `applicationId`, `versionName` and `versionCode` (a number) |
+The route is a driver route on the `native` subject. A bridge belongs to one open session at a time: a second Beacon that opens a route on the same bridge fails to open it, and that route says `DRIVER_FAILED`. A hot reload that makes the Beacon again is no second Beacon while the provider follows it: the old session ends first ([React Native](react-native.md#the-provider)).
 
-The route is a driver route on the `native` subject. A bridge belongs to one open session at a time: a second Beacon that opens a route on the same bridge fails to open it, and that route says `DRIVER_FAILED`.
+What runs is the installed build, which a `native` running reader says. `expo-application` gives `nativeBuildVersion`, the version code as text, and [React Native](react-native.md#what-the-binary-is) has the reader that names it in the words this adapter uses: authority the application id, domain `android-version-code`.
 
 The bridge is not read until a session opens, and the adapter never enables asset-pack deletion or any other destructive option.
 

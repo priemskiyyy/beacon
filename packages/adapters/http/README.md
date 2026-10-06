@@ -231,6 +231,8 @@ The evidence expires at the narrowest of the manifest's `expiresAt` and `now + l
 
 A runtime that cannot stream, such as React Native's `fetch`, reads the text whole. Stop a hostile stream early by bounding the transfer in your own `fetch`; the reader refuses a declared `Content-Length` over the limit without reading the body and checks the size of every text it parses.
 
+React Native's own `fetch` follows a redirect and reports no `redirected`, so there the reader cannot refuse one. Compare `response.url` with your endpoint in your `fetch`; the documentation page says how.
+
 ### Not included
 
 - Signed manifests. Verification of canonical bytes is independent of parsing and needs a signing scheme this package does not invent.

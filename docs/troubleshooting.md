@@ -139,7 +139,11 @@ The reason is the adapter's: `no-document` (the browser adapter has no window), 
 
 ### Expo says unknown
 
-The observation is `unknown` with `unsupported-environment` when `expo-updates` is disabled, as in a development client or Expo Go. It is never `none`. Run a build that has updates enabled.
+The observation is `unknown` with `unsupported-environment` when `expo-updates` is disabled, or when a development client, which reports `isEnabled` and then refuses every call, or a debug build refuses the call. Expo Go runs no updates. It is never `none`. Run a release build that has an update URL and a runtime version. See [where updates cannot run](expo.md#where-updates-cannot-run).
+
+### Expo says none and an update was published
+
+The server answers with the most recent update for the runtime version and the channel of the build. An update published for another runtime version or another channel is not offered, and the answer is `none` with the detail `noUpdateAvailableOnServer`. Compare `raw.runtimeVersion` and `raw.channel` of the running bundle with what you published. See [runtime versions and channels](expo.md#runtime-versions-and-channels).
 
 ### Play says unknown
 
@@ -152,9 +156,13 @@ The observation is `unknown` with `unsupported-environment` when `expo-updates` 
 - `none` with `first-install` or `installing`: the first worker is not an update.
 - An offer needs a waiting worker next to an active one.
 
+### The installed binary is unknown
+
+A `native` running fact that says `unknown` names its reason. `another-application` means the native module answered for a different application id than `scope.application`, which is what Expo Go does, since it is its own app. `native-build-not-read` means the module gave no build number. No store or Play route compares against a binary it cannot name. See [what the binary is](react-native.md#what-the-binary-is).
+
 ### DRIVER_FAILED when opening
 
-A driver that names an exclusive native manager cannot be opened by two sessions. If two Beacons exist, for example after a hot reload created a second one, stop the first with `stop()` or `dispose()`.
+A driver that names an exclusive native manager cannot be opened by two sessions. If two Beacons exist, for example after a hot reload created a second one, stop the first with `stop()` or `dispose()`. With Fast Refresh, keep the Beacon in a module of its own and start it through the provider, which ends the old session before the new one opens: see [the provider](react-native.md#the-provider).
 
 ## Types
 
@@ -181,6 +189,20 @@ Reading a route never starts a session or a check. Confirm the provider has `sta
 ### A hydration mismatch
 
 The server and the hydrating render read the state as it stood before any session. If you read `beacon.route("web").state.get()` outside a hook during render, you read the live state, and it may differ from the server's. Use the hooks, and start the Beacon through the provider. See [React](react.md#server-rendering-and-hydration).
+
+## React Native
+
+### crypto.randomUUID is not a function
+
+Hermes has no `crypto`. The boot id only has to differ between runtimes, so mint one from the clock and `Math.random()`: [the boot id](react-native.md#the-boot-id).
+
+### An async function answers undefined
+
+On Hermes V1 an async arrow function whose parameter is not a plain name, such as `async ({ scope }) => {}`, resolves `undefined`, so a `fetch` or a `read` you wrote that way makes a check fail with an error about reading a property of `undefined`. Expo's preset and the preset of a bare app repair it; a custom Babel setup has to lower `async` or repair the function. Give the parameter a plain name and destructure inside until it does. See [the engine and the toolchain](react-native.md#the-engine-and-the-toolchain).
+
+### A class is not supported
+
+Classic Hermes compiles no class and no `async`. The preset has to transform `@priemskiyyy/*` like your own code.
 
 ## Journal
 

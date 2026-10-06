@@ -21,7 +21,9 @@ The native Beacon has one route, `ota`, which `expo-updates` owns: the check, th
 - In Expo Go and development builds updates are disabled, so the route is `unknown` with the reason `unsupported-environment`, never "no update". A build with `expo-updates` configured (an update URL and a runtime version) checks for real.
 - `Download` prepares the provider's current selection, which may differ from the offer: the receipt says `same`, `different` or `unknown`. `Reload` needs the prepared reference, restarts the JavaScript runtime and guarantees no code after it.
 - The support policy reads the application's own manifest. That backend is a mock source here, answering that no update has ended; in an application it is `http()` from `@priemskiyyy/beacon-http` over the application's client.
-- There is no journal on the device: the JavaScript runtime restarts on reload, so the journal needs storage that survives it (`AsyncStorage`, MMKV), which this example does not depend on.
+- The journal is on, in `expo-sqlite/kv-store` (`src/lab/createJournalStorage.ts`): a reload replaces the JavaScript runtime, so what the Beacon asked for is recorded in storage that survives it, and the next boot reads it once the running facts have answered. The panel shows the journal's state.
+- The installed binary is a `native` running fact read with `expo-application` (`src/lab/readNativeBuild.ts`): the build number under the domain `android-version-code` or `ios-build`, with the application id as authority. In Expo Go the application id is Expo Go's own, so the fact says `another-application`, and a build that gave no number says `native-build-not-read`.
+- The app checks when it starts and each time it returns from the background (`src/lab/checkOnForeground.ts`). A system dialog on iOS is `inactive` and back to `active` and is not a return.
 
 The native user interface passes its Beacon down and reads it with `useObservable`. The registered hooks and `BeaconProvider` are typed for one Beacon, and the lab's Beacon has other routes than the device's, so the native tree cannot use them.
 
@@ -36,4 +38,4 @@ Record the runtime line, the device, the build mode and the timeline for each ch
 
 ## Automated tests
 
-`pnpm test:browser` runs the web export in Chromium. `pnpm --filter example-expo build:native` bundles both native platforms with Metro, which shows the exports resolve; the checks above still need a device. `pnpm exec vitest run --project example-expo` runs the native Beacon against a fake `expo-updates` module.
+`pnpm test:browser` runs the web export in Chromium. `pnpm --filter example-expo build:native` bundles both native platforms with Metro, which shows the exports resolve; the checks above still need a device. `pnpm exec vitest run --project example-expo` runs the native Beacon against a fake `expo-updates` module, a fake `expo-application` and a fake key-value store, and `src/lab/sdk.contracts.ts` proves that the real `expo-application`, `expo-sqlite` and `AppState` types fit what the example passes them. [React Native](../../docs/react-native.md) is the page that explains the wiring.

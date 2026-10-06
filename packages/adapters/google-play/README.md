@@ -17,13 +17,13 @@ import { googlePlay } from "@priemskiyyy/beacon-google-play";
 const beacon = new Beacon({
   scope, // scope.application is the Android application id
   running: { boot: { id: BOOT_ID } },
-  routes: { binary: googlePlay({ bridge: NativeModules.PlayUpdates }) },
+  routes: { binary: googlePlay({ bridge: playBridge }) },
 });
 ```
 
 The running native release must be named the way Play names the offer: authority `scope.application`, domain `android-version-code`, and the version code as text, with `raw` holding `applicationId`, `versionName` and `versionCode`.
 
-The bridge is a small native module you own, or an audited existing one, that keeps the `PlayBridge` contract: `AppUpdateInfo`, the Activity and the result launcher stay native, every start reacquires fresh information (Play allows one use of it), and it rejects when no Activity is available.
+The bridge is an object over a small native module you own, or an audited existing one, that keeps the `PlayBridge` contract: `AppUpdateInfo`, the Activity and the result launcher stay native, every start reacquires fresh information (Play allows one use of it), and it rejects when no Activity is available. A native module cannot answer the function `addInstallListener` answers, so the object is a few lines of JavaScript over `NativeEventEmitter`; [the guide](../../../docs/google-play.md#the-bridge-in-react-native) has them.
 
 ## What a check reports
 

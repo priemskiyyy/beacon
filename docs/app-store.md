@@ -22,13 +22,11 @@ import {
   appStoreLookup,
 } from "@priemskiyyy/beacon-app-store";
 import type { AppStoreLookupResponse } from "@priemskiyyy/beacon-app-store";
+import * as Application from "expo-application";
 import { Linking } from "react-native";
 
 // Your client validates the lookup response into `{ results }`.
 declare const parseLookup: (input: unknown) => AppStoreLookupResponse;
-
-// The running build, from your native constants, such as `expo-application` or `react-native-device-info`.
-declare const nativeBuild: { shortVersion: string; buildNumber: string };
 
 const APPLICATION = "com.example.notes";
 
@@ -48,21 +46,40 @@ export const beacon = new Beacon({
     distribution: "app-store",
   },
   running: {
-    boot: { id: `${Date.now()}-${Math.random().toString(36).slice(2)}` },
-    native: () => ({
-      identity: {
-        status: "known",
-        authority: APPLICATION,
-        domain: "ios-build",
-        value: nativeBuild.buildNumber,
-      },
-      label: nativeBuild.shortVersion,
-      raw: {
-        applicationId: APPLICATION,
-        shortVersion: nativeBuild.shortVersion,
-        buildNumber: nativeBuild.buildNumber,
-      },
-    }),
+    // Hermes has no crypto.randomUUID. The id only has to differ between runtimes.
+    boot: {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+    },
+    native: () => {
+      const { nativeBuildVersion, nativeApplicationVersion } = Application;
+
+      // A build the native module did not give is unknown, never a build named null.
+      if (nativeBuildVersion === null) {
+        return {
+          identity: { status: "unknown", reason: "native-build-not-read" },
+          label: nativeApplicationVersion,
+          raw: {
+            applicationId: APPLICATION,
+            shortVersion: nativeApplicationVersion,
+          },
+        };
+      }
+
+      return {
+        identity: {
+          status: "known",
+          authority: APPLICATION,
+          domain: "ios-build",
+          value: nativeBuildVersion,
+        },
+        label: nativeApplicationVersion,
+        raw: {
+          applicationId: APPLICATION,
+          shortVersion: nativeApplicationVersion,
+          buildNumber: nativeBuildVersion,
+        },
+      };
+    },
   },
   routes: {
     binary: newerRoute({
@@ -90,7 +107,7 @@ The lookup and the handoff are separate. The route joins them: `newerRoute` sele
 
 ## The lookup source
 
-`appStoreLookup` reads Apple's published lookup shape through your client. `fetch` receives the documented lookup URL for your app and storefront, and a signal. It owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw.
+`appStoreLookup` reads Apple's published lookup shape through your client. `fetch` receives the documented lookup URL for your app and storefront, and a signal. It owns the transport and validates the response into `{ results }`, so a rate limit, a blocked request or an HTML page is yours to throw. React Native's `fetch` does not reject on a failing status, so check `response.ok` or let your validation throw on anything that is not a lookup.
 
 | Option     | Rule                                                                                      |
 | ---------- | ----------------------------------------------------------------------------------------- |
@@ -144,7 +161,7 @@ if (observation.status === "available") {
 
 It opens `https://apps.apple.com/app/id<appId>`, built from your configured id alone and never from a manifest. A resolved call means only that the OS accepted the request. The user can decline or never return, and the route settles as soon as it is accepted, without waiting for the app to come back. Nothing says an installation began.
 
-`linking` is anything with `openURL(url)`, so React Native's `Linking` fits and a test passes a fake.
+`linking` is anything with `openURL(url)`, so React Native's `Linking` fits and a test passes a fake. On iOS `Linking.openURL` resolves once the system opened the URL and rejects when it could not, which becomes a failed command, `COMMAND_FAILED`, and never an accepted one.
 
 ## TestFlight, enterprise and development builds
 

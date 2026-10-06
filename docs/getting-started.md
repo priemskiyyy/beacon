@@ -259,11 +259,14 @@ export const beacon = new Beacon({
     application: "com.example.notes",
     environment: "production",
     platform: Platform.OS,
-    distribution: "store",
+    // Yours to say. The App Store route answers only for "app-store".
+    distribution: "app-store",
   },
   running: {
-    // React Native has no crypto.randomUUID everywhere, and any unique text works.
-    boot: { id: `${Date.now()}-${Math.random().toString(36).slice(2)}` },
+    // Hermes has no crypto.randomUUID. The id only has to differ between runtimes.
+    boot: {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+    },
     bundle: expoBundle(Updates),
   },
   routes: { ota: expoUpdates({ updates: Updates }) },
@@ -272,7 +275,7 @@ export const beacon = new Beacon({
 
 `expoBundle` reads the update that launched. Where updates are disabled, such as in development or Expo Go, its identity is unknown and the route says `unknown` with the reason `unsupported-environment`, never `none`.
 
-Start the session at bootstrap, check when the app becomes active, and apply an update in two commands: `download` prepares it and `reload` restarts the runtime with it.
+Start the session at bootstrap, check when the app returns from the background, and apply an update in two commands: `download` prepares it and `reload` restarts the runtime with it.
 
 ```ts
 // src/updates.ts
@@ -283,10 +286,22 @@ import { beacon } from "src/beacon.native";
 export const startUpdates = () => {
   const stop = beacon.start();
 
+  // Only a trip through the background is a return: on iOS a system dialog is inactive and back to active.
+  let away = AppState.currentState === "background";
+
   const subscription = AppState.addEventListener("change", (state) => {
-    if (state === "active") {
-      beacon.check({ reason: "foreground" });
+    if (state === "background") {
+      away = true;
+
+      return;
     }
+
+    if (state !== "active" || !away) {
+      return;
+    }
+
+    away = false;
+    beacon.check({ reason: "foreground" });
   });
 
   beacon.check({ reason: "startup" });
@@ -325,7 +340,7 @@ export const applyUpdate = async () => {
 
 `download` fetches the provider's current selection, which can differ from the update you were shown. Its receipt says `same`, `different` or `unknown`, and a different update gets a prepared reference of its own. `reload` takes that prepared reference and restarts the JavaScript runtime. No code after it is guaranteed to run, and the route stays unresolved until `route.acknowledge()`.
 
-The React hooks work the same way as above. Register the Beacon in the same fashion, and read the route by its name with `useRoute("ota")`.
+The React hooks work the same way as above. Register the Beacon in the same fashion, and read the route by its name with `useRoute("ota")`. [React Native](react-native.md) is the whole path for a device: the provider, Fast Refresh, what a reload keeps, guarding unsaved input and what no device has run.
 
 ## Next
 

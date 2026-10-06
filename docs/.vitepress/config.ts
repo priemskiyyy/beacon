@@ -31,6 +31,7 @@ export default defineConfig({
         text: "Frameworks",
         items: [
           { text: "React", link: "/react" },
+          { text: "React Native", link: "/react-native" },
           { text: "Vue", link: "/vue" },
           { text: "Solid", link: "/solid" },
           { text: "Svelte", link: "/svelte" },
@@ -79,6 +80,7 @@ export default defineConfig({
         text: "Build your application",
         items: [
           { text: "React", link: "/react" },
+          { text: "React Native", link: "/react-native" },
           { text: "Vue", link: "/vue" },
           { text: "Solid", link: "/solid" },
           { text: "Svelte", link: "/svelte" },

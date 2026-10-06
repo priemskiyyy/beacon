@@ -191,7 +191,9 @@ The whole manifest or none of it. `readStandardManifest` (the response) and `par
 
 The `ETag` is the validator for the next read and never the revision. A field the schema does not name is ignored and never reaches the document. A repeated JSON key keeps its last value, because the text is decoded as JSON.
 
-A redirect is told by `Response.redirected`. The `fetch` that ships with React Native does not set it, so there a redirect is not refused, unless your own `fetch` wrapper says it. React Native's `Response` does have `url`, the address that answered, so compare it with the one you asked for:
+### Redirects on React Native
+
+A redirect is refused only where the response says it was one. `response.redirected` is there in browsers, in Node and in `expo/fetch`, which is the global `fetch` of an Expo SDK 57 app unless `EXPO_PUBLIC_USE_RN_FETCH` is set. React Native's own `fetch` is `whatwg-fetch` over the native network stack: the stack follows a redirect and the response has no `redirected`, so this reader cannot refuse one and accepts the manifest that comes back. The manifest still has to name your scope and pass every other rule. Where you want the refusal, make it in the `fetch` you pass: React Native's source gives the response the URL of the last request on both platforms, so compare it with the endpoint. The native stacks may write a URL in a normal form, so name the endpoint in its normal form, with a lowercase host and no default port. No device has run this.
 
 ```ts
 import { http, readStandardManifest } from "@priemskiyyy/beacon-http";

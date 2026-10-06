@@ -179,6 +179,7 @@ export const play = createReleaseDriver<
   }
 >({
   name: "google-play",
+  subject: "native",
   prepares: true,
   open: () => ({
     native: playNative,

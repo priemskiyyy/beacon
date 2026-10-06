@@ -56,10 +56,10 @@ export const COMMAND_REFERENCES = {
   none: true,
 } satisfies Record<Reference, true>;
 
-/** Every binding a command can declare. */
-export const TARGET_BINDINGS = {
-  "unpinned-navigation": true,
-  "provider-current": true,
-  "exact-instance": true,
-  "store-destination": true,
-} satisfies Record<TargetBinding, true>;
+/** Every binding a command can declare, each mapped to itself so that a name read back from storage becomes the binding without a cast. */
+export const TARGET_BINDINGS: Record<TargetBinding, TargetBinding> = {
+  "unpinned-navigation": "unpinned-navigation",
+  "provider-current": "provider-current",
+  "exact-instance": "exact-instance",
+  "store-destination": "store-destination",
+};

@@ -29,6 +29,8 @@
  *   did not take effect.
  * - `POLICY_FAILED`: the support policy threw while it was projected or
  *   evaluated, or named a route that is not configured.
+ * - `JOURNAL_FAILED`: a required journal could not persist an intent, so the
+ *   command was not dispatched.
  *
  * @example
  * ```ts
@@ -52,4 +54,5 @@ export type BeaconErrorCode =
   | "REVISION_CONFLICT"
   | "REVISION_EPOCH_CHANGED"
   | "COMMAND_FAILED"
-  | "POLICY_FAILED";
+  | "POLICY_FAILED"
+  | "JOURNAL_FAILED";

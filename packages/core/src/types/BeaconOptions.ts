@@ -1,4 +1,5 @@
 import type { BeaconClock } from "src/types/BeaconClock";
+import type { JournalOptions } from "src/types/JournalOptions";
 import type { ReleaseScope } from "src/types/ReleaseScope";
 import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RunningReaders } from "src/types/RunningReaders";
@@ -33,5 +34,7 @@ export type BeaconOptions<TRoutes extends Record<string, RouteDefinition>> = {
     /** Milliseconds a participant may take to settle before a command, 10,000 by default. */
     settlement?: number;
   };
+  /** Turns the transition journal on; it is off by default, and then no intent is written. */
+  journal?: JournalOptions;
   clock?: BeaconClock;
 };

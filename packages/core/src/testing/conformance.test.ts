@@ -86,6 +86,7 @@ testReleaseDriver({
 
     const route = createReleaseDriver({
       name: "fake-provider",
+      subject: "native",
       prepares: false,
       open: ({ emit }) => {
         const unsubscribe = provider.subscribe(() => {

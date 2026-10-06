@@ -125,6 +125,7 @@ const commands = {
 export const googlePlay = ({ bridge }: PlayOptions) =>
   createReleaseDriver<PlayNative, PlayOffer, PlayPrepared, typeof commands>({
     name: "google-play",
+    subject: "native",
     prepares: true,
     open: ({ scope, emit }) => {
       const native: PlayNative = { bridge };

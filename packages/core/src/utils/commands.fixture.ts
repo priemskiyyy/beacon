@@ -1,6 +1,8 @@
 import { createMockSource } from "src/mock/createMockSource";
 import type { DisruptionParticipant } from "src/types/DisruptionParticipant";
+import type { JournalOptions } from "src/types/JournalOptions";
 import type { ProviderResult } from "src/types/ProviderResult";
+import type { RunningRelease } from "src/types/RunningRelease";
 import type { ReserveResult } from "src/types/ReserveResult";
 import type { Settlement } from "src/types/Settlement";
 import { buildWebRelease, createRoutedBeacon } from "src/utils/Beacon.fixture";
@@ -72,7 +74,25 @@ export const ACCEPTED_RELOAD: ProviderResult<ReloadReceipt> = {
   receipt: { kind: "reload-requested" },
 };
 
-export const createWebCommandBeacon = () => {
+type WebCommandOptions = {
+  /** The id of the boot, for a test that starts the same application again. */
+  boot?: string;
+  /** The web build that runs, or `null` when nothing names it. */
+  build?: string | null;
+  journal?: JournalOptions;
+};
+
+const UNNAMED_WEB_RELEASE: RunningRelease = {
+  identity: { status: "unknown", reason: "unnamed-build" },
+  label: null,
+  raw: {},
+};
+
+export const createWebCommandBeacon = ({
+  boot = "boot-1",
+  build = "web-build-b",
+  journal,
+}: WebCommandOptions = {}) => {
   const mock = createMockSource<Manifest>({ name: "manifest" });
   const held = createHeldMechanism();
 
@@ -86,9 +106,16 @@ export const createWebCommandBeacon = () => {
     { web },
     {
       running: {
-        boot: { id: "boot-1" },
-        web: () => buildWebRelease("web-build-b"),
+        boot: { id: boot },
+        web: () => {
+          if (build === null) {
+            return UNNAMED_WEB_RELEASE;
+          }
+
+          return buildWebRelease(build);
+        },
       },
+      ...(journal === undefined ? {} : { journal }),
     },
   );
 

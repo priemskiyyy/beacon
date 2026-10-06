@@ -12,7 +12,8 @@
 - Passive diagnostics, and `createMockSource`, `createTestClock` under `./mock`, and `testReleaseSource`, `testVersionStrategy`, `testUpdateMechanism` and `testReleaseDriver` under `./testing`.
 - Errors are `BeaconError`s with a `code`. Only misconfiguration and use after disposal throw.
 - Support: `supportPolicy({ source, evaluate })` evaluates the application's own policy against what is running, and `beacon.support` publishes the status, the last evaluation, the routes that would satisfy it and whether each is usable. A policy that lapses is unknown with its last decision kept, a failing evaluation keeps the last valid one in force beside the error, and a route the Beacon does not have cannot be named.
-- Not built yet: the transition journal and boot reconciliation, scope replacement and the scheduler. See `docs/decisions.md`.
+- Transition journal: off by default, or `best-effort` or `required` over an injected `JournalStorage`. An intent is written before a command that replaces the realm and read back by the next boot as `target-running`, `target-not-running`, `different-target`, `inconclusive` or `same-boot`, with the attempts that left a target unreached and whether the budget is spent. A required write that fails stops the command, a corrupt or future record is ignored, the history is bounded, and `beacon.reportReady()` and `beacon.clearJournal()` are the application's.
+- Not built yet: scope replacement and the scheduler. See `docs/decisions.md`.
 
 ## @priemskiyyy/beacon-http 0.1.0 - Unreleased
 
@@ -47,5 +48,5 @@
 
 ## @priemskiyyy/beacon-react 0.1.0 - Unreleased
 
-- First release. `BeaconProvider`, `useRoute`, `useRunning`, `useSupport`, `useDisruption` and `useBeacon`. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
+- First release. `BeaconProvider`, `useRoute`, `useRunning`, `useSupport`, `useTransitions`, `useDisruption` and `useBeacon`. Reading starts nothing, and the server and the hydrating render read state as it stands before any session.
 - Requires `@priemskiyyy/beacon` 0.1 and React 19.2.

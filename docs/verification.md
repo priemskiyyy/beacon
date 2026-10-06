@@ -15,12 +15,12 @@ The specification lists 202 required regression scenarios in 14 groups. A test i
 | EXPO    | Expo Updates                        | 20        | 10     | 01, 02, 03, 04, 05, 06, 07, 08, 10, 18                             |
 | PLAY    | Google Play native flows            | 18        | 7      | 01, 08, 10, 11, 12, 13, 14                                         |
 | STORE   | App Store metadata and handoff      | 10        | 6      | 01, 02, 03, 04, 05, 07                                             |
-| SAFE    | Disruption coordination             | 14        | 9      | 02, 03, 04, 05, 06, 08, 09, 10, 11                                 |
-| JOURNAL | Persistence and boot reconciliation | 14        | 0      | none                                                               |
+| SAFE    | Disruption coordination             | 14        | 10     | 02, 03, 04, 05, 06, 07, 08, 09, 10, 11                             |
+| JOURNAL | Persistence and boot reconciliation | 14        | 14     | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14             |
 | LIFE    | Sessions and resource ownership     | 12        | 4      | 01, 02, 03, 06                                                     |
 | SEC     | Security and diagnostics            | 12        | 1      | 05                                                                 |
 | BIND    | Types, React, and SSR               | 10        | 2      | 01, 03                                                             |
-| Total   |                                     | 202       | 94     |                                                                    |
+| Total   |                                     | 202       | 109    |                                                                    |
 
 <!-- scenarios:end -->
 
@@ -32,4 +32,4 @@ Every provider SDK, the clock and the network are faked in process. The Expo Upd
 
 Nothing has run in a real browser, on a device, or against a real Play or App Store distribution, and a fake bridge verifies state handling, not installation. What a stable release of each adapter still needs is in [the decision record](decisions.md#not-verified-on-a-device).
 
-The groups with few or no proven rows are features that are not built yet: the transition journal and boot reconciliation (`JOURNAL`), the dismissal of a banner (`POL`), and the parts of `HTTP`, `SEC` and `BIND` that belong to a standard manifest, the diagnostics inspector and the other framework bindings. [The decision record](decisions.md#not-built-yet) lists them.
+The groups with few or no proven rows are features that are not built yet: the dismissal of a banner (`POL`), and the parts of `HTTP`, `SEC` and `BIND` that belong to a standard manifest, the diagnostics inspector and the other framework bindings. [The decision record](decisions.md#not-built-yet) lists them.

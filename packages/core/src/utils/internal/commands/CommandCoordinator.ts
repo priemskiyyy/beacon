@@ -9,6 +9,7 @@ import type { CommandResolution } from "src/types/internal/CommandResolution";
 import type { CommandTarget } from "src/types/internal/CommandTarget";
 import type { RouteEntry } from "src/types/internal/RouteEntry";
 import type { Session } from "src/types/internal/Session";
+import type { ReleaseIdentity } from "src/types/ReleaseIdentity";
 import type { OperationState } from "src/types/OperationState";
 import type { ProviderResult } from "src/types/ProviderResult";
 import { BeaconError } from "src/utils/BeaconError";
@@ -30,6 +31,7 @@ import { untilAborted } from "src/utils/internal/common/untilAborted";
 import { toBeaconError } from "src/utils/internal/errors/toBeaconError";
 import { toErrorInfo } from "src/utils/internal/errors/toErrorInfo";
 import { commitChange } from "src/utils/internal/observable/commitChange";
+import { getSubject } from "src/utils/internal/routes/getSubject";
 
 type Admitted = Extract<CommandAdmission, { status: "admitted" }>;
 
@@ -320,7 +322,13 @@ export class CommandCoordinator {
       return { status: "blocked", reasons: settling.value };
     }
 
-    const verdict = this.#revalidate(target, lease, input, controller);
+    const verdict = await this.#prepare(
+      target,
+      operation,
+      lease,
+      input,
+      controller,
+    );
 
     if (verdict.status === "stopped") {
       this.#release(operation);
@@ -329,6 +337,70 @@ export class CommandCoordinator {
     }
 
     return this.#dispatch(operation, verdict, controller);
+  }
+
+  // Revalidates, writes the intent a command that replaces the realm needs, and revalidates again, since writing takes time.
+  async #prepare(
+    target: CommandTarget,
+    operation: CommandOperation,
+    lease: Lease,
+    input: CommandInput,
+    controller: AbortController,
+  ): Promise<Verdict> {
+    const first = this.#revalidate(target, lease, input, controller);
+
+    if (first.status === "stopped" || !operation.replacesRealm) {
+      return first;
+    }
+
+    const stopped = await this.#persist(
+      target,
+      operation,
+      first.resolution.target,
+      controller,
+    );
+
+    if (stopped !== null) {
+      return { status: "stopped", outcome: stopped };
+    }
+
+    return this.#revalidate(target, lease, input, controller);
+  }
+
+  // The intent is not proof of a dispatch: it is what the next boot reads back to say what happened.
+  async #persist(
+    { entry, name, command }: CommandTarget,
+    operation: CommandOperation,
+    target: ReleaseIdentity | null,
+    controller: AbortController,
+  ): Promise<CommandResult | null> {
+    const running = this.#options.getRunning();
+    const subject = getSubject(entry.definition);
+    const fact = running[subject];
+
+    const written = await untilAborted(
+      this.#options.journal.write({
+        operation: { id: operation.id },
+        boot: { id: running.boot.id },
+        route: entry.name,
+        command: name,
+        subject,
+        current: fact.state === "known" ? fact.release.identity : null,
+        target,
+        binding: command.binding,
+      }),
+      controller.signal,
+    );
+
+    if (written.status === "aborted") {
+      return { status: "cancelled", stage: "journaling" };
+    }
+
+    if (written.value.status !== "failed") {
+      return null;
+    }
+
+    return { status: "failed", error: toErrorInfo(written.value.error) };
   }
 
   // Everything the call assumed when it was admitted is looked at again, right before the provider is asked.

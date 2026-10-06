@@ -89,6 +89,7 @@ export const serviceWorker = (options: ServiceWorkerOptions = {}) =>
     ReturnType<typeof createCommands>
   >({
     name: "service-worker",
+    subject: "worker",
     prepares: true,
     open: ({ emit }) => {
       const container = options.container ?? getContainer();

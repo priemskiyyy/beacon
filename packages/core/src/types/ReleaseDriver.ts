@@ -2,6 +2,7 @@ import type { CommandMap } from "src/types/CommandMap";
 import type { DriverContext } from "src/types/DriverContext";
 import type { DriverSession } from "src/types/DriverSession";
 import type { RouteBody } from "src/types/RouteBody";
+import type { RunningSubject } from "src/types/RunningSubject";
 
 /**
  * A route whose provider owns both the question and the answer, such as Expo
@@ -13,6 +14,7 @@ import type { RouteBody } from "src/types/RouteBody";
  * ```ts
  * const ota = createReleaseDriver<Updates, UpdateBody, UpdateBody, typeof commands>({
  *   name: "expo-updates",
+ *   subject: "bundle",
  *   prepares: true,
  *   open: ({ emit }) => ({ native: updates, check }),
  *   commands,
@@ -26,6 +28,8 @@ export type ReleaseDriver<
   TCommands extends CommandMap<TNative, TOffer, TPrepared>,
 > = {
   name: string;
+  /** The running subject this provider replaces, so an intent can be read back against it. */
+  subject: RunningSubject;
   prepares: boolean;
   open(
     context: DriverContext<TOffer, TPrepared>,

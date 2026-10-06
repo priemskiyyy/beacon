@@ -69,6 +69,7 @@ const commands = {
 export const expoUpdates = ({ updates }: ExpoOptions) =>
   createReleaseDriver<ExpoNative, ExpoBody, ExpoBody, typeof commands>({
     name: "expo-updates",
+    subject: "bundle",
     prepares: true,
     open: ({ emit }) => {
       const native: ExpoNative = { updates };

@@ -80,6 +80,7 @@ export const resolveCommand = (
     return {
       status: "resolved",
       reference: null,
+      target: null,
       invoke: (base) => command.run(base),
     };
   }
@@ -94,6 +95,7 @@ export const resolveCommand = (
     return {
       status: "resolved",
       reference: found.value.ref,
+      target: found.value.release.identity,
       invoke: (base) => command.run({ ...base, prepared: found.value }),
     };
   }
@@ -102,6 +104,7 @@ export const resolveCommand = (
     return {
       status: "resolved",
       reference: null,
+      target: null,
       invoke: (base) => command.run({ ...base, offer: null }),
     };
   }
@@ -116,6 +119,7 @@ export const resolveCommand = (
     return {
       status: "resolved",
       reference: found.value.ref,
+      target: found.value.release.identity,
       invoke: (base) => command.run({ ...base, offer: found.value }),
     };
   }

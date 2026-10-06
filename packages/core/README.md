@@ -41,6 +41,10 @@ A route's source is made with `createReleaseSource({ name, read })`, and its com
 
 `supportPolicy({ source, evaluate })` is the application's own policy: a view of a source's document and a pure function of it and what is running. `beacon.support` publishes `unknown`, `supported`, `deprecated` or `unsupported` with the reasons and the routes that would satisfy it, and whether each is usable now. A policy that lapses is unknown with its last decision kept, and a failing check never turns `supported` into `unsupported`. A requirement is satisfied only by newly observed running facts or a new accepted policy, never by opening a store or downloading.
 
+## Journal
+
+Turn on `journal: { mode, storage }` and Beacon writes an intent before a command that replaces the realm, then reads it back on the next boot: `beacon.transitions` says whether that boot runs the target, runs what ran before, runs something else, or cannot tell, with the boots that left the same target unreached counted against a budget. An intent is not proof a dispatch happened, and nothing here says an installation succeeded or that the boot is healthy: `beacon.reportReady({ checkpoint })` is the application saying its own code reached a point. `required` stops a command whose intent could not be persisted; `best-effort` goes on and says storage degraded. Storage is yours, and no counter is atomic across tabs.
+
 ## Commands
 
 Each command declares which reference it needs (`offer`, `prepared`, `optional-offer` or `none`), what it can do to the running application (`impacts`), and how tightly it is bound (`binding`). A route gets one method per command:

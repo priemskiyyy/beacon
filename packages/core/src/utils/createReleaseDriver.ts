@@ -12,6 +12,7 @@ import type { RouteBody } from "src/types/RouteBody";
  * ```ts
  * const ota = createReleaseDriver<Updates, UpdateBody, UpdateBody, typeof commands>({
  *   name: "expo-updates",
+ *   subject: "bundle",
  *   prepares: true,
  *   open: () => ({ native: updates, check }),
  *   commands,

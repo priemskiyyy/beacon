@@ -13,7 +13,9 @@ import type { RouteDefinition } from "src/types/RouteDefinition";
 import type { RouteHandle } from "src/types/RouteHandle";
 import type { RunningApplication } from "src/types/RunningApplication";
 import type { RunningSubject } from "src/types/RunningSubject";
+import type { ReadyReport } from "src/types/ReadyReport";
 import type { SupportState } from "src/types/SupportState";
+import type { TransitionState } from "src/types/TransitionState";
 import { BeaconError } from "src/utils/BeaconError";
 import {
   DEFAULT_CHECK_TIMEOUT,
@@ -21,6 +23,7 @@ import {
   DEFAULT_SETTLEMENT_TIMEOUT,
 } from "src/utils/constants/defaults";
 import { CommandCoordinator } from "src/utils/internal/commands/CommandCoordinator";
+import { Journal } from "src/utils/internal/journal/Journal";
 import { DisruptionRegistry } from "src/utils/internal/disruptions/DisruptionRegistry";
 import { createSystemClock } from "src/utils/internal/clock/createSystemClock";
 import { Diagnostics } from "src/utils/internal/diagnostics/Diagnostics";
@@ -63,6 +66,7 @@ export class Beacon<
   #running: RunningRegistry;
   #routes: RouteRegistry;
   #disruptions: DisruptionRegistry;
+  #journal: Journal;
   #commands: CommandCoordinator;
   #diagnostics: Diagnostics;
   #names: Array<keyof TRoutes & string>;
@@ -110,6 +114,19 @@ export class Beacon<
   support: ObservableValue<SupportState>;
 
   /**
+   * What the transition journal knows: whether it is off, being read or
+   * degraded, the latest intent and what the running facts say about it, and
+   * the readiness checkpoints this boot reported. Without a journal it says it
+   * is off, and no cross-boot correlation is claimed.
+   *
+   * @example
+   * ```ts
+   * const { latest } = beacon.transitions.get();
+   * ```
+   */
+  transitions: ObservableValue<TransitionState>;
+
+  /**
    * A passive snapshot and event stream for logs and devtools.
    *
    * @example
@@ -135,6 +152,7 @@ export class Beacon<
     running,
     routes,
     policy,
+    journal,
     timeouts = {},
     clock = createSystemClock(),
   }: BeaconOptions<TRoutes>) {
@@ -207,9 +225,19 @@ export class Beacon<
       reportError: reportListenerError,
     });
 
+    this.#journal = new Journal({
+      options: journal,
+      getScope: () => frozenScope,
+      clock,
+      listeners: createListeners(),
+      record: this.#diagnostics.record,
+    });
+
     this.#commands = new CommandCoordinator({
       ledger: this.#routes.getLedger(),
       disruptions: this.#disruptions,
+      journal: this.#journal,
+      getRunning: () => this.#running.state.get(),
       getSession: () => this.#runtime.getSession(),
       createInactiveError: () => this.#createInactiveError(),
       record: this.#diagnostics.record,
@@ -220,10 +248,12 @@ export class Beacon<
       onStart: (session) => {
         this.#initialReads = this.#running.read(session);
         this.#routes.open(session);
+        this.#journal.hydrate(session, () => this.#readRunning());
       },
       onDispose: () => {
         this.#running.close();
         this.#commands.close();
+        this.#journal.close();
         this.#routes.close();
         this.#diagnostics.record("disposed");
         this.#diagnostics.close();
@@ -239,6 +269,7 @@ export class Beacon<
     this.status = this.#runtime.status;
     this.running = this.#running.state;
     this.support = this.#routes.getSupport();
+    this.transitions = this.#journal.state;
     this.diagnostics = this.#diagnostics.view;
     this.disruptions = Object.freeze({ register: this.#disruptions.register });
   }
@@ -320,6 +351,32 @@ export class Beacon<
   };
 
   /**
+   * Records that the application reached a checkpoint in this boot, such as
+   * its primary screen with the data it needs. It says application code got
+   * there, not that nothing will crash later or that stored data is safe in
+   * both directions, and nothing reports it for you. Idempotent per
+   * checkpoint.
+   *
+   * @example
+   * ```ts
+   * beacon.reportReady({ checkpoint: "primary-screen" });
+   * ```
+   */
+  reportReady = ({ checkpoint }: { checkpoint?: string } = {}): ReadyReport =>
+    this.#journal.reportReady(checkpoint);
+
+  /**
+   * Removes the journal's record, for a privacy flow. Nothing in it is
+   * replayed, and no native operation is cancelled or inferred.
+   *
+   * @example
+   * ```ts
+   * await beacon.clearJournal();
+   * ```
+   */
+  clearJournal = () => this.#journal.clear();
+
+  /**
    * Ends the Beacon for good: the session stops, and the last snapshots stay
    * readable. Idempotent.
    *
@@ -331,6 +388,13 @@ export class Beacon<
   dispose = () => {
     this.#runtime.dispose();
   };
+
+  // Every subject's reader has answered, failed or timed out; the journal reads the facts once they are what they will be.
+  async #readRunning() {
+    await this.#awaitRunning(RUNNING_SUBJECTS);
+
+    return this.#running.state.get();
+  }
 
   #getSessionNumber() {
     const session = this.#runtime.getSession();

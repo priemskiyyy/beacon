@@ -1,20 +1,26 @@
-// Typechecked, never run: the real DOM window satisfies the structural type
+// Typechecked, never run: the real DOM window satisfies the structural types
 // the adapter uses, and a route's methods are derived from the commands the
 // mechanism declares.
 import { createReleaseSource, targetRoute } from "@priemskiyyy/beacon";
 import type {
+  JournalStorage,
+  KeyValueStoreLike,
   NoneDecision,
   OfferReference,
   PreparedReference,
   RouteHandle,
+  RunningReaders,
   TargetDecision,
 } from "@priemskiyyy/beacon";
 import { expectTypeOf } from "vitest";
 
 import { browserReload } from "src/browserReload";
+import { browserStorage } from "src/browserStorage";
 import type { BrowserNative } from "src/types/BrowserNative";
 import type { BrowserReloadReceipt } from "src/types/BrowserReloadReceipt";
+import type { BrowserStorageWindowLike } from "src/types/BrowserStorageWindowLike";
 import type { BrowserWindowLike } from "src/types/BrowserWindowLike";
+import { webBuild } from "src/webBuild";
 
 export const target: BrowserWindowLike = window;
 
@@ -71,3 +77,43 @@ export const receipt = async () => {
 
   return null;
 };
+
+// The real Web Storage and the real window fit what the journal's storage asks of them.
+expectTypeOf(window.sessionStorage).toExtend<KeyValueStoreLike>();
+expectTypeOf(window.localStorage).toExtend<KeyValueStoreLike>();
+
+export const storageTarget: BrowserStorageWindowLike = window;
+
+export const journalStorage: JournalStorage = browserStorage();
+
+export const localJournalStorage = browserStorage({
+  area: "local",
+  target: window,
+  verify: false,
+});
+
+// @ts-expect-error -- web storage has a session area and a local one, and nothing else.
+browserStorage({ area: "cookie" });
+
+// @ts-expect-error -- a window that only reloads has no storage.
+browserStorage({ target: { location: { reload: () => {} } } });
+
+// @ts-expect-error -- both areas are asked of the window, since the area is chosen when the journal asks.
+browserStorage({ target: { sessionStorage: window.sessionStorage } });
+
+export const webReader: RunningReaders["web"] = webBuild({
+  authority: "com.example.notes",
+  id: undefined,
+});
+
+// A define the bundler may leave out is undefined or null, and is told apart from a build, so each is accepted.
+export const nullable = webBuild({ authority: "a", id: null, label: null });
+
+// @ts-expect-error -- the id is required, so a build cannot name none by leaving it out.
+webBuild({ authority: "com.example.notes" });
+
+// @ts-expect-error -- the authority is who assigns the ids, so it is required.
+webBuild({ id: "a91b44e" });
+
+// @ts-expect-error -- a build id is text.
+webBuild({ authority: "com.example.notes", id: 7 });

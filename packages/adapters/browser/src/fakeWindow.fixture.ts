@@ -1,4 +1,16 @@
+import type { ReleaseScope } from "@priemskiyyy/beacon";
+
 import type { BrowserWindowLike } from "src/types/BrowserWindowLike";
+
+/** The application id of the page under test, which is `scope.application` and the authority of its builds. */
+export const APPLICATION = "com.example.notes";
+
+export const SCOPE: ReleaseScope = {
+  application: APPLICATION,
+  environment: "production",
+  platform: "web",
+  distribution: "public-web",
+};
 
 export type FakeWindow = BrowserWindowLike & {
   reloads: () => number;

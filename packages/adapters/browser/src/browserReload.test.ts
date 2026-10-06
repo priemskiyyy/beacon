@@ -1,23 +1,19 @@
 import { Beacon, targetRoute } from "@priemskiyyy/beacon";
-import { createMockSource, createTestClock } from "@priemskiyyy/beacon/mock";
+import {
+  createMockJournalStorage,
+  createMockSource,
+  createTestClock,
+  settle,
+} from "@priemskiyyy/beacon/mock";
 import type {
   JournalOptions,
   NoneDecision,
-  ReleaseScope,
   TargetDecision,
 } from "@priemskiyyy/beacon";
 import { expect, test } from "vitest";
 
 import { browserReload } from "src/browserReload";
-import { fakeJournalStorage } from "src/fakeJournalStorage.fixture";
-import { fakeWindow } from "src/fakeWindow.fixture";
-
-const SCOPE: ReleaseScope = {
-  application: "com.example.notes",
-  environment: "production",
-  platform: "web",
-  distribution: "public-web",
-};
+import { fakeWindow, SCOPE } from "src/fakeWindow.fixture";
 
 const target = (value: string): TargetDecision => ({
   kind: "target",
@@ -31,12 +27,6 @@ const target = (value: string): TargetDecision => ({
     label: `Build ${value}`,
   },
 });
-
-// Lets every queued promise continuation run before the test goes on.
-const settle = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
 
 const createWebBeacon = (
   window = fakeWindow(),
@@ -197,7 +187,7 @@ test("without a window a reload is unsupported, and nothing is claimed", async (
 });
 
 test("WEB-06 the intent is persisted before the reload is dispatched, never after it", async () => {
-  const storage = fakeJournalStorage();
+  const storage = createMockJournalStorage();
   const context = createWebBeacon(fakeWindow(), { mode: "required", storage });
   const offer = await startWithOffer(context);
 
@@ -228,7 +218,7 @@ test("WEB-11 without a journal the limitation is visible and a reload still proc
 });
 
 test("WEB-11 a required journal that cannot persist blocks the reload", async () => {
-  const storage = fakeJournalStorage();
+  const storage = createMockJournalStorage();
   const context = createWebBeacon(fakeWindow(), { mode: "required", storage });
   const offer = await startWithOffer(context);
 
@@ -244,7 +234,7 @@ test("WEB-11 a required journal that cannot persist blocks the reload", async ()
 });
 
 test("WEB-10 a document restored from the back-forward cache is the same boot, and starting the session again reports no update boot", async () => {
-  const storage = fakeJournalStorage();
+  const storage = createMockJournalStorage();
 
   const context = createWebBeacon(fakeWindow(), {
     mode: "best-effort",

@@ -249,6 +249,17 @@ test("useStatus reads where the session stands", () => {
   expect(value.current).toBe("running");
 });
 
+test("useStatus without a selector reads the whole status", () => {
+  const { beacon } = createWebBeacon();
+  const { value } = mountView(beacon, () => useStatus());
+
+  expect(value.current).toEqual({ state: "idle" });
+
+  beacon.start();
+
+  expect(value.current).toEqual({ state: "running", session: 1 });
+});
+
 test("useSupport reads support as it stands, which is unknown without a policy", () => {
   const { beacon } = createWebBeacon();
   const { value } = mountView(beacon, () => useSupport());

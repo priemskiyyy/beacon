@@ -1,6 +1,8 @@
 import { render } from "svelte/server";
 import { expect, test } from "vitest";
 import { createWebBeacon, settle } from "../beacon.fixture.js";
+import { useDisruption } from "../utilities/useDisruption.svelte.js";
+import ViewHarness from "../utilities/ViewHarness.fixture.svelte";
 import { STATUS_MARKUP } from "./serverMarkup.fixture.js";
 import StatusHarness from "./StatusHarness.fixture.svelte";
 
@@ -22,6 +24,28 @@ test("a server render reads the value before any session, whatever the Beacon ha
 
   expect(beacon.running.get().web.state).toBe("known");
   expect(render(StatusHarness, { props: { beacon } }).body).toBe(STATUS_MARKUP);
+});
+
+test("a server render registers no disruption participant, since nothing is mounted", async () => {
+  const { beacon } = createWebBeacon();
+
+  // The render runs when its result is read or awaited.
+  await render(ViewHarness, {
+    props: {
+      beacon,
+      read: () =>
+        useDisruption({
+          name: "draft-editor",
+          impacts: ["document-replacement"],
+          reserve: () => ({ status: "blocked", code: "unsaved-draft" }),
+        }),
+    },
+  });
+  beacon.start();
+
+  await expect(beacon.route("web").prefetch()).resolves.toMatchObject({
+    status: "accepted",
+  });
 });
 
 test("BIND-09 two server requests for different accounts share no session and no state", () => {

@@ -54,7 +54,7 @@ beacon.stop();
 
 Callbacks fall silent and owned timers stop. Every `route.native` becomes `null`. It does not undo native side effects: a download that was started keeps going. The observations, the evidence and the last snapshots stay readable, and evidence does not expire while no session runs. When a session opens again, whatever passed expires at once.
 
-An answer that arrives after `stop()` changes nothing and is counted as a late callback. A check that was under way settles as `superseded`.
+An answer that arrives after `stop()`, or a journal storage answer that arrives after its deadline, changes nothing and is counted as a late callback. A check that was under way settles as `superseded`.
 
 While stopped, a command settles as `failed` with `NOT_STARTED`, and it asks no provider. A stopped Beacon can start again. Every start is a new session with a new number, and it reads the running facts again.
 
@@ -93,13 +93,14 @@ Everything else is a status: an outcome, a check that `failed`, an error in stat
 
 ## Timeouts
 
-`timeouts` bounds three things, each 10,000 milliseconds by default.
+`timeouts` bounds four things, each 10,000 milliseconds by default.
 
 | Option       | Bounds                                                                               |
 | ------------ | ------------------------------------------------------------------------------------ |
 | `running`    | how long a running reader may take before its fact is `failed`                       |
 | `check`      | how long a source or a provider may take before the read fails with `SOURCE_TIMEOUT` |
 | `settlement` | how long a participant may take to settle before a command                           |
+| `journal`    | how long one call to the journal's storage may take before it counts as failed       |
 
 A value that is not a positive whole number of milliseconds throws `INVALID_CONFIGURATION` when the Beacon is made.
 

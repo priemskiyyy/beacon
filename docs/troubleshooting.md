@@ -183,11 +183,11 @@ The server and the hydrating render read the state as it stood before any sessio
 
 ## Journal
 
-- `journal: "degraded"`: a read or a write of the storage failed. With `mode: "required"` the next command that replaces the realm settles as `failed` with `JOURNAL_FAILED`.
+- `journal: "degraded"`: a read, a write or a remove of the storage failed or did not answer within `timeouts.journal`. With `mode: "required"` the next command that replaces the realm settles as `failed` with `JOURNAL_FAILED`.
 - `latest.outcome` is `inconclusive`: an identity is unknown or of another domain. Use the same authority and domain for what runs and what the intent aimed at.
 - `latest.outcome` stays `same-boot`: no new boot has been observed. A page restored from the back-forward cache is the same boot. See [browser](browser.md#a-page-restored-from-the-back-forward-cache).
 - A corrupt or future record is ignored, and the diagnostics say `journal-ignored`.
 
 ## Diagnostics
 
-`beacon.diagnostics.events.subscribe` shows what Beacon does as it does it, without a URL, a manifest or a payload: `read-started`, `read-failed`, `command-admitted`, `command-settled`, `route-failed` and the rest. `late-callback` counts an answer that came after its session ended, which is normal after a `stop()`. See [sessions](sessions.md#diagnostics).
+`beacon.diagnostics.events.subscribe` shows what Beacon does as it does it, without a URL, a manifest or a payload: `read-started`, `read-failed`, `command-admitted`, `command-settled`, `route-failed` and the rest. `late-callback` counts an answer that came after its session ended, which is normal after a `stop()`, or a journal storage answer that came after its deadline. See [sessions](sessions.md#diagnostics).

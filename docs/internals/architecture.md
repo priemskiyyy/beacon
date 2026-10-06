@@ -8,20 +8,20 @@ One `Beacon` per application holds named routes. A route is either a feed route,
 
 ## Ownership
 
-| Owner                | What it owns                                                                                                                                                |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Beacon`             | the session (`start`, `stop`, `dispose`), the public handles, and the wiring of the parts below                                                             |
-| `BeaconRuntime`      | the status, the current session and the order of cleanup, through a `ResourceScope`                                                                         |
-| `RunningRegistry`    | what is running per subject (`native`, `bundle`, `web`, `worker`), from readers the application passes                                                      |
-| `RouteRegistry`      | every route's published state, the shared feeds and the drivers; a source read once selects for all its routes in one transaction                           |
-| `FeedRecord`         | one source's accepted document, its evidence, the revision judgement and the expiry timers                                                                  |
-| `SharedRead`         | one in-flight read per source: joined callers, one trailing read, abort of the transport only when nobody waits, timeouts and session fencing               |
-| `RouteRecord`        | one route's snapshot: check, observation, prepared and operation, installed only through a transaction                                                      |
-| `ReferenceLedger`    | the offer and prepared references, minted by the core and recognized by identity                                                                            |
-| `CommandCoordinator` | one operation per route, one disruptive operation across routes, and the order reserve, settle, revalidate, dispatch                                        |
-| `DisruptionRegistry` | the participants, their reservations in registration order, and the registry revision                                                                       |
-| `PolicyRecord`       | the support state, the last valid evaluation beside a failure or a lapse, and the evaluations run only when the document, its evidence or the facts changed |
-| `Journal`            | the intents written before a realm-replacing command, the readiness checkpoints, and the queue that orders every read and write of the record               |
+| Owner                | What it owns                                                                                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Beacon`             | the session (`start`, `stop`, `dispose`), the public handles, and the wiring of the parts below                                                                                   |
+| `BeaconRuntime`      | the status, the current session and the order of cleanup, through a `ResourceScope`                                                                                               |
+| `RunningRegistry`    | what is running per subject (`native`, `bundle`, `web`, `worker`), from readers the application passes                                                                            |
+| `RouteRegistry`      | every route's published state, the shared feeds and the drivers; a source read once selects for all its routes in one transaction                                                 |
+| `FeedRecord`         | one source's accepted document, its evidence, the revision judgement and the expiry timers                                                                                        |
+| `SharedRead`         | one in-flight read per source: joined callers, one trailing read, abort of the transport only when nobody waits, timeouts and session fencing                                     |
+| `RouteRecord`        | one route's snapshot: check, observation, prepared and operation, installed only through a transaction                                                                            |
+| `ReferenceLedger`    | the offer and prepared references, minted by the core and recognized by identity                                                                                                  |
+| `CommandCoordinator` | one operation per route, one disruptive operation across routes, and the order reserve, settle, revalidate, dispatch                                                              |
+| `DisruptionRegistry` | the participants, their reservations in registration order, and the registry revision                                                                                             |
+| `PolicyRecord`       | the support state, the last valid evaluation beside a failure or a lapse, and the evaluations run only when the document, its evidence or the facts changed                       |
+| `Journal`            | the intents written before a realm-replacing command, the readiness checkpoints, and the queue that orders every read and write of the record, each bounded by `timeouts.journal` |
 
 Adapters own their provider's mapping and nothing else. The core never branches on an adapter's name.
 

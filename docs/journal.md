@@ -124,6 +124,7 @@ The record lives under one key for each scope, `beacon/v1/<application>/<environ
 
 - With `required`, the command stops before the provider is asked and settles as `failed` with `JOURNAL_FAILED`.
 - With `best-effort`, the command goes on, the journal is `degraded`, and the intent lives in memory only. It correlates this boot and no later one.
+- Every call to your storage is bounded by `timeouts.journal` (10,000 milliseconds by default). A call that does not answer in time counts as failed, and its late answer is ignored and counted as a `late-callback`. A slow write that was abandoned may still land in storage later, so a storage should not hold on to a write it was told to forget.
 - A record that could not be read is not replaced by one that knows nothing of it. The journal says `degraded` and the write fails the same way.
 
 ## What the next boot says
@@ -143,12 +144,12 @@ const stop = beacon.transitions.subscribe(() => {
 });
 ```
 
-| Field         | Meaning                                                                   |
-| ------------- | ------------------------------------------------------------------------- |
-| `journal`     | `off`, `reading`, `ready`, or `degraded` because a read or a write failed |
-| `latest`      | the most recent intent, and its `outcome`, `attempts` and `exhausted`     |
-| `dropped`     | intents let go because the capacity or their retention ran out            |
-| `checkpoints` | the readiness checkpoints this boot reported                              |
+| Field         | Meaning                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------ |
+| `journal`     | `off`, `reading`, `ready`, or `degraded` because a read, a write or a remove failed or timed out |
+| `latest`      | the most recent intent, and its `outcome`, `attempts` and `exhausted`                            |
+| `dropped`     | intents let go because the capacity or their retention ran out                                   |
+| `checkpoints` | the readiness checkpoints this boot reported                                                     |
 
 When the session opens, the journal reads the record once, waits until every running reader has answered, failed or timed out, and judges each intent from an earlier boot against what runs now. It writes the judged record back. An intent is judged once, by the first boot after it, and then keeps its outcome. An intent from this boot is not judged, since nothing new was observed.
 

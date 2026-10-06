@@ -1,0 +1,62 @@
+{
+  "name": "@priemskiyyy/beacon-expo",
+  "version": "0.1.0",
+  "description": "Expo Updates as a Beacon route: checks, downloads and reloads delegated to expo-updates, with results mapped in full and nothing claimed as running until a later boot shows it.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priemskiyyy/beacon.git",
+    "directory": "packages/adapters/expo"
+  },
+  "bugs": {
+    "url": "https://github.com/priemskiyyy/beacon/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint:typescript": "tsc --noEmit -p .",
+    "lint:eslint": "eslint src",
+    "test:unit": "vitest run --root ../../.. --project expo"
+  },
+  "peerDependencies": {
+    "@priemskiyyy/beacon": ">=0.1.0 <0.2",
+    "expo-updates": ">=57.0.0 <58"
+  },
+  "devDependencies": {
+    "@priemskiyyy/beacon": "workspace:*"
+  },
+  "keywords": [
+    "expo",
+    "expo-updates",
+    "eas-update",
+    "ota",
+    "react-native",
+    "release",
+    "typescript",
+    "beacon",
+    "adapter"
+  ],
+  "peerDependenciesMeta": {
+    "expo-updates": {
+      "optional": true
+    }
+  }
+}

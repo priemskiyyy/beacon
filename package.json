@@ -19,7 +19,7 @@
     "test:scenarios": "node scripts/verify-scenarios.mjs",
     "test:package": "node scripts/verify-packages.mjs",
     "test:consumers": "node scripts/verify-consumers.mjs",
-    "test:release": "node --test scripts/verify-release.test.mjs",
+    "test:release": "node --test scripts/verify-release.test.mjs scripts/mutationShard.test.mjs",
     "test:limits": "node scripts/verify-limits.mjs",
     "test:size": "node scripts/measure-size.mjs",
     "test:mutation": "node scripts/mutate.mjs",
@@ -32,7 +32,7 @@
     "verify:links": "node scripts/verify-links.mjs",
     "verify:peers": "node scripts/verify-peers.mjs",
     "verify:release": "node scripts/verify-release.mjs",
-    "check:release": "pnpm check && pnpm test:release && pnpm test:mutation && pnpm build:docs && pnpm verify:links && pnpm test:consumers && pnpm verify:release && pnpm --filter example-expo build && pnpm --filter example-expo build:native",
+    "check:release": "pnpm check && pnpm test:release && pnpm test:mutation && pnpm build:docs && pnpm verify:links && pnpm test:consumers && pnpm verify:release && pnpm --filter example-expo-lab build && pnpm --filter example-expo build:native && pnpm --filter example-expo-lab build:native",
     "release:version": "node scripts/set-version.mjs",
     "test:coverage": "vitest run --coverage"
   },

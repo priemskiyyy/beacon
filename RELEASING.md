@@ -16,17 +16,17 @@ No package has a runtime dependency, so no other order constraint exists: the SD
 
 ## What is checked, and where
 
-| Check                                                                                                                                         | Command                                                                             | Runs in                                       |
-| --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- |
-| Build, typecheck, lint, tests under Node and a Hermes-like runtime                                                                            | `pnpm check`                                                                        | `packages-test` on Node 22.18.0 and 24        |
-| Mutants of the guarded rules                                                                                                                  | `pnpm test:mutation`                                                                | `packages-test`                               |
-| Formatting                                                                                                                                    | `pnpm lint:prettier`                                                                | `common-format`                               |
-| The rules of the release gate, then the gate                                                                                                  | `pnpm test:release`, `pnpm verify:release`                                          | `packages-verify`                             |
-| Pack, publint, attw, tarball contents, checksums                                                                                              | `pnpm test:package`                                                                 | `packages-verify`                             |
-| The tarballs installed and used in clean consumers (no workspace)                                                                             | `pnpm test:consumers`                                                               | `packages-verify`                             |
-| Documentation: pages, snippets, JSDoc examples, links, the site build                                                                         | `pnpm verify:docs`, `verify:snippets`, `verify:jsdoc`, `verify:links`, `build:docs` | `docs-test`                                   |
-| Chromium: the release lab in every web binding, the Expo web export, the browser package, the triggers, and Metro bundles for iOS and Android | `pnpm test:browser`, `pnpm --filter example-expo build:native`                      | `browser-test`                                |
-| The oldest and newest SDK each adapter claims                                                                                                 | `pnpm verify:peers`                                                                 | `packages-peers`, weekly and before a release |
+| Check                                                                                                                                         | Command                                                                             | Runs in                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Build, typecheck, lint, tests under Node and a Hermes-like runtime                                                                            | `pnpm check`                                                                        | `packages-test` on Node 22.18.0 and 24                  |
+| Mutants of the guarded rules                                                                                                                  | `pnpm test:mutation`                                                                | `packages-test`, eight isolated shards per Node version |
+| Formatting                                                                                                                                    | `pnpm lint:prettier`                                                                | `common-format`                                         |
+| The rules of the release gate, then the gate                                                                                                  | `pnpm test:release`, `pnpm verify:release`                                          | `packages-verify`                                       |
+| Pack, publint, attw, tarball contents, checksums                                                                                              | `pnpm test:package`                                                                 | `packages-verify`                                       |
+| The tarballs installed and used in clean consumers (no workspace)                                                                             | `pnpm test:consumers`                                                               | `packages-verify`                                       |
+| Documentation: pages, snippets, JSDoc examples, links, the site build                                                                         | `pnpm verify:docs`, `verify:snippets`, `verify:jsdoc`, `verify:links`, `build:docs` | `docs-test`                                             |
+| Chromium: the release lab in every web binding, the Expo web export, the browser package, the triggers, and Metro bundles for iOS and Android | `pnpm test:browser`, `pnpm --filter example-expo build:native`                      | `browser-test`                                          |
+| The oldest and newest SDK each adapter claims                                                                                                 | `pnpm verify:peers`                                                                 | `packages-peers`, weekly and before a release           |
 
 `pnpm check:release` runs all of them that need no browser, in the order a release needs them, and `pnpm test:browser` is separate because it needs Chromium (`pnpm exec playwright install chromium`). The consumers need the network. The publish workflow runs every workflow above and publishes only if all pass.
 
@@ -51,6 +51,8 @@ No adapter runs on a device. In a real browser only Chromium runs, under Playwri
 
 ## npm trusted publishers
 
+The initial 0.1.0 publication is a preview and uses the `next` dist-tag. npm may also assign `latest` when a package is first created; the README remains the statement of preview status.
+
 All packages use the GitHub owner `priemskiyyy`, repository `beacon`, workflow `publish.yml` and environment `npm`. Trusted publishing uses GitHub's short-lived OIDC identity, so the repository needs no npm token. The registry settings are in [.github/REPOSITORY_SETUP.md](.github/REPOSITORY_SETUP.md).
 
 The first publication of a new package requires an authenticated npm maintainer, because the package must exist before its trusted publisher can be configured. Publish the verified tarballs from their artifact directories, the core first, then register the workflow for each. Do not create a GitHub release for that same version afterward. A manual publication carries no provenance attestation, which is why the first version is the one without.
@@ -59,7 +61,7 @@ The first publication of a new package requires an authenticated npm maintainer,
 pnpm build && pnpm test:package && pnpm test:consumers
 npm login
 for package in beacon beacon-http beacon-browser beacon-service-worker beacon-app-store beacon-google-play beacon-expo beacon-code-push beacon-device-info beacon-firebase-remote-config beacon-react beacon-vue beacon-solid beacon-svelte beacon-devtools; do
-  (cd ".artifacts/release/@priemskiyyy/$package" && shasum -a 256 -c SHA256SUMS && npm publish ./*.tgz --access public --tag latest)
+  (cd ".artifacts/release/@priemskiyyy/$package" && shasum -a 256 -c SHA256SUMS && npm publish ./*.tgz --access public --tag next --ignore-scripts)
 done
 ```
 

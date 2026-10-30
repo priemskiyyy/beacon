@@ -12,6 +12,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
+import { selectMutationShard } from "./mutationShard.mjs";
+
 const core = "packages/core/src/utils";
 const mock = "packages/core/src/mock";
 const testing = "packages/core/src/testing";
@@ -2236,8 +2238,11 @@ for (const name of chosen) {
   }
 }
 
-const selected = MUTANTS.filter(
-  (mutant) => chosen.length === 0 || chosen.includes(mutant.project),
+const selected = selectMutationShard(
+  MUTANTS.filter(
+    (mutant) => chosen.length === 0 || chosen.includes(mutant.project),
+  ),
+  process.env.MUTATION_SHARD,
 );
 
 // Every mutant is held to this, the ones a filter leaves out too, so that a file that moved is found by whoever runs any of them.

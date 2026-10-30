@@ -73,7 +73,34 @@ jobs:
       - name: Unit tests
         run: pnpm test:unit
 
-      # Each mutant weakens one rule; a mutant the tests do not kill is a missing test or dead code.
+  mutations:
+    name: mutations (${{ matrix.node }}, ${{ matrix.shard }}/8)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22.18.0", "24"]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    env:
+      MUTATION_SHARD: ${{ matrix.shard }}/8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Mutation shard rules
+        run: pnpm test:release
+
       - name: Mutation checks
         run: pnpm test:mutation
 

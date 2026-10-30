@@ -83,7 +83,7 @@ Each item is a specified feature or an adapter that was left out, not a decision
 - **Expo hook bridge**: the Expo route is the command profile, and autonomous native startup checks are not observed.
 - **Adapters for a desktop or extension host and for Capacitor**: Electron, Tauri, browser extensions and Capacitor each have their own update channel and their own way to read the binary, and nothing in this repository can run one. `@priemskiyyy/beacon-expo` and `@priemskiyyy/beacon-device-info` read React Native and Expo only.
 - **Adapters for the other over-the-air updaters that work like CodePush**, such as `hot-updater` and Capawesome's live update: each has a JavaScript API of its own that nothing here was proved against, so the CodePush adapter maps only the family that shares Microsoft's.
-- **The ecosystem bridges** to Silo, Switchboard, OpenFeature, Porter, Flare and Simulcast. An application can read each through a source or a policy of its own. A Pulse and a Reach condition are not on the list: the triggers take them as they are.
+- **The ecosystem bridges** to Silo, Prism, OpenFeature, Porter, Flare and Simulcast. An application can read each through a source or a policy of its own. A Pulse and a Reach condition are not on the list: the triggers take them as they are.
 - **More than one registered Beacon** in one program: `Register` names one, and the hooks read that one. Any other Beacon is read with `useObservable(other.route("name").state)`.
 - **Optional signatures** on manifests, and the rejection of duplicate JSON keys in the standard manifest, whose decoder keeps the last key.
 - **Reload recovery** for a stale chunk and page-restoration (BFCache) handling in the browser adapter.

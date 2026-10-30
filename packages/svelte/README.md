@@ -2,6 +2,8 @@
 
 Svelte 5 bindings for [Beacon](../core): utilities that read route state and what is running through `current`, and a provider that holds the observation session while it is mounted. Reading never starts a session, checks a route or requests a command.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

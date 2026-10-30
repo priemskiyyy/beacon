@@ -2,6 +2,8 @@
 
 Google Play for [Beacon](../../core), as two routes for two needs. `playStore` opens the Play Store page of your app, with no native code of your own. `googlePlay({ bridge })` maps Play's in-app updates, and **needs a native bridge you write**: no package ships one, and nothing has run it on a device. Play owns eligibility, the flows and the version order; this adapter maps what it says and claims nothing as installed until a later boot shows the running build.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

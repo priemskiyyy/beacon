@@ -2,6 +2,8 @@
 
 Firebase Remote Config as a [Beacon](../../core) release source, for React Native (`@react-native-firebase/remote-config`) and the web (`firebase/remote-config`). The canonical use is a forced-upgrade gate: the minimum build you keep in Remote Config, read by `minimumBuild`. The source builds your document from what the server sent, and it never turns an application default, a key nothing defines or a configuration that never fetched into a server's answer.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

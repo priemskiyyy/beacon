@@ -2,6 +2,8 @@
 
 The React Native CodePush family as a [Beacon](../../core) route and its running reader: Microsoft's `react-native-code-push` and the forks that kept its JavaScript API, `@revopush/react-native-code-push`, `@bravemobile/react-native-code-push` and `@appzung/react-native-code-push`. CodePush owns discovery, the download, the install and the rollback; this adapter maps what it says, says so when it cannot say more, and claims nothing as running until a later boot shows it.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

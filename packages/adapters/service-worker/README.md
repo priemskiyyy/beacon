@@ -2,6 +2,8 @@
 
 A service worker registration as a [Beacon](../../core) route. A waiting worker next to one that is already active is an update that is ready; asking it to activate is a request that proves nothing; and only a reload runs the new document. The adapter never registers, unregisters or replaces a worker. An app whose worker precaches the app shell needs it, since `browserReload` alone reloads the cached build.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

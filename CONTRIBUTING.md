@@ -41,4 +41,4 @@ Everything runs against fakes. What a device or a real browser still has to veri
 
 ## Commits
 
-Commit in small, atomic steps with short conventional messages, such as `feat(expo): map the whole check result`. No em dashes or attribution footers anywhere in the repository, including commit messages and changelog entries.
+Commit in small, atomic steps with short conventional messages, such as `feat(expo): map the whole check result`. Use concise prose and plain punctuation.

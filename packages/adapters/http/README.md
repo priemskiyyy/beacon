@@ -2,6 +2,8 @@
 
 Your release manifest as a [Beacon](../../core) release source. `standardManifestSource` asks for a manifest at a URL and reads it, so a file next to your app is one call, and `http` is the door for your own client, which owns the transport, authentication, retries and response validation.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

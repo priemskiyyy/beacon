@@ -2,6 +2,8 @@
 
 Reloading the browser document as a [Beacon](../../core) update mechanism. It requests a navigation and claims nothing more: the next document may be the same build, another one, or never arrive, and only the next boot can show what runs. It also has the pieces that let the next boot judge a reload: `webBuild`, the reader of the running web build, `webRelease`, the same build named in a source of your own, and `browserStorage`, the journal's storage in the tab.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

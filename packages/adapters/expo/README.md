@@ -2,6 +2,8 @@
 
 Expo Updates as a [Beacon](../../core) route, `applyUpdate` for the banner's button, the installed native build from `expo-application`, and a fake `expo-updates` for development and tests. Discovery, eligibility, asset fetching and startup selection stay with `expo-updates`; this adapter maps what the SDK says in full and claims nothing as running until a later boot shows it.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

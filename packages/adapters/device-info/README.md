@@ -2,6 +2,8 @@
 
 The installed native build as a [Beacon](../../core) running reader, for a React Native app that reads it with `react-native-device-info`. It reads the version code or the build number and names it the way the store adapters name their releases, so the journal and a support policy compare like with like. The SDK is yours: the package never imports it and never configures it. An Expo app reads the same facts from `expo-application` with `expoApplication` of [`@priemskiyyy/beacon-expo`](../expo).
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

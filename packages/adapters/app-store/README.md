@@ -2,6 +2,8 @@
 
 The App Store page of your app as a [Beacon](../../core) route: Apple's lookup as an advisory marketing-release source, and a handoff that opens the store page. Neither installs anything, and a marketing version is never presented as the exact native build a device will receive.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh

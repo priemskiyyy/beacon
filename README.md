@@ -2,6 +2,8 @@
 
 **Release awareness and update coordination for React and React Native apps.**
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 [Documentation](https://priemskiyyy.github.io/beacon/) · [Changelog](CHANGELOG.md)
 
 Beacon keeps one model of what your app is running, what its release authorities want and which update actions can be requested, and it never claims an installation nobody observed. A banner that offers an update and never restarts over unsaved input, and a screen that stops a build that is too old, are a few small files. A reload, a store handoff and a downloaded update are each a request or a preparation: only the next boot shows what runs.

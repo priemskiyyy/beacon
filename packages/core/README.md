@@ -2,6 +2,8 @@
 
 Release awareness and update coordination for React and React Native apps. One `Beacon` keeps what your app is running, what its release authorities want and which provider actions can be requested, and never claims an installation nobody observed. It has no dependencies, no timer and subscribes to nothing until you start a session.
 
+Version 0.1.0 is an initial preview. APIs may change before 1.0. See the [verification limits](https://github.com/priemskiyyy/beacon/blob/main/docs/verification.md) before adopting an adapter.
+
 ## Installation
 
 ```sh
